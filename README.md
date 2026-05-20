@@ -66,5 +66,3 @@ O caminho mais simples é Vercel:
 4. Publicar com as definições automáticas de Next.js.
 
 Também pode ser publicado em Netlify, desde que o projeto seja tratado como Next.js, com comando de build `npm run build`.
-Atualização admin Supabase.
-Deploy ligado ao repositório final.

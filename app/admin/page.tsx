@@ -13,7 +13,12 @@ export default async function AdminPage() {
           <h1>Backoffice inicial</h1>
           <span>A primeira ligação entre o site, a base de dados e a futura máquina editorial.</span>
         </div>
-        <a href="/">Voltar ao site</a>
+        <div className="admin-hero-actions">
+          <a href="/">Voltar ao site</a>
+          <form action="/api/admin/logout" method="post">
+            <button type="submit">Sair</button>
+          </form>
+        </div>
       </header>
 
       {!overview.configured ? (
