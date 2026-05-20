@@ -1,0 +1,254 @@
+# Jornada.pt - Modelo de dados
+
+Este modelo e a base para a futura base de dados. A ideia central e que cada conteudo editorial fique ligado ao evento competitivo certo.
+
+## Entidades principais
+
+### Competition
+
+Representa uma competicao.
+
+Campos principais:
+
+- id
+- nome
+- slug
+- pais
+- logotipo
+- cor
+- ativo
+
+Exemplos: Premier League, Liga Portugal, La Liga, Champions.
+
+### Season
+
+Representa uma epoca dentro de uma competicao.
+
+Campos principais:
+
+- id
+- competition_id
+- nome
+- data_inicio
+- data_fim
+- atual
+
+Exemplo: 2024/25.
+
+### Matchday
+
+Representa a unidade narrativa principal do Jornada.pt.
+
+Campos principais:
+
+- id
+- season_id
+- numero
+- nome
+- data_inicio
+- data_fim
+- estado
+- resumo_contextual
+
+Uma jornada deve conseguir mostrar resultados, classificacao, noticias, manchete, golos e proximos jogos daquele momento.
+
+### Team
+
+Representa um clube ou selecao.
+
+Campos principais:
+
+- id
+- nome
+- nome_curto
+- slug
+- pais
+- emblema
+- cor
+
+### Match
+
+Representa um jogo.
+
+Campos principais:
+
+- id
+- competition_id
+- season_id
+- matchday_id
+- home_team_id
+- away_team_id
+- estado
+- minuto
+- data_hora
+- resultado_casa
+- resultado_fora
+- estadio
+- canal_tv_id
+
+Estados possiveis:
+
+- scheduled
+- live
+- halftime
+- finished
+- postponed
+- cancelled
+
+### Standing
+
+Representa a classificacao num momento concreto.
+
+Campos principais:
+
+- id
+- competition_id
+- season_id
+- matchday_id
+- generated_at
+- label_momento
+
+### StandingRow
+
+Linha da classificacao.
+
+Campos principais:
+
+- standing_id
+- team_id
+- posicao
+- jogos
+- vitorias
+- empates
+- derrotas
+- golos_marcados
+- golos_sofridos
+- diferenca_golos
+- pontos
+- jogos_casa
+- vitorias_casa
+- empates_casa
+- derrotas_casa
+- jogos_fora
+- vitorias_fora
+- empates_fora
+- derrotas_fora
+
+### Article
+
+Representa uma noticia ou texto editorial.
+
+Campos principais:
+
+- id
+- titulo
+- resumo
+- corpo
+- imagem
+- fonte_url
+- estado_publicacao
+- published_at
+- competition_id
+- season_id
+- matchday_id
+- match_id
+
+Uma noticia pode tambem ficar associada a clubes, jogadores e eventos.
+
+### Headline
+
+Representa a manchete principal de uma jornada, competicao ou homepage.
+
+Campos principais:
+
+- id
+- titulo
+- resumo
+- imagem
+- competition_id
+- season_id
+- matchday_id
+- match_id
+- article_id
+- prioridade
+- estado_publicacao
+
+### Event
+
+Representa um acontecimento competitivo.
+
+Campos principais:
+
+- id
+- match_id
+- minuto
+- tipo
+- titulo
+- team_id
+- player_id
+
+Tipos possiveis:
+
+- goal
+- card
+- substitution
+- var
+- injury
+- context
+
+### Goal
+
+Representa um golo.
+
+Campos principais:
+
+- id
+- match_id
+- team_id
+- player_id
+- minuto
+- penalty
+- own_goal
+
+### LiveUpdate
+
+Representa uma atualizacao ao minuto.
+
+Campos principais:
+
+- id
+- competition_id
+- season_id
+- matchday_id
+- match_id
+- minuto_label
+- titulo
+- tom
+- created_at
+
+### BroadcastChannel
+
+Representa canal/plataforma onde passa o jogo.
+
+Campos principais:
+
+- id
+- nome
+- plataforma
+- pais
+- logotipo
+
+## Regra de ouro
+
+Nenhum conteudo editorial importante deve existir isolado.
+
+Sempre que possivel, deve apontar para:
+
+- competicao
+- epoca
+- jornada
+- jogo
+- clube
+- jogador
+- resultado
+- classificacao daquele momento
