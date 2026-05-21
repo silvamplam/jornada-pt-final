@@ -299,13 +299,6 @@ const matchAdminStyles = `
     cursor: pointer;
   }
 
-  .match-form > .match-admin-button {
-    grid-column: 2;
-    width: 118px;
-    align-self: start;
-    justify-self: end;
-  }
-
   .match-admin-button:disabled,
   .match-field input:disabled,
   .match-field select:disabled {
@@ -322,21 +315,11 @@ const matchAdminStyles = `
       grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       max-width: none;
     }
-
-    .match-form > .match-admin-button {
-      grid-column: 2;
-      justify-self: end;
-    }
   }
 
   @media (max-width: 980px) {
     .match-form {
       grid-template-columns: 1fr;
-    }
-
-    .match-form > .match-admin-button {
-      grid-column: 1;
-      justify-self: start;
     }
   }
 
@@ -825,9 +808,8 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
                 true
               )}
               {renderMatchFields(match, overview, canWrite)}
+              <button className="match-admin-button" disabled={!canWrite} type="submit">Guardar</button>
             </div>
-
-            <button className="match-admin-button" disabled={!canWrite} type="submit">Guardar</button>
           </form>
         ))}
       </section>
