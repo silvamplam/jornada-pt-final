@@ -52,6 +52,7 @@ export type BroadcastChannel = {
   platform: string;
   region: string;
   coverage: string;
+  logoUrl?: string;
 };
 
 export type Match = {
@@ -485,6 +486,15 @@ export function formatMatchDate(kickoff: string): string {
 }
 
 export function getBroadcastLogo(match: Match): BroadcastLogo {
+  if (match.broadcast?.logoUrl) {
+    return {
+      label: match.broadcast.channel,
+      modifier: "tv",
+      src: match.broadcast.logoUrl,
+      title: match.broadcast.channel
+    };
+  }
+
   const platform = match.broadcast?.platform ?? match.broadcast?.channel ?? "TV";
   const channel = match.broadcast?.channel ?? "Canal a confirmar";
   const source = `${platform} ${channel}`.toLowerCase();

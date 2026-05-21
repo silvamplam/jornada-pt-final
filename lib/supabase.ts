@@ -35,6 +35,29 @@ export type SupabaseBroadcastChannel = {
   logo_url: string | null;
 };
 
+export type SupabaseMatch = {
+  id: string;
+  competition_id: string;
+  season_id: string;
+  matchday_id: string | null;
+  home_team_id: string;
+  away_team_id: string;
+  status: string;
+  minute: number | null;
+  kickoff_at: string;
+  home_score: number | null;
+  away_score: number | null;
+  venue: string | null;
+  broadcast_channel_id: string | null;
+};
+
+export type SupabaseAdminMatch = SupabaseMatch & {
+  competition: SupabaseCompetition | null;
+  homeTeam: SupabaseTeam | null;
+  awayTeam: SupabaseTeam | null;
+  broadcastChannel: SupabaseBroadcastChannel | null;
+};
+
 export type AdminOverview = {
   configured: boolean;
   error?: string;
@@ -216,6 +239,73 @@ export async function getAdminBroadcastChannels(): Promise<{
       configured: true,
       writeConfigured,
       error: error instanceof Error ? error.message : "Erro desconhecido ao ler canais TV.",
+      broadcastChannels: []
+    };
+  }
+}
+
+function mapById<T extends { id: string }>(items: T[]): Map<string, T> {
+  return new Map(items.map((item) => [item.id, item]));
+}
+
+export async function getAdminMatchesTv(): Promise<{
+  configured: boolean;
+  writeConfigured: boolean;
+  error?: string;
+  matches: SupabaseAdminMatch[];
+  broadcastChannels: SupabaseBroadcastChannel[];
+}> {
+  const readConfigured = Boolean(getSupabaseConfig());
+  const writeConfigured = Boolean(getSupabaseServiceConfig());
+
+  if (!readConfigured) {
+    return {
+      configured: false,
+      writeConfigured,
+      matches: [],
+      broadcastChannels: []
+    };
+  }
+
+  try {
+    const readTable = writeConfigured ? fetchSupabaseAdminTable : fetchSupabaseTable;
+    const [matches, competitions, teams, broadcastChannels] = await Promise.all([
+      readTable<SupabaseMatch>(
+        "matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,status,minute,kickoff_at,home_score,away_score,venue,broadcast_channel_id&order=kickoff_at.asc&limit=120"
+      ),
+      readTable<SupabaseCompetition>(
+        "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
+      ),
+      readTable<SupabaseTeam>(
+        "teams?select=id,name,short_name,slug,country,logo_url,primary_color&order=name.asc"
+      ),
+      readTable<SupabaseBroadcastChannel>(
+        "broadcast_channels?select=id,name,platform,country,logo_url&order=name.asc"
+      )
+    ]);
+
+    const competitionsById = mapById(competitions);
+    const teamsById = mapById(teams);
+    const channelsById = mapById(broadcastChannels);
+
+    return {
+      configured: true,
+      writeConfigured,
+      matches: matches.map((match) => ({
+        ...match,
+        competition: competitionsById.get(match.competition_id) ?? null,
+        homeTeam: teamsById.get(match.home_team_id) ?? null,
+        awayTeam: teamsById.get(match.away_team_id) ?? null,
+        broadcastChannel: match.broadcast_channel_id ? channelsById.get(match.broadcast_channel_id) ?? null : null
+      })),
+      broadcastChannels
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      writeConfigured,
+      error: error instanceof Error ? error.message : "Erro desconhecido ao ler jogos.",
+      matches: [],
       broadcastChannels: []
     };
   }

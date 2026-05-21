@@ -60,6 +60,7 @@ create table if not exists broadcast_channels (
 
 create table if not exists matches (
   id uuid primary key default gen_random_uuid(),
+  source_key text unique,
   competition_id uuid not null references competitions(id) on delete cascade,
   season_id uuid not null references seasons(id) on delete cascade,
   matchday_id uuid references matchdays(id) on delete set null,

@@ -319,6 +319,7 @@ export default async function AdminPage() {
           <nav className="admin-section-actions" aria-label="Ferramentas do backoffice">
             <a href="/admin/clubes">Gerir clubes</a>
             <a href="/admin/canais-tv">Gerir canais TV</a>
+            <a href="/admin/jogos-tv">Ligar jogos a TV</a>
           </nav>
 
           <section className="admin-grid">
