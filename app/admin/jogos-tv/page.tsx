@@ -112,10 +112,10 @@ const matchTvAdminStyles = `
 
   .match-tv-form {
     display: grid;
-    grid-template-columns: minmax(130px, 0.8fr) minmax(280px, 1.8fr) 78px minmax(210px, 1.1fr) auto;
-    gap: 12px;
+    grid-template-columns: 150px minmax(260px, 1.6fr) 42px minmax(190px, 1fr) minmax(170px, 0.9fr) 112px;
+    gap: 10px;
     align-items: center;
-    padding: 14px 18px;
+    padding: 12px 16px;
     border-bottom: 1px solid #eef2f6;
   }
 
@@ -125,7 +125,7 @@ const matchTvAdminStyles = `
 
   .match-tv-meta {
     display: grid;
-    gap: 3px;
+    gap: 2px;
   }
 
   .match-tv-meta strong,
@@ -141,20 +141,22 @@ const matchTvAdminStyles = `
 
   .match-tv-game {
     display: grid;
-    gap: 4px;
+    gap: 3px;
+    min-width: 0;
   }
 
   .match-tv-score {
     text-align: center;
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 900;
   }
 
   .match-tv-channel {
     display: grid;
-    grid-template-columns: 44px minmax(0, 1fr);
-    gap: 10px;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 9px;
     align-items: center;
+    min-width: 0;
   }
 
   .match-tv-channel figure {
@@ -181,9 +183,18 @@ const matchTvAdminStyles = `
     object-fit: contain;
   }
 
+  .match-tv-channel strong,
+  .match-tv-channel small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .match-tv-select {
     display: grid;
     gap: 5px;
+    min-width: 0;
   }
 
   .match-tv-select label {
@@ -210,8 +221,9 @@ const matchTvAdminStyles = `
   }
 
   .match-tv-form button {
+    width: 100%;
     min-height: 39px;
-    padding: 10px 13px;
+    padding: 10px 12px;
     border: 0;
     border-radius: 6px;
     background: #e5252a;
@@ -229,7 +241,7 @@ const matchTvAdminStyles = `
     opacity: 0.55;
   }
 
-  @media (max-width: 1100px) {
+  @media (max-width: 860px) {
     .match-tv-form {
       grid-template-columns: 1fr 1fr;
     }
