@@ -226,6 +226,15 @@ export type BroadcastLogo = {
   title: string;
 };
 
+export type BroadcastOverride = {
+  matchId: string;
+  channel: string;
+  platform?: string | null;
+  region?: string | null;
+  coverage?: string | null;
+  logoUrl?: string | null;
+};
+
 const sportTvLogos: Record<string, string> = {
   "1": "https://upload.wikimedia.org/wikipedia/commons/2/2e/Sport_TV1_%282023%29.svg",
   "2": "https://upload.wikimedia.org/wikipedia/commons/2/20/Sport_TV2_%282023%29.svg",
@@ -441,6 +450,63 @@ export function getHomeContext(): HomeContext {
     topArticles,
     liveUpdates,
     goals
+  };
+}
+
+function applyBroadcastOverrideToMatch(match: ResolvedMatch, overrides: Map<string, BroadcastOverride>): ResolvedMatch {
+  const override = overrides.get(match.id);
+
+  if (!override) {
+    return match;
+  }
+
+  return {
+    ...match,
+    broadcast: {
+      channel: override.channel,
+      platform: override.platform ?? match.broadcast?.platform ?? override.channel,
+      region: override.region ?? match.broadcast?.region ?? "Portugal",
+      coverage: override.coverage ?? match.broadcast?.coverage ?? "Direto",
+      logoUrl: override.logoUrl ?? match.broadcast?.logoUrl
+    }
+  };
+}
+
+export function applyBroadcastOverridesToCompetitionContext(
+  context: CompetitionContext,
+  broadcastOverrides: BroadcastOverride[]
+): CompetitionContext {
+  if (broadcastOverrides.length === 0) {
+    return context;
+  }
+
+  const overrides = new Map(broadcastOverrides.map((override) => [override.matchId, override]));
+  const patchMatch = (match: ResolvedMatch) => applyBroadcastOverrideToMatch(match, overrides);
+
+  return {
+    ...context,
+    headlineMatch: context.headlineMatch ? patchMatch(context.headlineMatch) : undefined,
+    matches: context.matches.map(patchMatch),
+    upcomingMatches: context.upcomingMatches.map(patchMatch)
+  };
+}
+
+export function applyBroadcastOverridesToHomeContext(
+  context: HomeContext,
+  broadcastOverrides: BroadcastOverride[]
+): HomeContext {
+  if (broadcastOverrides.length === 0) {
+    return context;
+  }
+
+  const overrides = new Map(broadcastOverrides.map((override) => [override.matchId, override]));
+  const patchMatch = (match: ResolvedMatch) => applyBroadcastOverrideToMatch(match, overrides);
+
+  return {
+    ...context,
+    featured: applyBroadcastOverridesToCompetitionContext(context.featured, broadcastOverrides),
+    contexts: context.contexts.map((item) => applyBroadcastOverridesToCompetitionContext(item, broadcastOverrides)),
+    mixedMatches: context.mixedMatches.map(patchMatch)
   };
 }
 

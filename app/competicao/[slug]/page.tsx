@@ -2,7 +2,13 @@ import { notFound } from "next/navigation";
 import { ContextDashboard } from "@/components/ContextDashboard";
 import { ContextHeader } from "@/components/ContextHeader";
 import { SiteHeader } from "@/components/SiteHeader";
-import { getCompetitionContext, getCompetitionStaticParams, getCompetitions } from "@/lib/jornada";
+import {
+  applyBroadcastOverridesToCompetitionContext,
+  getCompetitionContext,
+  getCompetitionStaticParams,
+  getCompetitions
+} from "@/lib/jornada";
+import { getPublicBroadcastOverrides } from "@/lib/supabase";
 
 type CompetitionPageProps = {
   params: Promise<{
@@ -14,13 +20,17 @@ export function generateStaticParams() {
   return getCompetitionStaticParams();
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function CompetitionPage({ params }: CompetitionPageProps) {
   const { slug } = await params;
-  const context = getCompetitionContext(slug);
+  const baseContext = getCompetitionContext(slug);
 
-  if (!context) {
+  if (!baseContext) {
     notFound();
   }
+
+  const context = applyBroadcastOverridesToCompetitionContext(baseContext, await getPublicBroadcastOverrides());
 
   return (
     <>

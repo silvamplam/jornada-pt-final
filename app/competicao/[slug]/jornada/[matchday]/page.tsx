@@ -2,7 +2,13 @@ import { notFound } from "next/navigation";
 import { ContextDashboard } from "@/components/ContextDashboard";
 import { ContextHeader } from "@/components/ContextHeader";
 import { SiteHeader } from "@/components/SiteHeader";
-import { getCompetitionContext, getCompetitions, getMatchdayStaticParams } from "@/lib/jornada";
+import {
+  applyBroadcastOverridesToCompetitionContext,
+  getCompetitionContext,
+  getCompetitions,
+  getMatchdayStaticParams
+} from "@/lib/jornada";
+import { getPublicBroadcastOverrides } from "@/lib/supabase";
 
 type MatchdayPageProps = {
   params: Promise<{
@@ -15,14 +21,18 @@ export function generateStaticParams() {
   return getMatchdayStaticParams();
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function MatchdayPage({ params }: MatchdayPageProps) {
   const { slug, matchday } = await params;
   const matchdayNumber = Number(matchday);
-  const context = Number.isNaN(matchdayNumber) ? undefined : getCompetitionContext(slug, matchdayNumber);
+  const baseContext = Number.isNaN(matchdayNumber) ? undefined : getCompetitionContext(slug, matchdayNumber);
 
-  if (!context) {
+  if (!baseContext) {
     notFound();
   }
+
+  const context = applyBroadcastOverridesToCompetitionContext(baseContext, await getPublicBroadcastOverrides());
 
   return (
     <>

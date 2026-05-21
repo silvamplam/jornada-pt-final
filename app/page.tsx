@@ -1,9 +1,12 @@
 import { HomeDashboard } from "@/components/HomeDashboard";
 import { SiteHeader } from "@/components/SiteHeader";
-import { getHomeContext } from "@/lib/jornada";
+import { applyBroadcastOverridesToHomeContext, getHomeContext } from "@/lib/jornada";
+import { getPublicBroadcastOverrides } from "@/lib/supabase";
 
-export default function HomePage() {
-  const context = getHomeContext();
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const context = applyBroadcastOverridesToHomeContext(getHomeContext(), await getPublicBroadcastOverrides());
 
   return (
     <>

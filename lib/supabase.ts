@@ -1,3 +1,5 @@
+import type { BroadcastOverride } from "@/lib/jornada";
+
 export type SupabaseConfig = {
   url: string;
   anonKey: string;
@@ -37,6 +39,7 @@ export type SupabaseBroadcastChannel = {
 
 export type SupabaseMatch = {
   id: string;
+  source_key?: string | null;
   competition_id: string;
   season_id: string;
   matchday_id: string | null;
@@ -308,6 +311,54 @@ export async function getAdminMatchesTv(): Promise<{
       matches: [],
       broadcastChannels: []
     };
+  }
+}
+
+type SupabasePublicBroadcastMatch = {
+  source_key: string | null;
+  broadcast_channel_id: string | null;
+};
+
+export async function getPublicBroadcastOverrides(): Promise<BroadcastOverride[]> {
+  if (!getSupabaseConfig()) {
+    return [];
+  }
+
+  try {
+    const [matches, broadcastChannels] = await Promise.all([
+      fetchSupabaseTable<SupabasePublicBroadcastMatch>(
+        "matches?select=source_key,broadcast_channel_id&source_key=not.is.null&broadcast_channel_id=not.is.null&order=kickoff_at.asc&limit=200"
+      ),
+      fetchSupabaseTable<SupabaseBroadcastChannel>(
+        "broadcast_channels?select=id,name,platform,country,logo_url&order=name.asc"
+      )
+    ]);
+    const channelsById = mapById(broadcastChannels);
+
+    return matches.flatMap((match) => {
+      if (!match.source_key || !match.broadcast_channel_id) {
+        return [];
+      }
+
+      const channel = channelsById.get(match.broadcast_channel_id);
+
+      if (!channel) {
+        return [];
+      }
+
+      return [
+        {
+          matchId: match.source_key,
+          channel: channel.name,
+          platform: channel.platform,
+          region: channel.country,
+          coverage: "Direto",
+          logoUrl: channel.logo_url
+        }
+      ];
+    });
+  } catch {
+    return [];
   }
 }
 
