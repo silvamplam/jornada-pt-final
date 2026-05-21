@@ -17,6 +17,12 @@ Campos principais:
 - logotipo
 - cor
 - ativo
+- data_source
+- external_provider
+- external_id
+- last_synced_at
+- sync_status
+- manual_override
 
 Exemplos: Premier League, Liga Portugal, La Liga, Champions.
 
@@ -32,6 +38,12 @@ Campos principais:
 - data_inicio
 - data_fim
 - atual
+- data_source
+- external_provider
+- external_id
+- last_synced_at
+- sync_status
+- manual_override
 
 Exemplo: 2024/25.
 
@@ -49,6 +61,12 @@ Campos principais:
 - data_fim
 - estado
 - resumo_contextual
+- data_source
+- external_provider
+- external_id
+- last_synced_at
+- sync_status
+- manual_override
 
 Uma jornada deve conseguir mostrar resultados, classificacao, noticias, manchete, golos e proximos jogos daquele momento.
 
@@ -65,6 +83,12 @@ Campos principais:
 - pais
 - emblema
 - cor
+- data_source
+- external_provider
+- external_id
+- last_synced_at
+- sync_status
+- manual_override
 
 ### Match
 
@@ -85,6 +109,13 @@ Campos principais:
 - resultado_fora
 - estadio
 - canal_tv_id
+- data_source
+- external_provider
+- external_id
+- external_match_id
+- last_synced_at
+- sync_status
+- manual_override
 
 Estados possiveis:
 
@@ -107,6 +138,12 @@ Campos principais:
 - matchday_id
 - generated_at
 - label_momento
+- data_source
+- external_provider
+- external_id
+- last_synced_at
+- sync_status
+- manual_override
 
 ### StandingRow
 

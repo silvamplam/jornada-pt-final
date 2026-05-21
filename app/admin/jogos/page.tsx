@@ -249,6 +249,38 @@ const matchAdminStyles = `
     object-fit: contain;
   }
 
+  .match-sync-badge {
+    display: inline-flex;
+    width: fit-content;
+    max-width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #dce3eb;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #44505c;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .match-sync-badge.api {
+    border-color: #b9ddff;
+    background: #eef7ff;
+    color: #0b5fa5;
+  }
+
+  .match-sync-badge.mixed,
+  .match-sync-badge.override {
+    border-color: #ffd3a3;
+    background: #fff8ee;
+    color: #8a3a00;
+  }
+
+  .match-sync-time {
+    color: #687380;
+    font-size: 11px;
+  }
+
   .match-admin-button {
     width: 100%;
     min-height: 39px;
@@ -405,6 +437,53 @@ function channelPreview(channel: SupabaseBroadcastChannel | null) {
   );
 }
 
+function formatSyncTime(value: string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat("pt-PT", {
+    timeZone: "Europe/Lisbon",
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function sourceBadge(match: SupabaseAdminMatch, syncMetadataAvailable: boolean) {
+  if (!syncMetadataAvailable) {
+    return null;
+  }
+
+  const source = match.data_source ?? "manual";
+  const isOverride = Boolean(match.manual_override);
+  const label = isOverride
+    ? "Corrigido pelo administrador"
+    : source === "api"
+      ? "Sincronizado por API"
+      : source === "mixed"
+        ? "Dados mistos"
+        : "Introduzido manualmente";
+  const lastSync = formatSyncTime(match.last_synced_at);
+  const provider = match.external_provider ? `Fonte: ${match.external_provider}` : null;
+
+  return (
+    <>
+      <span className={`match-sync-badge ${isOverride ? "override" : source}`}>{label}</span>
+      {provider ? <span className="match-sync-time">{provider}</span> : null}
+      {lastSync ? <span className="match-sync-time">Ultima sincronizacao: {lastSync}</span> : null}
+    </>
+  );
+}
+
 function renderMatchFields(
   match: SupabaseAdminMatch,
   overview: AdminMatchesOverview,
@@ -413,6 +492,12 @@ function renderMatchFields(
   return (
     <>
       <input name="source_key" type="hidden" defaultValue={match.source_key ?? ""} />
+      {overview.syncMetadataAvailable ? (
+        <>
+          <input name="sync_metadata_available" type="hidden" value="1" />
+          <input name="current_data_source" type="hidden" value={match.data_source ?? "manual"} />
+        </>
+      ) : null}
       {selectField(
         `competition-${match.id}`,
         "Competicao",
@@ -545,6 +630,7 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
           <small>Cria o jogo uma vez. Depois podes ligar noticias, manchetes, eventos, golos e classificacao.</small>
         </header>
         <form action="/api/admin/matches" className="match-create-form" method="post">
+          {overview.syncMetadataAvailable ? <input name="sync_metadata_available" type="hidden" value="1" /> : null}
           {selectField(
             "new-competition",
             "Competicao",
@@ -690,6 +776,7 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
               <small>
                 {match.matchday?.label ?? "Sem jornada"} · {match.season?.label ?? "Epoca"}
               </small>
+              {sourceBadge(match, overview.syncMetadataAvailable)}
               {channelPreview(match.broadcastChannel)}
             </div>
 

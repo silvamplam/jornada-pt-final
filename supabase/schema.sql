@@ -12,6 +12,12 @@ create table if not exists competitions (
   logo_url text,
   accent_color text,
   is_active boolean not null default true,
+  data_source text not null default 'manual',
+  external_provider text,
+  external_id text,
+  last_synced_at timestamptz,
+  sync_status text not null default 'manual',
+  manual_override boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -22,6 +28,12 @@ create table if not exists seasons (
   starts_on date,
   ends_on date,
   is_current boolean not null default false,
+  data_source text not null default 'manual',
+  external_provider text,
+  external_id text,
+  last_synced_at timestamptz,
+  sync_status text not null default 'manual',
+  manual_override boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -33,6 +45,12 @@ create table if not exists teams (
   country text,
   logo_url text,
   primary_color text,
+  data_source text not null default 'manual',
+  external_provider text,
+  external_id text,
+  last_synced_at timestamptz,
+  sync_status text not null default 'manual',
+  manual_override boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -45,6 +63,12 @@ create table if not exists matchdays (
   ends_on date,
   status text not null default 'scheduled',
   context_summary text,
+  data_source text not null default 'manual',
+  external_provider text,
+  external_id text,
+  last_synced_at timestamptz,
+  sync_status text not null default 'manual',
+  manual_override boolean not null default false,
   created_at timestamptz not null default now(),
   unique (season_id, number)
 );
@@ -73,6 +97,13 @@ create table if not exists matches (
   away_score integer,
   venue text,
   broadcast_channel_id uuid references broadcast_channels(id) on delete set null,
+  data_source text not null default 'manual',
+  external_provider text,
+  external_id text,
+  external_match_id text,
+  last_synced_at timestamptz,
+  sync_status text not null default 'manual',
+  manual_override boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -82,6 +113,12 @@ create table if not exists standings (
   season_id uuid not null references seasons(id) on delete cascade,
   matchday_id uuid references matchdays(id) on delete set null,
   moment_label text,
+  data_source text not null default 'manual',
+  external_provider text,
+  external_id text,
+  last_synced_at timestamptz,
+  sync_status text not null default 'manual',
+  manual_override boolean not null default false,
   generated_at timestamptz not null default now()
 );
 
@@ -106,6 +143,12 @@ create table if not exists standing_rows (
   away_wins integer not null default 0,
   away_draws integer not null default 0,
   away_losses integer not null default 0,
+  data_source text not null default 'manual',
+  external_provider text,
+  external_id text,
+  last_synced_at timestamptz,
+  sync_status text not null default 'manual',
+  manual_override boolean not null default false,
   unique (standing_id, team_id)
 );
 
@@ -183,3 +226,12 @@ create table if not exists live_updates (
   tone text not null default 'live',
   created_at timestamptz not null default now()
 );
+
+create index if not exists competitions_external_lookup_idx on competitions (external_provider, external_id);
+create index if not exists seasons_external_lookup_idx on seasons (external_provider, external_id);
+create index if not exists matchdays_external_lookup_idx on matchdays (external_provider, external_id);
+create index if not exists teams_external_lookup_idx on teams (external_provider, external_id);
+create index if not exists matches_external_lookup_idx on matches (external_provider, external_id);
+create index if not exists matches_external_match_lookup_idx on matches (external_provider, external_match_id);
+create index if not exists standings_external_lookup_idx on standings (external_provider, external_id);
+create index if not exists standing_rows_external_lookup_idx on standing_rows (external_provider, external_id);

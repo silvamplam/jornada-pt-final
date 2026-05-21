@@ -65,23 +65,36 @@ export async function POST(request: Request) {
   }
 
   try {
+    const syncMetadataAvailable = cleanText(formData.get("sync_metadata_available")) === "1";
+    const body: Record<string, string | number | boolean | null> = {
+      source_key: cleanText(formData.get("source_key")) ?? `manual-${Date.now()}`,
+      competition_id: competitionId,
+      season_id: seasonId,
+      matchday_id: cleanText(formData.get("matchday_id")),
+      home_team_id: homeTeamId,
+      away_team_id: awayTeamId,
+      status: cleanStatus(formData.get("status")),
+      minute: cleanInteger(formData.get("minute")),
+      kickoff_at: kickoffAt,
+      home_score: cleanInteger(formData.get("home_score")),
+      away_score: cleanInteger(formData.get("away_score")),
+      venue: cleanText(formData.get("venue")),
+      broadcast_channel_id: cleanText(formData.get("broadcast_channel_id"))
+    };
+
+    if (syncMetadataAvailable) {
+      body.data_source = "manual";
+      body.sync_status = "manual";
+      body.manual_override = false;
+      body.external_provider = null;
+      body.external_id = null;
+      body.external_match_id = null;
+      body.last_synced_at = null;
+    }
+
     await writeSupabaseAdmin("matches", {
       method: "POST",
-      body: JSON.stringify({
-        source_key: cleanText(formData.get("source_key")) ?? `manual-${Date.now()}`,
-        competition_id: competitionId,
-        season_id: seasonId,
-        matchday_id: cleanText(formData.get("matchday_id")),
-        home_team_id: homeTeamId,
-        away_team_id: awayTeamId,
-        status: cleanStatus(formData.get("status")),
-        minute: cleanInteger(formData.get("minute")),
-        kickoff_at: kickoffAt,
-        home_score: cleanInteger(formData.get("home_score")),
-        away_score: cleanInteger(formData.get("away_score")),
-        venue: cleanText(formData.get("venue")),
-        broadcast_channel_id: cleanText(formData.get("broadcast_channel_id"))
-      })
+      body: JSON.stringify(body)
     });
   } catch {
     return redirectTo(request, "/admin/jogos?error=save");

@@ -45,3 +45,16 @@ Antes de pagar uma API, testar com:
 - atualizacao manual no backoffice;
 - uma API gratuita ou barata para uma competicao;
 - validacao do fluxo editorial.
+
+## Preparacao para API futura
+
+Mesmo na fase manual, os dados objetivos devem guardar a sua origem.
+
+Regras:
+
+- `data_source = manual`: criado ou mantido no backoffice.
+- `data_source = api`: importado diretamente de uma API futura.
+- `data_source = mixed`: veio de API, mas foi corrigido ou completado manualmente.
+- `manual_override = true`: a sincronizacao futura nao deve apagar a correcao manual.
+
+A API futura deve alimentar apenas dados objetivos. A decisao editorial continua no Jornada.pt.

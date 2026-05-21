@@ -72,23 +72,34 @@ export async function POST(request: Request, context: UpdateMatchContext) {
   }
 
   try {
+    const syncMetadataAvailable = cleanText(formData.get("sync_metadata_available")) === "1";
+    const currentDataSource = cleanText(formData.get("current_data_source")) ?? "manual";
+    const becomesMixed = currentDataSource === "api" || currentDataSource === "mixed";
+    const body: Record<string, string | number | boolean | null> = {
+      source_key: cleanText(formData.get("source_key")),
+      competition_id: competitionId,
+      season_id: seasonId,
+      matchday_id: cleanText(formData.get("matchday_id")),
+      home_team_id: homeTeamId,
+      away_team_id: awayTeamId,
+      status: cleanStatus(formData.get("status")),
+      minute: cleanInteger(formData.get("minute")),
+      kickoff_at: kickoffAt,
+      home_score: cleanInteger(formData.get("home_score")),
+      away_score: cleanInteger(formData.get("away_score")),
+      venue: cleanText(formData.get("venue")),
+      broadcast_channel_id: cleanText(formData.get("broadcast_channel_id"))
+    };
+
+    if (syncMetadataAvailable) {
+      body.data_source = becomesMixed ? "mixed" : "manual";
+      body.sync_status = becomesMixed ? "manual_override" : "manual";
+      body.manual_override = becomesMixed;
+    }
+
     await writeSupabaseAdmin(`matches?id=eq.${encodeURIComponent(id)}`, {
       method: "PATCH",
-      body: JSON.stringify({
-        source_key: cleanText(formData.get("source_key")),
-        competition_id: competitionId,
-        season_id: seasonId,
-        matchday_id: cleanText(formData.get("matchday_id")),
-        home_team_id: homeTeamId,
-        away_team_id: awayTeamId,
-        status: cleanStatus(formData.get("status")),
-        minute: cleanInteger(formData.get("minute")),
-        kickoff_at: kickoffAt,
-        home_score: cleanInteger(formData.get("home_score")),
-        away_score: cleanInteger(formData.get("away_score")),
-        venue: cleanText(formData.get("venue")),
-        broadcast_channel_id: cleanText(formData.get("broadcast_channel_id"))
-      })
+      body: JSON.stringify(body)
     });
   } catch {
     return redirectTo(request, "/admin/jogos?error=save");

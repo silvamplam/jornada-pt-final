@@ -17,6 +17,12 @@ export type SupabaseCompetition = {
   country: string | null;
   logo_url: string | null;
   is_active: boolean;
+  data_source?: string | null;
+  external_provider?: string | null;
+  external_id?: string | null;
+  last_synced_at?: string | null;
+  sync_status?: string | null;
+  manual_override?: boolean | null;
 };
 
 export type SupabaseSeason = {
@@ -26,6 +32,12 @@ export type SupabaseSeason = {
   starts_on: string | null;
   ends_on: string | null;
   is_current: boolean;
+  data_source?: string | null;
+  external_provider?: string | null;
+  external_id?: string | null;
+  last_synced_at?: string | null;
+  sync_status?: string | null;
+  manual_override?: boolean | null;
 };
 
 export type SupabaseMatchday = {
@@ -37,6 +49,12 @@ export type SupabaseMatchday = {
   ends_on: string | null;
   status: string;
   context_summary: string | null;
+  data_source?: string | null;
+  external_provider?: string | null;
+  external_id?: string | null;
+  last_synced_at?: string | null;
+  sync_status?: string | null;
+  manual_override?: boolean | null;
 };
 
 export type SupabaseTeam = {
@@ -47,6 +65,12 @@ export type SupabaseTeam = {
   country: string | null;
   logo_url: string | null;
   primary_color: string | null;
+  data_source?: string | null;
+  external_provider?: string | null;
+  external_id?: string | null;
+  last_synced_at?: string | null;
+  sync_status?: string | null;
+  manual_override?: boolean | null;
 };
 
 export type SupabaseBroadcastChannel = {
@@ -72,6 +96,13 @@ export type SupabaseMatch = {
   away_score: number | null;
   venue: string | null;
   broadcast_channel_id: string | null;
+  data_source?: string | null;
+  external_provider?: string | null;
+  external_id?: string | null;
+  external_match_id?: string | null;
+  last_synced_at?: string | null;
+  sync_status?: string | null;
+  manual_override?: boolean | null;
 };
 
 export type SupabaseAdminMatch = SupabaseMatch & {
@@ -348,6 +379,7 @@ export async function getAdminMatchesEditor(): Promise<{
   matchdays: SupabaseMatchday[];
   teams: SupabaseTeam[];
   broadcastChannels: SupabaseBroadcastChannel[];
+  syncMetadataAvailable: boolean;
 }> {
   const readConfigured = Boolean(getSupabaseConfig());
   const writeConfigured = Boolean(getSupabaseServiceConfig());
@@ -361,16 +393,28 @@ export async function getAdminMatchesEditor(): Promise<{
       seasons: [],
       matchdays: [],
       teams: [],
-      broadcastChannels: []
+      broadcastChannels: [],
+      syncMetadataAvailable: false
     };
   }
 
   try {
     const readTable = writeConfigured ? fetchSupabaseAdminTable : fetchSupabaseTable;
-    const [matches, competitions, seasons, matchdays, teams, broadcastChannels] = await Promise.all([
-      readTable<SupabaseMatch>(
-        "matches?select=id,source_key,competition_id,season_id,matchday_id,home_team_id,away_team_id,status,minute,kickoff_at,home_score,away_score,venue,broadcast_channel_id&order=kickoff_at.asc&limit=160"
-      ),
+    let syncMetadataAvailable = true;
+    let matches: SupabaseMatch[] = [];
+    const matchSelectBase =
+      "id,source_key,competition_id,season_id,matchday_id,home_team_id,away_team_id,status,minute,kickoff_at,home_score,away_score,venue,broadcast_channel_id";
+    const matchSelectWithSync =
+      `${matchSelectBase},data_source,external_provider,external_id,external_match_id,last_synced_at,sync_status,manual_override`;
+
+    try {
+      matches = await readTable<SupabaseMatch>(`matches?select=${matchSelectWithSync}&order=kickoff_at.asc&limit=160`);
+    } catch {
+      syncMetadataAvailable = false;
+      matches = await readTable<SupabaseMatch>(`matches?select=${matchSelectBase}&order=kickoff_at.asc&limit=160`);
+    }
+
+    const [competitions, seasons, matchdays, teams, broadcastChannels] = await Promise.all([
       readTable<SupabaseCompetition>(
         "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
       ),
@@ -410,7 +454,8 @@ export async function getAdminMatchesEditor(): Promise<{
       seasons,
       matchdays,
       teams,
-      broadcastChannels
+      broadcastChannels,
+      syncMetadataAvailable
     };
   } catch (error) {
     return {
@@ -422,7 +467,8 @@ export async function getAdminMatchesEditor(): Promise<{
       seasons: [],
       matchdays: [],
       teams: [],
-      broadcastChannels: []
+      broadcastChannels: [],
+      syncMetadataAvailable: false
     };
   }
 }
