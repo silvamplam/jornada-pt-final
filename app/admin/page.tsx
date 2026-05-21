@@ -88,6 +88,24 @@ const adminPageStyles = `
     border-color: rgba(229, 37, 42, 0.92);
   }
 
+  .admin-section-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .admin-section-actions a {
+    display: inline-block;
+    padding: 12px 16px;
+    border-radius: 6px;
+    background: #e5252a;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 900;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
   .admin-warning {
     margin-top: 18px;
     padding: 22px;
@@ -296,6 +314,10 @@ export default async function AdminPage() {
               <span>Canais TV</span>
             </article>
           </section>
+
+          <nav className="admin-section-actions" aria-label="Ferramentas do backoffice">
+            <a href="/admin/clubes">Gerir clubes</a>
+          </nav>
 
           <section className="admin-grid">
             <article className="admin-panel">

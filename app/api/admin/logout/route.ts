@@ -8,7 +8,7 @@ function redirectToLogin(request: Request) {
     name: ADMIN_SESSION_COOKIE,
     value: "",
     maxAge: 0,
-    path: "/admin"
+    path: "/"
   });
 
   return response;

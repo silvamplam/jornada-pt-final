@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     value: session,
     httpOnly: true,
     maxAge: ADMIN_SESSION_MAX_AGE_SECONDS,
-    path: "/admin",
+    path: "/",
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production"
   });

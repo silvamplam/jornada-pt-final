@@ -1,0 +1,368 @@
+import { getAdminTeams } from "@/lib/supabase";
+
+export const dynamic = "force-dynamic";
+
+const teamAdminStyles = `
+  body {
+    margin: 0;
+    background: #eef2f6;
+  }
+
+  .team-admin-shell {
+    min-height: 100vh;
+    padding: 28px;
+    background: #eef2f6;
+    color: #10151b;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .team-admin-hero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 28px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #10151b, #25303c);
+    color: #ffffff;
+    box-shadow: 0 18px 40px rgba(8, 15, 24, 0.16);
+  }
+
+  .team-admin-hero p,
+  .team-admin-hero h1,
+  .team-admin-hero span {
+    margin: 0;
+  }
+
+  .team-admin-hero p {
+    color: #e5252a;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .team-admin-hero h1 {
+    margin-top: 8px;
+    font-size: 42px;
+    line-height: 1;
+  }
+
+  .team-admin-hero span {
+    display: block;
+    margin-top: 10px;
+    color: #cdd5df;
+    font-size: 16px;
+  }
+
+  .team-admin-hero a {
+    flex: 0 0 auto;
+    padding: 11px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 900;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .team-admin-message {
+    margin-top: 18px;
+    padding: 16px 18px;
+    border-radius: 8px;
+    background: #ffffff;
+    border: 1px solid #dce3eb;
+    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
+  }
+
+  .team-admin-message.warning {
+    border-color: #ffd3a3;
+    background: #fff8ee;
+    color: #8a3a00;
+  }
+
+  .team-admin-message.success {
+    border-color: #bfe4c9;
+    background: #f0fbf3;
+    color: #146b2c;
+  }
+
+  .team-admin-create,
+  .team-admin-list {
+    margin-top: 18px;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
+  }
+
+  .team-admin-create header,
+  .team-admin-list header {
+    padding: 18px 20px;
+    border-bottom: 1px solid #e6ebf1;
+  }
+
+  .team-admin-create h2,
+  .team-admin-list h2 {
+    margin: 0;
+    font-size: 21px;
+    text-transform: uppercase;
+  }
+
+  .team-admin-create small,
+  .team-admin-list small {
+    color: #687380;
+  }
+
+  .team-form {
+    display: grid;
+    grid-template-columns: 48px minmax(150px, 1.2fr) 90px minmax(130px, 1fr) minmax(110px, 0.8fr) minmax(220px, 1.5fr) 110px auto;
+    gap: 10px;
+    align-items: end;
+    padding: 14px 18px;
+    border-bottom: 1px solid #eef2f6;
+  }
+
+  .team-form:last-child {
+    border-bottom: 0;
+  }
+
+  .team-form figure {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid #dce3eb;
+    border-radius: 50%;
+    background: #f8fafc;
+    color: #5e6874;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .team-form img {
+    display: block;
+    width: 28px !important;
+    max-width: 28px !important;
+    height: 28px !important;
+    max-height: 28px !important;
+    object-fit: contain;
+  }
+
+  .team-field {
+    display: grid;
+    gap: 5px;
+  }
+
+  .team-field label {
+    color: #687380;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .team-field input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 11px;
+    border: 1px solid #cfd8e3;
+    border-radius: 6px;
+    font: inherit;
+    font-size: 14px;
+  }
+
+  .team-field input:focus {
+    outline: 2px solid rgba(229, 37, 42, 0.16);
+    border-color: #e5252a;
+  }
+
+  .team-form button {
+    min-height: 39px;
+    padding: 10px 13px;
+    border: 0;
+    border-radius: 6px;
+    background: #e5252a;
+    color: #ffffff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .team-form button:disabled,
+  .team-field input:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  @media (max-width: 1180px) {
+    .team-form {
+      grid-template-columns: 48px repeat(2, minmax(0, 1fr));
+    }
+
+    .team-form button {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .team-admin-shell {
+      padding: 16px;
+    }
+
+    .team-admin-hero,
+    .team-form {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+  }
+`;
+
+type TeamsPageProps = {
+  searchParams: Promise<{
+    created?: string;
+    updated?: string;
+    error?: string;
+  }>;
+};
+
+function errorMessage(error?: string) {
+  if (error === "missing-service") {
+    return "Falta configurar SUPABASE_SERVICE_ROLE_KEY na Vercel para gravar alteracoes.";
+  }
+
+  if (error === "missing-fields") {
+    return "Nome, sigla e slug sao obrigatorios.";
+  }
+
+  if (error === "save") {
+    return "Nao foi possivel guardar. Confirma se o slug nao esta repetido.";
+  }
+
+  return null;
+}
+
+export default async function AdminTeamsPage({ searchParams }: TeamsPageProps) {
+  const params = await searchParams;
+  const overview = await getAdminTeams();
+  const message = errorMessage(params.error);
+  const canWrite = overview.writeConfigured && !overview.error;
+
+  return (
+    <main className="team-admin-shell">
+      <style>{teamAdminStyles}</style>
+      <header className="team-admin-hero">
+        <div>
+          <p>Jornada.pt</p>
+          <h1>Clubes</h1>
+          <span>Adicionar e corrigir nomes, siglas, paises, cores e emblemas.</span>
+        </div>
+        <a href="/admin">Voltar ao backoffice</a>
+      </header>
+
+      {!overview.configured ? (
+        <section className="team-admin-message warning">
+          Falta configurar a ligacao ao Supabase.
+        </section>
+      ) : null}
+
+      {!overview.writeConfigured ? (
+        <section className="team-admin-message warning">
+          Modo leitura ativo. Para editar, adiciona a variavel SUPABASE_SERVICE_ROLE_KEY na Vercel.
+        </section>
+      ) : null}
+
+      {overview.error ? <section className="team-admin-message warning">{overview.error}</section> : null}
+      {message ? <section className="team-admin-message warning">{message}</section> : null}
+      {params.created ? <section className="team-admin-message success">Clube criado.</section> : null}
+      {params.updated ? <section className="team-admin-message success">Clube atualizado.</section> : null}
+
+      <section className="team-admin-create">
+        <header>
+          <h2>Novo clube</h2>
+          <small>Cria primeiro a base do clube. Depois podes ligar jogos, noticias e classificacoes.</small>
+        </header>
+        <form action="/api/admin/teams" className="team-form" method="post">
+          <figure>+</figure>
+          <div className="team-field">
+            <label htmlFor="new-name">Nome</label>
+            <input disabled={!canWrite} id="new-name" name="name" placeholder="Ex: Liverpool" required />
+          </div>
+          <div className="team-field">
+            <label htmlFor="new-short-name">Sigla</label>
+            <input disabled={!canWrite} id="new-short-name" maxLength={6} name="short_name" placeholder="LIV" required />
+          </div>
+          <div className="team-field">
+            <label htmlFor="new-slug">Slug</label>
+            <input disabled={!canWrite} id="new-slug" name="slug" placeholder="liverpool" />
+          </div>
+          <div className="team-field">
+            <label htmlFor="new-country">Pais</label>
+            <input disabled={!canWrite} id="new-country" name="country" placeholder="Inglaterra" />
+          </div>
+          <div className="team-field">
+            <label htmlFor="new-logo-url">Emblema URL</label>
+            <input disabled={!canWrite} id="new-logo-url" name="logo_url" placeholder="https://..." />
+          </div>
+          <div className="team-field">
+            <label htmlFor="new-primary-color">Cor</label>
+            <input disabled={!canWrite} id="new-primary-color" name="primary_color" placeholder="#e5252a" />
+          </div>
+          <button disabled={!canWrite} type="submit">Criar</button>
+        </form>
+      </section>
+
+      <section className="team-admin-list">
+        <header>
+          <h2>Clubes existentes</h2>
+          <small>{overview.teams.length} clubes na base de dados</small>
+        </header>
+        {overview.teams.map((team) => (
+          <form action={`/api/admin/teams/${team.id}`} className="team-form" key={team.id} method="post">
+            <figure>{team.logo_url ? <img alt="" src={team.logo_url} /> : team.short_name}</figure>
+            <div className="team-field">
+              <label htmlFor={`name-${team.id}`}>Nome</label>
+              <input disabled={!canWrite} id={`name-${team.id}`} name="name" required defaultValue={team.name} />
+            </div>
+            <div className="team-field">
+              <label htmlFor={`short-${team.id}`}>Sigla</label>
+              <input
+                disabled={!canWrite}
+                id={`short-${team.id}`}
+                maxLength={6}
+                name="short_name"
+                required
+                defaultValue={team.short_name}
+              />
+            </div>
+            <div className="team-field">
+              <label htmlFor={`slug-${team.id}`}>Slug</label>
+              <input disabled={!canWrite} id={`slug-${team.id}`} name="slug" required defaultValue={team.slug} />
+            </div>
+            <div className="team-field">
+              <label htmlFor={`country-${team.id}`}>Pais</label>
+              <input disabled={!canWrite} id={`country-${team.id}`} name="country" defaultValue={team.country ?? ""} />
+            </div>
+            <div className="team-field">
+              <label htmlFor={`logo-${team.id}`}>Emblema URL</label>
+              <input disabled={!canWrite} id={`logo-${team.id}`} name="logo_url" defaultValue={team.logo_url ?? ""} />
+            </div>
+            <div className="team-field">
+              <label htmlFor={`color-${team.id}`}>Cor</label>
+              <input
+                disabled={!canWrite}
+                id={`color-${team.id}`}
+                name="primary_color"
+                defaultValue={team.primary_color ?? ""}
+              />
+            </div>
+            <button disabled={!canWrite} type="submit">Guardar</button>
+          </form>
+        ))}
+      </section>
+    </main>
+  );
+}
