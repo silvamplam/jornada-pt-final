@@ -170,7 +170,7 @@ const matchAdminStyles = `
 
   .match-fields {
     display: grid;
-    grid-template-columns: 1.1fr 1.1fr 0.9fr 1.1fr 0.8fr 0.8fr 0.7fr 1.3fr 1.1fr;
+    grid-template-columns: repeat(6, minmax(110px, 1fr));
     gap: 9px;
     align-items: end;
   }
@@ -299,6 +299,8 @@ type AdminMatchesPageProps = {
   }>;
 };
 
+type AdminMatchesOverview = Awaited<ReturnType<typeof getAdminMatchesEditor>>;
+
 const statusOptions = [
   { value: "scheduled", label: "Agendado" },
   { value: "live", label: "Em direto" },
@@ -391,7 +393,7 @@ function channelPreview(channel: SupabaseBroadcastChannel | null) {
 
 function renderMatchFields(
   match: SupabaseAdminMatch,
-  overview: Awaited<ReturnType<typeof getAdminMatchesEditor>>,
+  overview: AdminMatchesOverview,
   canWrite: boolean
 ) {
   return (
@@ -494,6 +496,11 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
   const overview = await getAdminMatchesEditor();
   const message = errorMessage(params.error);
   const canWrite = overview.writeConfigured && !overview.error;
+  const defaultCompetitionId = overview.competitions[0]?.id ?? "";
+  const defaultSeason = overview.seasons.find((season) => season.competition_id === defaultCompetitionId) ?? overview.seasons[0];
+  const defaultSeasonId = defaultSeason?.id ?? "";
+  const defaultMatchday =
+    overview.matchdays.find((matchday) => matchday.season_id === defaultSeasonId) ?? overview.matchdays[0];
 
   return (
     <main className="match-admin-shell">
@@ -528,7 +535,7 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
             "new-competition",
             "Competicao",
             "competition_id",
-            overview.competitions[0]?.id,
+            defaultCompetitionId,
             overview.competitions.map((competition) => (
               <option key={competition.id} value={competition.id}>
                 {competition.name}
@@ -541,12 +548,12 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
             "new-season",
             "Epoca",
             "season_id",
-            overview.seasons[0]?.id,
+            defaultSeasonId,
             overview.seasons.map((season) => {
               const competition = overview.competitions.find((item) => item.id === season.competition_id);
 
               return (
-                <option key={season.id} value={season.id}>
+                <option data-competition-id={season.competition_id} key={season.id} value={season.id}>
                   {competition?.name ?? "Competicao"} {season.label}
                 </option>
               );
@@ -558,13 +565,13 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
             "new-matchday",
             "Jornada",
             "matchday_id",
-            overview.matchdays[0]?.id,
+            defaultMatchday?.id,
             overview.matchdays.map((matchday) => {
               const season = overview.seasons.find((item) => item.id === matchday.season_id);
               const competition = season ? overview.competitions.find((item) => item.id === season.competition_id) : null;
 
               return (
-                <option key={matchday.id} value={matchday.id}>
+                <option data-season-id={matchday.season_id} key={matchday.id} value={matchday.id}>
                   {competition?.name ?? "Competicao"} J{String(matchday.number).padStart(2, "0")}
                 </option>
               );
@@ -600,6 +607,53 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
           {textField("new-kickoff", "Data e hora", "kickoff_at", "", !canWrite, "datetime-local", true)}
           <button className="match-admin-button" disabled={!canWrite} type="submit">Criar</button>
         </form>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (() => {
+                const competition = document.getElementById("new-competition");
+                const season = document.getElementById("new-season");
+                const matchday = document.getElementById("new-matchday");
+
+                if (!competition || !season || !matchday) return;
+
+                function firstVisibleOption(select) {
+                  return Array.from(select.options).find((option) => !option.hidden);
+                }
+
+                function syncMatchdays() {
+                  const seasonId = season.value;
+                  Array.from(matchday.options).forEach((option) => {
+                    option.hidden = option.dataset.seasonId ? option.dataset.seasonId !== seasonId : false;
+                  });
+
+                  if (matchday.selectedOptions[0]?.hidden) {
+                    const first = firstVisibleOption(matchday);
+                    if (first) matchday.value = first.value;
+                  }
+                }
+
+                function syncSeasons() {
+                  const competitionId = competition.value;
+                  Array.from(season.options).forEach((option) => {
+                    option.hidden = option.dataset.competitionId ? option.dataset.competitionId !== competitionId : false;
+                  });
+
+                  if (season.selectedOptions[0]?.hidden) {
+                    const first = firstVisibleOption(season);
+                    if (first) season.value = first.value;
+                  }
+
+                  syncMatchdays();
+                }
+
+                competition.addEventListener("change", syncSeasons);
+                season.addEventListener("change", syncMatchdays);
+                syncSeasons();
+              })();
+            `
+          }}
+        />
       </section>
 
       <section className="match-admin-list">
