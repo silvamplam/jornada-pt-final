@@ -19,6 +19,26 @@ export type SupabaseCompetition = {
   is_active: boolean;
 };
 
+export type SupabaseSeason = {
+  id: string;
+  competition_id: string;
+  label: string;
+  starts_on: string | null;
+  ends_on: string | null;
+  is_current: boolean;
+};
+
+export type SupabaseMatchday = {
+  id: string;
+  season_id: string;
+  number: number;
+  label: string;
+  starts_on: string | null;
+  ends_on: string | null;
+  status: string;
+  context_summary: string | null;
+};
+
 export type SupabaseTeam = {
   id: string;
   name: string;
@@ -56,6 +76,8 @@ export type SupabaseMatch = {
 
 export type SupabaseAdminMatch = SupabaseMatch & {
   competition: SupabaseCompetition | null;
+  season: SupabaseSeason | null;
+  matchday: SupabaseMatchday | null;
   homeTeam: SupabaseTeam | null;
   awayTeam: SupabaseTeam | null;
   broadcastChannel: SupabaseBroadcastChannel | null;
@@ -297,6 +319,8 @@ export async function getAdminMatchesTv(): Promise<{
       matches: matches.map((match) => ({
         ...match,
         competition: competitionsById.get(match.competition_id) ?? null,
+        season: null,
+        matchday: null,
         homeTeam: teamsById.get(match.home_team_id) ?? null,
         awayTeam: teamsById.get(match.away_team_id) ?? null,
         broadcastChannel: match.broadcast_channel_id ? channelsById.get(match.broadcast_channel_id) ?? null : null
@@ -309,6 +333,95 @@ export async function getAdminMatchesTv(): Promise<{
       writeConfigured,
       error: error instanceof Error ? error.message : "Erro desconhecido ao ler jogos.",
       matches: [],
+      broadcastChannels: []
+    };
+  }
+}
+
+export async function getAdminMatchesEditor(): Promise<{
+  configured: boolean;
+  writeConfigured: boolean;
+  error?: string;
+  matches: SupabaseAdminMatch[];
+  competitions: SupabaseCompetition[];
+  seasons: SupabaseSeason[];
+  matchdays: SupabaseMatchday[];
+  teams: SupabaseTeam[];
+  broadcastChannels: SupabaseBroadcastChannel[];
+}> {
+  const readConfigured = Boolean(getSupabaseConfig());
+  const writeConfigured = Boolean(getSupabaseServiceConfig());
+
+  if (!readConfigured) {
+    return {
+      configured: false,
+      writeConfigured,
+      matches: [],
+      competitions: [],
+      seasons: [],
+      matchdays: [],
+      teams: [],
+      broadcastChannels: []
+    };
+  }
+
+  try {
+    const readTable = writeConfigured ? fetchSupabaseAdminTable : fetchSupabaseTable;
+    const [matches, competitions, seasons, matchdays, teams, broadcastChannels] = await Promise.all([
+      readTable<SupabaseMatch>(
+        "matches?select=id,source_key,competition_id,season_id,matchday_id,home_team_id,away_team_id,status,minute,kickoff_at,home_score,away_score,venue,broadcast_channel_id&order=kickoff_at.asc&limit=160"
+      ),
+      readTable<SupabaseCompetition>(
+        "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
+      ),
+      readTable<SupabaseSeason>(
+        "seasons?select=id,competition_id,label,starts_on,ends_on,is_current&order=label.desc"
+      ),
+      readTable<SupabaseMatchday>(
+        "matchdays?select=id,season_id,number,label,starts_on,ends_on,status,context_summary&order=number.asc"
+      ),
+      readTable<SupabaseTeam>(
+        "teams?select=id,name,short_name,slug,country,logo_url,primary_color&order=name.asc"
+      ),
+      readTable<SupabaseBroadcastChannel>(
+        "broadcast_channels?select=id,name,platform,country,logo_url&order=name.asc"
+      )
+    ]);
+
+    const competitionsById = mapById(competitions);
+    const seasonsById = mapById(seasons);
+    const matchdaysById = mapById(matchdays);
+    const teamsById = mapById(teams);
+    const channelsById = mapById(broadcastChannels);
+
+    return {
+      configured: true,
+      writeConfigured,
+      matches: matches.map((match) => ({
+        ...match,
+        competition: competitionsById.get(match.competition_id) ?? null,
+        season: seasonsById.get(match.season_id) ?? null,
+        matchday: match.matchday_id ? matchdaysById.get(match.matchday_id) ?? null : null,
+        homeTeam: teamsById.get(match.home_team_id) ?? null,
+        awayTeam: teamsById.get(match.away_team_id) ?? null,
+        broadcastChannel: match.broadcast_channel_id ? channelsById.get(match.broadcast_channel_id) ?? null : null
+      })),
+      competitions,
+      seasons,
+      matchdays,
+      teams,
+      broadcastChannels
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      writeConfigured,
+      error: error instanceof Error ? error.message : "Erro desconhecido ao ler jogos.",
+      matches: [],
+      competitions: [],
+      seasons: [],
+      matchdays: [],
+      teams: [],
       broadcastChannels: []
     };
   }
