@@ -32,6 +32,7 @@ export type SupabaseBroadcastChannel = {
   name: string;
   platform: string | null;
   country: string | null;
+  logo_url: string | null;
 };
 
 export type AdminOverview = {
@@ -179,6 +180,47 @@ export async function getAdminTeams(): Promise<{
   }
 }
 
+export async function getAdminBroadcastChannels(): Promise<{
+  configured: boolean;
+  writeConfigured: boolean;
+  error?: string;
+  broadcastChannels: SupabaseBroadcastChannel[];
+}> {
+  const readConfigured = Boolean(getSupabaseConfig());
+  const writeConfigured = Boolean(getSupabaseServiceConfig());
+
+  if (!readConfigured) {
+    return {
+      configured: false,
+      writeConfigured,
+      broadcastChannels: []
+    };
+  }
+
+  try {
+    const broadcastChannels = writeConfigured
+      ? await fetchSupabaseAdminTable<SupabaseBroadcastChannel>(
+          "broadcast_channels?select=id,name,platform,country,logo_url&order=name.asc"
+        )
+      : await fetchSupabaseTable<SupabaseBroadcastChannel>(
+          "broadcast_channels?select=id,name,platform,country,logo_url&order=name.asc"
+        );
+
+    return {
+      configured: true,
+      writeConfigured,
+      broadcastChannels
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      writeConfigured,
+      error: error instanceof Error ? error.message : "Erro desconhecido ao ler canais TV.",
+      broadcastChannels: []
+    };
+  }
+}
+
 export async function getAdminOverview(): Promise<AdminOverview> {
   if (!getSupabaseConfig()) {
     return {
@@ -198,7 +240,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
         "teams?select=id,name,short_name,slug,country,logo_url,primary_color&order=name.asc"
       ),
       fetchSupabaseTable<SupabaseBroadcastChannel>(
-        "broadcast_channels?select=id,name,platform,country&order=name.asc"
+        "broadcast_channels?select=id,name,platform,country,logo_url&order=name.asc"
       )
     ]);
 

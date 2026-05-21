@@ -90,6 +90,7 @@ const adminPageStyles = `
 
   .admin-section-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     margin-top: 18px;
   }
@@ -317,6 +318,7 @@ export default async function AdminPage() {
 
           <nav className="admin-section-actions" aria-label="Ferramentas do backoffice">
             <a href="/admin/clubes">Gerir clubes</a>
+            <a href="/admin/canais-tv">Gerir canais TV</a>
           </nav>
 
           <section className="admin-grid">
@@ -360,7 +362,7 @@ export default async function AdminPage() {
               <ul>
                 {overview.broadcastChannels.map((channel) => (
                   <li key={channel.id}>
-                    <span>TV</span>
+                    <span>{channel.logo_url ? <img src={channel.logo_url} alt="" /> : "TV"}</span>
                     <b>{channel.name}</b>
                     <small>{channel.platform ?? channel.country ?? "Canal"}</small>
                   </li>
