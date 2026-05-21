@@ -118,18 +118,18 @@ const matchAdminStyles = `
 
   .match-create-form {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr)) 118px;
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
     align-items: end;
     padding: 16px 18px;
   }
 
   .match-form {
     display: grid;
-    grid-template-columns: minmax(220px, 1.1fr) minmax(0, 2.6fr) 112px;
-    gap: 14px;
-    align-items: center;
-    padding: 14px 18px;
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+    padding: 16px 18px;
     border-bottom: 1px solid #eef2f6;
   }
 
@@ -170,8 +170,8 @@ const matchAdminStyles = `
 
   .match-fields {
     display: grid;
-    grid-template-columns: repeat(6, minmax(110px, 1fr));
-    gap: 9px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
     align-items: end;
   }
 
@@ -199,6 +199,11 @@ const matchAdminStyles = `
     background: #ffffff;
     font: inherit;
     font-size: 14px;
+  }
+
+  .match-field select {
+    min-width: 0;
+    text-overflow: ellipsis;
   }
 
   .match-field input:focus,
@@ -259,6 +264,12 @@ const matchAdminStyles = `
     cursor: pointer;
   }
 
+  .match-form > .match-admin-button {
+    grid-column: 2;
+    width: 140px;
+    justify-self: end;
+  }
+
   .match-admin-button:disabled,
   .match-field input:disabled,
   .match-field select:disabled {
@@ -267,13 +278,16 @@ const matchAdminStyles = `
   }
 
   @media (max-width: 1320px) {
-    .match-create-form,
     .match-form {
       grid-template-columns: 1fr;
     }
 
     .match-fields {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+
+    .match-form > .match-admin-button {
+      grid-column: 1;
     }
   }
 
