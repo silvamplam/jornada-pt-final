@@ -126,7 +126,7 @@ const matchAdminStyles = `
 
   .match-form {
     display: grid;
-    grid-template-columns: minmax(250px, 310px) minmax(0, 860px) 118px;
+    grid-template-columns: minmax(250px, 310px) minmax(0, 860px);
     justify-content: start;
     column-gap: 16px;
     row-gap: 10px;
@@ -300,10 +300,10 @@ const matchAdminStyles = `
   }
 
   .match-form > .match-admin-button {
-    grid-column: 3;
+    grid-column: 2;
     width: 118px;
-    align-self: end;
-    justify-self: start;
+    align-self: start;
+    justify-self: end;
   }
 
   .match-admin-button:disabled,
