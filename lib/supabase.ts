@@ -10,10 +10,26 @@ export type SupabaseServiceConfig = {
   serviceRoleKey: string;
 };
 
+export type SupabaseCountry = {
+  id: string;
+  name: string;
+  slug: string;
+  iso2: string | null;
+  flag_emoji: string | null;
+  is_active: boolean;
+  data_source?: string | null;
+  external_provider?: string | null;
+  external_id?: string | null;
+  last_synced_at?: string | null;
+  sync_status?: string | null;
+  manual_override?: boolean | null;
+};
+
 export type SupabaseCompetition = {
   id: string;
   name: string;
   slug: string;
+  country_id?: string | null;
   country: string | null;
   logo_url: string | null;
   accent_color?: string | null;
@@ -224,6 +240,7 @@ export type SupabaseParticipantSourceMatch = {
 export type AdminOverview = {
   configured: boolean;
   error?: string;
+  countries: SupabaseCountry[];
   competitions: SupabaseCompetition[];
   seasons: SupabaseSeason[];
   matchdays: SupabaseAdminMatchday[];
@@ -359,6 +376,70 @@ export async function writeSupabaseAdminReturning<T>(path: string, init: Request
   return response.json() as Promise<T[]>;
 }
 
+type SupabaseReadTable = <T>(path: string) => Promise<T[]>;
+
+async function readCountriesWithFallback(readTable: SupabaseReadTable): Promise<SupabaseCountry[]> {
+  try {
+    return await readTable<SupabaseCountry>(
+      "countries?select=id,name,slug,iso2,flag_emoji,is_active,data_source,external_provider,external_id,last_synced_at,sync_status,manual_override&order=name.asc"
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function readCompetitionsWithFallback(readTable: SupabaseReadTable, includeSync = false): Promise<SupabaseCompetition[]> {
+  const syncFields = includeSync
+    ? ",data_source,external_provider,external_id,last_synced_at,sync_status,manual_override"
+    : "";
+
+  try {
+    return await readTable<SupabaseCompetition>(
+      `competitions?select=id,name,slug,country_id,country,logo_url,accent_color,is_active${syncFields}&order=name.asc`
+    );
+  } catch {
+    return readTable<SupabaseCompetition>(
+      `competitions?select=id,name,slug,country,logo_url,accent_color,is_active${syncFields}&order=name.asc`
+    );
+  }
+}
+
+export async function getAdminCountries(): Promise<{
+  configured: boolean;
+  writeConfigured: boolean;
+  error?: string;
+  countries: SupabaseCountry[];
+}> {
+  const readConfigured = Boolean(getSupabaseConfig());
+  const writeConfigured = Boolean(getSupabaseServiceConfig());
+
+  if (!readConfigured) {
+    return {
+      configured: false,
+      writeConfigured,
+      countries: []
+    };
+  }
+
+  try {
+    const readTable = writeConfigured ? fetchSupabaseAdminTable : fetchSupabaseTable;
+    const countries = await readCountriesWithFallback(readTable);
+
+    return {
+      configured: true,
+      writeConfigured,
+      countries
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      writeConfigured,
+      error: error instanceof Error ? error.message : "Erro desconhecido ao ler paises.",
+      countries: []
+    };
+  }
+}
+
 export async function getAdminTeams(): Promise<{
   configured: boolean;
   writeConfigured: boolean;
@@ -445,6 +526,7 @@ export async function getAdminCompetitions(): Promise<{
   configured: boolean;
   writeConfigured: boolean;
   error?: string;
+  countries: SupabaseCountry[];
   competitions: SupabaseCompetition[];
 }> {
   const readConfigured = Boolean(getSupabaseConfig());
@@ -454,41 +536,32 @@ export async function getAdminCompetitions(): Promise<{
     return {
       configured: false,
       writeConfigured,
+      countries: [],
       competitions: []
     };
   }
 
   try {
     const readTable = writeConfigured ? fetchSupabaseAdminTable : fetchSupabaseTable;
-    const competitions = await readTable<SupabaseCompetition>(
-      "competitions?select=id,name,slug,country,logo_url,accent_color,is_active,data_source,external_provider,external_id,last_synced_at,sync_status,manual_override&order=name.asc"
-    );
+    const [countries, competitions] = await Promise.all([
+      readCountriesWithFallback(readTable),
+      readCompetitionsWithFallback(readTable, true)
+    ]);
 
     return {
       configured: true,
       writeConfigured,
+      countries,
       competitions
     };
   } catch (error) {
-    try {
-      const readTable = writeConfigured ? fetchSupabaseAdminTable : fetchSupabaseTable;
-      const competitions = await readTable<SupabaseCompetition>(
-        "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
-      );
-
-      return {
-        configured: true,
-        writeConfigured,
-        competitions
-      };
-    } catch (fallbackError) {
-      return {
-        configured: true,
-        writeConfigured,
-        error: fallbackError instanceof Error ? fallbackError.message : "Erro desconhecido ao ler competicoes.",
-        competitions: []
-      };
-    }
+    return {
+      configured: true,
+      writeConfigured,
+      error: error instanceof Error ? error.message : "Erro desconhecido ao ler competicoes.",
+      countries: [],
+      competitions: []
+    };
   }
 }
 
@@ -496,6 +569,7 @@ export async function getAdminSeasons(): Promise<{
   configured: boolean;
   writeConfigured: boolean;
   error?: string;
+  countries: SupabaseCountry[];
   competitions: SupabaseCompetition[];
   seasons: SupabaseSeason[];
 }> {
@@ -506,6 +580,7 @@ export async function getAdminSeasons(): Promise<{
     return {
       configured: false,
       writeConfigured,
+      countries: [],
       competitions: [],
       seasons: []
     };
@@ -513,10 +588,9 @@ export async function getAdminSeasons(): Promise<{
 
   try {
     const readTable = writeConfigured ? fetchSupabaseAdminTable : fetchSupabaseTable;
-    const [competitions, seasons] = await Promise.all([
-      readTable<SupabaseCompetition>(
-        "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
-      ),
+    const [countries, competitions, seasons] = await Promise.all([
+      readCountriesWithFallback(readTable),
+      readCompetitionsWithFallback(readTable),
       readTable<SupabaseSeason>(
         "seasons?select=id,competition_id,label,starts_on,ends_on,is_current,data_source,external_provider,external_id,last_synced_at,sync_status,manual_override&order=label.desc"
       )
@@ -525,16 +599,16 @@ export async function getAdminSeasons(): Promise<{
     return {
       configured: true,
       writeConfigured,
+      countries,
       competitions,
       seasons
     };
   } catch (error) {
     try {
       const readTable = writeConfigured ? fetchSupabaseAdminTable : fetchSupabaseTable;
-      const [competitions, seasons] = await Promise.all([
-        readTable<SupabaseCompetition>(
-          "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
-        ),
+      const [countries, competitions, seasons] = await Promise.all([
+        readCountriesWithFallback(readTable),
+        readCompetitionsWithFallback(readTable),
         readTable<SupabaseSeason>(
           "seasons?select=id,competition_id,label,starts_on,ends_on,is_current&order=label.desc"
         )
@@ -543,6 +617,7 @@ export async function getAdminSeasons(): Promise<{
       return {
         configured: true,
         writeConfigured,
+        countries,
         competitions,
         seasons
       };
@@ -551,6 +626,7 @@ export async function getAdminSeasons(): Promise<{
         configured: true,
         writeConfigured,
         error: fallbackError instanceof Error ? fallbackError.message : "Erro desconhecido ao ler epocas.",
+        countries: [],
         competitions: [],
         seasons: []
       };
@@ -1153,6 +1229,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   if (!getSupabaseConfig()) {
     return {
       configured: false,
+      countries: [],
       competitions: [],
       seasons: [],
       matchdays: [],
@@ -1163,10 +1240,9 @@ export async function getAdminOverview(): Promise<AdminOverview> {
 
   try {
     const readTable = getSupabaseServiceConfig() ? fetchSupabaseAdminTable : fetchSupabaseTable;
-    const [competitions, seasons, teams, broadcastChannels, matchdayOverview] = await Promise.all([
-      readTable<SupabaseCompetition>(
-        "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
-      ),
+    const [countries, competitions, seasons, teams, broadcastChannels, matchdayOverview] = await Promise.all([
+      readCountriesWithFallback(readTable),
+      readCompetitionsWithFallback(readTable),
       readTable<SupabaseSeason>(
         "seasons?select=id,competition_id,label,starts_on,ends_on,is_current&order=label.desc"
       ),
@@ -1181,6 +1257,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
 
     return {
       configured: true,
+      countries,
       competitions,
       seasons,
       matchdays: matchdayOverview.matchdays,
@@ -1191,6 +1268,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     return {
       configured: true,
       error: error instanceof Error ? error.message : "Erro desconhecido ao ler o Supabase.",
+      countries: [],
       competitions: [],
       seasons: [],
       matchdays: [],

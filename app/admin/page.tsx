@@ -211,7 +211,7 @@ const adminPageStyles = `
 
   .admin-stats {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 14px;
     margin-top: 18px;
   }
@@ -242,7 +242,7 @@ const adminPageStyles = `
 
   .admin-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
     margin-top: 14px;
   }
@@ -357,6 +357,7 @@ const adminPageStyles = `
 
 export default async function AdminPage() {
   const overview = await getAdminOverview();
+  const countriesById = new Map(overview.countries.map((country) => [country.id, country]));
   const competitionsById = new Map(overview.competitions.map((competition) => [competition.id, competition]));
 
   return (
@@ -394,6 +395,10 @@ export default async function AdminPage() {
         <>
           <section className="admin-stats" aria-label="Resumo da base de dados">
             <article>
+              <strong>{overview.countries.length}</strong>
+              <span>Paises</span>
+            </article>
+            <article>
               <strong>{overview.competitions.length}</strong>
               <span>Competições</span>
             </article>
@@ -418,19 +423,27 @@ export default async function AdminPage() {
           <section className="admin-flow" aria-label="Fluxo recomendado do backoffice">
             <header>
               <h2>Fluxo de trabalho</h2>
-              <p>Comeca na competicao, abre a epoca, define participantes e so depois fecha resultados, classificacao e contexto editorial.</p>
+              <p>Comeca no pais, entra na competicao, abre a epoca e fecha cada jornada com dados e contexto editorial.</p>
             </header>
             <ol>
               <li>
                 <span>01</span>
                 <div>
-                  <b>Competicoes</b>
-                  <small>Cria a estrutura competitiva: Liga Portugal, Premier League, La Liga ou outra.</small>
-                  <a href="/admin/competicoes">Abrir</a>
+                  <b>Paises</b>
+                  <small>Cria apenas os paises que vais gerir nesta fase.</small>
+                  <a href="/admin/paises">Abrir</a>
                 </div>
               </li>
               <li>
                 <span>02</span>
+                <div>
+                  <b>Competicoes</b>
+                  <small>Cria cada competicao dentro do pais certo.</small>
+                  <a href="/admin/competicoes">Abrir</a>
+                </div>
+              </li>
+              <li>
+                <span>03</span>
                 <div>
                   <b>Epocas</b>
                   <small>Abre cada epoca dentro da competicao certa.</small>
@@ -438,19 +451,11 @@ export default async function AdminPage() {
                 </div>
               </li>
               <li>
-                <span>03</span>
+                <span>04</span>
                 <div>
                   <b>Participantes</b>
                   <small>Define os clubes que pertencem a cada epoca.</small>
                   <a href="/admin/participantes">Abrir</a>
-                </div>
-              </li>
-              <li>
-                <span>04</span>
-                <div>
-                  <b>Jogos e resultados</b>
-                  <small>Insere calendario, estados, resultados, estadio e transmissao.</small>
-                  <a href="/admin/jogos">Abrir</a>
                 </div>
               </li>
               <li>
@@ -464,13 +469,21 @@ export default async function AdminPage() {
               <li>
                 <span>06</span>
                 <div>
+                  <b>Jogos e resultados</b>
+                  <small>Insere calendario, estados, resultados, estadio e transmissao.</small>
+                  <a href="/admin/jogos">Abrir</a>
+                </div>
+              </li>
+              <li>
+                <span>07</span>
+                <div>
                   <b>Classificacao</b>
                   <small>Gera a fotografia competitiva desse momento.</small>
                   <a href="/admin/classificacoes">Abrir</a>
                 </div>
               </li>
               <li>
-                <span>07</span>
+                <span>08</span>
                 <div>
                   <b>Contexto editorial</b>
                   <small>Fecha manchete, resumo, destaque, imagem, video e memoria.</small>
@@ -481,6 +494,7 @@ export default async function AdminPage() {
           </section>
 
           <nav className="admin-section-actions" aria-label="Ferramentas do backoffice">
+            <a href="/admin/paises">Gerir paises</a>
             <a href="/admin/competicoes">Gerir competicoes</a>
             <a href="/admin/epocas">Gerir epocas</a>
             <a href="/admin/participantes">Gerir participantes</a>
@@ -495,6 +509,22 @@ export default async function AdminPage() {
           <section className="admin-grid">
             <article className="admin-panel">
               <header>
+                <h2>Paises</h2>
+                <small>Primeira camada do backoffice</small>
+              </header>
+              <ul>
+                {overview.countries.map((country) => (
+                  <li key={country.id}>
+                    <span>{country.flag_emoji ?? country.iso2 ?? "PA"}</span>
+                    <b>{country.name}</b>
+                    <small>{country.slug}</small>
+                  </li>
+                ))}
+              </ul>
+            </article>
+
+            <article className="admin-panel">
+              <header>
                 <h2>Competições</h2>
                 <small>Base competitiva do site</small>
               </header>
@@ -503,7 +533,7 @@ export default async function AdminPage() {
                   <li key={competition.id}>
                     <span>{competition.logo_url ? <img src={competition.logo_url} alt="" /> : null}</span>
                     <b>{competition.name}</b>
-                    <small>{competition.country ?? competition.slug}</small>
+                    <small>{countriesById.get(competition.country_id ?? "")?.name ?? competition.country ?? competition.slug}</small>
                   </li>
                 ))}
               </ul>

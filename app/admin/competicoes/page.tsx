@@ -1,4 +1,4 @@
-import { getAdminCompetitions } from "@/lib/supabase";
+import { getAdminCompetitions, type SupabaseCompetition, type SupabaseCountry } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -106,7 +106,7 @@ const competitionAdminStyles = `
 
   .competition-form {
     display: grid;
-    grid-template-columns: 48px minmax(150px, 1.25fr) minmax(120px, 1fr) minmax(120px, 0.9fr) minmax(240px, 1.5fr) 120px 120px auto;
+    grid-template-columns: 48px minmax(150px, 1.2fr) minmax(120px, 0.9fr) minmax(150px, 1fr) minmax(240px, 1.5fr) 120px 120px auto;
     gap: 10px;
     align-items: end;
     padding: 14px 18px;
@@ -220,11 +220,33 @@ function errorMessage(error?: string) {
   return null;
 }
 
+function countryOptions(countries: SupabaseCountry[]) {
+  return countries.map((country) => (
+    <option data-country-name={country.name} key={country.id} value={country.id}>
+      {country.name}
+    </option>
+  ));
+}
+
+function selectedCountryId(competition: SupabaseCompetition, countries: SupabaseCountry[]) {
+  if (competition.country_id) {
+    return competition.country_id;
+  }
+
+  const country = countries.find((item) => item.name.toLowerCase() === (competition.country ?? "").toLowerCase());
+  return country?.id ?? countries[0]?.id ?? "";
+}
+
+function selectedCountryName(countryId: string, countries: SupabaseCountry[], fallback?: string | null) {
+  return countries.find((country) => country.id === countryId)?.name ?? fallback ?? "";
+}
+
 export default async function AdminCompetitionsPage({ searchParams }: CompetitionsPageProps) {
   const params = await searchParams;
   const overview = await getAdminCompetitions();
   const message = errorMessage(params.error);
-  const canWrite = overview.writeConfigured && !overview.error;
+  const canWrite = overview.writeConfigured && !overview.error && overview.countries.length > 0;
+  const defaultCountry = overview.countries[0];
 
   return (
     <main className="competition-admin-shell">
@@ -248,6 +270,12 @@ export default async function AdminCompetitionsPage({ searchParams }: Competitio
         </section>
       ) : null}
 
+      {overview.countries.length === 0 ? (
+        <section className="competition-admin-message warning">
+          Cria primeiro os paises em /admin/paises. As competicoes passam a nascer dentro de um pais.
+        </section>
+      ) : null}
+
       {overview.error ? <section className="competition-admin-message warning">{overview.error}</section> : null}
       {message ? <section className="competition-admin-message warning">{message}</section> : null}
       {params.created ? <section className="competition-admin-message success">Competicao criada.</section> : null}
@@ -258,8 +286,9 @@ export default async function AdminCompetitionsPage({ searchParams }: Competitio
           <h2>Nova competicao</h2>
           <small>Depois de criada, podes abrir epocas e participantes dessa competicao.</small>
         </header>
-        <form action="/api/admin/competitions" className="competition-form" method="post">
+        <form action="/api/admin/competitions" className="competition-form competition-country-form" method="post">
           <span className="competition-logo">+</span>
+          <input type="hidden" name="country" defaultValue={defaultCountry?.name ?? ""} />
           <div className="competition-field">
             <label htmlFor="new-name">Nome</label>
             <input disabled={!canWrite} id="new-name" name="name" placeholder="Ex: Liga Portugal" required />
@@ -270,7 +299,9 @@ export default async function AdminCompetitionsPage({ searchParams }: Competitio
           </div>
           <div className="competition-field">
             <label htmlFor="new-country">Pais</label>
-            <input disabled={!canWrite} id="new-country" name="country" placeholder="Portugal" />
+            <select disabled={!canWrite} id="new-country" name="country_id" required defaultValue={defaultCountry?.id ?? ""}>
+              {countryOptions(overview.countries)}
+            </select>
           </div>
           <div className="competition-field">
             <label htmlFor="new-logo-url">Logotipo URL</label>
@@ -296,42 +327,70 @@ export default async function AdminCompetitionsPage({ searchParams }: Competitio
           <h2>Competicoes existentes</h2>
           <small>{overview.competitions.length} competicoes na base de dados</small>
         </header>
-        {overview.competitions.map((competition) => (
-          <form action={`/api/admin/competitions/${competition.id}`} className="competition-form" key={competition.id} method="post">
-            <span className="competition-logo">
-              {competition.logo_url ? <img alt="" src={competition.logo_url} /> : competition.slug.slice(0, 3).toUpperCase()}
-            </span>
-            <div className="competition-field">
-              <label htmlFor={`name-${competition.id}`}>Nome</label>
-              <input disabled={!canWrite} id={`name-${competition.id}`} name="name" required defaultValue={competition.name} />
-            </div>
-            <div className="competition-field">
-              <label htmlFor={`slug-${competition.id}`}>Slug</label>
-              <input disabled={!canWrite} id={`slug-${competition.id}`} name="slug" required defaultValue={competition.slug} />
-            </div>
-            <div className="competition-field">
-              <label htmlFor={`country-${competition.id}`}>Pais</label>
-              <input disabled={!canWrite} id={`country-${competition.id}`} name="country" defaultValue={competition.country ?? ""} />
-            </div>
-            <div className="competition-field">
-              <label htmlFor={`logo-${competition.id}`}>Logotipo URL</label>
-              <input disabled={!canWrite} id={`logo-${competition.id}`} name="logo_url" defaultValue={competition.logo_url ?? ""} />
-            </div>
-            <div className="competition-field">
-              <label htmlFor={`color-${competition.id}`}>Cor</label>
-              <input disabled={!canWrite} id={`color-${competition.id}`} name="accent_color" defaultValue={competition.accent_color ?? ""} />
-            </div>
-            <div className="competition-field">
-              <label htmlFor={`active-${competition.id}`}>Estado</label>
-              <select disabled={!canWrite} id={`active-${competition.id}`} name="is_active" defaultValue={competition.is_active ? "true" : "false"}>
-                <option value="true">Ativa</option>
-                <option value="false">Inativa</option>
-              </select>
-            </div>
-            <button disabled={!canWrite} type="submit">Guardar</button>
-          </form>
-        ))}
+        {overview.competitions.map((competition) => {
+          const countryId = selectedCountryId(competition, overview.countries);
+
+          return (
+            <form action={`/api/admin/competitions/${competition.id}`} className="competition-form competition-country-form" key={competition.id} method="post">
+              <span className="competition-logo">
+                {competition.logo_url ? <img alt="" src={competition.logo_url} /> : competition.slug.slice(0, 3).toUpperCase()}
+              </span>
+              <input type="hidden" name="country" defaultValue={selectedCountryName(countryId, overview.countries, competition.country)} />
+              <div className="competition-field">
+                <label htmlFor={`name-${competition.id}`}>Nome</label>
+                <input disabled={!canWrite} id={`name-${competition.id}`} name="name" required defaultValue={competition.name} />
+              </div>
+              <div className="competition-field">
+                <label htmlFor={`slug-${competition.id}`}>Slug</label>
+                <input disabled={!canWrite} id={`slug-${competition.id}`} name="slug" required defaultValue={competition.slug} />
+              </div>
+              <div className="competition-field">
+                <label htmlFor={`country-${competition.id}`}>Pais</label>
+                <select disabled={!canWrite} id={`country-${competition.id}`} name="country_id" required defaultValue={countryId}>
+                  {countryOptions(overview.countries)}
+                </select>
+              </div>
+              <div className="competition-field">
+                <label htmlFor={`logo-${competition.id}`}>Logotipo URL</label>
+                <input disabled={!canWrite} id={`logo-${competition.id}`} name="logo_url" defaultValue={competition.logo_url ?? ""} />
+              </div>
+              <div className="competition-field">
+                <label htmlFor={`color-${competition.id}`}>Cor</label>
+                <input disabled={!canWrite} id={`color-${competition.id}`} name="accent_color" defaultValue={competition.accent_color ?? ""} />
+              </div>
+              <div className="competition-field">
+                <label htmlFor={`active-${competition.id}`}>Estado</label>
+                <select disabled={!canWrite} id={`active-${competition.id}`} name="is_active" defaultValue={competition.is_active ? "true" : "false"}>
+                  <option value="true">Ativa</option>
+                  <option value="false">Inativa</option>
+                </select>
+              </div>
+              <button disabled={!canWrite} type="submit">Guardar</button>
+            </form>
+          );
+        })}
       </section>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+document.querySelectorAll(".competition-country-form").forEach(function(form) {
+  var select = form.querySelector('select[name="country_id"]');
+  var hidden = form.querySelector('input[name="country"]');
+
+  function syncCountryName() {
+    if (!select || !hidden) return;
+    var option = select.options[select.selectedIndex];
+    hidden.value = option ? option.getAttribute("data-country-name") || option.textContent || "" : "";
+  }
+
+  if (select) {
+    select.addEventListener("change", syncCountryName);
+  }
+  syncCountryName();
+});
+          `
+        }}
+      />
     </main>
   );
 }

@@ -4,10 +4,27 @@
 
 create extension if not exists pgcrypto;
 
+create table if not exists countries (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  slug text not null unique,
+  iso2 text,
+  flag_emoji text,
+  is_active boolean not null default true,
+  data_source text not null default 'manual',
+  external_provider text,
+  external_id text,
+  last_synced_at timestamptz,
+  sync_status text not null default 'manual',
+  manual_override boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists competitions (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   slug text not null unique,
+  country_id uuid references countries(id) on delete set null,
   country text,
   logo_url text,
   accent_color text,
@@ -236,6 +253,8 @@ create table if not exists live_updates (
   created_at timestamptz not null default now()
 );
 
+create index if not exists countries_external_lookup_idx on countries (external_provider, external_id);
+create index if not exists competitions_country_id_idx on competitions (country_id);
 create index if not exists competitions_external_lookup_idx on competitions (external_provider, external_id);
 create index if not exists seasons_external_lookup_idx on seasons (external_provider, external_id);
 create index if not exists matchdays_external_lookup_idx on matchdays (external_provider, external_id);

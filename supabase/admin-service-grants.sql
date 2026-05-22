@@ -5,6 +5,7 @@
 
 grant usage on schema public to service_role;
 
+grant select, insert, update, delete on public.countries to service_role;
 grant select, insert, update, delete on public.teams to service_role;
 grant select, insert, update, delete on public.broadcast_channels to service_role;
 grant select, insert, update, delete on public.matches to service_role;

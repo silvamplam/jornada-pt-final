@@ -1,4 +1,4 @@
-import { getAdminSeasons, type SupabaseCompetition } from "@/lib/supabase";
+import { getAdminSeasons, type SupabaseCompetition, type SupabaseCountry } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -104,7 +104,7 @@ const seasonAdminStyles = `
 
   .season-form {
     display: grid;
-    grid-template-columns: minmax(190px, 1.2fr) minmax(120px, 0.9fr) 140px 140px 120px auto;
+    grid-template-columns: minmax(150px, 0.9fr) minmax(190px, 1.2fr) minmax(120px, 0.9fr) 140px 140px 120px auto;
     gap: 10px;
     align-items: end;
     padding: 14px 18px;
@@ -196,9 +196,17 @@ function errorMessage(error?: string) {
   return null;
 }
 
+function countryOptions(countries: SupabaseCountry[]) {
+  return countries.map((country) => (
+    <option key={country.id} value={country.id}>
+      {country.name}
+    </option>
+  ));
+}
+
 function competitionOptions(competitions: SupabaseCompetition[]) {
   return competitions.map((competition) => (
-    <option key={competition.id} value={competition.id}>
+    <option data-country-id={competition.country_id ?? ""} key={competition.id} value={competition.id}>
       {competition.name}
     </option>
   ));
@@ -208,11 +216,23 @@ function competitionName(competitions: SupabaseCompetition[], competitionId: str
   return competitions.find((competition) => competition.id === competitionId)?.name ?? "Competicao";
 }
 
+function competitionCountryId(competitions: SupabaseCompetition[], competitionId: string, countries: SupabaseCountry[]) {
+  const competition = competitions.find((item) => item.id === competitionId);
+
+  if (competition?.country_id) {
+    return competition.country_id;
+  }
+
+  const country = countries.find((item) => item.name.toLowerCase() === (competition?.country ?? "").toLowerCase());
+  return country?.id ?? countries[0]?.id ?? "";
+}
+
 export default async function AdminSeasonsPage({ searchParams }: SeasonsPageProps) {
   const params = await searchParams;
   const overview = await getAdminSeasons();
   const message = errorMessage(params.error);
-  const canWrite = overview.writeConfigured && !overview.error && overview.competitions.length > 0;
+  const canWrite = overview.writeConfigured && !overview.error && overview.countries.length > 0 && overview.competitions.length > 0;
+  const defaultCountryId = overview.countries[0]?.id ?? "";
   const defaultCompetitionId = overview.competitions[0]?.id ?? "";
 
   return (
@@ -237,6 +257,12 @@ export default async function AdminSeasonsPage({ searchParams }: SeasonsPageProp
         </section>
       ) : null}
 
+      {overview.countries.length === 0 ? (
+        <section className="season-admin-message warning">
+          Cria primeiro os paises em /admin/paises. Depois cria as competicoes dentro do pais certo.
+        </section>
+      ) : null}
+
       {overview.competitions.length === 0 ? (
         <section className="season-admin-message warning">
           Cria primeiro uma competicao em /admin/competicoes. So depois faz sentido abrir epocas.
@@ -255,8 +281,14 @@ export default async function AdminSeasonsPage({ searchParams }: SeasonsPageProp
         </header>
         <form action="/api/admin/seasons" className="season-form" method="post">
           <div className="season-field">
+            <label htmlFor="new-country">Pais</label>
+            <select data-country-filter disabled={!canWrite} id="new-country" defaultValue={defaultCountryId}>
+              {countryOptions(overview.countries)}
+            </select>
+          </div>
+          <div className="season-field">
             <label htmlFor="new-competition">Competicao</label>
-            <select disabled={!canWrite} id="new-competition" name="competition_id" required defaultValue={defaultCompetitionId}>
+            <select data-competition-filter disabled={!canWrite} id="new-competition" name="competition_id" required defaultValue={defaultCompetitionId}>
               {competitionOptions(overview.competitions)}
             </select>
           </div>
@@ -291,37 +323,81 @@ export default async function AdminSeasonsPage({ searchParams }: SeasonsPageProp
         {overview.seasons.length === 0 ? (
           <div className="season-empty">Ainda nao ha epocas criadas.</div>
         ) : null}
-        {overview.seasons.map((season) => (
-          <form action={`/api/admin/seasons/${season.id}`} className="season-form" key={season.id} method="post">
-            <div className="season-field">
-              <label htmlFor={`competition-${season.id}`}>Competicao</label>
-              <select disabled={!canWrite} id={`competition-${season.id}`} name="competition_id" required defaultValue={season.competition_id}>
-                {competitionOptions(overview.competitions)}
-              </select>
-            </div>
-            <div className="season-field">
-              <label htmlFor={`label-${season.id}`}>Epoca</label>
-              <input disabled={!canWrite} id={`label-${season.id}`} name="label" required defaultValue={season.label} />
-            </div>
-            <div className="season-field">
-              <label htmlFor={`starts-${season.id}`}>Inicio</label>
-              <input disabled={!canWrite} id={`starts-${season.id}`} name="starts_on" type="date" defaultValue={season.starts_on ?? ""} />
-            </div>
-            <div className="season-field">
-              <label htmlFor={`ends-${season.id}`}>Fim</label>
-              <input disabled={!canWrite} id={`ends-${season.id}`} name="ends_on" type="date" defaultValue={season.ends_on ?? ""} />
-            </div>
-            <div className="season-field">
-              <label htmlFor={`current-${season.id}`}>{competitionName(overview.competitions, season.competition_id)}</label>
-              <select disabled={!canWrite} id={`current-${season.id}`} name="is_current" defaultValue={season.is_current ? "true" : "false"}>
-                <option value="true">Atual</option>
-                <option value="false">Arquivo</option>
-              </select>
-            </div>
-            <button disabled={!canWrite} type="submit">Guardar</button>
-          </form>
-        ))}
+        {overview.seasons.map((season) => {
+          const countryId = competitionCountryId(overview.competitions, season.competition_id, overview.countries);
+
+          return (
+            <form action={`/api/admin/seasons/${season.id}`} className="season-form" key={season.id} method="post">
+              <div className="season-field">
+                <label htmlFor={`country-${season.id}`}>Pais</label>
+                <select data-country-filter disabled={!canWrite} id={`country-${season.id}`} defaultValue={countryId}>
+                  {countryOptions(overview.countries)}
+                </select>
+              </div>
+              <div className="season-field">
+                <label htmlFor={`competition-${season.id}`}>Competicao</label>
+                <select data-competition-filter disabled={!canWrite} id={`competition-${season.id}`} name="competition_id" required defaultValue={season.competition_id}>
+                  {competitionOptions(overview.competitions)}
+                </select>
+              </div>
+              <div className="season-field">
+                <label htmlFor={`label-${season.id}`}>Epoca</label>
+                <input disabled={!canWrite} id={`label-${season.id}`} name="label" required defaultValue={season.label} />
+              </div>
+              <div className="season-field">
+                <label htmlFor={`starts-${season.id}`}>Inicio</label>
+                <input disabled={!canWrite} id={`starts-${season.id}`} name="starts_on" type="date" defaultValue={season.starts_on ?? ""} />
+              </div>
+              <div className="season-field">
+                <label htmlFor={`ends-${season.id}`}>Fim</label>
+                <input disabled={!canWrite} id={`ends-${season.id}`} name="ends_on" type="date" defaultValue={season.ends_on ?? ""} />
+              </div>
+              <div className="season-field">
+                <label htmlFor={`current-${season.id}`}>{competitionName(overview.competitions, season.competition_id)}</label>
+                <select disabled={!canWrite} id={`current-${season.id}`} name="is_current" defaultValue={season.is_current ? "true" : "false"}>
+                  <option value="true">Atual</option>
+                  <option value="false">Arquivo</option>
+                </select>
+              </div>
+              <button disabled={!canWrite} type="submit">Guardar</button>
+            </form>
+          );
+        })}
       </section>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+document.querySelectorAll(".season-form").forEach(function(form) {
+  var country = form.querySelector("[data-country-filter]");
+  var competition = form.querySelector("[data-competition-filter]");
+
+  function syncCompetitionOptions() {
+    if (!competition) return;
+    var countryId = country ? country.value : "";
+    var firstAvailable = null;
+    var currentOption = competition.options[competition.selectedIndex];
+
+    Array.prototype.forEach.call(competition.options, function(option) {
+      var optionCountryId = option.getAttribute("data-country-id") || "";
+      var matches = !countryId || !optionCountryId || optionCountryId === countryId;
+      option.hidden = !matches;
+      option.disabled = !matches;
+      if (matches && !firstAvailable) firstAvailable = option;
+    });
+
+    if ((!currentOption || currentOption.disabled) && firstAvailable) {
+      competition.value = firstAvailable.value;
+    }
+  }
+
+  if (country) {
+    country.addEventListener("change", syncCompetitionOptions);
+  }
+  syncCompetitionOptions();
+});
+          `
+        }}
+      />
     </main>
   );
 }
