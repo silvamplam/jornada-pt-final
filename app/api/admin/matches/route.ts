@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateMatchContext } from "@/lib/match-context-validation";
-import { ensureSeasonParticipants } from "@/lib/season-participants";
+import { validateMatchParticipants } from "@/lib/match-participants-validation";
 import { getSupabaseServiceConfig, writeSupabaseAdmin } from "@/lib/supabase";
 
 function cleanText(value: FormDataEntryValue | null): string | null {
@@ -74,6 +74,12 @@ export async function POST(request: Request) {
       return redirectTo(request, `/admin/jogos?error=${contextValidation.error}`);
     }
 
+    const participantsValidation = await validateMatchParticipants({ seasonId, homeTeamId, awayTeamId });
+
+    if (!participantsValidation.ok) {
+      return redirectTo(request, `/admin/jogos?error=${participantsValidation.error}`);
+    }
+
     const syncMetadataAvailable = cleanText(formData.get("sync_metadata_available")) === "1";
     const body: Record<string, string | number | boolean | null> = {
       source_key: cleanText(formData.get("source_key")) ?? `manual-${Date.now()}`,
@@ -104,12 +110,6 @@ export async function POST(request: Request) {
     await writeSupabaseAdmin("matches", {
       method: "POST",
       body: JSON.stringify(body)
-    });
-
-    await ensureSeasonParticipants({
-      seasonId,
-      teamIds: [homeTeamId, awayTeamId],
-      syncMetadataAvailable
     });
   } catch {
     return redirectTo(request, "/admin/jogos?error=save");

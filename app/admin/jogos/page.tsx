@@ -391,6 +391,18 @@ function errorMessage(error?: string) {
     return "Nao foi possivel confirmar a epoca ou jornada escolhida. Reve o contexto do jogo antes de guardar.";
   }
 
+  if (error === "missing-season-participants") {
+    return "Esta epoca ainda nao tem participantes. Vai a Participantes, adiciona os clubes dessa epoca e depois cria os jogos.";
+  }
+
+  if (error === "team-not-in-season") {
+    return "Casa e Fora so podem ser clubes que estao nos participantes da epoca escolhida.";
+  }
+
+  if (error === "same-team") {
+    return "Casa e Fora nao podem ser o mesmo clube.";
+  }
+
   return null;
 }
 
@@ -642,6 +654,10 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
   const defaultMatchday =
     overview.matchdays.find((matchday) => matchday.season_id === defaultSeasonId) ?? overview.matchdays[0];
   const seasonIdsByTeam = overview.seasonTeams.reduce<Map<string, string[]>>((map, participant) => {
+    if (participant.status === "inactive") {
+      return map;
+    }
+
     const seasonIds = map.get(participant.team_id) ?? [];
     seasonIds.push(participant.season_id);
     map.set(participant.team_id, seasonIds);
@@ -651,11 +667,8 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
     .filter((participant) => participant.season_id === defaultSeasonId && participant.status !== "inactive")
     .sort((first, second) => first.display_order - second.display_order)
     .map((participant) => participant.team_id);
-  const defaultHomeTeamId = defaultSeasonTeamIds[0] ?? overview.teams[0]?.id ?? "";
-  const defaultAwayTeamId =
-    defaultSeasonTeamIds.find((teamId) => teamId !== defaultHomeTeamId) ??
-    overview.teams.find((team) => team.id !== defaultHomeTeamId)?.id ??
-    defaultHomeTeamId;
+  const defaultHomeTeamId = defaultSeasonTeamIds[0] ?? "";
+  const defaultAwayTeamId = defaultSeasonTeamIds.find((teamId) => teamId !== defaultHomeTeamId) ?? "";
 
   return (
     <main className="match-admin-shell">
@@ -739,7 +752,10 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
             "Casa",
             "home_team_id",
             defaultHomeTeamId,
-            teamOptions(overview, seasonIdsByTeam),
+            <>
+              <option value="">Escolhe equipa</option>
+              {teamOptions(overview, seasonIdsByTeam)}
+            </>,
             !canWrite,
             true
           )}
@@ -748,12 +764,15 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
             "Fora",
             "away_team_id",
             defaultAwayTeamId,
-            teamOptions(overview, seasonIdsByTeam),
+            <>
+              <option value="">Escolhe equipa</option>
+              {teamOptions(overview, seasonIdsByTeam)}
+            </>,
             !canWrite,
             true
           )}
           <small className="match-helper" id="new-team-context-helper">
-            Se a epoca tiver participantes, os clubes do jogo ficam filtrados por essa lista.
+            Os clubes do jogo vêm dos participantes da época escolhida.
           </small>
           {textField("new-kickoff", "Data e hora", "kickoff_at", "", !canWrite, "datetime-local", true)}
           <button className="match-admin-button" disabled={!canWrite} type="submit">Criar</button>
@@ -768,59 +787,84 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
                 const home = document.getElementById("new-home");
                 const away = document.getElementById("new-away");
                 const helper = document.getElementById("new-team-context-helper");
+                const submit = home?.closest("form")?.querySelector('button[type="submit"]');
 
-                if (!competition || !season || !matchday || !home || !away || !helper) return;
+                if (!competition || !season || !matchday || !home || !away || !helper || !submit) return;
+
+                const homeBaseDisabled = home.disabled;
+                const awayBaseDisabled = away.disabled;
+                const submitBaseDisabled = submit.disabled;
 
                 function firstVisibleOption(select) {
-                  return Array.from(select.options).find((option) => !option.hidden);
+                  return Array.from(select.options).find((option) => !option.hidden && !option.disabled && option.style.display !== "none");
                 }
 
                 function seasonIds(option) {
                   return (option.dataset.seasonIds || "").split(",").filter(Boolean);
                 }
 
-                function seasonHasParticipants(select, seasonId) {
-                  return Array.from(select.options).some((option) => seasonIds(option).includes(seasonId));
+                function setOptionVisible(option, visible) {
+                  option.hidden = !visible;
+                  option.disabled = !visible;
+                  option.style.display = visible ? "" : "none";
+                }
+
+                function visibleTeamCount(select) {
+                  return Array.from(select.options).filter((option) => option.value && !option.hidden && !option.disabled && option.style.display !== "none").length;
                 }
 
                 function syncTeamSelect(select, seasonId) {
-                  const constrained = seasonHasParticipants(select, seasonId);
-
                   Array.from(select.options).forEach((option) => {
-                    option.hidden = constrained && !seasonIds(option).includes(seasonId);
+                    setOptionVisible(option, Boolean(option.value && seasonIds(option).includes(seasonId)));
                   });
 
-                  if (select.selectedOptions[0]?.hidden) {
+                  if (!select.value || select.selectedOptions[0]?.hidden || select.selectedOptions[0]?.disabled) {
                     const first = firstVisibleOption(select);
-                    if (first) select.value = first.value;
+                    select.value = first ? first.value : "";
                   }
 
-                  return constrained;
+                  const hasParticipants = Boolean(firstVisibleOption(select));
+                  select.disabled = (select === home ? homeBaseDisabled : awayBaseDisabled) || !hasParticipants;
+                  return hasParticipants;
                 }
 
                 function avoidSameTeams() {
                   if (!home.value || !away.value || home.value !== away.value) return;
 
-                  const replacement = Array.from(away.options).find((option) => !option.hidden && option.value !== home.value);
+                  const replacement = Array.from(away.options).find((option) => !option.hidden && !option.disabled && option.value !== home.value);
                   if (replacement) away.value = replacement.value;
                 }
 
                 function syncTeams() {
                   const seasonId = season.value;
-                  const constrained = syncTeamSelect(home, seasonId);
-                  syncTeamSelect(away, seasonId);
+                  const homeHasParticipants = syncTeamSelect(home, seasonId);
+                  const awayHasParticipants = syncTeamSelect(away, seasonId);
+                  const count = visibleTeamCount(home);
                   avoidSameTeams();
 
-                  helper.textContent = constrained
-                    ? "Equipas filtradas pelos participantes da epoca escolhida."
-                    : "Esta epoca ainda nao tem participantes definidos; todos os clubes ficam disponiveis.";
-                  helper.className = constrained ? "match-helper" : "match-helper warning";
+                  const canCreateMatch = homeHasParticipants && awayHasParticipants && count >= 2;
+                  submit.disabled = submitBaseDisabled || !canCreateMatch;
+
+                  if (!homeHasParticipants || !awayHasParticipants) {
+                    helper.textContent = "Esta epoca ainda nao tem participantes. Define os participantes antes de criar jogos.";
+                    helper.className = "match-helper warning";
+                    return;
+                  }
+
+                  if (count < 2) {
+                    helper.textContent = "Esta epoca precisa de pelo menos dois participantes para criar jogos.";
+                    helper.className = "match-helper warning";
+                    return;
+                  }
+
+                  helper.textContent = "Equipas filtradas pelos participantes da epoca escolhida.";
+                  helper.className = "match-helper";
                 }
 
                 function syncMatchdays() {
                   const seasonId = season.value;
                   Array.from(matchday.options).forEach((option) => {
-                    option.hidden = option.dataset.seasonId ? option.dataset.seasonId !== seasonId : false;
+                    setOptionVisible(option, option.dataset.seasonId ? option.dataset.seasonId === seasonId : true);
                   });
 
                   if (matchday.selectedOptions[0]?.hidden) {
@@ -832,7 +876,7 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
                 function syncSeasons() {
                   const competitionId = competition.value;
                   Array.from(season.options).forEach((option) => {
-                    option.hidden = option.dataset.competitionId ? option.dataset.competitionId !== competitionId : false;
+                    setOptionVisible(option, option.dataset.competitionId ? option.dataset.competitionId === competitionId : true);
                   });
 
                   if (season.selectedOptions[0]?.hidden) {
@@ -902,91 +946,114 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
                 true
               )}
               {renderMatchFields(match, overview, canWrite)}
-          <button className="match-admin-button" disabled={!canWrite} type="submit">Guardar</button>
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                (() => {
-                  const form = document.currentScript.closest("form");
-                  if (!form) return;
+              <button className="match-admin-button" disabled={!canWrite} type="submit">Guardar</button>
+              <script
+                dangerouslySetInnerHTML={{
+                  __html: `
+                    (() => {
+                      const form = document.currentScript.closest("form");
+                      if (!form) return;
 
-                  const competition = form.querySelector('select[name="competition_id"]');
-                  const season = form.querySelector('select[name="season_id"]');
-                  const matchday = form.querySelector('select[name="matchday_id"]');
-                  const home = form.querySelector('select[name="home_team_id"]');
-                  const away = form.querySelector('select[name="away_team_id"]');
+                      const competition = form.querySelector('select[name="competition_id"]');
+                      const season = form.querySelector('select[name="season_id"]');
+                      const matchday = form.querySelector('select[name="matchday_id"]');
+                      const home = form.querySelector('select[name="home_team_id"]');
+                      const away = form.querySelector('select[name="away_team_id"]');
+                      const submit = form.querySelector('button[type="submit"]');
 
-                  if (!competition || !season || !matchday || !home || !away) return;
+                      if (!competition || !season || !matchday || !home || !away || !submit) return;
 
-                  function firstVisibleOption(select) {
-                    return Array.from(select.options).find((option) => !option.hidden);
-                  }
+                      const homeBaseDisabled = home.disabled;
+                      const awayBaseDisabled = away.disabled;
+                      const submitBaseDisabled = submit.disabled;
 
-                  function seasonIds(option) {
-                    return (option.dataset.seasonIds || "").split(",").filter(Boolean);
-                  }
+                      function firstVisibleOption(select) {
+                        return Array.from(select.options).find((option) => !option.hidden && !option.disabled && option.style.display !== "none");
+                      }
 
-                  function seasonHasParticipants(select, seasonId) {
-                    return Array.from(select.options).some((option) => seasonIds(option).includes(seasonId));
-                  }
+                      function seasonIds(option) {
+                        return (option.dataset.seasonIds || "").split(",").filter(Boolean);
+                      }
 
-                  function syncTeamSelect(select, seasonId) {
-                    const constrained = seasonHasParticipants(select, seasonId);
+                      function setOptionVisible(option, visible) {
+                        option.hidden = !visible;
+                        option.disabled = !visible;
+                        option.style.display = visible ? "" : "none";
+                      }
 
-                    Array.from(select.options).forEach((option) => {
-                      const isCurrentTeam = option.dataset.currentTeam === "1";
-                      option.hidden = constrained && !seasonIds(option).includes(seasonId) && !isCurrentTeam;
-                    });
+                      function visibleTeamCount(select) {
+                        return Array.from(select.options).filter((option) => option.value && !option.hidden && !option.disabled && option.style.display !== "none").length;
+                      }
 
-                    if (select.selectedOptions[0]?.hidden) {
-                      const first = firstVisibleOption(select);
-                      if (first) select.value = first.value;
-                    }
-                  }
+                      function syncTeamSelect(select, seasonId) {
+                        Array.from(select.options).forEach((option) => {
+                          setOptionVisible(option, seasonIds(option).includes(seasonId));
+                        });
 
-                  function syncTeams() {
-                    const seasonId = season.value;
-                    syncTeamSelect(home, seasonId);
-                    syncTeamSelect(away, seasonId);
-                  }
+                        if (!select.value || select.selectedOptions[0]?.hidden || select.selectedOptions[0]?.disabled) {
+                          const first = firstVisibleOption(select);
+                          select.value = first ? first.value : "";
+                        }
 
-                  function syncMatchdays() {
-                    const seasonId = season.value;
-                    Array.from(matchday.options).forEach((option) => {
-                      option.hidden = option.dataset.seasonId ? option.dataset.seasonId !== seasonId : false;
-                    });
+                        const hasParticipants = Boolean(firstVisibleOption(select));
+                        select.disabled = (select === home ? homeBaseDisabled : awayBaseDisabled) || !hasParticipants;
+                        return hasParticipants;
+                      }
 
-                    if (matchday.selectedOptions[0]?.hidden) {
-                      const first = firstVisibleOption(matchday);
-                      if (first) matchday.value = first.value;
-                    }
-                  }
+                      function avoidSameTeams() {
+                        if (!home.value || !away.value || home.value !== away.value) return;
 
-                  function syncSeasons() {
-                    const competitionId = competition.value;
-                    Array.from(season.options).forEach((option) => {
-                      option.hidden = option.dataset.competitionId ? option.dataset.competitionId !== competitionId : false;
-                    });
+                        const replacement = Array.from(away.options).find((option) => !option.hidden && !option.disabled && option.value !== home.value);
+                        if (replacement) away.value = replacement.value;
+                      }
 
-                    if (season.selectedOptions[0]?.hidden) {
-                      const first = firstVisibleOption(season);
-                      if (first) season.value = first.value;
-                    }
+                      function syncTeams() {
+                        const seasonId = season.value;
+                        const homeHasParticipants = syncTeamSelect(home, seasonId);
+                        const awayHasParticipants = syncTeamSelect(away, seasonId);
+                        avoidSameTeams();
+                        submit.disabled = submitBaseDisabled || !homeHasParticipants || !awayHasParticipants || visibleTeamCount(home) < 2;
+                      }
 
-                    syncMatchdays();
-                    syncTeams();
-                  }
+                      function syncMatchdays() {
+                        const seasonId = season.value;
+                        Array.from(matchday.options).forEach((option) => {
+                          setOptionVisible(option, option.dataset.seasonId ? option.dataset.seasonId === seasonId : true);
+                        });
 
-                  competition.addEventListener("change", syncSeasons);
-                  season.addEventListener("change", () => {
-                    syncMatchdays();
-                    syncTeams();
-                  });
-                  syncSeasons();
-                })();
-              `
-            }}
-          />
+                        if (matchday.selectedOptions[0]?.hidden) {
+                          const first = firstVisibleOption(matchday);
+                          if (first) matchday.value = first.value;
+                        }
+                      }
+
+                      function syncSeasons() {
+                        const competitionId = competition.value;
+                        Array.from(season.options).forEach((option) => {
+                          setOptionVisible(option, option.dataset.competitionId ? option.dataset.competitionId === competitionId : true);
+                        });
+
+                        if (season.selectedOptions[0]?.hidden) {
+                          const first = firstVisibleOption(season);
+                          if (first) season.value = first.value;
+                        }
+
+                        syncMatchdays();
+                        syncTeams();
+                      }
+
+                      competition.addEventListener("change", syncSeasons);
+                      season.addEventListener("change", () => {
+                        syncMatchdays();
+                        syncTeams();
+                      });
+                      home.addEventListener("change", avoidSameTeams);
+                      away.addEventListener("change", avoidSameTeams);
+                      syncSeasons();
+                    })();
+                  `
+                }}
+              />
             </div>
           </form>
         ))}

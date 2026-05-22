@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateMatchContext } from "@/lib/match-context-validation";
-import { ensureSeasonParticipants } from "@/lib/season-participants";
+import { validateMatchParticipants } from "@/lib/match-participants-validation";
 import { getSupabaseServiceConfig, writeSupabaseAdmin } from "@/lib/supabase";
 
 function cleanText(value: FormDataEntryValue | null): string | null {
@@ -81,6 +81,12 @@ export async function POST(request: Request, context: UpdateMatchContext) {
       return redirectTo(request, `/admin/jogos?error=${contextValidation.error}`);
     }
 
+    const participantsValidation = await validateMatchParticipants({ seasonId, homeTeamId, awayTeamId });
+
+    if (!participantsValidation.ok) {
+      return redirectTo(request, `/admin/jogos?error=${participantsValidation.error}`);
+    }
+
     const syncMetadataAvailable = cleanText(formData.get("sync_metadata_available")) === "1";
     const currentDataSource = cleanText(formData.get("current_data_source")) ?? "manual";
     const becomesMixed = currentDataSource === "api" || currentDataSource === "mixed";
@@ -109,12 +115,6 @@ export async function POST(request: Request, context: UpdateMatchContext) {
     await writeSupabaseAdmin(`matches?id=eq.${encodeURIComponent(id)}`, {
       method: "PATCH",
       body: JSON.stringify(body)
-    });
-
-    await ensureSeasonParticipants({
-      seasonId,
-      teamIds: [homeTeamId, awayTeamId],
-      syncMetadataAvailable
     });
   } catch {
     return redirectTo(request, "/admin/jogos?error=save");
