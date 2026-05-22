@@ -188,6 +188,17 @@ const participantsAdminStyles = `
     font-size: 14px;
   }
 
+  .participant-helper {
+    color: #687380;
+    font-size: 11px;
+    line-height: 1.3;
+  }
+
+  .participant-helper.warning {
+    color: #9a3412;
+    font-weight: 800;
+  }
+
   .participant-button {
     min-height: 39px;
     padding: 10px 12px;
@@ -332,21 +343,26 @@ function sourceClass(item: { data_source?: string | null; sync_status?: string |
   return "participant-sync-badge";
 }
 
-function seasonOptions(seasons: SupabaseSeason[], competitions: { id: string; name: string }[]) {
+function seasonOptions(seasons: SupabaseSeason[], competitions: { id: string; name: string; country: string | null }[]) {
   return seasons.map((season) => {
     const competition = competitions.find((item) => item.id === season.competition_id);
 
     return (
-      <option key={season.id} value={season.id}>
+      <option data-competition-country={competition?.country ?? ""} key={season.id} value={season.id}>
         {competition?.name ?? "Competicao"} - {season.label}
       </option>
     );
   });
 }
 
-function teamOptions(teams: SupabaseTeam[]) {
+function teamOptions(teams: SupabaseTeam[], existingSeasonIdsByTeam?: Map<string, string[]>) {
   return teams.map((team) => (
-    <option key={team.id} value={team.id}>
+    <option
+      data-country={team.country ?? ""}
+      data-existing-season-ids={existingSeasonIdsByTeam?.get(team.id)?.join(",") ?? ""}
+      key={team.id}
+      value={team.id}
+    >
       {team.name}
     </option>
   ));
@@ -398,6 +414,12 @@ export default async function AdminParticipantsPage({ searchParams }: Participan
   const canWrite = overview.writeConfigured && !overview.error;
   const defaultSeasonId = overview.seasons[0]?.id ?? "";
   const defaultTeamId = overview.teams[0]?.id ?? "";
+  const existingSeasonIdsByTeam = overview.participants.reduce<Map<string, string[]>>((map, participant) => {
+    const seasonIds = map.get(participant.team_id) ?? [];
+    seasonIds.push(participant.season_id);
+    map.set(participant.team_id, seasonIds);
+    return map;
+  }, new Map());
 
   return (
     <main className="participants-admin-shell">
@@ -446,8 +468,11 @@ export default async function AdminParticipantsPage({ searchParams }: Participan
           <div className="participant-field">
             <label htmlFor="new-team">Clube</label>
             <select disabled={!canWrite} id="new-team" name="team_id" required defaultValue={defaultTeamId}>
-              {teamOptions(overview.teams)}
+              {teamOptions(overview.teams, existingSeasonIdsByTeam)}
             </select>
+            <small className="participant-helper" id="new-team-helper">
+              Clubes ja associados a esta epoca ficam ocultos para evitar duplicados.
+            </small>
           </div>
           <div className="participant-field">
             <label htmlFor="new-order">Ordem</label>
@@ -462,6 +487,66 @@ export default async function AdminParticipantsPage({ searchParams }: Participan
           </div>
           <button className="participant-button" disabled={!canWrite} type="submit">Criar</button>
         </form>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (() => {
+                const form = document.querySelector(".participant-create-form");
+                if (!form) return;
+
+                const season = form.querySelector("#new-season");
+                const team = form.querySelector("#new-team");
+                const helper = form.querySelector("#new-team-helper");
+                const submit = form.querySelector('button[type="submit"]');
+
+                if (!season || !team || !helper || !submit) return;
+                const submitWasDisabled = submit.disabled;
+
+                function seasonIds(option) {
+                  return (option.dataset.existingSeasonIds || "").split(",").filter(Boolean);
+                }
+
+                function firstVisibleOption(select) {
+                  return Array.from(select.options).find((option) => !option.hidden && !option.disabled);
+                }
+
+                function syncTeamOptions() {
+                  const seasonId = season.value;
+                  const seasonCountry = season.selectedOptions[0]?.dataset.competitionCountry || "";
+
+                  Array.from(team.options).forEach((option) => {
+                    option.hidden = seasonIds(option).includes(seasonId);
+                  });
+
+                  if (team.selectedOptions[0]?.hidden) {
+                    const first = firstVisibleOption(team);
+                    if (first) team.value = first.value;
+                  }
+
+                  const hasVisible = Boolean(firstVisibleOption(team));
+                  const selectedCountry = team.selectedOptions[0]?.dataset.country || "";
+                  const countryMismatch = Boolean(seasonCountry && selectedCountry && seasonCountry !== selectedCountry);
+                  submit.disabled = submitWasDisabled || !hasVisible;
+
+                  if (!hasVisible) {
+                    helper.textContent = "Todos os clubes disponiveis ja estao associados a esta epoca.";
+                    helper.className = "participant-helper warning";
+                  } else if (countryMismatch) {
+                    helper.textContent = "Atencao: este clube parece pertencer a outro pais. Confirma antes de criar.";
+                    helper.className = "participant-helper warning";
+                  } else {
+                    helper.textContent = "Clubes ja associados a esta epoca ficam ocultos para evitar duplicados.";
+                    helper.className = "participant-helper";
+                  }
+                }
+
+                season.addEventListener("change", syncTeamOptions);
+                team.addEventListener("change", syncTeamOptions);
+                syncTeamOptions();
+              })();
+            `
+          }}
+        />
       </section>
 
       <section className="participants-admin-list">

@@ -639,6 +639,7 @@ export async function getAdminMatchesEditor(): Promise<{
   competitions: SupabaseCompetition[];
   seasons: SupabaseSeason[];
   matchdays: SupabaseMatchday[];
+  seasonTeams: SupabaseSeasonTeam[];
   teams: SupabaseTeam[];
   broadcastChannels: SupabaseBroadcastChannel[];
   syncMetadataAvailable: boolean;
@@ -654,6 +655,7 @@ export async function getAdminMatchesEditor(): Promise<{
       competitions: [],
       seasons: [],
       matchdays: [],
+      seasonTeams: [],
       teams: [],
       broadcastChannels: [],
       syncMetadataAvailable: false
@@ -676,7 +678,7 @@ export async function getAdminMatchesEditor(): Promise<{
       matches = await readTable<SupabaseMatch>(`matches?select=${matchSelectBase}&order=kickoff_at.asc&limit=160`);
     }
 
-    const [competitions, seasons, matchdays, teams, broadcastChannels] = await Promise.all([
+    const [competitions, seasons, matchdays, seasonTeams, teams, broadcastChannels] = await Promise.all([
       readTable<SupabaseCompetition>(
         "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
       ),
@@ -686,6 +688,9 @@ export async function getAdminMatchesEditor(): Promise<{
       readTable<SupabaseMatchday>(
         "matchdays?select=id,season_id,number,label,starts_on,ends_on,status,context_summary&order=number.asc"
       ),
+      readTable<SupabaseSeasonTeam>(
+        "season_teams?select=id,season_id,team_id,display_order,status&order=display_order.asc&limit=1000"
+      ).catch(() => []),
       readTable<SupabaseTeam>(
         "teams?select=id,name,short_name,slug,country,logo_url,primary_color&order=name.asc"
       ),
@@ -715,6 +720,7 @@ export async function getAdminMatchesEditor(): Promise<{
       competitions,
       seasons,
       matchdays,
+      seasonTeams,
       teams,
       broadcastChannels,
       syncMetadataAvailable
@@ -728,6 +734,7 @@ export async function getAdminMatchesEditor(): Promise<{
       competitions: [],
       seasons: [],
       matchdays: [],
+      seasonTeams: [],
       teams: [],
       broadcastChannels: [],
       syncMetadataAvailable: false

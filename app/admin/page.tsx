@@ -107,6 +107,90 @@ const adminPageStyles = `
     text-transform: uppercase;
   }
 
+  .admin-flow {
+    margin-top: 18px;
+    overflow: hidden;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
+  }
+
+  .admin-flow header {
+    padding: 18px 20px;
+    border-bottom: 1px solid #e6ebf1;
+  }
+
+  .admin-flow h2,
+  .admin-flow p {
+    margin: 0;
+  }
+
+  .admin-flow h2 {
+    font-size: 21px;
+    text-transform: uppercase;
+  }
+
+  .admin-flow p {
+    margin-top: 6px;
+    color: #687380;
+  }
+
+  .admin-flow ol {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .admin-flow li {
+    display: grid;
+    gap: 10px;
+    padding: 18px;
+    border-right: 1px solid #eef2f6;
+  }
+
+  .admin-flow li:last-child {
+    border-right: 0;
+  }
+
+  .admin-flow span {
+    width: fit-content;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: #10151b;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .admin-flow b {
+    display: block;
+    font-size: 15px;
+    text-transform: uppercase;
+  }
+
+  .admin-flow small {
+    display: block;
+    margin-top: 5px;
+    min-height: 38px;
+    color: #687380;
+    line-height: 1.35;
+  }
+
+  .admin-flow a {
+    display: inline-block;
+    width: fit-content;
+    margin-top: 10px;
+    color: #e5252a;
+    font-size: 12px;
+    font-weight: 900;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
   .admin-warning {
     margin-top: 18px;
     padding: 22px;
@@ -247,9 +331,15 @@ const adminPageStyles = `
 
     .admin-hero,
     .admin-stats,
-    .admin-grid {
+    .admin-grid,
+    .admin-flow ol {
       display: grid;
       grid-template-columns: 1fr;
+    }
+
+    .admin-flow li {
+      border-right: 0;
+      border-bottom: 1px solid #eef2f6;
     }
 
     .admin-hero-actions {
@@ -320,14 +410,63 @@ export default async function AdminPage() {
             </article>
           </section>
 
+          <section className="admin-flow" aria-label="Fluxo recomendado do backoffice">
+            <header>
+              <h2>Fluxo de trabalho</h2>
+              <p>Parte da epoca, organiza a jornada e so depois fecha resultados, classificacao e contexto editorial.</p>
+            </header>
+            <ol>
+              <li>
+                <span>01</span>
+                <div>
+                  <b>Participantes</b>
+                  <small>Define que clubes pertencem a cada epoca.</small>
+                  <a href="/admin/participantes">Abrir</a>
+                </div>
+              </li>
+              <li>
+                <span>02</span>
+                <div>
+                  <b>Jornadas</b>
+                  <small>Cria o momento competitivo e a memoria editorial.</small>
+                  <a href="/admin/jornadas">Abrir</a>
+                </div>
+              </li>
+              <li>
+                <span>03</span>
+                <div>
+                  <b>Jogos</b>
+                  <small>Insere calendario, estados, resultados e estadio.</small>
+                  <a href="/admin/jogos">Abrir</a>
+                </div>
+              </li>
+              <li>
+                <span>04</span>
+                <div>
+                  <b>TV</b>
+                  <small>Liga cada jogo ao canal onde se ve.</small>
+                  <a href="/admin/jogos-tv">Abrir</a>
+                </div>
+              </li>
+              <li>
+                <span>05</span>
+                <div>
+                  <b>Classificacao</b>
+                  <small>Gera a fotografia competitiva desse momento.</small>
+                  <a href="/admin/classificacoes">Abrir</a>
+                </div>
+              </li>
+            </ol>
+          </section>
+
           <nav className="admin-section-actions" aria-label="Ferramentas do backoffice">
-            <a href="/admin/jornadas">Gerir jornadas</a>
             <a href="/admin/participantes">Gerir participantes</a>
-            <a href="/admin/classificacoes">Gerir classificacoes</a>
+            <a href="/admin/jornadas">Gerir jornadas</a>
             <a href="/admin/jogos">Gerir jogos</a>
+            <a href="/admin/jogos-tv">Ligar jogos a TV</a>
+            <a href="/admin/classificacoes">Gerir classificacoes</a>
             <a href="/admin/clubes">Gerir clubes</a>
             <a href="/admin/canais-tv">Gerir canais TV</a>
-            <a href="/admin/jogos-tv">Ligar jogos a TV</a>
           </nav>
 
           <section className="admin-grid">
