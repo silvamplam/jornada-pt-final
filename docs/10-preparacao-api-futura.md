@@ -68,8 +68,15 @@ Assim, uma sincronizacao futura atualiza os dados do futebol, mas nao apaga a le
 
 - A base de dados aceita metadados de origem e sincronizacao.
 - O backoffice de jogos consegue mostrar se o dado e manual, API ou misto.
+- O backoffice de classificacoes guarda fotografias da tabela por jornada e permite correcao manual.
 - A edicao manual continua a funcionar mesmo quando houver API.
 - A camada editorial permanece separada dos dados automaticos.
+
+## Classificacoes e conflito de dados
+
+Quando uma classificacao vier de API, cada fotografia da tabela deve ficar associada a competicao, epoca e jornada. Se o administrador corrigir uma linha, essa linha deve passar para `mixed` ou ficar com `manual_override = true`.
+
+Isto evita que uma futura sincronizacao substitua uma correcao editorial importante, por exemplo uma penalizacao, desempate, jogo em atraso ou ajuste historico que a fonte automatica ainda nao reflita corretamente.
 
 ## O que fica para depois
 

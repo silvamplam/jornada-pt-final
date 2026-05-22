@@ -131,6 +131,61 @@ export type SupabaseAdminMatchday = SupabaseMatchday & {
   headlineCount: number;
 };
 
+export type SupabaseStanding = {
+  id: string;
+  competition_id: string;
+  season_id: string;
+  matchday_id: string | null;
+  moment_label: string | null;
+  generated_at: string;
+  data_source?: string | null;
+  external_provider?: string | null;
+  external_id?: string | null;
+  last_synced_at?: string | null;
+  sync_status?: string | null;
+  manual_override?: boolean | null;
+};
+
+export type SupabaseStandingRow = {
+  id: string;
+  standing_id: string;
+  team_id: string;
+  position: number;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goals_for: number;
+  goals_against: number;
+  goal_difference: number;
+  points: number;
+  home_played: number;
+  home_wins: number;
+  home_draws: number;
+  home_losses: number;
+  away_played: number;
+  away_wins: number;
+  away_draws: number;
+  away_losses: number;
+  data_source?: string | null;
+  external_provider?: string | null;
+  external_id?: string | null;
+  last_synced_at?: string | null;
+  sync_status?: string | null;
+  manual_override?: boolean | null;
+};
+
+export type SupabaseAdminStandingRow = SupabaseStandingRow & {
+  team: SupabaseTeam | null;
+};
+
+export type SupabaseAdminStanding = SupabaseStanding & {
+  competition: SupabaseCompetition | null;
+  season: SupabaseSeason | null;
+  matchday: SupabaseMatchday | null;
+  rows: SupabaseAdminStandingRow[];
+};
+
 export type AdminOverview = {
   configured: boolean;
   error?: string;
@@ -616,6 +671,116 @@ export async function getAdminMatchdaysEditor(): Promise<{
       competitions: [],
       seasons: [],
       editorialFieldsAvailable: false,
+      syncMetadataAvailable: false
+    };
+  }
+}
+
+export async function getAdminStandingsEditor(): Promise<{
+  configured: boolean;
+  writeConfigured: boolean;
+  error?: string;
+  standings: SupabaseAdminStanding[];
+  competitions: SupabaseCompetition[];
+  seasons: SupabaseSeason[];
+  matchdays: SupabaseMatchday[];
+  teams: SupabaseTeam[];
+  syncMetadataAvailable: boolean;
+}> {
+  const readConfigured = Boolean(getSupabaseConfig());
+  const writeConfigured = Boolean(getSupabaseServiceConfig());
+
+  if (!readConfigured) {
+    return {
+      configured: false,
+      writeConfigured,
+      standings: [],
+      competitions: [],
+      seasons: [],
+      matchdays: [],
+      teams: [],
+      syncMetadataAvailable: false
+    };
+  }
+
+  try {
+    const readTable = writeConfigured ? fetchSupabaseAdminTable : fetchSupabaseTable;
+    const standingSelectBase = "id,competition_id,season_id,matchday_id,moment_label,generated_at";
+    const rowSelectBase =
+      "id,standing_id,team_id,position,played,wins,draws,losses,goals_for,goals_against,goal_difference,points,home_played,home_wins,home_draws,home_losses,away_played,away_wins,away_draws,away_losses";
+    const syncSelect = "data_source,external_provider,external_id,last_synced_at,sync_status,manual_override";
+    let syncMetadataAvailable = true;
+    let standings: SupabaseStanding[] = [];
+    let standingRows: SupabaseStandingRow[] = [];
+
+    try {
+      [standings, standingRows] = await Promise.all([
+        readTable<SupabaseStanding>(`standings?select=${standingSelectBase},${syncSelect}&order=generated_at.desc&limit=80`),
+        readTable<SupabaseStandingRow>(`standing_rows?select=${rowSelectBase},${syncSelect}&order=position.asc&limit=1200`)
+      ]);
+    } catch {
+      syncMetadataAvailable = false;
+      [standings, standingRows] = await Promise.all([
+        readTable<SupabaseStanding>(`standings?select=${standingSelectBase}&order=generated_at.desc&limit=80`),
+        readTable<SupabaseStandingRow>(`standing_rows?select=${rowSelectBase}&order=position.asc&limit=1200`)
+      ]);
+    }
+
+    const [competitions, seasons, matchdays, teams] = await Promise.all([
+      readTable<SupabaseCompetition>(
+        "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
+      ),
+      readTable<SupabaseSeason>(
+        "seasons?select=id,competition_id,label,starts_on,ends_on,is_current&order=label.desc"
+      ),
+      readTable<SupabaseMatchday>(
+        "matchdays?select=id,season_id,number,label,starts_on,ends_on,status,context_summary&order=number.asc"
+      ),
+      readTable<SupabaseTeam>(
+        "teams?select=id,name,short_name,slug,country,logo_url,primary_color&order=name.asc"
+      )
+    ]);
+
+    const competitionsById = mapById(competitions);
+    const seasonsById = mapById(seasons);
+    const matchdaysById = mapById(matchdays);
+    const teamsById = mapById(teams);
+    const rowsByStanding = standingRows.reduce<Map<string, SupabaseAdminStandingRow[]>>((map, row) => {
+      const list = map.get(row.standing_id) ?? [];
+      list.push({
+        ...row,
+        team: teamsById.get(row.team_id) ?? null
+      });
+      map.set(row.standing_id, list);
+      return map;
+    }, new Map());
+
+    return {
+      configured: true,
+      writeConfigured,
+      standings: standings.map((standing) => ({
+        ...standing,
+        competition: competitionsById.get(standing.competition_id) ?? null,
+        season: seasonsById.get(standing.season_id) ?? null,
+        matchday: standing.matchday_id ? matchdaysById.get(standing.matchday_id) ?? null : null,
+        rows: rowsByStanding.get(standing.id) ?? []
+      })),
+      competitions,
+      seasons,
+      matchdays,
+      teams,
+      syncMetadataAvailable
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      writeConfigured,
+      error: error instanceof Error ? error.message : "Erro desconhecido ao ler classificacoes.",
+      standings: [],
+      competitions: [],
+      seasons: [],
+      matchdays: [],
+      teams: [],
       syncMetadataAvailable: false
     };
   }

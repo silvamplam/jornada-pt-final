@@ -108,10 +108,13 @@ Permite escolher:
 
 Permite:
 
-- importar classificacao;
-- corrigir manualmente;
-- guardar snapshot por jornada;
-- consultar historico.
+- criar uma fotografia da tabela por competicao, epoca e jornada;
+- corrigir manualmente posicao, jogos, vitorias, empates, derrotas, golos, pontos e registos casa/fora;
+- distinguir dados introduzidos manualmente, dados vindos de API e dados corrigidos pelo administrador;
+- guardar a classificacao como consequencia competitiva de uma jornada;
+- consultar historico no futuro.
+
+Nesta fase, a gestao e manual. No futuro, a API pode alimentar a tabela, mas o backoffice deve continuar a permitir correcao editorial e protecao de campos alterados manualmente.
 
 ### Importacoes
 

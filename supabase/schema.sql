@@ -244,5 +244,7 @@ create index if not exists matchdays_season_order_idx on matchdays (season_id, d
 create index if not exists teams_external_lookup_idx on teams (external_provider, external_id);
 create index if not exists matches_external_lookup_idx on matches (external_provider, external_id);
 create index if not exists matches_external_match_lookup_idx on matches (external_provider, external_match_id);
+create index if not exists standings_context_idx on standings (competition_id, season_id, matchday_id, generated_at desc);
 create index if not exists standings_external_lookup_idx on standings (external_provider, external_id);
+create index if not exists standing_rows_order_idx on standing_rows (standing_id, position);
 create index if not exists standing_rows_external_lookup_idx on standing_rows (external_provider, external_id);

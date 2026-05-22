@@ -130,6 +130,8 @@ Estados possiveis:
 
 Representa a classificacao num momento concreto.
 
+No Jornada.pt, a classificacao nao deve ser apenas a tabela atual da competicao. Deve poder funcionar como uma fotografia historica: antes da jornada, durante a jornada ou depois da jornada.
+
 Campos principais:
 
 - id
@@ -170,6 +172,15 @@ Campos principais:
 - vitorias_fora
 - empates_fora
 - derrotas_fora
+
+Cada linha pode tambem guardar origem e sincronizacao futura:
+
+- data_source
+- external_provider
+- external_id
+- last_synced_at
+- sync_status
+- manual_override
 
 ### Article
 
@@ -311,3 +322,16 @@ Cada jornada pode ter:
 - classificacao associada.
 
 Isto permite que uma pagina de jornada explique nao so o que aconteceu, mas porque aquele conjunto de jogos teve importancia dentro da competicao.
+
+## Classificacao como consequencia da jornada
+
+A classificacao deve estar ligada a competicao, epoca e jornada. Assim, uma jornada pode mostrar nao apenas jogos e resultados, mas tambem o efeito competitivo que esses jogos tiveram na tabela.
+
+Exemplo:
+
+- Premier League;
+- epoca 2024/25;
+- Jornada 04;
+- classificacao depois da jornada.
+
+Esta fotografia pode ser preenchida manualmente agora e sincronizada por API no futuro, sem perder correcoes editoriais feitas pelo administrador.

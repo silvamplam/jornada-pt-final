@@ -23,6 +23,7 @@ O leitor deve conseguir perceber:
 - `app/competicao/[slug]/jornada/[matchday]/page.tsx`: consulta de uma jornada especifica.
 - `app/admin/page.tsx`: painel inicial do backoffice.
 - `app/admin/jornadas/page.tsx`: gestao manual e editorial das jornadas.
+- `app/admin/classificacoes/page.tsx`: gestao manual das classificacoes por competicao, epoca e jornada.
 - `app/admin/jogos/page.tsx`: gestao manual dos jogos, resultados, estados e transmissoes.
 - `app/admin/clubes/page.tsx`: gestao dos clubes.
 - `app/admin/canais-tv/page.tsx`: gestao dos canais TV e logotipos.
@@ -51,6 +52,8 @@ As entidades principais sao:
 - `BroadcastChannel`
 
 A Jornada (`Matchday`) e uma entidade forte. Pode ter titulo editorial, resumo, imagem principal, video, ordem, destaque, memoria historica, SEO, jogos associados, noticias associadas, manchetes associadas e classificacao associada.
+
+A classificacao (`Standing`) e guardada como fotografia de um momento competitivo. Pode estar ligada a uma competicao, epoca e jornada, para que o leitor consiga perceber a consequencia dos jogos nesse ponto da competicao.
 
 ## Preparacao para API futura
 

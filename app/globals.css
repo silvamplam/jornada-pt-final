@@ -3161,3 +3161,355 @@ tbody tr:nth-child(odd) {
   background: #ffffff;
   box-shadow: 0 12px 24px rgba(12, 22, 34, 0.08);
 }
+
+.admin-shell {
+  min-height: 100vh;
+  padding: 28px;
+  background: #eef2f6;
+  color: #10151b;
+}
+
+.admin-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #10151b, #25303c);
+  color: #ffffff;
+  box-shadow: 0 18px 40px rgba(8, 15, 24, 0.16);
+}
+
+.admin-hero p,
+.admin-hero h1 {
+  margin: 0;
+}
+
+.admin-hero p {
+  color: #e5252a;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-hero h1 {
+  margin-top: 8px;
+  font-size: 42px;
+  line-height: 1;
+}
+
+.admin-hero span {
+  display: block;
+  margin-top: 10px;
+  max-width: 680px;
+  color: #cdd5df;
+  font-size: 16px;
+}
+
+.admin-hero-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-hero-actions form {
+  margin: 0;
+}
+
+.admin-hero a,
+.admin-hero button {
+  flex: 0 0 auto;
+  padding: 11px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 6px;
+  background: transparent;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.admin-hero button {
+  background: rgba(229, 37, 42, 0.92);
+  border-color: rgba(229, 37, 42, 0.92);
+}
+
+.admin-login-shell {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(229, 37, 42, 0.12), transparent 28%),
+    linear-gradient(135deg, #eef2f6, #ffffff);
+  color: #10151b;
+}
+
+.admin-login-card {
+  width: min(100%, 430px);
+  padding: 28px;
+  border: 1px solid #dce3eb;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 58px rgba(8, 15, 24, 0.14);
+}
+
+.admin-login-card p,
+.admin-login-card h1,
+.admin-login-card span {
+  margin: 0;
+}
+
+.admin-login-card p {
+  color: #e5252a;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-login-card h1 {
+  margin-top: 8px;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.admin-login-card span {
+  display: block;
+  margin-top: 10px;
+  color: #5e6874;
+  font-size: 15px;
+}
+
+.admin-login-error,
+.admin-login-success {
+  display: block;
+  margin-top: 18px;
+  padding: 11px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.admin-login-error {
+  border: 1px solid #ffd3a3;
+  background: #fff8ee;
+  color: #9a3b00;
+}
+
+.admin-login-success {
+  border: 1px solid #bfe4c9;
+  background: #f0fbf3;
+  color: #146b2c;
+}
+
+.admin-login-card form {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.admin-login-card label {
+  color: #5e6874;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-login-card input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid #cfd8e3;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.admin-login-card input:focus {
+  outline: 2px solid rgba(229, 37, 42, 0.18);
+  border-color: #e5252a;
+}
+
+.admin-login-card button {
+  padding: 13px 14px;
+  border: 0;
+  border-radius: 6px;
+  background: #e5252a;
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.admin-login-card button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.admin-login-card > a {
+  display: inline-block;
+  margin-top: 16px;
+  color: #5e6874;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-warning {
+  margin-top: 18px;
+  padding: 22px;
+  border: 1px solid #ffd3a3;
+  border-radius: 8px;
+  background: #fff8ee;
+}
+
+.admin-warning h2,
+.admin-warning p {
+  margin: 0;
+}
+
+.admin-warning p {
+  margin-top: 8px;
+  color: #5b6571;
+}
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.admin-stats article {
+  padding: 20px;
+  border: 1px solid #dce3eb;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
+}
+
+.admin-stats strong {
+  display: block;
+  color: #e5252a;
+  font-size: 38px;
+  line-height: 1;
+}
+
+.admin-stats span {
+  display: block;
+  margin-top: 7px;
+  color: #5e6874;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.admin-panel {
+  overflow: hidden;
+  border: 1px solid #dce3eb;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
+}
+
+.admin-panel header {
+  padding: 16px 18px;
+  border-bottom: 1px solid #e6ebf1;
+}
+
+.admin-panel h2 {
+  margin: 0;
+  font-size: 19px;
+  text-transform: uppercase;
+}
+
+.admin-panel small {
+  color: #687380;
+}
+
+.admin-panel ul {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-panel li {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 52px;
+  padding: 9px 14px;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.admin-panel li:last-child {
+  border-bottom: 0;
+}
+
+.admin-panel li span:first-child {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #dce3eb;
+  border-radius: 50%;
+  background: #f8fafc;
+  color: #5e6874;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.admin-panel img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.admin-panel b {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 920px) {
+  .admin-shell {
+    padding: 16px;
+  }
+
+  .admin-hero,
+  .admin-stats,
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-hero {
+    display: grid;
+  }
+
+  .admin-hero-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-hero-actions a,
+  .admin-hero-actions button {
+    width: 100%;
+    text-align: center;
+  }
+}

@@ -10,6 +10,7 @@ grant select, insert, update, delete on public.matches to service_role;
 grant select on public.competitions to service_role;
 grant select on public.seasons to service_role;
 grant select, insert, update, delete on public.matchdays to service_role;
+-- Classificacoes: fotografias da tabela ligadas a competicao, epoca e jornada.
 grant select, insert, update, delete on public.standings to service_role;
 grant select, insert, update, delete on public.standing_rows to service_role;
 grant select on public.articles to service_role;
