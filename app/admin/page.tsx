@@ -428,7 +428,7 @@ export default async function AdminPage() {
                 <span>02</span>
                 <div>
                   <b>Jornadas</b>
-                  <small>Cria o momento competitivo e a memoria editorial.</small>
+                  <small>Cria o momento competitivo dentro da epoca.</small>
                   <a href="/admin/jornadas">Abrir</a>
                 </div>
               </li>
@@ -443,17 +443,17 @@ export default async function AdminPage() {
               <li>
                 <span>04</span>
                 <div>
-                  <b>TV</b>
-                  <small>Liga cada jogo ao canal onde se ve.</small>
-                  <a href="/admin/jogos-tv">Abrir</a>
+                  <b>Classificacao</b>
+                  <small>Gera a fotografia competitiva desse momento.</small>
+                  <a href="/admin/classificacoes">Abrir</a>
                 </div>
               </li>
               <li>
                 <span>05</span>
                 <div>
-                  <b>Classificacao</b>
-                  <small>Gera a fotografia competitiva desse momento.</small>
-                  <a href="/admin/classificacoes">Abrir</a>
+                  <b>Contexto editorial</b>
+                  <small>Fecha manchete, resumo, destaque, imagem, video e memoria.</small>
+                  <a href="/admin/jornadas">Abrir</a>
                 </div>
               </li>
             </ol>
@@ -463,8 +463,8 @@ export default async function AdminPage() {
             <a href="/admin/participantes">Gerir participantes</a>
             <a href="/admin/jornadas">Gerir jornadas</a>
             <a href="/admin/jogos">Gerir jogos</a>
-            <a href="/admin/jogos-tv">Ligar jogos a TV</a>
             <a href="/admin/classificacoes">Gerir classificacoes</a>
+            <a href="/admin/jogos-tv">Ligar jogos a TV</a>
             <a href="/admin/clubes">Gerir clubes</a>
             <a href="/admin/canais-tv">Gerir canais TV</a>
           </nav>
