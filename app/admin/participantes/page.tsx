@@ -133,7 +133,7 @@ const participantsAdminStyles = `
   }
 
   .participant-row-form {
-    grid-template-columns: 48px minmax(220px, 1.4fr) minmax(220px, 1.4fr) 105px 145px 180px 120px 120px;
+    grid-template-columns: 48px minmax(220px, 1.35fr) minmax(220px, 1.35fr) 105px 145px minmax(190px, 1fr) 120px 120px;
     border-bottom: 1px solid #eef2f6;
   }
 
@@ -216,7 +216,6 @@ const participantsAdminStyles = `
   }
 
   .participant-sync-badge {
-    align-self: center;
     width: fit-content;
     padding: 6px 8px;
     border: 1px solid #dce3eb;
@@ -226,6 +225,23 @@ const participantsAdminStyles = `
     font-size: 11px;
     font-weight: 900;
     text-transform: uppercase;
+  }
+
+  .participant-origin-cell {
+    align-self: center;
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .participant-origin {
+    color: #687380;
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  .participant-origin strong {
+    color: #10151b;
   }
 
   .participant-sync-badge.api {
@@ -344,6 +360,37 @@ function logo(participant: SupabaseAdminSeasonTeam) {
   return <img src={participant.team.logo_url} alt="" />;
 }
 
+function formatShortDate(value: string | null) {
+  if (!value) {
+    return "sem data";
+  }
+
+  return new Intl.DateTimeFormat("pt-PT", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(new Date(value));
+}
+
+function sourceMatchLabel(match: SupabaseAdminSeasonTeam["sourceMatches"][number]) {
+  const home = match.homeTeam?.name ?? "Casa";
+  const away = match.awayTeam?.name ?? "Fora";
+  const score = match.home_score !== null && match.away_score !== null ? ` ${match.home_score}-${match.away_score}` : "";
+
+  return `${home} x ${away}${score} - ${formatShortDate(match.kickoff_at)}`;
+}
+
+function originLabel(participant: SupabaseAdminSeasonTeam) {
+  if (participant.sourceMatches.length === 0) {
+    return "Sem jogo associado. Pode ter sido criado manualmente.";
+  }
+
+  const firstMatches = participant.sourceMatches.slice(0, 2).map(sourceMatchLabel);
+  const extra = participant.sourceMatches.length > 2 ? ` +${participant.sourceMatches.length - 2} jogos` : "";
+
+  return `${firstMatches.join(" / ")}${extra}`;
+}
+
 export default async function AdminParticipantsPage({ searchParams }: ParticipantsPageProps) {
   const params = await searchParams;
   const overview = await getAdminSeasonParticipants();
@@ -451,7 +498,12 @@ export default async function AdminParticipantsPage({ searchParams }: Participan
                 <option value="inactive">Inativo</option>
               </select>
             </div>
-            <span className={sourceClass(participant)}>{sourceLabel(participant, overview.syncMetadataAvailable)}</span>
+            <div className="participant-origin-cell">
+              <span className={sourceClass(participant)}>{sourceLabel(participant, overview.syncMetadataAvailable)}</span>
+              <span className="participant-origin">
+                <strong>Origem:</strong> {originLabel(participant)}
+              </span>
+            </div>
             <button className="participant-button" disabled={!canWrite} type="submit">Guardar</button>
             <button className="participant-button secondary" disabled={!canWrite} name="action" type="submit" value="delete">Remover</button>
           </form>

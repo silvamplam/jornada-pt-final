@@ -204,6 +204,20 @@ export type SupabaseAdminSeasonTeam = SupabaseSeasonTeam & {
   competition: SupabaseCompetition | null;
   season: SupabaseSeason | null;
   team: SupabaseTeam | null;
+  sourceMatches: SupabaseParticipantSourceMatch[];
+};
+
+export type SupabaseParticipantSourceMatch = {
+  id: string;
+  season_id: string;
+  home_team_id: string;
+  away_team_id: string;
+  kickoff_at: string | null;
+  status: string | null;
+  home_score: number | null;
+  away_score: number | null;
+  homeTeam: SupabaseTeam | null;
+  awayTeam: SupabaseTeam | null;
 };
 
 export type AdminOverview = {
@@ -429,6 +443,10 @@ function mapById<T extends { id: string }>(items: T[]): Map<string, T> {
   return new Map(items.map((item) => [item.id, item]));
 }
 
+function participantMatchKey(seasonId: string, teamId: string) {
+  return `${seasonId}:${teamId}`;
+}
+
 export async function getAdminSeasonParticipants(): Promise<{
   configured: boolean;
   writeConfigured: boolean;
@@ -472,7 +490,7 @@ export async function getAdminSeasonParticipants(): Promise<{
       );
     }
 
-    const [competitions, seasons, teams] = await Promise.all([
+    const [competitions, seasons, teams, matches] = await Promise.all([
       readTable<SupabaseCompetition>(
         "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
       ),
@@ -481,12 +499,38 @@ export async function getAdminSeasonParticipants(): Promise<{
       ),
       readTable<SupabaseTeam>(
         "teams?select=id,name,short_name,slug,country,logo_url,primary_color&order=name.asc"
-      )
+      ),
+      readTable<SupabaseMatch>(
+        "matches?select=id,season_id,home_team_id,away_team_id,kickoff_at,status,home_score,away_score&order=kickoff_at.asc&limit=1000"
+      ).catch(() => [])
     ]);
 
     const competitionsById = mapById(competitions);
     const seasonsById = mapById(seasons);
     const teamsById = mapById(teams);
+    const matchesByParticipant = matches.reduce<Map<string, SupabaseParticipantSourceMatch[]>>((map, match) => {
+      const sourceMatch: SupabaseParticipantSourceMatch = {
+        id: match.id,
+        season_id: match.season_id,
+        home_team_id: match.home_team_id,
+        away_team_id: match.away_team_id,
+        kickoff_at: match.kickoff_at,
+        status: match.status,
+        home_score: match.home_score,
+        away_score: match.away_score,
+        homeTeam: teamsById.get(match.home_team_id) ?? null,
+        awayTeam: teamsById.get(match.away_team_id) ?? null
+      };
+
+      for (const teamId of [match.home_team_id, match.away_team_id]) {
+        const key = participantMatchKey(match.season_id, teamId);
+        const list = map.get(key) ?? [];
+        list.push(sourceMatch);
+        map.set(key, list);
+      }
+
+      return map;
+    }, new Map());
 
     return {
       configured: true,
@@ -499,7 +543,8 @@ export async function getAdminSeasonParticipants(): Promise<{
           ...participant,
           competition,
           season,
-          team: teamsById.get(participant.team_id) ?? null
+          team: teamsById.get(participant.team_id) ?? null,
+          sourceMatches: matchesByParticipant.get(participantMatchKey(participant.season_id, participant.team_id)) ?? []
         };
       }),
       competitions,
