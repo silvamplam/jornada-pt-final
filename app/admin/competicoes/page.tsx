@@ -220,21 +220,21 @@ function errorMessage(error?: string) {
   return null;
 }
 
-function countryOptions(countries: SupabaseCountry[]) {
-  return countries.map((country) => (
-    <option data-country-name={country.name} key={country.id} value={country.id}>
-      {country.name}
-    </option>
-  ));
+function countryOptions(countries: SupabaseCountry[], includeEmpty = false) {
+  return (
+    <>
+      {includeEmpty ? <option value="">Escolhe o pais</option> : null}
+      {countries.map((country) => (
+        <option data-country-name={country.name} key={country.id} value={country.id}>
+          {country.name}
+        </option>
+      ))}
+    </>
+  );
 }
 
-function selectedCountryId(competition: SupabaseCompetition, countries: SupabaseCountry[]) {
-  if (competition.country_id) {
-    return competition.country_id;
-  }
-
-  const country = countries.find((item) => item.name.toLowerCase() === (competition.country ?? "").toLowerCase());
-  return country?.id ?? countries[0]?.id ?? "";
+function selectedCountryId(competition: SupabaseCompetition) {
+  return competition.country_id ?? "";
 }
 
 function selectedCountryName(countryId: string, countries: SupabaseCountry[], fallback?: string | null) {
@@ -328,7 +328,7 @@ export default async function AdminCompetitionsPage({ searchParams }: Competitio
           <small>{overview.competitions.length} competicoes na base de dados</small>
         </header>
         {overview.competitions.map((competition) => {
-          const countryId = selectedCountryId(competition, overview.countries);
+          const countryId = selectedCountryId(competition);
 
           return (
             <form action={`/api/admin/competitions/${competition.id}`} className="competition-form competition-country-form" key={competition.id} method="post">
@@ -347,7 +347,7 @@ export default async function AdminCompetitionsPage({ searchParams }: Competitio
               <div className="competition-field">
                 <label htmlFor={`country-${competition.id}`}>Pais</label>
                 <select disabled={!canWrite} id={`country-${competition.id}`} name="country_id" required defaultValue={countryId}>
-                  {countryOptions(overview.countries)}
+                  {countryOptions(overview.countries, true)}
                 </select>
               </div>
               <div className="competition-field">
