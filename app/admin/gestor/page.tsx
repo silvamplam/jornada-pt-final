@@ -10,7 +10,8 @@ import {
   type SupabaseAdminStanding,
   type SupabaseCompetition,
   type SupabaseCountry,
-  type SupabaseSeason
+  type SupabaseSeason,
+  type SupabaseTeam
 } from "@/lib/supabase";
 import type { ReactNode } from "react";
 
@@ -167,7 +168,9 @@ const managerStyles = `
     text-transform: uppercase;
   }
 
-  .manager-field select {
+  .manager-field select,
+  .manager-field input,
+  .manager-field textarea {
     width: 100%;
     min-height: 46px;
     padding: 0 12px;
@@ -177,6 +180,99 @@ const managerStyles = `
     color: #10151b;
     font: inherit;
     font-size: 16px;
+  }
+
+  .manager-field textarea {
+    min-height: 86px;
+    padding-top: 12px;
+    resize: vertical;
+  }
+
+  .manager-field input[type="checkbox"] {
+    width: 18px;
+    min-height: 18px;
+    padding: 0;
+  }
+
+  .manager-button:disabled,
+  .manager-link-button[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .manager-create-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding: 18px 20px;
+  }
+
+  .manager-create-card {
+    display: grid;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+  }
+
+  .manager-create-card header {
+    padding: 0;
+    border: 0;
+  }
+
+  .manager-create-card h3,
+  .manager-create-card p {
+    margin: 0;
+  }
+
+  .manager-create-card h3 {
+    font-size: 16px;
+    text-transform: uppercase;
+  }
+
+  .manager-create-card p {
+    margin-top: 5px;
+    color: #687380;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .manager-create-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    align-items: end;
+  }
+
+  .manager-create-form .wide,
+  .manager-create-form button {
+    grid-column: 1 / -1;
+  }
+
+  .manager-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 46px;
+    color: #5e6874;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .manager-message {
+    margin: 18px 20px 0;
+    padding: 13px 15px;
+    border-radius: 8px;
+    color: #174a28;
+    background: #e9f8ef;
+    font-weight: 700;
+  }
+
+  .manager-message.warning {
+    color: #6a3d00;
+    background: #fff4df;
   }
 
   .manager-path {
@@ -377,6 +473,8 @@ const managerStyles = `
     .manager-path,
     .manager-steps,
     .manager-grid,
+    .manager-create-grid,
+    .manager-create-form,
     .manager-stat-row {
       grid-template-columns: 1fr 1fr;
     }
@@ -392,6 +490,8 @@ const managerStyles = `
     .manager-path,
     .manager-steps,
     .manager-grid,
+    .manager-create-grid,
+    .manager-create-form,
     .manager-stat-row {
       display: grid;
       grid-template-columns: 1fr;
@@ -495,6 +595,19 @@ function buildContextQuery(country: SupabaseCountry | null, competition: Supabas
   return params.toString();
 }
 
+function matchdayReturn(
+  country: SupabaseCountry | null,
+  competition: SupabaseCompetition | null,
+  season: SupabaseSeason | null,
+  matchday: SupabaseAdminMatchday | null
+) {
+  const params = new URLSearchParams(buildContextQuery(country, competition, season));
+  if (matchday) params.set("jornada", matchday.id);
+  const query = params.toString();
+
+  return `/admin/gestor${query ? `?${query}` : ""}`;
+}
+
 function latestStanding(standings: SupabaseAdminStanding[]) {
   return standings[0] ?? null;
 }
@@ -580,6 +693,47 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
       Boolean(matchday.memory_note)
   );
   const standing = latestStanding(standings);
+  const created = oneParam(params, "created");
+  const actionError = oneParam(params, "error");
+  const selectedMatchdayId = oneParam(params, "jornada");
+  const selectedMatchday = matchdays.find((matchday) => matchday.id === selectedMatchdayId) ?? matchdays[0] ?? null;
+  const returnTo = matchdayReturn(selectedCountry, selectedCompetition, selectedSeason, selectedMatchday);
+  const participantTeamIds = new Set(participants.map((participant) => participant.team_id));
+  const availableTeams = participantData.teams.filter((team) => !participantTeamIds.has(team.id));
+  const participantTeams = participants
+    .map((participant) => participant.team)
+    .filter((team): team is SupabaseTeam => Boolean(team));
+  const firstParticipantTeam = participantTeams[0] ?? null;
+  const secondParticipantTeam =
+    participantTeams.find((team) => team.id !== firstParticipantTeam?.id) ?? null;
+  const nextMatchdayNumber =
+    matchdays.reduce((highestNumber, matchday) => Math.max(highestNumber, matchday.number ?? 0), 0) + 1;
+  const canCreateCompetition = Boolean(selectedCountry);
+  const canCreateSeason = Boolean(selectedCompetition);
+  const canCreateParticipant = Boolean(selectedSeason && availableTeams.length > 0);
+  const canCreateMatchday = Boolean(selectedSeason);
+  const canCreateMatch = Boolean(
+    selectedCompetition && selectedSeason && selectedMatchday && firstParticipantTeam && secondParticipantTeam
+  );
+  const createdLabels: Record<string, string> = {
+    country: "Pais criado. Escolhe-o no caminho de trabalho para continuar.",
+    competition: "Competicao criada dentro do pais selecionado.",
+    season: "Epoca criada dentro da competicao selecionada.",
+    participant: "Participante associado a esta epoca.",
+    matchday: "Jornada criada como momento competitivo e editorial.",
+    match: "Jogo criado dentro da jornada e limitado aos participantes da epoca."
+  };
+  const errorLabels: Record<string, string> = {
+    "missing-service": "Liga primeiro a Supabase na Vercel.",
+    "missing-fields": "Preenche os campos obrigatorios antes de guardar.",
+    "unknown-action": "A acao enviada pelo formulario nao foi reconhecida.",
+    "season-not-in-competition": "A epoca escolhida nao pertence a esta competicao.",
+    "matchday-not-in-season": "A jornada escolhida nao pertence a esta epoca.",
+    "home-team-not-in-season": "O clube da casa nao esta nos participantes desta epoca.",
+    "away-team-not-in-season": "O clube visitante nao esta nos participantes desta epoca.",
+    "same-team": "Escolhe dois clubes diferentes para o jogo.",
+    save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
+  };
 
   return (
     <main className="manager-shell">
@@ -662,6 +816,342 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               <article>
                 <small>Epoca</small>
                 <strong>{selectedSeason?.label ?? "Cria uma epoca"}</strong>
+              </article>
+            </div>
+          </section>
+
+          <section className="manager-panel" aria-label="Montador guiado da competicao e epoca">
+            <header>
+              <h2>Montador da competicao/epoca</h2>
+              <p>
+                Cria e alimenta cada nivel do caminho. Depois de definidos os participantes, jogos e
+                classificacoes passam a respeitar esse universo.
+              </p>
+            </header>
+
+            {created ? (
+              <div className="manager-message">{createdLabels[created] ?? "Alteracao guardada."}</div>
+            ) : null}
+            {actionError ? (
+              <div className="manager-message warning">
+                {errorLabels[actionError] ?? `Nao foi possivel guardar: ${actionError}`}
+              </div>
+            ) : null}
+
+            <div className="manager-create-grid">
+              <article className="manager-create-card">
+                <header>
+                  <h3>1. Pais</h3>
+                  <p>Cria apenas os paises que queres gerir no projeto.</p>
+                </header>
+                <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                  <input type="hidden" name="action_type" value="country" />
+                  <input type="hidden" name="return_to" value={returnTo} />
+                  <div className="manager-field wide">
+                    <label htmlFor="new-country-name">Nome</label>
+                    <input id="new-country-name" name="name" placeholder="Ex: Portugal" required />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-country-slug">Slug</label>
+                    <input id="new-country-slug" name="slug" placeholder="portugal" />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-country-iso2">ISO2</label>
+                    <input id="new-country-iso2" name="iso2" placeholder="PT" maxLength={2} />
+                  </div>
+                  <button className="manager-button" type="submit">
+                    Criar pais
+                  </button>
+                </form>
+              </article>
+
+              <article className="manager-create-card">
+                <header>
+                  <h3>2. Competicao</h3>
+                  <p>A competicao nasce dentro do pais escolhido.</p>
+                </header>
+                <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                  <input type="hidden" name="action_type" value="competition" />
+                  <input type="hidden" name="return_to" value={returnTo} />
+                  <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
+                  <input type="hidden" name="country" value={selectedCountry?.name ?? ""} />
+                  <div className="manager-field">
+                    <label htmlFor="new-competition-name">Nome</label>
+                    <input
+                      id="new-competition-name"
+                      name="name"
+                      placeholder="Ex: Liga Portugal"
+                      disabled={!canCreateCompetition}
+                      required={canCreateCompetition}
+                    />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-competition-slug">Slug</label>
+                    <input id="new-competition-slug" name="slug" placeholder="liga-portugal" disabled={!canCreateCompetition} />
+                  </div>
+                  <div className="manager-field wide">
+                    <label htmlFor="new-competition-logo">Logotipo URL</label>
+                    <input id="new-competition-logo" name="logo_url" placeholder="https://..." disabled={!canCreateCompetition} />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-competition-color">Cor</label>
+                    <input id="new-competition-color" name="accent_color" placeholder="#e5252a" disabled={!canCreateCompetition} />
+                  </div>
+                  <button className="manager-button" type="submit" disabled={!canCreateCompetition}>
+                    Criar competicao
+                  </button>
+                </form>
+              </article>
+
+              <article className="manager-create-card">
+                <header>
+                  <h3>3. Epoca</h3>
+                  <p>A epoca cria o universo competitivo onde vais trabalhar.</p>
+                </header>
+                <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                  <input type="hidden" name="action_type" value="season" />
+                  <input type="hidden" name="return_to" value={returnTo} />
+                  <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
+                  <div className="manager-field wide">
+                    <label htmlFor="new-season-label">Nome da epoca</label>
+                    <input
+                      id="new-season-label"
+                      name="label"
+                      placeholder="Ex: 2024/25"
+                      disabled={!canCreateSeason}
+                      required={canCreateSeason}
+                    />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-season-start">Inicio</label>
+                    <input id="new-season-start" name="starts_on" type="date" disabled={!canCreateSeason} />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-season-end">Fim</label>
+                    <input id="new-season-end" name="ends_on" type="date" disabled={!canCreateSeason} />
+                  </div>
+                  <label className="manager-check">
+                    <input name="is_current" type="checkbox" value="1" disabled={!canCreateSeason} />
+                    Epoca atual
+                  </label>
+                  <button className="manager-button" type="submit" disabled={!canCreateSeason}>
+                    Criar epoca
+                  </button>
+                </form>
+              </article>
+
+              <article className="manager-create-card">
+                <header>
+                  <h3>4. Participantes</h3>
+                  <p>Estes clubes passam a ser a fonte de verdade da epoca.</p>
+                </header>
+                <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                  <input type="hidden" name="action_type" value="participant" />
+                  <input type="hidden" name="return_to" value={returnTo} />
+                  <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+                  <input
+                    type="hidden"
+                    name="sync_metadata_available"
+                    value={participantData.syncMetadataAvailable ? "1" : "0"}
+                  />
+                  <div className="manager-field wide">
+                    <label htmlFor="new-participant-team">Clube</label>
+                    <select
+                      id="new-participant-team"
+                      name="team_id"
+                      defaultValue={availableTeams[0]?.id ?? ""}
+                      disabled={!canCreateParticipant}
+                    >
+                      {availableTeams.length === 0 ? <option value="">Sem clubes livres</option> : null}
+                      {availableTeams.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-participant-order">Ordem</label>
+                    <input
+                      id="new-participant-order"
+                      name="display_order"
+                      type="number"
+                      min="1"
+                      defaultValue={participants.length + 1}
+                      disabled={!canCreateParticipant}
+                    />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-participant-status">Estado</label>
+                    <select id="new-participant-status" name="status" defaultValue="active" disabled={!canCreateParticipant}>
+                      <option value="active">Ativo</option>
+                      <option value="inactive">Inativo</option>
+                    </select>
+                  </div>
+                  <button className="manager-button" type="submit" disabled={!canCreateParticipant}>
+                    Associar participante
+                  </button>
+                </form>
+              </article>
+
+              <article className="manager-create-card">
+                <header>
+                  <h3>5. Jornada</h3>
+                  <p>A jornada e o momento competitivo onde os dados ganham leitura.</p>
+                </header>
+                <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                  <input type="hidden" name="action_type" value="matchday" />
+                  <input type="hidden" name="return_to" value={returnTo} />
+                  <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+                  <input type="hidden" name="editorial_fields_available" value={matchdayData.editorialFieldsAvailable ? "1" : "0"} />
+                  <input type="hidden" name="sync_metadata_available" value={matchdayData.syncMetadataAvailable ? "1" : "0"} />
+                  <div className="manager-field">
+                    <label htmlFor="new-matchday-number">Numero</label>
+                    <input
+                      id="new-matchday-number"
+                      name="number"
+                      type="number"
+                      min="1"
+                      defaultValue={nextMatchdayNumber}
+                      disabled={!canCreateMatchday}
+                      required={canCreateMatchday}
+                    />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-matchday-label">Titulo tecnico</label>
+                    <input
+                      id="new-matchday-label"
+                      name="label"
+                      defaultValue={`Jornada ${String(nextMatchdayNumber).padStart(2, "0")}`}
+                      disabled={!canCreateMatchday}
+                      required={canCreateMatchday}
+                    />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-matchday-start">Inicio</label>
+                    <input id="new-matchday-start" name="starts_on" type="date" disabled={!canCreateMatchday} />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-matchday-end">Fim</label>
+                    <input id="new-matchday-end" name="ends_on" type="date" disabled={!canCreateMatchday} />
+                  </div>
+                  <div className="manager-field wide">
+                    <label htmlFor="new-matchday-editorial-title">Titulo editorial</label>
+                    <input
+                      id="new-matchday-editorial-title"
+                      name="editorial_title"
+                      placeholder="Ex: Jornada de viragem na lideranca"
+                      disabled={!canCreateMatchday}
+                    />
+                  </div>
+                  <div className="manager-field wide">
+                    <label htmlFor="new-matchday-summary">Resumo contextual</label>
+                    <textarea
+                      id="new-matchday-summary"
+                      name="context_summary"
+                      placeholder="O que esta jornada ajuda o leitor a perceber?"
+                      disabled={!canCreateMatchday}
+                    />
+                  </div>
+                  <button className="manager-button" type="submit" disabled={!canCreateMatchday}>
+                    Criar jornada
+                  </button>
+                </form>
+              </article>
+
+              <article className="manager-create-card">
+                <header>
+                  <h3>6. Jogo da jornada</h3>
+                  <p>Casa e fora aparecem apenas a partir dos participantes desta epoca.</p>
+                </header>
+                <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                  <input type="hidden" name="action_type" value="match" />
+                  <input type="hidden" name="return_to" value={returnTo} />
+                  <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
+                  <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+                  <input type="hidden" name="sync_metadata_available" value={matchData.syncMetadataAvailable ? "1" : "0"} />
+                  <div className="manager-field wide">
+                    <label htmlFor="new-match-matchday">Jornada</label>
+                    <select
+                      id="new-match-matchday"
+                      name="matchday_id"
+                      defaultValue={selectedMatchday?.id ?? ""}
+                      disabled={!canCreateMatch}
+                    >
+                      {matchdays.length === 0 ? <option value="">Cria uma jornada primeiro</option> : null}
+                      {matchdays.map((matchday) => (
+                        <option key={matchday.id} value={matchday.id}>
+                          {matchday.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-match-home">Casa</label>
+                    <select
+                      id="new-match-home"
+                      name="home_team_id"
+                      defaultValue={firstParticipantTeam?.id ?? ""}
+                      disabled={!canCreateMatch}
+                    >
+                      {participantTeams.length === 0 ? <option value="">Sem participantes</option> : null}
+                      {participantTeams.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-match-away">Fora</label>
+                    <select
+                      id="new-match-away"
+                      name="away_team_id"
+                      defaultValue={secondParticipantTeam?.id ?? ""}
+                      disabled={!canCreateMatch}
+                    >
+                      {participantTeams.length < 2 ? <option value="">Falta outro participante</option> : null}
+                      {participantTeams.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-match-kickoff">Data e hora</label>
+                    <input id="new-match-kickoff" name="kickoff_at" type="datetime-local" disabled={!canCreateMatch} required={canCreateMatch} />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-match-status">Estado</label>
+                    <select id="new-match-status" name="status" defaultValue="scheduled" disabled={!canCreateMatch}>
+                      <option value="scheduled">Agendado</option>
+                      <option value="live">Em direto</option>
+                      <option value="halftime">Intervalo</option>
+                      <option value="finished">Terminado</option>
+                      <option value="postponed">Adiado</option>
+                      <option value="cancelled">Cancelado</option>
+                    </select>
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-match-venue">Estadio</label>
+                    <input id="new-match-venue" name="venue" placeholder="Ex: Estadio da Luz" disabled={!canCreateMatch} />
+                  </div>
+                  <div className="manager-field wide">
+                    <label htmlFor="new-match-tv">Onde se ve</label>
+                    <select id="new-match-tv" name="broadcast_channel_id" defaultValue="" disabled={!canCreateMatch}>
+                      <option value="">Sem canal definido</option>
+                      {matchData.broadcastChannels.map((channel) => (
+                        <option key={channel.id} value={channel.id}>
+                          {channel.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button className="manager-button" type="submit" disabled={!canCreateMatch}>
+                    Criar jogo
+                  </button>
+                </form>
               </article>
             </div>
           </section>
