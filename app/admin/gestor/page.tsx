@@ -616,7 +616,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             <header>
               <h2>Fase 1 - base principal</h2>
               <p>
-                Nesta fase fechamos apenas a estrutura Pais -> Competicao -> Epoca. As fases seguintes
+                Nesta fase fechamos apenas a estrutura Pais / Competicao / Epoca. As fases seguintes
                 ficam fora deste ecra por agora.
               </p>
             </header>
