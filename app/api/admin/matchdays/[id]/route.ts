@@ -1,0 +1,98 @@
+import { NextResponse } from "next/server";
+import { getSupabaseServiceConfig, writeSupabaseAdmin } from "@/lib/supabase";
+
+function cleanText(value: FormDataEntryValue | null): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function cleanInteger(value: FormDataEntryValue | null): number | null {
+  const text = cleanText(value);
+
+  if (!text) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(text, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function cleanStatus(value: FormDataEntryValue | null): string {
+  const status = cleanText(value);
+  const allowed = new Set(["scheduled", "live", "finished", "archived"]);
+
+  return status && allowed.has(status) ? status : "scheduled";
+}
+
+function redirectTo(request: Request, path: string) {
+  return NextResponse.redirect(new URL(path, request.url), { status: 303 });
+}
+
+type UpdateMatchdayContext = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+export async function POST(request: Request, context: UpdateMatchdayContext) {
+  if (!getSupabaseServiceConfig()) {
+    return redirectTo(request, "/admin/jornadas?error=missing-service");
+  }
+
+  const { id } = await context.params;
+  const formData = await request.formData();
+  const seasonId = cleanText(formData.get("season_id"));
+  const number = cleanInteger(formData.get("number"));
+  const label = cleanText(formData.get("label"));
+
+  if (!id || !seasonId || number === null || !label) {
+    return redirectTo(request, "/admin/jornadas?error=missing-fields");
+  }
+
+  try {
+    const editorialFieldsAvailable = cleanText(formData.get("editorial_fields_available")) === "1";
+    const syncMetadataAvailable = cleanText(formData.get("sync_metadata_available")) === "1";
+    const currentDataSource = cleanText(formData.get("current_data_source")) ?? "manual";
+    const becomesMixed = currentDataSource === "api" || currentDataSource === "mixed";
+    const body: Record<string, string | number | boolean | null> = {
+      season_id: seasonId,
+      number,
+      label,
+      starts_on: cleanText(formData.get("starts_on")),
+      ends_on: cleanText(formData.get("ends_on")),
+      status: cleanStatus(formData.get("status")),
+      context_summary: cleanText(formData.get("context_summary"))
+    };
+
+    if (editorialFieldsAvailable) {
+      body.editorial_title = cleanText(formData.get("editorial_title"));
+      body.editorial_summary = cleanText(formData.get("editorial_summary"));
+      body.hero_image_url = cleanText(formData.get("hero_image_url"));
+      body.video_url = cleanText(formData.get("video_url"));
+      body.display_order = cleanInteger(formData.get("display_order"));
+      body.is_featured = cleanText(formData.get("is_featured")) === "1";
+      body.memory_note = cleanText(formData.get("memory_note"));
+      body.seo_title = cleanText(formData.get("seo_title"));
+      body.seo_description = cleanText(formData.get("seo_description"));
+    }
+
+    if (syncMetadataAvailable) {
+      body.data_source = becomesMixed ? "mixed" : "manual";
+      body.sync_status = becomesMixed ? "manual_override" : "manual";
+      body.manual_override = becomesMixed;
+    }
+
+    await writeSupabaseAdmin(`matchdays?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(body)
+    });
+  } catch {
+    return redirectTo(request, "/admin/jornadas?error=save");
+  }
+
+  return redirectTo(request, "/admin/jornadas?updated=1");
+}

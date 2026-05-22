@@ -49,6 +49,15 @@ export type SupabaseMatchday = {
   ends_on: string | null;
   status: string;
   context_summary: string | null;
+  editorial_title?: string | null;
+  editorial_summary?: string | null;
+  hero_image_url?: string | null;
+  video_url?: string | null;
+  display_order?: number | null;
+  is_featured?: boolean | null;
+  memory_note?: string | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
   data_source?: string | null;
   external_provider?: string | null;
   external_id?: string | null;
@@ -114,10 +123,19 @@ export type SupabaseAdminMatch = SupabaseMatch & {
   broadcastChannel: SupabaseBroadcastChannel | null;
 };
 
+export type SupabaseAdminMatchday = SupabaseMatchday & {
+  season: SupabaseSeason | null;
+  competition: SupabaseCompetition | null;
+  matchCount: number;
+  articleCount: number;
+  headlineCount: number;
+};
+
 export type AdminOverview = {
   configured: boolean;
   error?: string;
   competitions: SupabaseCompetition[];
+  matchdays: SupabaseAdminMatchday[];
   teams: SupabaseTeam[];
   broadcastChannels: SupabaseBroadcastChannel[];
 };
@@ -473,6 +491,136 @@ export async function getAdminMatchesEditor(): Promise<{
   }
 }
 
+type MatchdayLinkedRecord = {
+  id: string;
+  matchday_id: string | null;
+};
+
+function countByMatchday(items: MatchdayLinkedRecord[]): Map<string, number> {
+  const counts = new Map<string, number>();
+
+  for (const item of items) {
+    if (!item.matchday_id) {
+      continue;
+    }
+
+    counts.set(item.matchday_id, (counts.get(item.matchday_id) ?? 0) + 1);
+  }
+
+  return counts;
+}
+
+export async function getAdminMatchdaysEditor(): Promise<{
+  configured: boolean;
+  writeConfigured: boolean;
+  error?: string;
+  matchdays: SupabaseAdminMatchday[];
+  competitions: SupabaseCompetition[];
+  seasons: SupabaseSeason[];
+  editorialFieldsAvailable: boolean;
+  syncMetadataAvailable: boolean;
+}> {
+  const readConfigured = Boolean(getSupabaseConfig());
+  const writeConfigured = Boolean(getSupabaseServiceConfig());
+
+  if (!readConfigured) {
+    return {
+      configured: false,
+      writeConfigured,
+      matchdays: [],
+      competitions: [],
+      seasons: [],
+      editorialFieldsAvailable: false,
+      syncMetadataAvailable: false
+    };
+  }
+
+  try {
+    const readTable = writeConfigured ? fetchSupabaseAdminTable : fetchSupabaseTable;
+    const matchdaySelectBase = "id,season_id,number,label,starts_on,ends_on,status,context_summary";
+    const editorialSelect =
+      "editorial_title,editorial_summary,hero_image_url,video_url,display_order,is_featured,memory_note,seo_title,seo_description";
+    const syncSelect = "data_source,external_provider,external_id,last_synced_at,sync_status,manual_override";
+    let matchdays: SupabaseMatchday[] = [];
+    let editorialFieldsAvailable = true;
+    let syncMetadataAvailable = true;
+
+    try {
+      matchdays = await readTable<SupabaseMatchday>(
+        `matchdays?select=${matchdaySelectBase},${editorialSelect},${syncSelect}&order=number.asc`
+      );
+    } catch {
+      try {
+        editorialFieldsAvailable = false;
+        matchdays = await readTable<SupabaseMatchday>(
+          `matchdays?select=${matchdaySelectBase},${syncSelect}&order=number.asc`
+        );
+      } catch {
+        syncMetadataAvailable = false;
+        matchdays = await readTable<SupabaseMatchday>(
+          `matchdays?select=${matchdaySelectBase}&order=number.asc`
+        );
+      }
+    }
+
+    const [competitions, seasons, matches] = await Promise.all([
+      readTable<SupabaseCompetition>(
+        "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
+      ),
+      readTable<SupabaseSeason>(
+        "seasons?select=id,competition_id,label,starts_on,ends_on,is_current&order=label.desc"
+      ),
+      readTable<MatchdayLinkedRecord>("matches?select=id,matchday_id&matchday_id=not.is.null&limit=500")
+    ]);
+
+    const articleRows = await readTable<MatchdayLinkedRecord>(
+      "articles?select=id,matchday_id&matchday_id=not.is.null&limit=500"
+    ).catch(() => []);
+    const headlineRows = await readTable<MatchdayLinkedRecord>(
+      "headlines?select=id,matchday_id&matchday_id=not.is.null&limit=500"
+    ).catch(() => []);
+
+    const competitionsById = mapById(competitions);
+    const seasonsById = mapById(seasons);
+    const matchCounts = countByMatchday(matches);
+    const articleCounts = countByMatchday(articleRows);
+    const headlineCounts = countByMatchday(headlineRows);
+
+    return {
+      configured: true,
+      writeConfigured,
+      matchdays: matchdays.map((matchday) => {
+        const season = seasonsById.get(matchday.season_id) ?? null;
+        const competition = season ? competitionsById.get(season.competition_id) ?? null : null;
+
+        return {
+          ...matchday,
+          season,
+          competition,
+          matchCount: matchCounts.get(matchday.id) ?? 0,
+          articleCount: articleCounts.get(matchday.id) ?? 0,
+          headlineCount: headlineCounts.get(matchday.id) ?? 0
+        };
+      }),
+      competitions,
+      seasons,
+      editorialFieldsAvailable,
+      syncMetadataAvailable
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      writeConfigured,
+      error: error instanceof Error ? error.message : "Erro desconhecido ao ler jornadas.",
+      matchdays: [],
+      competitions: [],
+      seasons: [],
+      editorialFieldsAvailable: false,
+      syncMetadataAvailable: false
+    };
+  }
+}
+
 type SupabasePublicBroadcastMatch = {
   source_key: string | null;
   broadcast_channel_id: string | null;
@@ -526,13 +674,14 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     return {
       configured: false,
       competitions: [],
+      matchdays: [],
       teams: [],
       broadcastChannels: []
     };
   }
 
   try {
-    const [competitions, teams, broadcastChannels] = await Promise.all([
+    const [competitions, teams, broadcastChannels, matchdayOverview] = await Promise.all([
       fetchSupabaseTable<SupabaseCompetition>(
         "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
       ),
@@ -541,12 +690,14 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       ),
       fetchSupabaseTable<SupabaseBroadcastChannel>(
         "broadcast_channels?select=id,name,platform,country,logo_url&order=name.asc"
-      )
+      ),
+      getAdminMatchdaysEditor()
     ]);
 
     return {
       configured: true,
       competitions,
+      matchdays: matchdayOverview.matchdays,
       teams,
       broadcastChannels
     };
@@ -555,6 +706,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       configured: true,
       error: error instanceof Error ? error.message : "Erro desconhecido ao ler o Supabase.",
       competitions: [],
+      matchdays: [],
       teams: [],
       broadcastChannels: []
     };

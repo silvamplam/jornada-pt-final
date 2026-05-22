@@ -39,6 +39,31 @@ As tabelas objetivas principais ficam preparadas com:
 - Um jogo vindo da API e corrigido pelo administrador passa para `mixed`.
 - Quando `manual_override = true`, a sincronizacao futura nao deve substituir os campos protegidos manualmente.
 
+## Jornada como centro da sincronizacao
+
+Mesmo que no futuro os jogos venham de uma API, a jornada continua a ser a entidade que organiza o contexto.
+
+A API pode alimentar:
+
+- calendario;
+- resultados;
+- minuto;
+- estado do jogo;
+- classificacao;
+- golos;
+- eventos objetivos.
+
+O backoffice deve preservar:
+
+- titulo editorial da jornada;
+- resumo;
+- destaque;
+- ordem na homepage;
+- memoria historica;
+- associacao editorial entre jogos, noticias, manchetes e classificacao.
+
+Assim, uma sincronizacao futura atualiza os dados do futebol, mas nao apaga a leitura editorial feita pelo administrador.
+
 ## O que ja fica preparado
 
 - A base de dados aceita metadados de origem e sincronizacao.

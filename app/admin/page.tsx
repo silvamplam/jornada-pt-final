@@ -127,7 +127,7 @@ const adminPageStyles = `
 
   .admin-stats {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 14px;
     margin-top: 18px;
   }
@@ -158,7 +158,7 @@ const adminPageStyles = `
 
   .admin-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 14px;
     margin-top: 14px;
   }
@@ -307,6 +307,10 @@ export default async function AdminPage() {
               <span>Competições</span>
             </article>
             <article>
+              <strong>{overview.matchdays.length}</strong>
+              <span>Jornadas</span>
+            </article>
+            <article>
               <strong>{overview.teams.length}</strong>
               <span>Clubes</span>
             </article>
@@ -317,6 +321,7 @@ export default async function AdminPage() {
           </section>
 
           <nav className="admin-section-actions" aria-label="Ferramentas do backoffice">
+            <a href="/admin/jornadas">Gerir jornadas</a>
             <a href="/admin/jogos">Gerir jogos</a>
             <a href="/admin/clubes">Gerir clubes</a>
             <a href="/admin/canais-tv">Gerir canais TV</a>
@@ -335,6 +340,22 @@ export default async function AdminPage() {
                     <span>{competition.logo_url ? <img src={competition.logo_url} alt="" /> : null}</span>
                     <b>{competition.name}</b>
                     <small>{competition.country ?? competition.slug}</small>
+                  </li>
+                ))}
+              </ul>
+            </article>
+
+            <article className="admin-panel">
+              <header>
+                <h2>Jornadas</h2>
+                <small>Unidade editorial e cronologica</small>
+              </header>
+              <ul>
+                {overview.matchdays.slice(0, 12).map((matchday) => (
+                  <li key={matchday.id}>
+                    <span>{matchday.number}</span>
+                    <b>{matchday.editorial_title || matchday.label}</b>
+                    <small>{matchday.competition?.name ?? matchday.season?.label ?? "Jornada"}</small>
                   </li>
                 ))}
               </ul>

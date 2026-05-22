@@ -51,6 +51,20 @@ Permite gerir:
 - resumo contextual;
 - manchete ligada.
 
+Nesta fase, o backoffice de jornadas tambem deve permitir gerir:
+
+- titulo editorial;
+- resumo editorial;
+- imagem principal;
+- video;
+- ordem;
+- destaque;
+- memoria historica;
+- SEO;
+- contagem de jogos, noticias e manchetes ligadas.
+
+A ideia e que a jornada seja o lugar onde os dados objetivos ganham leitura editorial.
+
 ### Jogos
 
 Permite gerir:

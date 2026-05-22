@@ -289,3 +289,25 @@ Sempre que possivel, deve apontar para:
 - jogador
 - resultado
 - classificacao daquele momento
+
+## Jornada como entidade forte
+
+A jornada nao deve ser tratada como um simples numero dentro de um jogo. Ela e uma entidade propria porque organiza a leitura competitiva do site.
+
+Cada jornada pode ter:
+
+- titulo editorial;
+- resumo editorial;
+- resumo contextual;
+- imagem principal;
+- video;
+- ordem de apresentacao;
+- destaque;
+- memoria historica;
+- SEO;
+- jogos associados;
+- noticias associadas;
+- manchetes associadas;
+- classificacao associada.
+
+Isto permite que uma pagina de jornada explique nao so o que aconteceu, mas porque aquele conjunto de jogos teve importancia dentro da competicao.

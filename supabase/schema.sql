@@ -63,6 +63,15 @@ create table if not exists matchdays (
   ends_on date,
   status text not null default 'scheduled',
   context_summary text,
+  editorial_title text,
+  editorial_summary text,
+  hero_image_url text,
+  video_url text,
+  display_order integer,
+  is_featured boolean not null default false,
+  memory_note text,
+  seo_title text,
+  seo_description text,
   data_source text not null default 'manual',
   external_provider text,
   external_id text,
@@ -230,6 +239,8 @@ create table if not exists live_updates (
 create index if not exists competitions_external_lookup_idx on competitions (external_provider, external_id);
 create index if not exists seasons_external_lookup_idx on seasons (external_provider, external_id);
 create index if not exists matchdays_external_lookup_idx on matchdays (external_provider, external_id);
+create index if not exists matchdays_featured_idx on matchdays (is_featured, display_order);
+create index if not exists matchdays_season_order_idx on matchdays (season_id, display_order, number);
 create index if not exists teams_external_lookup_idx on teams (external_provider, external_id);
 create index if not exists matches_external_lookup_idx on matches (external_provider, external_id);
 create index if not exists matches_external_match_lookup_idx on matches (external_provider, external_match_id);

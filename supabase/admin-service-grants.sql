@@ -9,9 +9,11 @@ grant select, insert, update, delete on public.broadcast_channels to service_rol
 grant select, insert, update, delete on public.matches to service_role;
 grant select on public.competitions to service_role;
 grant select on public.seasons to service_role;
-grant select on public.matchdays to service_role;
+grant select, insert, update, delete on public.matchdays to service_role;
 grant select, insert, update, delete on public.standings to service_role;
 grant select, insert, update, delete on public.standing_rows to service_role;
+grant select on public.articles to service_role;
+grant select on public.headlines to service_role;
 
 -- Opcional para manter novas tabelas acessiveis ao backoffice no futuro.
 alter default privileges in schema public
