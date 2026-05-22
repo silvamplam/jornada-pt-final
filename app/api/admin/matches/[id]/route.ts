@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { validateMatchContext } from "@/lib/match-context-validation";
 import { ensureSeasonParticipants } from "@/lib/season-participants";
 import { getSupabaseServiceConfig, writeSupabaseAdmin } from "@/lib/supabase";
 
@@ -66,6 +67,7 @@ export async function POST(request: Request, context: UpdateMatchContext) {
   const seasonId = cleanText(formData.get("season_id"));
   const homeTeamId = cleanText(formData.get("home_team_id"));
   const awayTeamId = cleanText(formData.get("away_team_id"));
+  const matchdayId = cleanText(formData.get("matchday_id"));
   const kickoffAt = normalizeKickoff(cleanText(formData.get("kickoff_at")));
 
   if (!id || !competitionId || !seasonId || !homeTeamId || !awayTeamId || !kickoffAt) {
@@ -73,6 +75,12 @@ export async function POST(request: Request, context: UpdateMatchContext) {
   }
 
   try {
+    const contextValidation = await validateMatchContext({ competitionId, seasonId, matchdayId });
+
+    if (!contextValidation.ok) {
+      return redirectTo(request, `/admin/jogos?error=${contextValidation.error}`);
+    }
+
     const syncMetadataAvailable = cleanText(formData.get("sync_metadata_available")) === "1";
     const currentDataSource = cleanText(formData.get("current_data_source")) ?? "manual";
     const becomesMixed = currentDataSource === "api" || currentDataSource === "mixed";
@@ -80,7 +88,7 @@ export async function POST(request: Request, context: UpdateMatchContext) {
       source_key: cleanText(formData.get("source_key")),
       competition_id: competitionId,
       season_id: seasonId,
-      matchday_id: cleanText(formData.get("matchday_id")),
+      matchday_id: matchdayId,
       home_team_id: homeTeamId,
       away_team_id: awayTeamId,
       status: cleanStatus(formData.get("status")),

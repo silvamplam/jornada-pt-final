@@ -367,6 +367,18 @@ function errorMessage(error?: string) {
     return "Nao foi possivel guardar o jogo. Confirma se todos os campos obrigatorios estao bem preenchidos.";
   }
 
+  if (error === "season-competition-mismatch") {
+    return "A epoca escolhida nao pertence a essa competicao. Escolhe primeiro a competicao certa e depois uma epoca dessa competicao.";
+  }
+
+  if (error === "matchday-season-mismatch") {
+    return "A jornada escolhida nao pertence a essa epoca. Escolhe uma jornada da mesma epoca do jogo.";
+  }
+
+  if (error === "missing-season" || error === "missing-matchday") {
+    return "Nao foi possivel confirmar a epoca ou jornada escolhida. Reve o contexto do jogo antes de guardar.";
+  }
+
   return null;
 }
 
@@ -520,7 +532,7 @@ function renderMatchFields(
           const competition = overview.competitions.find((item) => item.id === season.competition_id);
 
           return (
-            <option key={season.id} value={season.id}>
+            <option data-competition-id={season.competition_id} key={season.id} value={season.id}>
               {competition?.name ?? "Competicao"} {season.label}
             </option>
           );
@@ -540,7 +552,7 @@ function renderMatchFields(
             const competition = season ? overview.competitions.find((item) => item.id === season.competition_id) : null;
 
             return (
-              <option key={matchday.id} value={matchday.id}>
+              <option data-season-id={matchday.season_id} key={matchday.id} value={matchday.id}>
                 {competition?.name ?? "Competicao"} J{String(matchday.number).padStart(2, "0")}
               </option>
             );
@@ -808,7 +820,57 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
                 true
               )}
               {renderMatchFields(match, overview, canWrite)}
-              <button className="match-admin-button" disabled={!canWrite} type="submit">Guardar</button>
+          <button className="match-admin-button" disabled={!canWrite} type="submit">Guardar</button>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (() => {
+                  const form = document.currentScript.closest("form");
+                  if (!form) return;
+
+                  const competition = form.querySelector('select[name="competition_id"]');
+                  const season = form.querySelector('select[name="season_id"]');
+                  const matchday = form.querySelector('select[name="matchday_id"]');
+
+                  if (!competition || !season || !matchday) return;
+
+                  function firstVisibleOption(select) {
+                    return Array.from(select.options).find((option) => !option.hidden);
+                  }
+
+                  function syncMatchdays() {
+                    const seasonId = season.value;
+                    Array.from(matchday.options).forEach((option) => {
+                      option.hidden = option.dataset.seasonId ? option.dataset.seasonId !== seasonId : false;
+                    });
+
+                    if (matchday.selectedOptions[0]?.hidden) {
+                      const first = firstVisibleOption(matchday);
+                      if (first) matchday.value = first.value;
+                    }
+                  }
+
+                  function syncSeasons() {
+                    const competitionId = competition.value;
+                    Array.from(season.options).forEach((option) => {
+                      option.hidden = option.dataset.competitionId ? option.dataset.competitionId !== competitionId : false;
+                    });
+
+                    if (season.selectedOptions[0]?.hidden) {
+                      const first = firstVisibleOption(season);
+                      if (first) season.value = first.value;
+                    }
+
+                    syncMatchdays();
+                  }
+
+                  competition.addEventListener("change", syncSeasons);
+                  season.addEventListener("change", syncMatchdays);
+                  syncSeasons();
+                })();
+              `
+            }}
+          />
             </div>
           </form>
         ))}
