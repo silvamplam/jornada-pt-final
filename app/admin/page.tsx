@@ -138,7 +138,7 @@ const adminPageStyles = `
 
   .admin-flow ol {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0;
     margin: 0;
     padding: 0;
@@ -211,7 +211,7 @@ const adminPageStyles = `
 
   .admin-stats {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 14px;
     margin-top: 18px;
   }
@@ -242,7 +242,7 @@ const adminPageStyles = `
 
   .admin-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 14px;
     margin-top: 14px;
   }
@@ -357,6 +357,7 @@ const adminPageStyles = `
 
 export default async function AdminPage() {
   const overview = await getAdminOverview();
+  const competitionsById = new Map(overview.competitions.map((competition) => [competition.id, competition]));
 
   return (
     <main className="admin-shell">
@@ -397,6 +398,10 @@ export default async function AdminPage() {
               <span>Competições</span>
             </article>
             <article>
+              <strong>{overview.seasons.length}</strong>
+              <span>Epocas</span>
+            </article>
+            <article>
               <strong>{overview.matchdays.length}</strong>
               <span>Jornadas</span>
             </article>
@@ -413,35 +418,51 @@ export default async function AdminPage() {
           <section className="admin-flow" aria-label="Fluxo recomendado do backoffice">
             <header>
               <h2>Fluxo de trabalho</h2>
-              <p>Parte da epoca, organiza a jornada e so depois fecha resultados, classificacao e contexto editorial.</p>
+              <p>Comeca na competicao, abre a epoca, define participantes e so depois fecha resultados, classificacao e contexto editorial.</p>
             </header>
             <ol>
               <li>
                 <span>01</span>
                 <div>
-                  <b>Participantes</b>
-                  <small>Define que clubes pertencem a cada epoca.</small>
-                  <a href="/admin/participantes">Abrir</a>
+                  <b>Competicoes</b>
+                  <small>Cria a estrutura competitiva: Liga Portugal, Premier League, La Liga ou outra.</small>
+                  <a href="/admin/competicoes">Abrir</a>
                 </div>
               </li>
               <li>
                 <span>02</span>
                 <div>
-                  <b>Jornadas</b>
-                  <small>Cria o momento competitivo dentro da epoca.</small>
-                  <a href="/admin/jornadas">Abrir</a>
+                  <b>Epocas</b>
+                  <small>Abre cada epoca dentro da competicao certa.</small>
+                  <a href="/admin/epocas">Abrir</a>
                 </div>
               </li>
               <li>
                 <span>03</span>
                 <div>
-                  <b>Jogos</b>
-                  <small>Insere calendario, estados, resultados e estadio.</small>
-                  <a href="/admin/jogos">Abrir</a>
+                  <b>Participantes</b>
+                  <small>Define os clubes que pertencem a cada epoca.</small>
+                  <a href="/admin/participantes">Abrir</a>
                 </div>
               </li>
               <li>
                 <span>04</span>
+                <div>
+                  <b>Jogos e resultados</b>
+                  <small>Insere calendario, estados, resultados, estadio e transmissao.</small>
+                  <a href="/admin/jogos">Abrir</a>
+                </div>
+              </li>
+              <li>
+                <span>05</span>
+                <div>
+                  <b>Jornadas</b>
+                  <small>Organiza o momento competitivo e a memoria historica.</small>
+                  <a href="/admin/jornadas">Abrir</a>
+                </div>
+              </li>
+              <li>
+                <span>06</span>
                 <div>
                   <b>Classificacao</b>
                   <small>Gera a fotografia competitiva desse momento.</small>
@@ -449,7 +470,7 @@ export default async function AdminPage() {
                 </div>
               </li>
               <li>
-                <span>05</span>
+                <span>07</span>
                 <div>
                   <b>Contexto editorial</b>
                   <small>Fecha manchete, resumo, destaque, imagem, video e memoria.</small>
@@ -460,6 +481,8 @@ export default async function AdminPage() {
           </section>
 
           <nav className="admin-section-actions" aria-label="Ferramentas do backoffice">
+            <a href="/admin/competicoes">Gerir competicoes</a>
+            <a href="/admin/epocas">Gerir epocas</a>
             <a href="/admin/participantes">Gerir participantes</a>
             <a href="/admin/jornadas">Gerir jornadas</a>
             <a href="/admin/jogos">Gerir jogos</a>
@@ -483,6 +506,26 @@ export default async function AdminPage() {
                     <small>{competition.country ?? competition.slug}</small>
                   </li>
                 ))}
+              </ul>
+            </article>
+
+            <article className="admin-panel">
+              <header>
+                <h2>Epocas</h2>
+                <small>Estrutura anual de cada competicao</small>
+              </header>
+              <ul>
+                {overview.seasons.slice(0, 12).map((season) => {
+                  const competition = competitionsById.get(season.competition_id);
+
+                  return (
+                    <li key={season.id}>
+                      <span>{competition?.logo_url ? <img src={competition.logo_url} alt="" /> : "EP"}</span>
+                      <b>{season.label}</b>
+                      <small>{competition?.name ?? "Competicao"}</small>
+                    </li>
+                  );
+                })}
               </ul>
             </article>
 

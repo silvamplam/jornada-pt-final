@@ -16,6 +16,7 @@ export type SupabaseCompetition = {
   slug: string;
   country: string | null;
   logo_url: string | null;
+  accent_color?: string | null;
   is_active: boolean;
   data_source?: string | null;
   external_provider?: string | null;
@@ -224,6 +225,7 @@ export type AdminOverview = {
   configured: boolean;
   error?: string;
   competitions: SupabaseCompetition[];
+  seasons: SupabaseSeason[];
   matchdays: SupabaseAdminMatchday[];
   teams: SupabaseTeam[];
   broadcastChannels: SupabaseBroadcastChannel[];
@@ -436,6 +438,123 @@ export async function getAdminBroadcastChannels(): Promise<{
       error: error instanceof Error ? error.message : "Erro desconhecido ao ler canais TV.",
       broadcastChannels: []
     };
+  }
+}
+
+export async function getAdminCompetitions(): Promise<{
+  configured: boolean;
+  writeConfigured: boolean;
+  error?: string;
+  competitions: SupabaseCompetition[];
+}> {
+  const readConfigured = Boolean(getSupabaseConfig());
+  const writeConfigured = Boolean(getSupabaseServiceConfig());
+
+  if (!readConfigured) {
+    return {
+      configured: false,
+      writeConfigured,
+      competitions: []
+    };
+  }
+
+  try {
+    const readTable = writeConfigured ? fetchSupabaseAdminTable : fetchSupabaseTable;
+    const competitions = await readTable<SupabaseCompetition>(
+      "competitions?select=id,name,slug,country,logo_url,accent_color,is_active,data_source,external_provider,external_id,last_synced_at,sync_status,manual_override&order=name.asc"
+    );
+
+    return {
+      configured: true,
+      writeConfigured,
+      competitions
+    };
+  } catch (error) {
+    try {
+      const readTable = writeConfigured ? fetchSupabaseAdminTable : fetchSupabaseTable;
+      const competitions = await readTable<SupabaseCompetition>(
+        "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
+      );
+
+      return {
+        configured: true,
+        writeConfigured,
+        competitions
+      };
+    } catch (fallbackError) {
+      return {
+        configured: true,
+        writeConfigured,
+        error: fallbackError instanceof Error ? fallbackError.message : "Erro desconhecido ao ler competicoes.",
+        competitions: []
+      };
+    }
+  }
+}
+
+export async function getAdminSeasons(): Promise<{
+  configured: boolean;
+  writeConfigured: boolean;
+  error?: string;
+  competitions: SupabaseCompetition[];
+  seasons: SupabaseSeason[];
+}> {
+  const readConfigured = Boolean(getSupabaseConfig());
+  const writeConfigured = Boolean(getSupabaseServiceConfig());
+
+  if (!readConfigured) {
+    return {
+      configured: false,
+      writeConfigured,
+      competitions: [],
+      seasons: []
+    };
+  }
+
+  try {
+    const readTable = writeConfigured ? fetchSupabaseAdminTable : fetchSupabaseTable;
+    const [competitions, seasons] = await Promise.all([
+      readTable<SupabaseCompetition>(
+        "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
+      ),
+      readTable<SupabaseSeason>(
+        "seasons?select=id,competition_id,label,starts_on,ends_on,is_current,data_source,external_provider,external_id,last_synced_at,sync_status,manual_override&order=label.desc"
+      )
+    ]);
+
+    return {
+      configured: true,
+      writeConfigured,
+      competitions,
+      seasons
+    };
+  } catch (error) {
+    try {
+      const readTable = writeConfigured ? fetchSupabaseAdminTable : fetchSupabaseTable;
+      const [competitions, seasons] = await Promise.all([
+        readTable<SupabaseCompetition>(
+          "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
+        ),
+        readTable<SupabaseSeason>(
+          "seasons?select=id,competition_id,label,starts_on,ends_on,is_current&order=label.desc"
+        )
+      ]);
+
+      return {
+        configured: true,
+        writeConfigured,
+        competitions,
+        seasons
+      };
+    } catch (fallbackError) {
+      return {
+        configured: true,
+        writeConfigured,
+        error: fallbackError instanceof Error ? fallbackError.message : "Erro desconhecido ao ler epocas.",
+        competitions: [],
+        seasons: []
+      };
+    }
   }
 }
 
@@ -1035,6 +1154,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     return {
       configured: false,
       competitions: [],
+      seasons: [],
       matchdays: [],
       teams: [],
       broadcastChannels: []
@@ -1042,14 +1162,18 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   }
 
   try {
-    const [competitions, teams, broadcastChannels, matchdayOverview] = await Promise.all([
-      fetchSupabaseTable<SupabaseCompetition>(
+    const readTable = getSupabaseServiceConfig() ? fetchSupabaseAdminTable : fetchSupabaseTable;
+    const [competitions, seasons, teams, broadcastChannels, matchdayOverview] = await Promise.all([
+      readTable<SupabaseCompetition>(
         "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
       ),
-      fetchSupabaseTable<SupabaseTeam>(
+      readTable<SupabaseSeason>(
+        "seasons?select=id,competition_id,label,starts_on,ends_on,is_current&order=label.desc"
+      ),
+      readTable<SupabaseTeam>(
         "teams?select=id,name,short_name,slug,country,logo_url,primary_color&order=name.asc"
       ),
-      fetchSupabaseTable<SupabaseBroadcastChannel>(
+      readTable<SupabaseBroadcastChannel>(
         "broadcast_channels?select=id,name,platform,country,logo_url&order=name.asc"
       ),
       getAdminMatchdaysEditor()
@@ -1058,6 +1182,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     return {
       configured: true,
       competitions,
+      seasons,
       matchdays: matchdayOverview.matchdays,
       teams,
       broadcastChannels
@@ -1067,6 +1192,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       configured: true,
       error: error instanceof Error ? error.message : "Erro desconhecido ao ler o Supabase.",
       competitions: [],
+      seasons: [],
       matchdays: [],
       teams: [],
       broadcastChannels: []
