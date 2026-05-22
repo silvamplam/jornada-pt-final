@@ -116,7 +116,6 @@ export async function POST(request: Request, context: UpdateStandingContext) {
 
     const syncMetadataAvailable = cleanText(formData.get("sync_metadata_available")) === "1";
     const currentDataSource = cleanText(formData.get("current_data_source")) ?? "manual";
-    const becomesMixed = currentDataSource === "api" || currentDataSource === "mixed";
     const body: Record<string, string | boolean | null> = {
       competition_id: resolvedContext.competitionId,
       season_id: resolvedContext.seasonId,
@@ -125,9 +124,9 @@ export async function POST(request: Request, context: UpdateStandingContext) {
     };
 
     if (syncMetadataAvailable) {
-      body.data_source = becomesMixed ? "mixed" : "manual";
-      body.sync_status = becomesMixed ? "manual_override" : "manual";
-      body.manual_override = becomesMixed;
+      body.data_source = currentDataSource === "api" || currentDataSource === "mixed" ? "mixed" : "manual";
+      body.sync_status = "manual_override";
+      body.manual_override = true;
     }
 
     await writeSupabaseAdmin(`standings?id=eq.${encodeURIComponent(id)}`, {

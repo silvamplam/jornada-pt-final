@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { fetchSupabaseAdminTable, getSupabaseServiceConfig, writeSupabaseAdmin } from "@/lib/supabase";
+import { seedStandingRowsFromSeason } from "@/lib/standing-seeding";
+import { fetchSupabaseAdminTable, getSupabaseServiceConfig, writeSupabaseAdminReturning } from "@/lib/supabase";
 
 type SeasonContext = {
   id: string;
@@ -15,6 +16,10 @@ type StandingContext = {
   competitionId: string;
   seasonId: string;
   matchdayId: string | null;
+};
+
+type CreatedStanding = {
+  id: string;
 };
 
 function cleanText(value: FormDataEntryValue | null): string | null {
@@ -95,20 +100,26 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
+  let standingId: string | null = null;
+  let createdRows = 0;
+  let updatedRows = 0;
+  let syncMetadataAvailable = false;
+  let context: StandingContext | null = null;
+  const momentLabel = cleanText(formData.get("moment_label"));
 
   try {
-    const context = await resolveFormContext(formData);
+    context = await resolveFormContext(formData);
 
     if (!context) {
       return redirectTo(request, "/admin/classificacoes?error=invalid-context");
     }
 
-    const syncMetadataAvailable = cleanText(formData.get("sync_metadata_available")) === "1";
+    syncMetadataAvailable = cleanText(formData.get("sync_metadata_available")) === "1";
     const body: Record<string, string | boolean | null> = {
       competition_id: context.competitionId,
       season_id: context.seasonId,
       matchday_id: context.matchdayId,
-      moment_label: cleanText(formData.get("moment_label"))
+      moment_label: momentLabel
     };
 
     if (syncMetadataAvailable) {
@@ -120,13 +131,31 @@ export async function POST(request: Request) {
       body.last_synced_at = null;
     }
 
-    await writeSupabaseAdmin("standings", {
+    const createdStandings = await writeSupabaseAdminReturning<CreatedStanding>("standings?select=id", {
       method: "POST",
       body: JSON.stringify(body)
     });
+    standingId = createdStandings[0]?.id ?? null;
   } catch {
     return redirectTo(request, "/admin/classificacoes?error=save");
   }
 
-  return redirectTo(request, "/admin/classificacoes?created=1");
+  if (standingId && context) {
+    try {
+      const result = await seedStandingRowsFromSeason({
+        standingId,
+        competitionId: context.competitionId,
+        seasonId: context.seasonId,
+        matchdayId: context.matchdayId,
+        momentLabel,
+        syncMetadataAvailable
+      });
+      createdRows = result.created;
+      updatedRows = result.updated;
+    } catch {
+      return redirectTo(request, "/admin/classificacoes?created=1&error=seed-rows");
+    }
+  }
+
+  return redirectTo(request, `/admin/classificacoes?created=1&rowsSeeded=${createdRows}&rowsUpdated=${updatedRows}`);
 }

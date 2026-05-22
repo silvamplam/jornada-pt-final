@@ -40,6 +40,20 @@ export type SupabaseSeason = {
   manual_override?: boolean | null;
 };
 
+export type SupabaseSeasonTeam = {
+  id: string;
+  season_id: string;
+  team_id: string;
+  display_order: number;
+  status: string;
+  data_source?: string | null;
+  external_provider?: string | null;
+  external_id?: string | null;
+  last_synced_at?: string | null;
+  sync_status?: string | null;
+  manual_override?: boolean | null;
+};
+
 export type SupabaseMatchday = {
   id: string;
   season_id: string;
@@ -186,6 +200,12 @@ export type SupabaseAdminStanding = SupabaseStanding & {
   rows: SupabaseAdminStandingRow[];
 };
 
+export type SupabaseAdminSeasonTeam = SupabaseSeasonTeam & {
+  competition: SupabaseCompetition | null;
+  season: SupabaseSeason | null;
+  team: SupabaseTeam | null;
+};
+
 export type AdminOverview = {
   configured: boolean;
   error?: string;
@@ -291,6 +311,38 @@ export async function writeSupabaseAdmin(path: string, init: RequestInit): Promi
   }
 }
 
+export async function writeSupabaseAdminReturning<T>(path: string, init: RequestInit): Promise<T[]> {
+  const config = getSupabaseServiceConfig();
+
+  if (!config) {
+    throw new Error("Falta configurar SUPABASE_SERVICE_ROLE_KEY na Vercel.");
+  }
+
+  const endpoint = `${config.url.replace(/\/$/, "")}/rest/v1/${path}`;
+  const response = await fetch(endpoint, {
+    ...init,
+    cache: "no-store",
+    headers: {
+      apikey: config.serviceRoleKey,
+      Authorization: `Bearer ${config.serviceRoleKey}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+      ...(init.headers ?? {})
+    }
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(detail || `Supabase request failed with status ${response.status}`);
+  }
+
+  if (response.status === 204) {
+    return [];
+  }
+
+  return response.json() as Promise<T[]>;
+}
+
 export async function getAdminTeams(): Promise<{
   configured: boolean;
   writeConfigured: boolean;
@@ -375,6 +427,98 @@ export async function getAdminBroadcastChannels(): Promise<{
 
 function mapById<T extends { id: string }>(items: T[]): Map<string, T> {
   return new Map(items.map((item) => [item.id, item]));
+}
+
+export async function getAdminSeasonParticipants(): Promise<{
+  configured: boolean;
+  writeConfigured: boolean;
+  error?: string;
+  participants: SupabaseAdminSeasonTeam[];
+  competitions: SupabaseCompetition[];
+  seasons: SupabaseSeason[];
+  teams: SupabaseTeam[];
+  syncMetadataAvailable: boolean;
+}> {
+  const readConfigured = Boolean(getSupabaseConfig());
+  const writeConfigured = Boolean(getSupabaseServiceConfig());
+
+  if (!readConfigured) {
+    return {
+      configured: false,
+      writeConfigured,
+      participants: [],
+      competitions: [],
+      seasons: [],
+      teams: [],
+      syncMetadataAvailable: false
+    };
+  }
+
+  try {
+    const readTable = writeConfigured ? fetchSupabaseAdminTable : fetchSupabaseTable;
+    const participantSelectBase = "id,season_id,team_id,display_order,status";
+    const syncSelect = "data_source,external_provider,external_id,last_synced_at,sync_status,manual_override";
+    let syncMetadataAvailable = true;
+    let participants: SupabaseSeasonTeam[] = [];
+
+    try {
+      participants = await readTable<SupabaseSeasonTeam>(
+        `season_teams?select=${participantSelectBase},${syncSelect}&order=display_order.asc&limit=1000`
+      );
+    } catch {
+      syncMetadataAvailable = false;
+      participants = await readTable<SupabaseSeasonTeam>(
+        `season_teams?select=${participantSelectBase}&order=display_order.asc&limit=1000`
+      );
+    }
+
+    const [competitions, seasons, teams] = await Promise.all([
+      readTable<SupabaseCompetition>(
+        "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
+      ),
+      readTable<SupabaseSeason>(
+        "seasons?select=id,competition_id,label,starts_on,ends_on,is_current&order=label.desc"
+      ),
+      readTable<SupabaseTeam>(
+        "teams?select=id,name,short_name,slug,country,logo_url,primary_color&order=name.asc"
+      )
+    ]);
+
+    const competitionsById = mapById(competitions);
+    const seasonsById = mapById(seasons);
+    const teamsById = mapById(teams);
+
+    return {
+      configured: true,
+      writeConfigured,
+      participants: participants.map((participant) => {
+        const season = seasonsById.get(participant.season_id) ?? null;
+        const competition = season ? competitionsById.get(season.competition_id) ?? null : null;
+
+        return {
+          ...participant,
+          competition,
+          season,
+          team: teamsById.get(participant.team_id) ?? null
+        };
+      }),
+      competitions,
+      seasons,
+      teams,
+      syncMetadataAvailable
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      writeConfigured,
+      error: error instanceof Error ? error.message : "Erro desconhecido ao ler participantes.",
+      participants: [],
+      competitions: [],
+      seasons: [],
+      teams: [],
+      syncMetadataAvailable: false
+    };
+  }
 }
 
 export async function getAdminMatchesTv(): Promise<{

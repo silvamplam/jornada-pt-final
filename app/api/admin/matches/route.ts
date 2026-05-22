@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ensureSeasonParticipants } from "@/lib/season-participants";
 import { getSupabaseServiceConfig, writeSupabaseAdmin } from "@/lib/supabase";
 
 function cleanText(value: FormDataEntryValue | null): string | null {
@@ -95,6 +96,12 @@ export async function POST(request: Request) {
     await writeSupabaseAdmin("matches", {
       method: "POST",
       body: JSON.stringify(body)
+    });
+
+    await ensureSeasonParticipants({
+      seasonId,
+      teamIds: [homeTeamId, awayTeamId],
+      syncMetadataAvailable
     });
   } catch {
     return redirectTo(request, "/admin/jogos?error=save");

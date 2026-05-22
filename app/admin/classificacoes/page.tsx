@@ -126,8 +126,7 @@ const standingsAdminStyles = `
   }
 
   .standing-create-form,
-  .standing-meta-form,
-  .standing-add-row-form {
+  .standing-meta-form {
     display: grid;
     gap: 12px;
     align-items: end;
@@ -143,10 +142,32 @@ const standingsAdminStyles = `
     border-bottom: 1px solid #eef2f6;
   }
 
-  .standing-add-row-form {
-    grid-template-columns: minmax(210px, 1.2fr) repeat(4, minmax(75px, 1fr)) 130px;
+  .standing-seed-form {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 18px;
     border-bottom: 1px solid #eef2f6;
-    background: #f8fafc;
+    background: #fbfcfe;
+  }
+
+  .standing-seed-copy {
+    display: grid;
+    gap: 3px;
+  }
+
+  .standing-seed-copy strong {
+    font-size: 14px;
+    text-transform: uppercase;
+  }
+
+  .standing-seed-copy small {
+    color: #687380;
+  }
+
+  .standing-seed-form .standing-admin-button {
+    flex: 0 0 210px;
   }
 
   .standing-block {
@@ -309,7 +330,7 @@ const standingsAdminStyles = `
     .standings-admin-hero,
     .standing-create-form,
     .standing-meta-form,
-    .standing-add-row-form {
+    .standing-seed-form {
       display: grid;
       grid-template-columns: 1fr;
     }
@@ -320,8 +341,9 @@ type StandingsPageProps = {
   searchParams: Promise<{
     created?: string;
     updated?: string;
-    rowCreated?: string;
     rowUpdated?: string;
+    rowsSeeded?: string;
+    rowsUpdated?: string;
     error?: string;
   }>;
 };
@@ -360,11 +382,15 @@ function errorMessage(error?: string) {
   }
 
   if (error === "missing-row-fields") {
-    return "Clube e posicao sao obrigatorios na linha da classificacao.";
+    return "Clube e posicao sao obrigatorios para corrigir uma linha da classificacao.";
   }
 
   if (error === "save-row") {
     return "Nao foi possivel guardar a linha da classificacao.";
+  }
+
+  if (error === "seed-rows") {
+    return "Nao foi possivel preparar automaticamente os clubes desta classificacao.";
   }
 
   if (error === "save") {
@@ -527,12 +553,20 @@ export default async function AdminStandingsPage({ searchParams }: StandingsPage
   const overview = await getAdminStandingsEditor();
   const message = errorMessage(params.error);
   const canWrite = overview.writeConfigured && !overview.error;
+  const rowsSeeded = params.rowsSeeded ? Number.parseInt(params.rowsSeeded, 10) : null;
+  const rowsUpdated = params.rowsUpdated ? Number.parseInt(params.rowsUpdated, 10) : null;
+  const rowsSeededCount = rowsSeeded === null || Number.isNaN(rowsSeeded) ? 0 : rowsSeeded;
+  const rowsUpdatedCount = rowsUpdated === null || Number.isNaN(rowsUpdated) ? 0 : rowsUpdated;
+  const rowsSeededMessage = rowsSeeded === null && rowsUpdated === null
+    ? null
+    : rowsSeededCount === 0 && rowsUpdatedCount === 0
+      ? "A classificacao ja estava alinhada com os participantes e resultados deste contexto."
+      : `${rowsSeededCount} clubes preparados e ${rowsUpdatedCount} linhas recalculadas pelos resultados.`;
   const defaultContextRef = overview.matchdays[0]?.id
     ? `matchday:${overview.matchdays[0].id}`
     : overview.seasons[0]?.id
       ? `season:${overview.seasons[0].id}`
       : "";
-  const defaultTeamId = overview.teams[0]?.id ?? "";
 
   return (
     <main className="standings-admin-shell">
@@ -559,8 +593,8 @@ export default async function AdminStandingsPage({ searchParams }: StandingsPage
       {message ? <section className="standings-admin-message warning">{message}</section> : null}
       {params.created ? <section className="standings-admin-message success">Classificacao criada.</section> : null}
       {params.updated ? <section className="standings-admin-message success">Classificacao atualizada.</section> : null}
-      {params.rowCreated ? <section className="standings-admin-message success">Linha adicionada.</section> : null}
       {params.rowUpdated ? <section className="standings-admin-message success">Linha atualizada.</section> : null}
+      {rowsSeededMessage ? <section className="standings-admin-message success">{rowsSeededMessage}</section> : null}
 
       <section className="standings-admin-create">
         <header>
@@ -599,15 +633,14 @@ export default async function AdminStandingsPage({ searchParams }: StandingsPage
               <button className="standing-admin-button" disabled={!canWrite} type="submit">Guardar</button>
             </form>
 
-            <form action="/api/admin/standing-rows" className="standing-add-row-form" method="post">
+            <form action="/api/admin/standing-rows/seed" className="standing-seed-form" method="post">
               {overview.syncMetadataAvailable ? <input name="sync_metadata_available" type="hidden" value="1" /> : null}
               <input name="standing_id" type="hidden" value={standing.id} />
-              {selectField(`new-team-${standing.id}`, "Clube", "team_id", defaultTeamId, teamOptions(overview.teams), !canWrite, true)}
-              {numberField(`new-position-${standing.id}`, "Pos", "position", standing.rows.length + 1, !canWrite, true)}
-              {numberField(`new-played-${standing.id}`, "J", "played", 0, !canWrite)}
-              {numberField(`new-points-${standing.id}`, "Pts", "points", 0, !canWrite)}
-              {numberField(`new-gd-${standing.id}`, "DG", "goal_difference", 0, !canWrite)}
-              <button className="standing-admin-button" disabled={!canWrite} type="submit">Adicionar</button>
+              <div className="standing-seed-copy">
+                <strong>Participantes da epoca</strong>
+                <small>Usa os clubes inscritos na epoca e calcula a fotografia a partir dos jogos terminados.</small>
+              </div>
+              <button className="standing-admin-button" disabled={!canWrite} type="submit">Gerar tabela</button>
             </form>
 
             <div className="standing-table-scroll">

@@ -69,8 +69,8 @@ export async function POST(request: Request) {
 
     if (syncMetadataAvailable) {
       body.data_source = "manual";
-      body.sync_status = "manual";
-      body.manual_override = false;
+      body.sync_status = "manual_override";
+      body.manual_override = true;
       body.external_provider = null;
       body.external_id = null;
       body.last_synced_at = null;
@@ -84,5 +84,5 @@ export async function POST(request: Request) {
     return redirectTo(request, "/admin/classificacoes?error=save-row");
   }
 
-  return redirectTo(request, "/admin/classificacoes?rowCreated=1");
+  return redirectTo(request, "/admin/classificacoes?rowUpdated=1");
 }

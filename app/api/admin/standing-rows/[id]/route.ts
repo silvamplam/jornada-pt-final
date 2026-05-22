@@ -52,7 +52,6 @@ export async function POST(request: Request, context: UpdateStandingRowContext) 
   try {
     const syncMetadataAvailable = cleanText(formData.get("sync_metadata_available")) === "1";
     const currentDataSource = cleanText(formData.get("current_data_source")) ?? "manual";
-    const becomesMixed = currentDataSource === "api" || currentDataSource === "mixed";
     const body: Record<string, string | number | boolean | null> = {
       team_id: teamId,
       position,
@@ -75,9 +74,9 @@ export async function POST(request: Request, context: UpdateStandingRowContext) 
     };
 
     if (syncMetadataAvailable) {
-      body.data_source = becomesMixed ? "mixed" : "manual";
-      body.sync_status = becomesMixed ? "manual_override" : "manual";
-      body.manual_override = becomesMixed;
+      body.data_source = currentDataSource === "api" || currentDataSource === "mixed" ? "mixed" : "manual";
+      body.sync_status = "manual_override";
+      body.manual_override = true;
     }
 
     await writeSupabaseAdmin(`standing_rows?id=eq.${encodeURIComponent(id)}`, {
