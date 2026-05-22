@@ -370,6 +370,7 @@ export default async function AdminPage() {
           <span>A primeira ligação entre o site, a base de dados e a futura máquina editorial.</span>
         </div>
         <div className="admin-hero-actions">
+          <a href="/admin/gestor">Centro de gestao</a>
           <a href="/">Voltar ao site</a>
           <form action="/api/admin/logout" method="post">
             <button type="submit">Sair</button>
@@ -494,6 +495,7 @@ export default async function AdminPage() {
           </section>
 
           <nav className="admin-section-actions" aria-label="Ferramentas do backoffice">
+            <a href="/admin/gestor">Centro de gestao</a>
             <a href="/admin/paises">Gerir paises</a>
             <a href="/admin/competicoes">Gerir competicoes</a>
             <a href="/admin/epocas">Gerir epocas</a>
