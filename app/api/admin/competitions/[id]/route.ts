@@ -64,16 +64,7 @@ export async function POST(request: Request, context: UpdateCompetitionContext) 
       body: JSON.stringify(payload)
     });
   } catch {
-    try {
-      const { country_id: _countryId, ...fallbackPayload } = payload;
-
-      await writeSupabaseAdmin(`competitions?id=eq.${encodeURIComponent(id)}`, {
-        method: "PATCH",
-        body: JSON.stringify(fallbackPayload)
-      });
-    } catch {
-      return redirectTo(request, "/admin/competicoes?error=save");
-    }
+    return redirectTo(request, "/admin/competicoes?error=save");
   }
 
   return redirectTo(request, "/admin/competicoes?updated=1");

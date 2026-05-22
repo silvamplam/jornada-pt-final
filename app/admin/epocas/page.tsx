@@ -216,24 +216,28 @@ function competitionName(competitions: SupabaseCompetition[], competitionId: str
   return competitions.find((competition) => competition.id === competitionId)?.name ?? "Competicao";
 }
 
-function competitionCountryId(competitions: SupabaseCompetition[], competitionId: string, countries: SupabaseCountry[]) {
+function competitionCountryId(competitions: SupabaseCompetition[], competitionId: string) {
   const competition = competitions.find((item) => item.id === competitionId);
 
-  if (competition?.country_id) {
-    return competition.country_id;
-  }
-
-  const country = countries.find((item) => item.name.toLowerCase() === (competition?.country ?? "").toLowerCase());
-  return country?.id ?? countries[0]?.id ?? "";
+  return competition?.country_id ?? "";
 }
 
 export default async function AdminSeasonsPage({ searchParams }: SeasonsPageProps) {
   const params = await searchParams;
   const overview = await getAdminSeasons();
   const message = errorMessage(params.error);
-  const canWrite = overview.writeConfigured && !overview.error && overview.countries.length > 0 && overview.competitions.length > 0;
-  const defaultCountryId = overview.countries[0]?.id ?? "";
-  const defaultCompetitionId = overview.competitions[0]?.id ?? "";
+  const linkedCompetitions = overview.competitions.filter((competition) => Boolean(competition.country_id));
+  const canWrite = overview.writeConfigured && !overview.error && overview.countries.length > 0 && linkedCompetitions.length > 0;
+  const defaultCountryId =
+    overview.countries.find((country) =>
+      linkedCompetitions.some((competition) => competition.country_id === country.id)
+    )?.id ??
+    overview.countries[0]?.id ??
+    "";
+  const defaultCompetitionId =
+    linkedCompetitions.find((competition) => competition.country_id === defaultCountryId)?.id ??
+    linkedCompetitions[0]?.id ??
+    "";
 
   return (
     <main className="season-admin-shell">
@@ -266,6 +270,12 @@ export default async function AdminSeasonsPage({ searchParams }: SeasonsPageProp
       {overview.competitions.length === 0 ? (
         <section className="season-admin-message warning">
           Cria primeiro uma competicao em /admin/competicoes. So depois faz sentido abrir epocas.
+        </section>
+      ) : null}
+
+      {overview.competitions.length > 0 && linkedCompetitions.length === 0 ? (
+        <section className="season-admin-message warning">
+          Associa primeiro cada competicao ao pais certo em /admin/competicoes. As epocas so nascem de competicoes com pais definido.
         </section>
       ) : null}
 
@@ -324,7 +334,7 @@ export default async function AdminSeasonsPage({ searchParams }: SeasonsPageProp
           <div className="season-empty">Ainda nao ha epocas criadas.</div>
         ) : null}
         {overview.seasons.map((season) => {
-          const countryId = competitionCountryId(overview.competitions, season.competition_id, overview.countries);
+          const countryId = competitionCountryId(overview.competitions, season.competition_id);
 
           return (
             <form action={`/api/admin/seasons/${season.id}`} className="season-form" key={season.id} method="post">
@@ -379,7 +389,7 @@ document.querySelectorAll(".season-form").forEach(function(form) {
 
     Array.prototype.forEach.call(competition.options, function(option) {
       var optionCountryId = option.getAttribute("data-country-id") || "";
-      var matches = !countryId || !optionCountryId || optionCountryId === countryId;
+      var matches = countryId ? optionCountryId === countryId : Boolean(optionCountryId);
       option.hidden = !matches;
       option.disabled = !matches;
       if (matches && !firstAvailable) firstAvailable = option;
