@@ -119,6 +119,7 @@ const managerStyles = `
   }
 
   .manager-button:disabled,
+  .manager-link-button:disabled,
   .manager-link-button[aria-disabled="true"] {
     opacity: 0.45;
     cursor: not-allowed;
@@ -1686,6 +1687,11 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                       const hasFinalScore = match.home_score !== null && match.away_score !== null;
                       const statusLabel = match.status === "finished" ? "Finalizado" : "Agendado";
                       const scoreLabel = hasFinalScore ? ` - ${match.home_score}-${match.away_score}` : "";
+                      const hasCompetitiveData =
+                        hasFinalScore ||
+                        match.status !== "scheduled" ||
+                        match.minute !== null ||
+                        match.broadcast_channel_id !== null;
 
                       return (
                         <li key={match.id}>
@@ -1732,27 +1738,39 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                                 Guardar resultado
                               </button>
                             </form>
-                            <a
-                              className="manager-link-button"
-                              href={`${matchdayReturnTo}&editar_jogo=${match.id}&section=jogos#jogos`}
-                            >
-                              Editar
-                            </a>
-                            <form
-                              action="/api/admin/gestor"
-                              data-confirm="Tem a certeza que quer remover este jogo agendado? Esta acao so avanca se o jogo ainda nao tiver resultados, eventos ou outros dados competitivos."
-                              method="post"
-                            >
-                              <input type="hidden" name="action_type" value="remove_match" />
-                              <input type="hidden" name="return_to" value={matchesReturnTo} />
-                              <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
-                              <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
-                              <input type="hidden" name="matchday_id" value={selectedMatchday?.id ?? ""} />
-                              <input type="hidden" name="match_id" value={match.id} />
-                              <button className="manager-link-button" type="submit">
+                            {hasCompetitiveData ? (
+                              <button className="manager-link-button" type="button" disabled>
+                                Editar agenda
+                              </button>
+                            ) : (
+                              <a
+                                className="manager-link-button"
+                                href={`${matchdayReturnTo}&editar_jogo=${match.id}&section=jogos#jogos`}
+                              >
+                                Editar
+                              </a>
+                            )}
+                            {hasCompetitiveData ? (
+                              <button className="manager-link-button" type="button" disabled>
                                 Remover
                               </button>
-                            </form>
+                            ) : (
+                              <form
+                                action="/api/admin/gestor"
+                                data-confirm="Tem a certeza que quer remover este jogo agendado? Esta acao so avanca se o jogo ainda nao tiver resultados, eventos ou outros dados competitivos."
+                                method="post"
+                              >
+                                <input type="hidden" name="action_type" value="remove_match" />
+                                <input type="hidden" name="return_to" value={matchesReturnTo} />
+                                <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
+                                <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+                                <input type="hidden" name="matchday_id" value={selectedMatchday?.id ?? ""} />
+                                <input type="hidden" name="match_id" value={match.id} />
+                                <button className="manager-link-button" type="submit">
+                                  Remover
+                                </button>
+                              </form>
+                            )}
                           </div>
                         </li>
                       );
