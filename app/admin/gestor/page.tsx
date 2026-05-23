@@ -35,6 +35,10 @@ type SeasonAgendaMatch = {
   kickoff_at: string;
   venue: string | null;
   status: string;
+  minute: number | null;
+  home_score: number | null;
+  away_score: number | null;
+  broadcast_channel_id: string | null;
 };
 
 const managerStyles = `
@@ -392,6 +396,11 @@ const managerStyles = `
     padding: 0 20px 20px;
   }
 
+  .manager-list .manager-actions {
+    justify-content: flex-end;
+    padding: 0;
+  }
+
   @media (max-width: 1180px) {
     .manager-form,
     .manager-path,
@@ -449,6 +458,14 @@ function returnTo(country: SupabaseCountry | null, competition: SupabaseCompetit
   return `/admin/gestor${query ? `?${query}` : ""}`;
 }
 
+function toDatetimeLocal(value?: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  return value.slice(0, 16);
+}
+
 async function readTeamsForCountry(countryId?: string): Promise<CountryTeam[]> {
   if (!countryId) {
     return [];
@@ -498,7 +515,7 @@ async function readMatchesForMatchday(matchdayId?: string): Promise<SeasonAgenda
 
   try {
     return await fetchSupabaseAdminTable<SeasonAgendaMatch>(
-      `matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,kickoff_at,venue,status&matchday_id=eq.${encodeURIComponent(
+      `matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,kickoff_at,venue,status,minute,home_score,away_score,broadcast_channel_id&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}&manual_override=is.true&order=kickoff_at.asc`
     );
@@ -576,6 +593,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const requestedCompetitionId = oneParam(params, "competicao");
   const requestedSeasonId = oneParam(params, "epoca");
   const requestedMatchdayId = oneParam(params, "jornada");
+  const requestedEditMatchId = oneParam(params, "editar_jogo");
   const {
     linkedCompetitions,
     selectedCountry,
@@ -607,6 +625,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const selectedMatchday =
     matchdaysForSeason.find((matchday) => matchday.id === requestedMatchdayId) ?? matchdaysForSeason[0] ?? null;
   const matchesForMatchday = await readMatchesForMatchday(selectedMatchday?.id);
+  const editingMatch = matchesForMatchday.find((match) => match.id === requestedEditMatchId) ?? null;
   const countryTeamIds = new Set(teamsForCountry.map((team) => team.id));
   const oldInvisibleParticipants = participantData?.syncMetadataAvailable
     ? (participantData.participants ?? []).filter(
@@ -677,6 +696,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     matchday: "Jornada criada dentro da epoca selecionada.",
     remove_matchday: "Jornada removida da epoca selecionada.",
     match: "Jogo criado dentro da jornada selecionada.",
+    update_match: "Jogo atualizado na jornada selecionada.",
+    remove_match: "Jogo removido da jornada selecionada.",
     remove_country: "Pais removido.",
     remove_competition: "Competicao removida.",
     remove_season: "Epoca removida."
@@ -707,6 +728,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "matchday-invalid": "A jornada escolhida nao pertence a epoca selecionada.",
     "match-team-same": "A equipa da casa e a equipa visitante nao podem ser o mesmo clube.",
     "match-team-not-participant": "As equipas do jogo tem de ser participantes manuais desta epoca.",
+    "match-not-found": "Nao foi possivel encontrar este jogo na jornada selecionada.",
+    "match-not-simple": "Este jogo ja tem dados competitivos associados e nao pode ser alterado nesta fase.",
+    "match-has-dependencies": "Este jogo ja tem eventos, noticias ou atualizacoes associadas e nao pode ser removido nesta fase.",
     save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
   };
 
@@ -1441,13 +1465,15 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
 
               <article className="manager-create-card">
                 <header>
-                  <h3>Novo jogo</h3>
+                  <h3>{editingMatch ? "Editar jogo" : "Novo jogo"}</h3>
                   <p>
                     {!selectedMatchday
                       ? "Escolhe ou cria uma jornada primeiro."
                       : participantTeamOptions.length < 2
                         ? "E preciso ter pelo menos dois participantes para criar um jogo."
-                        : "Agenda simples, sem resultados nem TV."}
+                        : editingMatch
+                          ? "Corrige apenas a agenda deste jogo."
+                          : "Agenda simples, sem resultados nem TV."}
                   </p>
                 </header>
                 <form
@@ -1457,14 +1483,21 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   data-match-form="true"
                   method="post"
                 >
-                  <input type="hidden" name="action_type" value="match" />
+                  <input type="hidden" name="action_type" value={editingMatch ? "update_match" : "match"} />
                   <input type="hidden" name="return_to" value={matchdayReturnTo} />
                   <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
                   <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
                   <input type="hidden" name="matchday_id" value={selectedMatchday?.id ?? ""} />
+                  {editingMatch ? <input type="hidden" name="match_id" value={editingMatch.id} /> : null}
                   <div className="manager-field">
                     <label htmlFor="new-match-home">Casa</label>
-                    <select id="new-match-home" name="home_team_id" disabled={!canCreateMatch} required={canCreateMatch}>
+                    <select
+                      id="new-match-home"
+                      name="home_team_id"
+                      defaultValue={editingMatch?.home_team_id ?? participantTeamOptions[0]?.id ?? ""}
+                      disabled={!canCreateMatch}
+                      required={canCreateMatch}
+                    >
                       {participantTeamOptions.length < 2 ? <option value="">Sem participantes suficientes</option> : null}
                       {participantTeamOptions.map((team) => (
                         <option key={team.id} value={team.id}>
@@ -1478,7 +1511,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     <select
                       id="new-match-away"
                       name="away_team_id"
-                      defaultValue={participantTeamOptions[1]?.id ?? ""}
+                      defaultValue={editingMatch?.away_team_id ?? participantTeamOptions[1]?.id ?? ""}
                       disabled={!canCreateMatch}
                       required={canCreateMatch}
                     >
@@ -1495,15 +1528,39 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   </p>
                   <div className="manager-field">
                     <label htmlFor="new-match-kickoff">Data e hora</label>
-                    <input id="new-match-kickoff" name="kickoff_at" type="datetime-local" disabled={!canCreateMatch} required={canCreateMatch} />
+                    <input
+                      id="new-match-kickoff"
+                      name="kickoff_at"
+                      type="datetime-local"
+                      defaultValue={toDatetimeLocal(editingMatch?.kickoff_at)}
+                      disabled={!canCreateMatch}
+                      required={canCreateMatch}
+                    />
                   </div>
                   <div className="manager-field">
                     <label htmlFor="new-match-venue">Estadio</label>
-                    <input id="new-match-venue" name="venue" placeholder="Opcional" disabled={!canCreateMatch} />
+                    <input
+                      id="new-match-venue"
+                      name="venue"
+                      placeholder="Opcional"
+                      defaultValue={editingMatch?.venue ?? ""}
+                      disabled={!canCreateMatch}
+                    />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-match-status">Estado</label>
+                    <select id="new-match-status" name="status" defaultValue="scheduled" disabled={!canCreateMatch}>
+                      <option value="scheduled">Agendado</option>
+                    </select>
                   </div>
                   <button className="manager-button" type="submit" data-match-submit="true" disabled={!canCreateMatch}>
-                    Criar jogo
+                    {editingMatch ? "Guardar alteracoes" : "Criar jogo"}
                   </button>
+                  {editingMatch ? (
+                    <a className="manager-link-button" href={matchdayReturnTo}>
+                      Cancelar edicao
+                    </a>
+                  ) : null}
                 </form>
               </article>
 
@@ -1531,6 +1588,29 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                             <small>
                               {new Date(match.kickoff_at).toLocaleString("pt-PT")} - {match.venue ?? "Sem estadio"} - Agendado
                             </small>
+                          </div>
+                          <div className="manager-actions">
+                            <a
+                              className="manager-link-button"
+                              href={`${matchdayReturnTo}&editar_jogo=${match.id}`}
+                            >
+                              Editar
+                            </a>
+                            <form
+                              action="/api/admin/gestor"
+                              data-confirm="Tem a certeza que quer remover este jogo agendado? Esta acao so avanca se o jogo ainda nao tiver resultados, eventos ou outros dados competitivos."
+                              method="post"
+                            >
+                              <input type="hidden" name="action_type" value="remove_match" />
+                              <input type="hidden" name="return_to" value={matchdayReturnTo} />
+                              <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
+                              <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+                              <input type="hidden" name="matchday_id" value={selectedMatchday?.id ?? ""} />
+                              <input type="hidden" name="match_id" value={match.id} />
+                              <button className="manager-link-button" type="submit">
+                                Remover
+                              </button>
+                            </form>
                           </div>
                         </li>
                       );
