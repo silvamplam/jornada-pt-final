@@ -124,10 +124,7 @@ async function createTeam(formData: FormData) {
       slug,
       country_id: countryId,
       logo_url: cleanText(formData.get("logo_url")),
-      primary_color: cleanText(formData.get("primary_color")),
-      data_source: "manual",
-      sync_status: "manual",
-      manual_override: true
+      primary_color: cleanText(formData.get("primary_color"))
     })
   });
 }
