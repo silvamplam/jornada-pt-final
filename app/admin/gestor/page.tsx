@@ -663,6 +663,22 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     .map((participant) => participant.team)
     .filter((team): team is SupabaseTeam => Boolean(team));
   const participantTeamsById = new Map(participantTeamOptions.map((team) => [team.id, team]));
+  const teamsUsedInOtherMatches = new Set<string>();
+  matchesForMatchday
+    .filter((match) => match.id !== editingMatch?.id)
+    .forEach((match) => {
+      teamsUsedInOtherMatches.add(match.home_team_id);
+      teamsUsedInOtherMatches.add(match.away_team_id);
+    });
+  const matchTeamOptions = participantTeamOptions.filter(
+    (team) =>
+      !teamsUsedInOtherMatches.has(team.id) ||
+      team.id === editingMatch?.home_team_id ||
+      team.id === editingMatch?.away_team_id
+  );
+  const defaultMatchHomeId = editingMatch?.home_team_id ?? matchTeamOptions[0]?.id ?? "";
+  const defaultMatchAwayId =
+    editingMatch?.away_team_id ?? matchTeamOptions.find((team) => team.id !== defaultMatchHomeId)?.id ?? "";
   const unavailableTeamMessage =
     teamsForCountry.length === 0
       ? "Ainda nao ha clubes associados a este pais"
@@ -706,7 +722,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
       selectedSeason &&
       selectedMatchday &&
       participantData?.writeConfigured &&
-      participantTeamOptions.length >= 2
+      matchTeamOptions.length >= 2
   );
   const createdLabels: Record<string, string> = {
     country: "Pais criado. Agora podes escolher esse pais no caminho de trabalho.",
@@ -753,6 +769,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "matchday-invalid": "A jornada escolhida nao pertence a epoca selecionada.",
     "match-team-same": "A equipa da casa e a equipa visitante nao podem ser o mesmo clube.",
     "match-team-not-participant": "As equipas do jogo tem de ser participantes manuais desta epoca.",
+    "match-team-already-in-matchday": "Esta equipa ja tem jogo nesta jornada.",
     "match-not-found": "Nao foi possivel encontrar este jogo na jornada selecionada.",
     "match-not-simple": "Este jogo ja tem dados competitivos associados e nao pode ser alterado nesta fase.",
     "match-has-dependencies": "Este jogo ja tem eventos, noticias ou atualizacoes associadas e nao pode ser removido nesta fase.",
@@ -1496,6 +1513,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                       ? "Escolhe ou cria uma jornada primeiro."
                       : participantTeamOptions.length < 2
                         ? "E preciso ter pelo menos dois participantes para criar um jogo."
+                        : matchTeamOptions.length < 2
+                          ? "As equipas disponiveis ja tem jogo nesta jornada."
                         : editingMatch
                           ? "Corrige apenas a agenda deste jogo."
                           : "Agenda simples, sem resultados nem TV."}
@@ -1523,12 +1542,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     <select
                       id="new-match-home"
                       name="home_team_id"
-                      defaultValue={editingMatch?.home_team_id ?? participantTeamOptions[0]?.id ?? ""}
+                      defaultValue={defaultMatchHomeId}
                       disabled={!canCreateMatch}
                       required={canCreateMatch}
                     >
-                      {participantTeamOptions.length < 2 ? <option value="">Sem participantes suficientes</option> : null}
-                      {participantTeamOptions.map((team) => (
+                      {matchTeamOptions.length < 2 ? <option value="">Sem equipas disponiveis</option> : null}
+                      {matchTeamOptions.map((team) => (
                         <option key={team.id} value={team.id}>
                           {team.name}
                         </option>
@@ -1540,12 +1559,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     <select
                       id="new-match-away"
                       name="away_team_id"
-                      defaultValue={editingMatch?.away_team_id ?? participantTeamOptions[1]?.id ?? ""}
+                      defaultValue={defaultMatchAwayId}
                       disabled={!canCreateMatch}
                       required={canCreateMatch}
                     >
-                      {participantTeamOptions.length < 2 ? <option value="">Sem participantes suficientes</option> : null}
-                      {participantTeamOptions.map((team) => (
+                      {matchTeamOptions.length < 2 ? <option value="">Sem equipas disponiveis</option> : null}
+                      {matchTeamOptions.map((team) => (
                         <option key={team.id} value={team.id}>
                           {team.name}
                         </option>
