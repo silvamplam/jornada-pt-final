@@ -724,6 +724,44 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 event.preventDefault();
               }
             });
+
+            function syncMatchTeamSelectors(form) {
+              var home = form.querySelector('select[name="home_team_id"]');
+              var away = form.querySelector('select[name="away_team_id"]');
+              var submit = form.querySelector('[data-match-submit="true"]');
+              var warning = form.querySelector('[data-match-warning="true"]');
+              if (!home || !away || !submit) return;
+
+              var homeValue = home.value;
+              Array.prototype.forEach.call(away.options, function (option) {
+                option.disabled = Boolean(option.value && option.value === homeValue);
+              });
+
+              if (away.value === homeValue) {
+                var next = Array.prototype.find.call(away.options, function (option) {
+                  return option.value && option.value !== homeValue && !option.disabled;
+                });
+                if (next) away.value = next.value;
+              }
+
+              var sameTeam = Boolean(home.value && away.value && home.value === away.value);
+              var canCreate = form.getAttribute("data-can-create-match") === "true";
+              submit.disabled = !canCreate || sameTeam;
+              if (warning) {
+                warning.hidden = !sameTeam;
+              }
+            }
+
+            document.addEventListener("change", function (event) {
+              var field = event.target;
+              if (!(field instanceof HTMLSelectElement)) return;
+              var form = field.closest('[data-match-form="true"]');
+              if (form) syncMatchTeamSelectors(form);
+            });
+
+            document.addEventListener("DOMContentLoaded", function () {
+              document.querySelectorAll('[data-match-form="true"]').forEach(syncMatchTeamSelectors);
+            });
           `
         }}
       />
@@ -1408,11 +1446,17 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     {!selectedMatchday
                       ? "Escolhe ou cria uma jornada primeiro."
                       : participantTeamOptions.length < 2
-                        ? "Adiciona pelo menos dois participantes a esta epoca."
+                        ? "E preciso ter pelo menos dois participantes para criar um jogo."
                         : "Agenda simples, sem resultados nem TV."}
                   </p>
                 </header>
-                <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                <form
+                  className="manager-create-form"
+                  action="/api/admin/gestor"
+                  data-can-create-match={canCreateMatch ? "true" : "false"}
+                  data-match-form="true"
+                  method="post"
+                >
                   <input type="hidden" name="action_type" value="match" />
                   <input type="hidden" name="return_to" value={matchdayReturnTo} />
                   <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
@@ -1431,7 +1475,13 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   </div>
                   <div className="manager-field">
                     <label htmlFor="new-match-away">Fora</label>
-                    <select id="new-match-away" name="away_team_id" disabled={!canCreateMatch} required={canCreateMatch}>
+                    <select
+                      id="new-match-away"
+                      name="away_team_id"
+                      defaultValue={participantTeamOptions[1]?.id ?? ""}
+                      disabled={!canCreateMatch}
+                      required={canCreateMatch}
+                    >
                       {participantTeamOptions.length < 2 ? <option value="">Sem participantes suficientes</option> : null}
                       {participantTeamOptions.map((team) => (
                         <option key={team.id} value={team.id}>
@@ -1440,6 +1490,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                       ))}
                     </select>
                   </div>
+                  <p className="manager-empty" data-match-warning="true" hidden>
+                    Casa e Fora nao podem ser o mesmo clube.
+                  </p>
                   <div className="manager-field">
                     <label htmlFor="new-match-kickoff">Data e hora</label>
                     <input id="new-match-kickoff" name="kickoff_at" type="datetime-local" disabled={!canCreateMatch} required={canCreateMatch} />
@@ -1448,7 +1501,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     <label htmlFor="new-match-venue">Estadio</label>
                     <input id="new-match-venue" name="venue" placeholder="Opcional" disabled={!canCreateMatch} />
                   </div>
-                  <button className="manager-button" type="submit" disabled={!canCreateMatch}>
+                  <button className="manager-button" type="submit" data-match-submit="true" disabled={!canCreateMatch}>
                     Criar jogo
                   </button>
                 </form>
