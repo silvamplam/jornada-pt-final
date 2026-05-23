@@ -574,7 +574,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     competition: "Competicao criada e ligada ao pais escolhido.",
     season: "Epoca criada dentro da competicao escolhida.",
     team: "Clube criado e associado ao pais selecionado.",
-    participant: "Participante associado a epoca selecionada."
+    participant: "Participante associado a epoca selecionada.",
+    remove_participant: "Participante removido da epoca selecionada."
   };
   const errorLabels: Record<string, string> = {
     "missing-service": "Liga primeiro a Supabase na Vercel.",
@@ -587,6 +588,20 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   return (
     <main className="manager-shell">
       <style>{managerStyles}</style>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            document.addEventListener("submit", function (event) {
+              var form = event.target;
+              if (!(form instanceof HTMLFormElement)) return;
+              var message = form.getAttribute("data-confirm");
+              if (message && !window.confirm(message)) {
+                event.preventDefault();
+              }
+            });
+          `
+        }}
+      />
       <header className="manager-hero">
         <div>
           <p>Jornada.pt</p>
@@ -1026,7 +1041,19 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           <b>{participant.team?.name ?? "Clube sem nome"}</b>
                           <small>{participant.team?.short_name ?? participant.team?.slug ?? "Sem sigla"}</small>
                         </div>
-                        <em>{participant.status === "active" ? "Ativo" : participant.status || "Sem estado"}</em>
+                        <form
+                          action="/api/admin/gestor"
+                          data-confirm="Tem a certeza que quer remover este participante desta epoca?"
+                          method="post"
+                        >
+                          <input type="hidden" name="action_type" value="remove_participant" />
+                          <input type="hidden" name="return_to" value={currentReturnTo} />
+                          <input type="hidden" name="participant_id" value={participant.id} />
+                          <input type="hidden" name="season_id" value={selectedSeason.id} />
+                          <button className="manager-link-button" type="submit">
+                            Remover
+                          </button>
+                        </form>
                       </li>
                     ))}
                   </ul>

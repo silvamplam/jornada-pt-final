@@ -129,21 +129,6 @@ async function createTeam(formData: FormData) {
   });
 }
 
-function teamDebugPayload(formData: FormData) {
-  const name = cleanText(formData.get("name"));
-  const shortName = cleanText(formData.get("short_name"))?.toUpperCase();
-  const slug = cleanText(formData.get("slug")) ?? (name ? slugify(name) : null);
-
-  return {
-    name,
-    short_name: shortName,
-    slug,
-    country_id: cleanText(formData.get("country_id")),
-    logo_url: cleanText(formData.get("logo_url")),
-    primary_color: cleanText(formData.get("primary_color"))
-  };
-}
-
 async function createParticipant(formData: FormData) {
   const seasonId = cleanText(formData.get("season_id"));
   const teamId = cleanText(formData.get("team_id"));
@@ -176,6 +161,22 @@ async function createParticipant(formData: FormData) {
   });
 }
 
+async function removeParticipant(formData: FormData) {
+  const participantId = cleanText(formData.get("participant_id"));
+  const seasonId = cleanText(formData.get("season_id"));
+
+  if (!participantId || !seasonId) {
+    throw new Error("missing-fields");
+  }
+
+  await writeSupabaseAdmin(
+    `season_teams?id=eq.${encodeURIComponent(participantId)}&season_id=eq.${encodeURIComponent(seasonId)}`,
+    {
+      method: "DELETE"
+    }
+  );
+}
+
 export async function POST(request: Request) {
   if (!getSupabaseServiceConfig()) {
     const formData = await request.formData();
@@ -193,21 +194,11 @@ export async function POST(request: Request) {
     } else if (actionType === "season") {
       await createSeason(formData);
     } else if (actionType === "team") {
-      try {
-        await createTeam(formData);
-      } catch (error) {
-        return NextResponse.json(
-          {
-            ok: false,
-            action: "team",
-            error: error instanceof Error ? error.message : String(error),
-            payload: teamDebugPayload(formData)
-          },
-          { status: 500 }
-        );
-      }
+      await createTeam(formData);
     } else if (actionType === "participant") {
       await createParticipant(formData);
+    } else if (actionType === "remove_participant") {
+      await removeParticipant(formData);
     } else {
       return returnUrl(request, formData, "error", "unknown-action");
     }
