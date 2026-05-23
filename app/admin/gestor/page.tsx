@@ -405,6 +405,27 @@ const managerStyles = `
     padding: 0;
   }
 
+  .manager-score-field {
+    display: inline-grid;
+    gap: 4px;
+    color: #5e6874;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .manager-score-field input {
+    width: 64px;
+    min-height: 38px;
+    padding: 0 8px;
+    border: 1px solid #cfd8e3;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #10151b;
+    font: inherit;
+    font-size: 15px;
+  }
+
   @media (max-width: 1180px) {
     .manager-form,
     .manager-path,
@@ -755,6 +776,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     match: "Jogo criado dentro da jornada selecionada.",
     update_match: "Jogo atualizado na jornada selecionada.",
     remove_match: "Jogo removido da jornada selecionada.",
+    finish_match: "Resultado final guardado.",
     remove_country: "Pais removido.",
     remove_competition: "Competicao removida.",
     remove_season: "Epoca removida."
@@ -789,6 +811,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "match-not-found": "Nao foi possivel encontrar este jogo na jornada selecionada.",
     "match-not-simple": "Este jogo ja tem dados competitivos associados e nao pode ser alterado nesta fase.",
     "match-has-dependencies": "Este jogo ja tem eventos, noticias ou atualizacoes associadas e nao pode ser removido nesta fase.",
+    "match-score-invalid": "O resultado tem de ter golos da casa e do fora, com numeros inteiros iguais ou superiores a zero.",
     save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
   };
   const sectionMessage = (section: string) => {
@@ -1660,6 +1683,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     {matchesForMatchday.map((match) => {
                       const homeTeam = participantTeamsById.get(match.home_team_id);
                       const awayTeam = participantTeamsById.get(match.away_team_id);
+                      const hasFinalScore = match.home_score !== null && match.away_score !== null;
+                      const statusLabel = match.status === "finished" ? "Finalizado" : "Agendado";
+                      const scoreLabel = hasFinalScore ? ` - ${match.home_score}-${match.away_score}` : "";
 
                       return (
                         <li key={match.id}>
@@ -1668,10 +1694,44 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                               {homeTeam?.name ?? "Casa"} vs {awayTeam?.name ?? "Fora"}
                             </b>
                             <small>
-                              {formatLisbonDateTime(match.kickoff_at)} - {match.venue ?? "Sem estadio"} - Agendado
+                              {formatLisbonDateTime(match.kickoff_at)} - {match.venue ?? "Sem estadio"} - {statusLabel}
+                              {scoreLabel}
                             </small>
                           </div>
                           <div className="manager-actions">
+                            <form className="manager-actions" action="/api/admin/gestor" method="post">
+                              <input type="hidden" name="action_type" value="finish_match" />
+                              <input type="hidden" name="return_to" value={matchesReturnTo} />
+                              <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
+                              <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+                              <input type="hidden" name="matchday_id" value={selectedMatchday?.id ?? ""} />
+                              <input type="hidden" name="match_id" value={match.id} />
+                              <label className="manager-score-field">
+                                <span>Casa</span>
+                                <input
+                                  name="home_score"
+                                  type="number"
+                                  min={0}
+                                  step={1}
+                                  defaultValue={match.home_score ?? ""}
+                                  required
+                                />
+                              </label>
+                              <label className="manager-score-field">
+                                <span>Fora</span>
+                                <input
+                                  name="away_score"
+                                  type="number"
+                                  min={0}
+                                  step={1}
+                                  defaultValue={match.away_score ?? ""}
+                                  required
+                                />
+                              </label>
+                              <button className="manager-link-button" type="submit">
+                                Guardar resultado
+                              </button>
+                            </form>
                             <a
                               className="manager-link-button"
                               href={`${matchdayReturnTo}&editar_jogo=${match.id}&section=jogos#jogos`}

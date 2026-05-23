@@ -21,6 +21,16 @@ function cleanInteger(value: FormDataEntryValue | null): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
+function cleanScore(value: FormDataEntryValue | null): number | null {
+  const text = cleanText(value);
+
+  if (!text || !/^\d+$/.test(text)) {
+    return null;
+  }
+
+  return Number.parseInt(text, 10);
+}
+
 function cleanMatchdayStatus(value: FormDataEntryValue | null): string {
   const status = cleanText(value);
   const allowed = new Set(["scheduled", "live", "finished", "archived"]);
@@ -610,6 +620,54 @@ async function removeMatch(formData: FormData) {
   );
 }
 
+async function finishMatch(formData: FormData) {
+  const competitionId = cleanText(formData.get("competition_id"));
+  const seasonId = cleanText(formData.get("season_id"));
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const matchId = cleanText(formData.get("match_id"));
+  const homeScore = cleanScore(formData.get("home_score"));
+  const awayScore = cleanScore(formData.get("away_score"));
+
+  if (!competitionId || !seasonId || !matchdayId || !matchId || homeScore === null || awayScore === null) {
+    throw new Error("match-score-invalid");
+  }
+
+  if (!(await hasRows(`seasons?select=id&id=eq.${encodeURIComponent(seasonId)}&competition_id=eq.${encodeURIComponent(competitionId)}`))) {
+    throw new Error("match-missing-context");
+  }
+
+  if (
+    !(await hasRows(
+      `matchdays?select=id&id=eq.${encodeURIComponent(matchdayId)}&season_id=eq.${encodeURIComponent(
+        seasonId
+      )}&manual_override=is.true`
+    ))
+  ) {
+    throw new Error("matchday-invalid");
+  }
+
+  await readAgendaMatch(formData);
+
+  await writeSupabaseAdmin(
+    `matches?id=eq.${encodeURIComponent(matchId)}&competition_id=eq.${encodeURIComponent(
+      competitionId
+    )}&season_id=eq.${encodeURIComponent(seasonId)}&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&manual_override=is.true`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        home_score: homeScore,
+        away_score: awayScore,
+        status: "finished",
+        data_source: "manual",
+        sync_status: "manual",
+        manual_override: true
+      })
+    }
+  );
+}
+
 async function removeSeason(formData: FormData) {
   const seasonId = cleanText(formData.get("season_id"));
 
@@ -708,6 +766,8 @@ export async function POST(request: Request) {
       await updateMatch(formData);
     } else if (actionType === "remove_match") {
       await removeMatch(formData);
+    } else if (actionType === "finish_match") {
+      await finishMatch(formData);
     } else if (actionType === "remove_season") {
       await removeSeason(formData);
     } else if (actionType === "remove_competition") {
