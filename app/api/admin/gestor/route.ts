@@ -56,6 +56,43 @@ type AgendaMatchRow = {
   broadcast_channel_id: string | null;
 };
 
+type RemoveMatchDiagnostic = {
+  action: "remove_match";
+  error: string | null;
+  payload: {
+    match_id: string | null;
+    competition_id: string | null;
+    season_id: string | null;
+    matchday_id: string | null;
+  };
+  match_id: string | null;
+  season_id: string | null;
+  matchday_id: string | null;
+  step: string;
+  found: {
+    match: boolean | null;
+    result: boolean | null;
+    minute: boolean | null;
+    tv: boolean | null;
+    events: boolean | null;
+    goals: boolean | null;
+    articles: boolean | null;
+    headlines: boolean | null;
+    live_updates: boolean | null;
+  };
+  attempted_delete: boolean;
+  filters: string | null;
+};
+
+class RemoveMatchDiagnosticError extends Error {
+  diagnostic: RemoveMatchDiagnostic;
+
+  constructor(diagnostic: RemoveMatchDiagnostic) {
+    super(diagnostic.error ?? "remove_match_failed");
+    this.diagnostic = diagnostic;
+  }
+}
+
 function slugify(value: string): string {
   return value
     .normalize("NFD")
@@ -553,28 +590,94 @@ async function updateMatch(formData: FormData) {
 
 async function removeMatch(formData: FormData) {
   const matchId = cleanText(formData.get("match_id"));
+  const competitionId = cleanText(formData.get("competition_id"));
+  const seasonId = cleanText(formData.get("season_id"));
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const diagnostic: RemoveMatchDiagnostic = {
+    action: "remove_match",
+    error: null,
+    payload: {
+      match_id: matchId,
+      competition_id: competitionId,
+      season_id: seasonId,
+      matchday_id: matchdayId
+    },
+    match_id: matchId,
+    season_id: seasonId,
+    matchday_id: matchdayId,
+    step: "validate-payload",
+    found: {
+      match: null,
+      result: null,
+      minute: null,
+      tv: null,
+      events: null,
+      goals: null,
+      articles: null,
+      headlines: null,
+      live_updates: null
+    },
+    attempted_delete: false,
+    filters: null
+  };
 
-  if (!matchId) {
-    throw new Error("missing-fields");
-  }
+  try {
+    if (!matchId || !competitionId || !seasonId || !matchdayId) {
+      throw new Error("missing-fields");
+    }
 
-  const match = await readAgendaMatch(formData);
-  assertSimpleScheduledMatch(match);
+    diagnostic.step = "read-match";
+    const match = await readAgendaMatch(formData);
+    diagnostic.found.match = true;
+    diagnostic.found.result = match.home_score !== null || match.away_score !== null;
+    diagnostic.found.minute = match.minute !== null;
+    diagnostic.found.tv = match.broadcast_channel_id !== null;
 
-  if (await hasMatchDependencies(matchId)) {
-    throw new Error("match-has-dependencies");
-  }
+    diagnostic.step = "check-simple-agenda";
+    assertSimpleScheduledMatch(match);
 
-  await writeSupabaseAdmin(
-    `matches?id=eq.${encodeURIComponent(matchId)}&competition_id=eq.${encodeURIComponent(
+    const encodedMatchId = encodeURIComponent(matchId);
+
+    diagnostic.step = "check-events";
+    diagnostic.found.events = await hasRows(`match_events?select=id&match_id=eq.${encodedMatchId}`);
+
+    diagnostic.step = "check-goals";
+    diagnostic.found.goals = await hasRows(`goals?select=id&match_id=eq.${encodedMatchId}`);
+
+    diagnostic.step = "check-live-updates";
+    diagnostic.found.live_updates = await hasRows(`live_updates?select=id&match_id=eq.${encodedMatchId}`);
+
+    diagnostic.step = "check-articles";
+    diagnostic.found.articles = await hasRows(`articles?select=id&match_id=eq.${encodedMatchId}`);
+
+    diagnostic.step = "check-headlines";
+    diagnostic.found.headlines = await hasRows(`headlines?select=id&match_id=eq.${encodedMatchId}`);
+
+    if (
+      diagnostic.found.events ||
+      diagnostic.found.goals ||
+      diagnostic.found.live_updates ||
+      diagnostic.found.articles ||
+      diagnostic.found.headlines
+    ) {
+      throw new Error("match-has-dependencies");
+    }
+
+    diagnostic.step = "delete-match";
+    diagnostic.attempted_delete = true;
+    diagnostic.filters = `matches?id=eq.${encodeURIComponent(matchId)}&competition_id=eq.${encodeURIComponent(
       match.competition_id
     )}&season_id=eq.${encodeURIComponent(match.season_id)}&matchday_id=eq.${encodeURIComponent(
       match.matchday_id ?? ""
-    )}&status=eq.scheduled&manual_override=is.true&minute=is.null&home_score=is.null&away_score=is.null&broadcast_channel_id=is.null`,
-    {
+    )}&status=eq.scheduled&manual_override=is.true&minute=is.null&home_score=is.null&away_score=is.null&broadcast_channel_id=is.null`;
+
+    await writeSupabaseAdmin(diagnostic.filters, {
       method: "DELETE"
-    }
-  );
+    });
+  } catch (error) {
+    diagnostic.error = error instanceof Error ? error.message : String(error);
+    throw new RemoveMatchDiagnosticError(diagnostic);
+  }
 }
 
 async function removeSeason(formData: FormData) {
@@ -685,6 +788,43 @@ export async function POST(request: Request) {
       return returnUrl(request, formData, "error", "unknown-action");
     }
   } catch (error) {
+    if (actionType === "remove_match") {
+      if (error instanceof RemoveMatchDiagnosticError) {
+        return NextResponse.json(error.diagnostic, { status: 500 });
+      }
+
+      return NextResponse.json(
+        {
+          action: "remove_match",
+          error: error instanceof Error ? error.message : String(error),
+          payload: {
+            match_id: cleanText(formData.get("match_id")),
+            competition_id: cleanText(formData.get("competition_id")),
+            season_id: cleanText(formData.get("season_id")),
+            matchday_id: cleanText(formData.get("matchday_id"))
+          },
+          match_id: cleanText(formData.get("match_id")),
+          season_id: cleanText(formData.get("season_id")),
+          matchday_id: cleanText(formData.get("matchday_id")),
+          step: "unknown",
+          found: {
+            match: null,
+            result: null,
+            minute: null,
+            tv: null,
+            events: null,
+            goals: null,
+            articles: null,
+            headlines: null,
+            live_updates: null
+          },
+          attempted_delete: false,
+          filters: null
+        },
+        { status: 500 }
+      );
+    }
+
     return returnUrl(request, formData, "error", error instanceof Error ? error.message : "save");
   }
 
