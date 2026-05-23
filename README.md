@@ -104,3 +104,5 @@ O caminho mais simples e Vercel:
 4. Publicar com as definicoes automaticas de Next.js.
 
 Tambem pode ser publicado em Netlify, desde que o projeto seja tratado como Next.js, com comando de build `npm run build`.
+
+Teste de deploy Vercel - 2026-05-23
