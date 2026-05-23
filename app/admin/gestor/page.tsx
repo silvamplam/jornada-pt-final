@@ -576,6 +576,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     team: "Clube criado e associado ao pais selecionado.",
     participant: "Participante associado a epoca selecionada.",
     remove_participant: "Participante removido da epoca selecionada.",
+    remove_team: "Clube removido do pais selecionado.",
     remove_country: "Pais removido.",
     remove_competition: "Competicao removida.",
     remove_season: "Epoca removida."
@@ -591,6 +592,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "season-has-participants": "Nao e possivel remover esta epoca porque ainda existem participantes associados.",
     "season-has-matchdays": "Nao e possivel remover esta epoca porque ainda existem jornadas associadas.",
     "season-has-matches": "Nao e possivel remover esta epoca porque ainda existem jogos associados.",
+    "team-has-participants": "Este clube ainda esta associado a uma epoca. Remove primeiro o participante da epoca.",
     save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
   };
 
@@ -1039,7 +1041,19 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           <b>{team.name}</b>
                           <small>{team.short_name ?? team.slug}</small>
                         </div>
-                        <em>{selectedCountry?.name}</em>
+                        <form
+                          action="/api/admin/gestor"
+                          data-confirm="Tem a certeza que quer remover este clube deste pais? Esta acao so avanca se o clube nao estiver associado a nenhuma epoca."
+                          method="post"
+                        >
+                          <input type="hidden" name="action_type" value="remove_team" />
+                          <input type="hidden" name="return_to" value={currentReturnTo} />
+                          <input type="hidden" name="team_id" value={team.id} />
+                          <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
+                          <button className="manager-link-button" type="submit">
+                            Remover
+                          </button>
+                        </form>
                       </li>
                     ))}
                   </ul>

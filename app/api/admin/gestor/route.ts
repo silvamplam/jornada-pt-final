@@ -182,6 +182,26 @@ async function removeParticipant(formData: FormData) {
   );
 }
 
+async function removeTeam(formData: FormData) {
+  const teamId = cleanText(formData.get("team_id"));
+  const countryId = cleanText(formData.get("country_id"));
+
+  if (!teamId || !countryId) {
+    throw new Error("missing-fields");
+  }
+
+  if (await hasRows(`season_teams?select=id&team_id=eq.${encodeURIComponent(teamId)}`)) {
+    throw new Error("team-has-participants");
+  }
+
+  await writeSupabaseAdmin(
+    `teams?id=eq.${encodeURIComponent(teamId)}&country_id=eq.${encodeURIComponent(countryId)}`,
+    {
+      method: "DELETE"
+    }
+  );
+}
+
 async function removeSeason(formData: FormData) {
   const seasonId = cleanText(formData.get("season_id"));
 
@@ -264,6 +284,8 @@ export async function POST(request: Request) {
       await createParticipant(formData);
     } else if (actionType === "remove_participant") {
       await removeParticipant(formData);
+    } else if (actionType === "remove_team") {
+      await removeTeam(formData);
     } else if (actionType === "remove_season") {
       await removeSeason(formData);
     } else if (actionType === "remove_competition") {
