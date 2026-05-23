@@ -15,6 +15,15 @@ type SearchParams = Record<string, string | string[] | undefined>;
 type CountryTeam = SupabaseTeam & {
   country_id: string | null;
 };
+type SeasonMatchday = {
+  id: string;
+  season_id: string;
+  number: number;
+  label: string;
+  starts_on: string | null;
+  ends_on: string | null;
+  status: string;
+};
 
 const managerStyles = `
   body {
@@ -444,6 +453,22 @@ async function readTeamsForCountry(countryId?: string): Promise<CountryTeam[]> {
   }
 }
 
+async function readMatchdaysForSeason(seasonId?: string): Promise<SeasonMatchday[]> {
+  if (!seasonId) {
+    return [];
+  }
+
+  try {
+    return await fetchSupabaseAdminTable<SeasonMatchday>(
+      `matchdays?select=id,season_id,number,label,starts_on,ends_on,status&season_id=eq.${encodeURIComponent(
+        seasonId
+      )}&order=number.asc`
+    );
+  } catch {
+    return [];
+  }
+}
+
 function resolveSelectedContext({
   countries,
   competitions,
@@ -538,6 +563,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
       )
     : [];
   const teamsForCountry = await readTeamsForCountry(selectedCountry?.id);
+  const matchdaysForSeason = await readMatchdaysForSeason(selectedSeason?.id);
   const participantTeamIds = new Set(participantsForSeason.map((participant) => participant.team_id));
   const teamsAvailableForSeason = teamsForCountry.filter((team) => !participantTeamIds.has(team.id));
   const unavailableTeamMessage =
@@ -569,6 +595,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const canAddParticipant = Boolean(
     selectedCountry && selectedSeason && participantData?.writeConfigured && !participantData.error && teamsAvailableForSeason.length > 0
   );
+  const nextMatchdayNumber = matchdaysForSeason.reduce((max, matchday) => Math.max(max, matchday.number), 0) + 1;
+  const canCreateMatchday = Boolean(selectedSeason && participantData?.writeConfigured);
   const createdLabels: Record<string, string> = {
     country: "Pais criado. Agora podes escolher esse pais no caminho de trabalho.",
     competition: "Competicao criada e ligada ao pais escolhido.",
@@ -577,6 +605,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     participant: "Participante associado a epoca selecionada.",
     remove_participant: "Participante removido da epoca selecionada.",
     remove_team: "Clube removido do pais selecionado.",
+    matchday: "Jornada criada dentro da epoca selecionada.",
+    remove_matchday: "Jornada removida da epoca selecionada.",
     remove_country: "Pais removido.",
     remove_competition: "Competicao removida.",
     remove_season: "Epoca removida."
@@ -593,6 +623,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "season-has-matchdays": "Nao e possivel remover esta epoca porque ainda existem jornadas associadas.",
     "season-has-matches": "Nao e possivel remover esta epoca porque ainda existem jogos associados.",
     "team-has-participants": "Este clube ainda esta associado a uma epoca. Remove primeiro o participante da epoca.",
+    "matchday-duplicate": "Ja existe uma jornada com esse numero nesta epoca.",
+    "matchday-has-matches": "Nao e possivel remover esta jornada porque ainda existem jogos associados.",
     save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
   };
 
@@ -1050,6 +1082,106 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           <input type="hidden" name="return_to" value={currentReturnTo} />
                           <input type="hidden" name="team_id" value={team.id} />
                           <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
+                          <button className="manager-link-button" type="submit">
+                            Remover
+                          </button>
+                        </form>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </article>
+            </div>
+          </section>
+
+          <section className="manager-panel" aria-label="Calendario da epoca">
+            <header>
+              <h2>Calendario da epoca</h2>
+              <p>Cria e organiza jornadas simples dentro da epoca selecionada.</p>
+            </header>
+            <div className="manager-create-grid">
+              <article className="manager-create-card">
+                <header>
+                  <h3>Nova jornada</h3>
+                  <p>{selectedSeason ? `Dentro de ${selectedSeason.label}.` : "Escolhe uma epoca primeiro."}</p>
+                </header>
+                <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                  <input type="hidden" name="action_type" value="matchday" />
+                  <input type="hidden" name="return_to" value={currentReturnTo} />
+                  <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+                  <div className="manager-field">
+                    <label htmlFor="new-matchday-number">Numero</label>
+                    <input
+                      id="new-matchday-number"
+                      name="number"
+                      type="number"
+                      min={1}
+                      defaultValue={nextMatchdayNumber}
+                      disabled={!canCreateMatchday}
+                      required={canCreateMatchday}
+                    />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-matchday-label">Nome</label>
+                    <input
+                      id="new-matchday-label"
+                      name="label"
+                      placeholder="Ex: Jornada 01"
+                      disabled={!canCreateMatchday}
+                      required={canCreateMatchday}
+                    />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-matchday-start">Inicio</label>
+                    <input id="new-matchday-start" name="starts_on" type="date" disabled={!canCreateMatchday} />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-matchday-end">Fim</label>
+                    <input id="new-matchday-end" name="ends_on" type="date" disabled={!canCreateMatchday} />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-matchday-status">Estado</label>
+                    <select id="new-matchday-status" name="status" disabled={!canCreateMatchday}>
+                      <option value="scheduled">Planeada</option>
+                      <option value="live">Em curso</option>
+                      <option value="finished">Terminada</option>
+                      <option value="archived">Arquivada</option>
+                    </select>
+                  </div>
+                  <button className="manager-button" type="submit" disabled={!canCreateMatchday}>
+                    Criar jornada
+                  </button>
+                </form>
+              </article>
+
+              <article className="manager-create-card manager-wide-card">
+                <header>
+                  <h3>{selectedSeason?.label ?? "Sem epoca selecionada"}</h3>
+                  <p>{matchdaysForSeason.length} jornadas no calendario desta epoca.</p>
+                </header>
+                {matchdaysForSeason.length === 0 ? (
+                  <div className="manager-empty">Ainda nao ha jornadas nesta epoca.</div>
+                ) : (
+                  <ul className="manager-list">
+                    {matchdaysForSeason.map((matchday) => (
+                      <li key={matchday.id}>
+                        <div>
+                          <b>
+                            {matchday.number}. {matchday.label}
+                          </b>
+                          <small>
+                            {matchday.starts_on ?? "Sem inicio"} / {matchday.ends_on ?? "Sem fim"} - {matchday.status}
+                          </small>
+                        </div>
+                        <form
+                          action="/api/admin/gestor"
+                          data-confirm="Tem a certeza que quer remover esta jornada? Esta acao so avanca se nao houver jogos associados."
+                          method="post"
+                        >
+                          <input type="hidden" name="action_type" value="remove_matchday" />
+                          <input type="hidden" name="return_to" value={currentReturnTo} />
+                          <input type="hidden" name="matchday_id" value={matchday.id} />
+                          <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
                           <button className="manager-link-button" type="submit">
                             Remover
                           </button>

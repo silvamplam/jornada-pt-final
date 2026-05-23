@@ -21,6 +21,13 @@ function cleanInteger(value: FormDataEntryValue | null): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
+function cleanMatchdayStatus(value: FormDataEntryValue | null): string {
+  const status = cleanText(value);
+  const allowed = new Set(["scheduled", "live", "finished", "archived"]);
+
+  return status && allowed.has(status) ? status : "scheduled";
+}
+
 function slugify(value: string): string {
   return value
     .normalize("NFD")
@@ -202,6 +209,62 @@ async function removeTeam(formData: FormData) {
   );
 }
 
+async function createMatchday(formData: FormData) {
+  const seasonId = cleanText(formData.get("season_id"));
+  const number = cleanInteger(formData.get("number"));
+  const label = cleanText(formData.get("label"));
+
+  if (!seasonId || number === null || !label) {
+    throw new Error("missing-fields");
+  }
+
+  if (
+    await hasRows(
+      `matchdays?select=id&season_id=eq.${encodeURIComponent(seasonId)}&number=eq.${encodeURIComponent(String(number))}`
+    )
+  ) {
+    throw new Error("matchday-duplicate");
+  }
+
+  await writeSupabaseAdmin("matchdays", {
+    method: "POST",
+    body: JSON.stringify({
+      season_id: seasonId,
+      number,
+      label,
+      starts_on: cleanText(formData.get("starts_on")),
+      ends_on: cleanText(formData.get("ends_on")),
+      status: cleanMatchdayStatus(formData.get("status")),
+      data_source: "manual",
+      sync_status: "manual",
+      manual_override: true,
+      external_provider: null,
+      external_id: null,
+      last_synced_at: null
+    })
+  });
+}
+
+async function removeMatchday(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const seasonId = cleanText(formData.get("season_id"));
+
+  if (!matchdayId || !seasonId) {
+    throw new Error("missing-fields");
+  }
+
+  if (await hasRows(`matches?select=id&matchday_id=eq.${encodeURIComponent(matchdayId)}`)) {
+    throw new Error("matchday-has-matches");
+  }
+
+  await writeSupabaseAdmin(
+    `matchdays?id=eq.${encodeURIComponent(matchdayId)}&season_id=eq.${encodeURIComponent(seasonId)}`,
+    {
+      method: "DELETE"
+    }
+  );
+}
+
 async function removeSeason(formData: FormData) {
   const seasonId = cleanText(formData.get("season_id"));
 
@@ -286,6 +349,10 @@ export async function POST(request: Request) {
       await removeParticipant(formData);
     } else if (actionType === "remove_team") {
       await removeTeam(formData);
+    } else if (actionType === "matchday") {
+      await createMatchday(formData);
+    } else if (actionType === "remove_matchday") {
+      await removeMatchday(formData);
     } else if (actionType === "remove_season") {
       await removeSeason(formData);
     } else if (actionType === "remove_competition") {
