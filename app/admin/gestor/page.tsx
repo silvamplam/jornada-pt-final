@@ -231,6 +231,10 @@ const managerStyles = `
     background: #fff4df;
   }
 
+  .manager-panel > .manager-message {
+    margin: 18px 20px 0;
+  }
+
   .manager-path {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -458,6 +462,13 @@ function returnTo(country: SupabaseCountry | null, competition: SupabaseCompetit
   return `/admin/gestor${query ? `?${query}` : ""}`;
 }
 
+function withSection(url: string, section: string) {
+  const [pathAndQuery] = url.split("#");
+  const separator = pathAndQuery.includes("?") ? "&" : "?";
+
+  return `${pathAndQuery}${separator}section=${section}#${section}`;
+}
+
 function toDatetimeLocal(value?: string | null) {
   if (!value) {
     return "";
@@ -619,6 +630,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const requestedSeasonId = oneParam(params, "epoca");
   const requestedMatchdayId = oneParam(params, "jornada");
   const requestedEditMatchId = oneParam(params, "editar_jogo");
+  const messageSection = oneParam(params, "section");
   const {
     linkedCompetitions,
     selectedCountry,
@@ -699,12 +711,16 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     isCurrent: season.is_current
   }));
   const currentReturnTo = returnTo(selectedCountry, selectedCompetition, selectedSeason);
+  const clubsReturnTo = withSection(currentReturnTo, "clubes");
+  const calendarReturnTo = withSection(currentReturnTo, "calendario");
+  const participantsReturnTo = withSection(currentReturnTo, "participantes");
   const matchdayReturnTo =
     selectedMatchday && currentReturnTo.includes("?")
       ? `${currentReturnTo}&jornada=${selectedMatchday.id}`
       : selectedMatchday
         ? `${currentReturnTo}?jornada=${selectedMatchday.id}`
         : currentReturnTo;
+  const matchesReturnTo = withSection(matchdayReturnTo, "jogos");
   const unlinkedCompetitions = competitions.filter((competition) => !competitionCountryId(competition));
   const created = oneParam(params, "created");
   const actionError = oneParam(params, "error");
@@ -775,6 +791,21 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "match-has-dependencies": "Este jogo ja tem eventos, noticias ou atualizacoes associadas e nao pode ser removido nesta fase.",
     save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
   };
+  const sectionMessage = (section: string) => {
+    if (messageSection !== section) {
+      return null;
+    }
+
+    if (created && createdLabels[created]) {
+      return <div className="manager-message">{createdLabels[created]}</div>;
+    }
+
+    if (actionError) {
+      return <div className="manager-message warning">{errorLabels[actionError] ?? errorLabels.save}</div>;
+    }
+
+    return null;
+  };
 
   return (
     <main className="manager-shell">
@@ -843,8 +874,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
         <a href="/admin">Voltar ao backoffice</a>
       </header>
 
-      {created && createdLabels[created] ? <div className="manager-message">{createdLabels[created]}</div> : null}
-      {actionError ? (
+      {!messageSection && created && createdLabels[created] ? <div className="manager-message">{createdLabels[created]}</div> : null}
+      {!messageSection && actionError ? (
         <div className="manager-message warning">{errorLabels[actionError] ?? errorLabels.save}</div>
       ) : null}
 
@@ -1203,11 +1234,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel" aria-label="Clubes do pais">
+          <section className="manager-panel" id="clubes" aria-label="Clubes do pais">
             <header>
               <h2>Clubes do pais</h2>
               <p>Cria clubes ligados manualmente ao pais selecionado. So estes clubes entram no seletor da epoca.</p>
             </header>
+            {sectionMessage("clubes")}
             <div className="manager-create-grid">
               <article className="manager-create-card">
                 <header>
@@ -1216,7 +1248,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </header>
                 <form className="manager-create-form" action="/api/admin/gestor" method="post">
                   <input type="hidden" name="action_type" value="team" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
+                  <input type="hidden" name="return_to" value={clubsReturnTo} />
                   <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
                   <div className="manager-field">
                     <label htmlFor="new-team-name">Nome</label>
@@ -1251,7 +1283,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </header>
                 <form className="manager-create-form" action="/api/admin/gestor" method="post">
                   <input type="hidden" name="action_type" value="attach_team_to_country" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
+                  <input type="hidden" name="return_to" value={clubsReturnTo} />
                   <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
                   <div className="manager-field">
                     <label htmlFor="attach-team-id">Clube existente</label>
@@ -1291,7 +1323,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           method="post"
                         >
                           <input type="hidden" name="action_type" value="remove_team" />
-                          <input type="hidden" name="return_to" value={currentReturnTo} />
+                          <input type="hidden" name="return_to" value={clubsReturnTo} />
                           <input type="hidden" name="team_id" value={team.id} />
                           <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
                           <button className="manager-link-button" type="submit">
@@ -1306,7 +1338,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel" aria-label="Associacoes antigas invisiveis">
+          <section className="manager-panel" id="associacoes-antigas" aria-label="Associacoes antigas invisiveis">
             <header>
               <h2>Associacoes antigas invisiveis</h2>
               <p>
@@ -1340,7 +1372,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           method="post"
                         >
                           <input type="hidden" name="action_type" value="remove_old_participant" />
-                          <input type="hidden" name="return_to" value={currentReturnTo} />
+                          <input type="hidden" name="return_to" value={clubsReturnTo} />
                           <input type="hidden" name="participant_id" value={participant.id} />
                           <button className="manager-link-button" type="submit">
                             Remover associacao
@@ -1354,11 +1386,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel" aria-label="Calendario da epoca">
+          <section className="manager-panel" id="calendario" aria-label="Calendario da epoca">
             <header>
               <h2>Calendario da epoca</h2>
               <p>Cria e organiza jornadas simples dentro da epoca selecionada.</p>
             </header>
+            {sectionMessage("calendario")}
             <div className="manager-create-grid">
               <article className="manager-create-card">
                 <header>
@@ -1373,7 +1406,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </header>
                 <form className="manager-create-form" action="/api/admin/gestor" method="post">
                   <input type="hidden" name="action_type" value="matchday" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
+                  <input type="hidden" name="return_to" value={calendarReturnTo} />
                   <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
                   <div className="manager-field">
                     <label htmlFor="new-matchday-number">Numero</label>
@@ -1445,7 +1478,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           method="post"
                         >
                           <input type="hidden" name="action_type" value="remove_matchday" />
-                          <input type="hidden" name="return_to" value={currentReturnTo} />
+                          <input type="hidden" name="return_to" value={calendarReturnTo} />
                           <input type="hidden" name="matchday_id" value={matchday.id} />
                           <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
                           <button className="manager-link-button" type="submit">
@@ -1460,11 +1493,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel" aria-label="Jogos da jornada">
+          <section className="manager-panel" id="jogos" aria-label="Jogos da jornada">
             <header>
               <h2>Jogos da jornada</h2>
               <p>Cria e lista apenas jogos de agenda dentro da jornada selecionada.</p>
             </header>
+            {sectionMessage("jogos")}
             <div className="manager-create-grid">
               <article className="manager-create-card">
                 <header>
@@ -1532,7 +1566,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   ) : (
                     <input type="hidden" name="action_type" value="match" />
                   )}
-                  <input type="hidden" name="return_to" value={matchdayReturnTo} />
+                  <input type="hidden" name="return_to" value={matchesReturnTo} />
                   <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
                   <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
                   <input type="hidden" name="matchday_id" value={selectedMatchday?.id ?? ""} />
@@ -1605,7 +1639,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     {editingMatch ? "Guardar alteracoes" : "Criar jogo"}
                   </button>
                   {editingMatch ? (
-                    <a className="manager-link-button" href={matchdayReturnTo}>
+                    <a className="manager-link-button" href={withSection(matchdayReturnTo, "jogos")}>
                       Cancelar edicao
                     </a>
                   ) : null}
@@ -1640,7 +1674,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           <div className="manager-actions">
                             <a
                               className="manager-link-button"
-                              href={`${matchdayReturnTo}&editar_jogo=${match.id}`}
+                              href={`${matchdayReturnTo}&editar_jogo=${match.id}&section=jogos#jogos`}
                             >
                               Editar
                             </a>
@@ -1650,7 +1684,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                               method="post"
                             >
                               <input type="hidden" name="action_type" value="remove_match" />
-                              <input type="hidden" name="return_to" value={matchdayReturnTo} />
+                              <input type="hidden" name="return_to" value={matchesReturnTo} />
                               <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
                               <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
                               <input type="hidden" name="matchday_id" value={selectedMatchday?.id ?? ""} />
@@ -1669,11 +1703,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel" aria-label="Participantes da epoca">
+          <section className="manager-panel" id="participantes" aria-label="Participantes da epoca">
             <header>
               <h2>Participantes da epoca</h2>
               <p>Adiciona manualmente clubes a epoca selecionada e confirma a lista desse contexto.</p>
             </header>
+            {sectionMessage("participantes")}
             <div className="manager-stat-row">
               <article className="manager-stat">
                 <strong>{participantsForSeason.length}</strong>
@@ -1696,7 +1731,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </header>
                 <form className="manager-create-form" action="/api/admin/gestor" method="post">
                   <input type="hidden" name="action_type" value="participant" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
+                  <input type="hidden" name="return_to" value={participantsReturnTo} />
                   <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
                   <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
                   <input type="hidden" name="display_order" value={participantsForSeason.length + 1} />
@@ -1744,7 +1779,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           method="post"
                         >
                           <input type="hidden" name="action_type" value="remove_participant" />
-                          <input type="hidden" name="return_to" value={currentReturnTo} />
+                          <input type="hidden" name="return_to" value={participantsReturnTo} />
                           <input type="hidden" name="participant_id" value={participant.id} />
                           <input type="hidden" name="season_id" value={selectedSeason.id} />
                           <button className="manager-link-button" type="submit">
