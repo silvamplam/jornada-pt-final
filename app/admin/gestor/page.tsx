@@ -45,6 +45,8 @@ type ClassificationRow = {
   teamId: string;
   name: string;
   played: number;
+  homePlayed: number;
+  awayPlayed: number;
   wins: number;
   draws: number;
   losses: number;
@@ -52,6 +54,7 @@ type ClassificationRow = {
   goalsAgainst: number;
   goalDifference: number;
   points: number;
+  recentForm: string[];
 };
 
 const managerStyles = `
@@ -665,13 +668,16 @@ function buildAccumulatedClassification({
       teamId: participant.team_id,
       name: participant.team.name,
       played: 0,
+      homePlayed: 0,
+      awayPlayed: 0,
       wins: 0,
       draws: 0,
       losses: 0,
       goalsFor: 0,
       goalsAgainst: 0,
       goalDifference: 0,
-      points: 0
+      points: 0,
+      recentForm: []
     });
   });
 
@@ -679,16 +685,27 @@ function buildAccumulatedClassification({
     return Array.from(rows.values()).sort((a, b) => a.name.localeCompare(b.name, "pt"));
   }
 
-  matches.forEach((match) => {
-    const matchday = match.matchday_id ? matchdaysById.get(match.matchday_id) : null;
+  const finishedMatches = matches
+    .map((match) => ({
+      match,
+      matchday: match.matchday_id ? matchdaysById.get(match.matchday_id) ?? null : null
+    }))
+    .filter(
+      ({ match, matchday }) =>
+        Boolean(matchday) &&
+        matchday!.number <= selectedMatchday.number &&
+        match.status === "finished" &&
+        match.home_score !== null &&
+        match.away_score !== null
+    )
+    .sort(
+      (a, b) =>
+        a.matchday!.number - b.matchday!.number ||
+        new Date(a.match.kickoff_at).getTime() - new Date(b.match.kickoff_at).getTime()
+    );
 
-    if (
-      !matchday ||
-      matchday.number > selectedMatchday.number ||
-      match.status !== "finished" ||
-      match.home_score === null ||
-      match.away_score === null
-    ) {
+  finishedMatches.forEach(({ match }) => {
+    if (match.home_score === null || match.away_score === null) {
       return;
     }
 
@@ -701,6 +718,8 @@ function buildAccumulatedClassification({
 
     home.played += 1;
     away.played += 1;
+    home.homePlayed += 1;
+    away.awayPlayed += 1;
     home.goalsFor += match.home_score;
     home.goalsAgainst += match.away_score;
     away.goalsFor += match.away_score;
@@ -710,19 +729,29 @@ function buildAccumulatedClassification({
       home.wins += 1;
       home.points += 3;
       away.losses += 1;
+      home.recentForm.push("V(C)");
+      away.recentForm.push("D(F)");
     } else if (match.home_score < match.away_score) {
       away.wins += 1;
       away.points += 3;
       home.losses += 1;
+      home.recentForm.push("D(C)");
+      away.recentForm.push("V(F)");
     } else {
       home.draws += 1;
       away.draws += 1;
       home.points += 1;
       away.points += 1;
+      home.recentForm.push("E(C)");
+      away.recentForm.push("E(F)");
     }
 
     home.goalDifference = home.goalsFor - home.goalsAgainst;
     away.goalDifference = away.goalsFor - away.goalsAgainst;
+  });
+
+  rows.forEach((row) => {
+    row.recentForm = row.recentForm.slice(-4);
   });
 
   return Array.from(rows.values()).sort(
@@ -1967,6 +1996,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           <th>Pos</th>
                           <th>Clube</th>
                           <th>J</th>
+                          <th>Casa</th>
+                          <th>Fora</th>
                           <th>V</th>
                           <th>E</th>
                           <th>D</th>
@@ -1974,6 +2005,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           <th>GS</th>
                           <th>DG</th>
                           <th>Pts</th>
+                          <th>Ult. 4</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1982,6 +2014,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                             <td>{index + 1}</td>
                             <td>{row.name}</td>
                             <td>{row.played}</td>
+                            <td>{row.homePlayed}</td>
+                            <td>{row.awayPlayed}</td>
                             <td>{row.wins}</td>
                             <td>{row.draws}</td>
                             <td>{row.losses}</td>
@@ -1991,6 +2025,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                             <td>
                               <b>{row.points}</b>
                             </td>
+                            <td>{row.recentForm.length > 0 ? row.recentForm.join(" ") : "-"}</td>
                           </tr>
                         ))}
                       </tbody>
