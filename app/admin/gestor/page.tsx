@@ -473,7 +473,7 @@ async function readMatchdaysForSeason(seasonId?: string): Promise<SeasonMatchday
     return await fetchSupabaseAdminTable<SeasonMatchday>(
       `matchdays?select=id,season_id,number,label,starts_on,ends_on,status&season_id=eq.${encodeURIComponent(
         seasonId
-      )}&order=number.asc`
+      )}&manual_override=is.true&order=number.asc`
     );
   } catch {
     return [];
