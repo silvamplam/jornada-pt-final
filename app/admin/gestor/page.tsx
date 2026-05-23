@@ -1,4 +1,5 @@
 import {
+  getAdminSeasonParticipants,
   getAdminSeasons,
   type SupabaseCompetition,
   type SupabaseCountry,
@@ -505,6 +506,10 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     requestedCompetitionId,
     requestedSeasonId
   });
+  const participantData = configured ? await getAdminSeasonParticipants() : null;
+  const participantsForSeason = selectedSeason
+    ? (participantData?.participants ?? []).filter((participant) => participant.season_id === selectedSeason.id)
+    : [];
   const selectorCountries = countries.map((country) => ({
     id: country.id,
     name: country.name
@@ -842,6 +847,54 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     Epocas
                   </a>
                 </div>
+              </article>
+            </div>
+          </section>
+
+          <section className="manager-panel" aria-label="Participantes da epoca">
+            <header>
+              <h2>Participantes da epoca</h2>
+              <p>Lista apenas os participantes ja existentes na epoca selecionada.</p>
+            </header>
+            <div className="manager-stat-row">
+              <article className="manager-stat">
+                <strong>{participantsForSeason.length}</strong>
+                <small>Participantes nesta epoca</small>
+              </article>
+              <article className="manager-stat">
+                <strong>{selectedCompetition ? 1 : 0}</strong>
+                <small>Competicao selecionada</small>
+              </article>
+              <article className="manager-stat">
+                <strong>{selectedSeason ? 1 : 0}</strong>
+                <small>Epoca selecionada</small>
+              </article>
+            </div>
+            <div className="manager-summary-grid">
+              <article className="manager-create-card manager-wide-card">
+                <header>
+                  <h3>{selectedSeason?.label ?? "Sem epoca selecionada"}</h3>
+                  <p>{selectedCompetition?.name ?? "Escolhe uma competicao e uma epoca"}</p>
+                </header>
+                {participantData?.error ? (
+                  <div className="manager-empty">Nao foi possivel ler os participantes: {participantData.error}</div>
+                ) : !selectedSeason ? (
+                  <div className="manager-empty">Escolhe ou cria uma epoca para ver os participantes.</div>
+                ) : participantsForSeason.length === 0 ? (
+                  <div className="manager-empty">Ainda nao ha participantes associados a esta epoca.</div>
+                ) : (
+                  <ul className="manager-list">
+                    {participantsForSeason.map((participant) => (
+                      <li key={participant.id}>
+                        <div>
+                          <b>{participant.team?.name ?? "Clube sem nome"}</b>
+                          <small>{participant.team?.short_name ?? participant.team?.slug ?? "Sem sigla"}</small>
+                        </div>
+                        <em>{participant.status === "active" ? "Ativo" : participant.status || "Sem estado"}</em>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </article>
             </div>
           </section>
