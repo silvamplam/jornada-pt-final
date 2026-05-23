@@ -128,6 +128,10 @@ async function createTeam(formData: FormData) {
     throw new Error("missing-fields");
   }
 
+  if (await hasRows(`teams?select=id&slug=eq.${encodeURIComponent(slug)}`)) {
+    throw new Error("team-slug-exists");
+  }
+
   await writeSupabaseAdmin("teams", {
     method: "POST",
     body: JSON.stringify({
@@ -141,19 +145,33 @@ async function createTeam(formData: FormData) {
   });
 }
 
-function teamDebugPayload(formData: FormData) {
-  const name = cleanText(formData.get("name"));
-  const shortName = cleanText(formData.get("short_name"))?.toUpperCase();
-  const slug = cleanText(formData.get("slug")) ?? (name ? slugify(name) : null);
+async function attachTeamToCountry(formData: FormData) {
+  const teamId = cleanText(formData.get("team_id"));
+  const countryId = cleanText(formData.get("country_id"));
 
-  return {
-    name,
-    short_name: shortName,
-    slug,
-    country_id: cleanText(formData.get("country_id")),
-    logo_url: cleanText(formData.get("logo_url")),
-    primary_color: cleanText(formData.get("primary_color"))
-  };
+  if (!teamId || !countryId) {
+    throw new Error("missing-fields");
+  }
+
+  const teams = await fetchSupabaseAdminTable<{ id: string; country_id: string | null }>(
+    `teams?select=id,country_id&id=eq.${encodeURIComponent(teamId)}&limit=1`
+  );
+  const team = teams[0];
+
+  if (!team) {
+    throw new Error("team-not-found");
+  }
+
+  if (team.country_id && team.country_id !== countryId) {
+    throw new Error("team-already-linked");
+  }
+
+  await writeSupabaseAdmin(`teams?id=eq.${encodeURIComponent(teamId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      country_id: countryId
+    })
+  });
 }
 
 async function createParticipant(formData: FormData) {
@@ -367,19 +385,9 @@ export async function POST(request: Request) {
     } else if (actionType === "season") {
       await createSeason(formData);
     } else if (actionType === "team") {
-      try {
-        await createTeam(formData);
-      } catch (error) {
-        return NextResponse.json(
-          {
-            ok: false,
-            action: "team",
-            error: error instanceof Error ? error.message : String(error),
-            payload: teamDebugPayload(formData)
-          },
-          { status: 500 }
-        );
-      }
+      await createTeam(formData);
+    } else if (actionType === "attach_team_to_country") {
+      await attachTeamToCountry(formData);
     } else if (actionType === "participant") {
       await createParticipant(formData);
     } else if (actionType === "remove_participant") {

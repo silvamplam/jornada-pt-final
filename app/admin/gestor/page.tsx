@@ -15,6 +15,7 @@ type SearchParams = Record<string, string | string[] | undefined>;
 type CountryTeam = SupabaseTeam & {
   country_id: string | null;
 };
+type UnassignedTeam = Pick<CountryTeam, "id" | "name" | "short_name" | "slug" | "country_id">;
 type SeasonMatchday = {
   id: string;
   season_id: string;
@@ -453,6 +454,16 @@ async function readTeamsForCountry(countryId?: string): Promise<CountryTeam[]> {
   }
 }
 
+async function readUnassignedTeams(): Promise<UnassignedTeam[]> {
+  try {
+    return await fetchSupabaseAdminTable<UnassignedTeam>(
+      "teams?select=id,name,short_name,slug,country_id&country_id=is.null&order=name.asc&limit=200"
+    );
+  } catch {
+    return [];
+  }
+}
+
 async function readMatchdaysForSeason(seasonId?: string): Promise<SeasonMatchday[]> {
   if (!seasonId) {
     return [];
@@ -563,6 +574,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
       )
     : [];
   const teamsForCountry = await readTeamsForCountry(selectedCountry?.id);
+  const unassignedTeams = await readUnassignedTeams();
   const matchdaysForSeason = await readMatchdaysForSeason(selectedSeason?.id);
   const participantTeamIds = new Set(participantsForSeason.map((participant) => participant.team_id));
   const teamsAvailableForSeason = teamsForCountry.filter((team) => !participantTeamIds.has(team.id));
@@ -592,6 +604,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const canCreateCompetition = Boolean(selectedCountry);
   const canCreateSeason = Boolean(selectedCompetition);
   const canCreateTeam = Boolean(selectedCountry && participantData?.writeConfigured);
+  const canAttachTeam = Boolean(selectedCountry && participantData?.writeConfigured && unassignedTeams.length > 0);
   const canAddParticipant = Boolean(
     selectedCountry && selectedSeason && participantData?.writeConfigured && !participantData.error && teamsAvailableForSeason.length > 0
   );
@@ -602,6 +615,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     competition: "Competicao criada e ligada ao pais escolhido.",
     season: "Epoca criada dentro da competicao escolhida.",
     team: "Clube criado e associado ao pais selecionado.",
+    attach_team_to_country: "Clube existente associado ao pais selecionado.",
     participant: "Participante associado a epoca selecionada.",
     remove_participant: "Participante removido da epoca selecionada.",
     remove_team: "Clube removido do pais selecionado.",
@@ -616,6 +630,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "missing-fields": "Preenche os campos obrigatorios antes de guardar.",
     "unknown-action": "A acao enviada pelo formulario nao foi reconhecida.",
     "invalid-team-country": "O clube escolhido nao esta associado ao pais selecionado.",
+    "team-slug-exists": "Este clube ja existe. Associe-o ao pais em vez de criar outro.",
+    "team-not-found": "Nao foi possivel encontrar o clube escolhido.",
+    "team-already-linked": "Este clube ja esta associado a outro pais.",
     "country-has-competitions": "Nao e possivel remover este pais porque ainda existem competicoes associadas.",
     "country-has-teams": "Nao e possivel remover este pais porque ainda existem clubes associados.",
     "competition-has-seasons": "Nao e possivel remover esta competicao porque ainda existem epocas associadas.",
@@ -1055,6 +1072,32 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   </div>
                   <button className="manager-button" type="submit" disabled={!canCreateTeam}>
                     Criar clube
+                  </button>
+                </form>
+              </article>
+
+              <article className="manager-create-card">
+                <header>
+                  <h3>Associar clube existente</h3>
+                  <p>Liga manualmente ao pais selecionado um clube ja existente que ainda nao tem pais associado.</p>
+                </header>
+                <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                  <input type="hidden" name="action_type" value="attach_team_to_country" />
+                  <input type="hidden" name="return_to" value={currentReturnTo} />
+                  <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
+                  <div className="manager-field">
+                    <label htmlFor="attach-team-id">Clube existente</label>
+                    <select id="attach-team-id" name="team_id" disabled={!canAttachTeam} required={canAttachTeam}>
+                      {unassignedTeams.length === 0 ? <option value="">Nao ha clubes sem pais associado</option> : null}
+                      {unassignedTeams.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name} ({team.slug})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button className="manager-button" type="submit" disabled={!canAttachTeam}>
+                    Associar clube
                   </button>
                 </form>
               </article>
