@@ -191,18 +191,20 @@ async function createParticipant(formData: FormData) {
     throw new Error("invalid-team-country");
   }
 
+  const participantPayload = {
+    season_id: seasonId,
+    team_id: teamId,
+    display_order: cleanInteger(formData.get("display_order")) ?? 999,
+    status: "active",
+    data_source: "manual",
+    sync_status: "manual",
+    manual_override: true
+  };
+
   await writeSupabaseAdmin("season_teams?on_conflict=season_id,team_id", {
     method: "POST",
-    headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
-    body: JSON.stringify({
-      season_id: seasonId,
-      team_id: teamId,
-      display_order: cleanInteger(formData.get("display_order")) ?? 999,
-      status: "active",
-      data_source: "manual",
-      sync_status: "manual",
-      manual_override: true
-    })
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify(participantPayload)
   });
 }
 
