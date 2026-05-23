@@ -508,7 +508,13 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   });
   const participantData = configured ? await getAdminSeasonParticipants() : null;
   const participantsForSeason = selectedSeason
-    ? (participantData?.participants ?? []).filter((participant) => participant.season_id === selectedSeason.id)
+    ? (participantData?.participants ?? []).filter(
+        (participant) =>
+          participant.season_id === selectedSeason.id &&
+          participant.data_source === "manual" &&
+          participant.sync_status === "manual" &&
+          participant.manual_override === true
+      )
     : [];
   const participantTeamIds = new Set(participantsForSeason.map((participant) => participant.team_id));
   const teamsAvailableForSeason = (participantData?.teams ?? []).filter((team) => !participantTeamIds.has(team.id));

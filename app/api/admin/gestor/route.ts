@@ -121,7 +121,10 @@ async function createParticipant(formData: FormData) {
       season_id: seasonId,
       team_id: teamId,
       display_order: cleanInteger(formData.get("display_order")) ?? 999,
-      status: "active"
+      status: "active",
+      data_source: "manual",
+      sync_status: "manual",
+      manual_override: true
     })
   });
 }
