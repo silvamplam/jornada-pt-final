@@ -462,7 +462,7 @@ export default async function AdminPage() {
           <section className="admin-flow" aria-label="Fluxo recomendado do backoffice">
             <header>
               <h2>Fluxo principal</h2>
-              <p>Usa o Centro de gestao para seguir a cadeia: Pais -> Competicao -> Epoca -> Participantes -> Jornadas -> Jogos -> Resultados -> Classificacao.</p>
+              <p>Usa o Centro de gestao para seguir a cadeia: Pais - Competicao - Epoca - Participantes - Jornadas - Jogos - Resultados - Classificacao.</p>
             </header>
             <ol>
               <li>

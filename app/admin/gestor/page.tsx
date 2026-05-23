@@ -1147,8 +1147,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
           <p>Jornada.pt</p>
           <h1>Centro de gestao</h1>
           <span>
-            Fluxo principal: Pais -> Competicao -> Epoca -> Participantes -> Jornadas -> Jogos ->
-            Resultados -> Classificacao. As acoes tecnicas ficam separadas em manutencao.
+            Fluxo principal: Pais - Competicao - Epoca - Participantes - Jornadas - Jogos -
+            Resultados - Classificacao. As acoes tecnicas ficam separadas em manutencao.
           </span>
         </div>
         <a href="/admin">Voltar ao backoffice</a>
