@@ -28,6 +28,22 @@ function cleanMatchdayStatus(value: FormDataEntryValue | null): string {
   return status && allowed.has(status) ? status : "scheduled";
 }
 
+function normalizeKickoff(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  if (/[zZ]$|[+-]\d{2}:\d{2}$/.test(value)) {
+    return value;
+  }
+
+  const withSeconds = value.length === 16 ? `${value}:00` : value;
+  const month = Number.parseInt(value.slice(5, 7), 10);
+  const portugalOffset = month >= 4 && month <= 10 ? "+01:00" : "+00:00";
+
+  return `${withSeconds}${portugalOffset}`;
+}
+
 function slugify(value: string): string {
   return value
     .normalize("NFD")
@@ -352,6 +368,71 @@ async function removeMatchday(formData: FormData) {
   );
 }
 
+async function createMatch(formData: FormData) {
+  const competitionId = cleanText(formData.get("competition_id"));
+  const seasonId = cleanText(formData.get("season_id"));
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const homeTeamId = cleanText(formData.get("home_team_id"));
+  const awayTeamId = cleanText(formData.get("away_team_id"));
+  const kickoffAt = normalizeKickoff(cleanText(formData.get("kickoff_at")));
+
+  if (!competitionId || !seasonId || !matchdayId || !homeTeamId || !awayTeamId || !kickoffAt) {
+    throw new Error("missing-fields");
+  }
+
+  if (homeTeamId === awayTeamId) {
+    throw new Error("match-team-same");
+  }
+
+  if (!(await hasRows(`seasons?select=id&id=eq.${encodeURIComponent(seasonId)}&competition_id=eq.${encodeURIComponent(competitionId)}`))) {
+    throw new Error("match-missing-context");
+  }
+
+  if (
+    !(await hasRows(
+      `matchdays?select=id&id=eq.${encodeURIComponent(matchdayId)}&season_id=eq.${encodeURIComponent(
+        seasonId
+      )}&manual_override=is.true`
+    ))
+  ) {
+    throw new Error("matchday-invalid");
+  }
+
+  const participantBasePath =
+    `season_teams?select=id&season_id=eq.${encodeURIComponent(
+      seasonId
+    )}&data_source=eq.manual&sync_status=eq.manual&manual_override=is.true`;
+
+  const homeIsParticipant = await hasRows(`${participantBasePath}&team_id=eq.${encodeURIComponent(homeTeamId)}`);
+  const awayIsParticipant = await hasRows(`${participantBasePath}&team_id=eq.${encodeURIComponent(awayTeamId)}`);
+
+  if (!homeIsParticipant || !awayIsParticipant) {
+    throw new Error("match-team-not-participant");
+  }
+
+  await writeSupabaseAdmin("matches", {
+    method: "POST",
+    body: JSON.stringify({
+      source_key: `manual-${Date.now()}`,
+      competition_id: competitionId,
+      season_id: seasonId,
+      matchday_id: matchdayId,
+      home_team_id: homeTeamId,
+      away_team_id: awayTeamId,
+      kickoff_at: kickoffAt,
+      venue: cleanText(formData.get("venue")),
+      status: "scheduled",
+      data_source: "manual",
+      sync_status: "manual",
+      manual_override: true,
+      external_provider: null,
+      external_id: null,
+      external_match_id: null,
+      last_synced_at: null
+    })
+  });
+}
+
 async function removeSeason(formData: FormData) {
   const seasonId = cleanText(formData.get("season_id"));
 
@@ -444,6 +525,8 @@ export async function POST(request: Request) {
       await createMatchday(formData);
     } else if (actionType === "remove_matchday") {
       await removeMatchday(formData);
+    } else if (actionType === "match") {
+      await createMatch(formData);
     } else if (actionType === "remove_season") {
       await removeSeason(formData);
     } else if (actionType === "remove_competition") {

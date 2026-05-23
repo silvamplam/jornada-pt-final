@@ -25,6 +25,17 @@ type SeasonMatchday = {
   ends_on: string | null;
   status: string;
 };
+type SeasonAgendaMatch = {
+  id: string;
+  competition_id: string;
+  season_id: string;
+  matchday_id: string | null;
+  home_team_id: string;
+  away_team_id: string;
+  kickoff_at: string;
+  venue: string | null;
+  status: string;
+};
 
 const managerStyles = `
   body {
@@ -480,6 +491,22 @@ async function readMatchdaysForSeason(seasonId?: string): Promise<SeasonMatchday
   }
 }
 
+async function readMatchesForMatchday(matchdayId?: string): Promise<SeasonAgendaMatch[]> {
+  if (!matchdayId) {
+    return [];
+  }
+
+  try {
+    return await fetchSupabaseAdminTable<SeasonAgendaMatch>(
+      `matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,kickoff_at,venue,status&matchday_id=eq.${encodeURIComponent(
+        matchdayId
+      )}&manual_override=is.true&order=kickoff_at.asc`
+    );
+  } catch {
+    return [];
+  }
+}
+
 function resolveSelectedContext({
   countries,
   competitions,
@@ -548,6 +575,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const requestedCountryId = oneParam(params, "pais");
   const requestedCompetitionId = oneParam(params, "competicao");
   const requestedSeasonId = oneParam(params, "epoca");
+  const requestedMatchdayId = oneParam(params, "jornada");
   const {
     linkedCompetitions,
     selectedCountry,
@@ -576,6 +604,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const teamsForCountry = await readTeamsForCountry(selectedCountry?.id);
   const unassignedTeams = await readUnassignedTeams();
   const matchdaysForSeason = await readMatchdaysForSeason(selectedSeason?.id);
+  const selectedMatchday =
+    matchdaysForSeason.find((matchday) => matchday.id === requestedMatchdayId) ?? matchdaysForSeason[0] ?? null;
+  const matchesForMatchday = await readMatchesForMatchday(selectedMatchday?.id);
   const countryTeamIds = new Set(teamsForCountry.map((team) => team.id));
   const oldInvisibleParticipants = participantData?.syncMetadataAvailable
     ? (participantData.participants ?? []).filter(
@@ -584,6 +615,10 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     : [];
   const participantTeamIds = new Set(participantsForSeason.map((participant) => participant.team_id));
   const teamsAvailableForSeason = teamsForCountry.filter((team) => !participantTeamIds.has(team.id));
+  const participantTeamOptions = participantsForSeason
+    .map((participant) => participant.team)
+    .filter((team): team is SupabaseTeam => Boolean(team));
+  const participantTeamsById = new Map(participantTeamOptions.map((team) => [team.id, team]));
   const unavailableTeamMessage =
     teamsForCountry.length === 0
       ? "Ainda nao ha clubes associados a este pais"
@@ -604,6 +639,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     isCurrent: season.is_current
   }));
   const currentReturnTo = returnTo(selectedCountry, selectedCompetition, selectedSeason);
+  const matchdayReturnTo =
+    selectedMatchday && currentReturnTo.includes("?")
+      ? `${currentReturnTo}&jornada=${selectedMatchday.id}`
+      : selectedMatchday
+        ? `${currentReturnTo}?jornada=${selectedMatchday.id}`
+        : currentReturnTo;
   const unlinkedCompetitions = competitions.filter((competition) => !competitionCountryId(competition));
   const created = oneParam(params, "created");
   const actionError = oneParam(params, "error");
@@ -616,6 +657,13 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   );
   const nextMatchdayNumber = matchdaysForSeason.reduce((max, matchday) => Math.max(max, matchday.number), 0) + 1;
   const canCreateMatchday = Boolean(selectedSeason && participantData?.writeConfigured && participantsForSeason.length > 0);
+  const canCreateMatch = Boolean(
+    selectedCompetition &&
+      selectedSeason &&
+      selectedMatchday &&
+      participantData?.writeConfigured &&
+      participantTeamOptions.length >= 2
+  );
   const createdLabels: Record<string, string> = {
     country: "Pais criado. Agora podes escolher esse pais no caminho de trabalho.",
     competition: "Competicao criada e ligada ao pais escolhido.",
@@ -628,6 +676,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     remove_team: "Clube removido do pais selecionado.",
     matchday: "Jornada criada dentro da epoca selecionada.",
     remove_matchday: "Jornada removida da epoca selecionada.",
+    match: "Jogo criado dentro da jornada selecionada.",
     remove_country: "Pais removido.",
     remove_competition: "Competicao removida.",
     remove_season: "Epoca removida."
@@ -654,6 +703,10 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "matchday-needs-participants": "Antes de criar jornadas, define os participantes desta epoca.",
     "matchday-duplicate": "Ja existe uma jornada com esse numero nesta epoca.",
     "matchday-has-matches": "Nao e possivel remover esta jornada porque ainda existem jogos associados.",
+    "match-missing-context": "Escolhe uma competicao, epoca e jornada antes de criar o jogo.",
+    "matchday-invalid": "A jornada escolhida nao pertence a epoca selecionada.",
+    "match-team-same": "A equipa da casa e a equipa visitante nao podem ser o mesmo clube.",
+    "match-team-not-participant": "As equipas do jogo tem de ser participantes manuais desta epoca.",
     save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
   };
 
@@ -1297,6 +1350,138 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                         </form>
                       </li>
                     ))}
+                  </ul>
+                )}
+              </article>
+            </div>
+          </section>
+
+          <section className="manager-panel" aria-label="Jogos da jornada">
+            <header>
+              <h2>Jogos da jornada</h2>
+              <p>Cria e lista apenas jogos de agenda dentro da jornada selecionada.</p>
+            </header>
+            <div className="manager-create-grid">
+              <article className="manager-create-card">
+                <header>
+                  <h3>Jornada</h3>
+                  <p>
+                    {!selectedSeason
+                      ? "Escolhe uma epoca primeiro."
+                      : matchdaysForSeason.length === 0
+                        ? "Cria uma jornada antes de adicionar jogos."
+                        : selectedMatchday
+                          ? `${selectedMatchday.number}. ${selectedMatchday.label}`
+                          : "Escolhe uma jornada."}
+                  </p>
+                </header>
+                <form className="manager-create-form" action="/admin/gestor" method="get">
+                  <input type="hidden" name="pais" value={selectedCountry?.id ?? ""} />
+                  <input type="hidden" name="competicao" value={selectedCompetition?.id ?? ""} />
+                  <input type="hidden" name="epoca" value={selectedSeason?.id ?? ""} />
+                  <div className="manager-field">
+                    <label htmlFor="selected-matchday">Jornada</label>
+                    <select
+                      id="selected-matchday"
+                      name="jornada"
+                      disabled={matchdaysForSeason.length === 0}
+                      defaultValue={selectedMatchday?.id ?? ""}
+                    >
+                      {matchdaysForSeason.length === 0 ? <option value="">Sem jornadas manuais</option> : null}
+                      {matchdaysForSeason.map((matchday) => (
+                        <option key={matchday.id} value={matchday.id}>
+                          {matchday.number}. {matchday.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button className="manager-button" type="submit" disabled={matchdaysForSeason.length === 0}>
+                    Abrir jornada
+                  </button>
+                </form>
+              </article>
+
+              <article className="manager-create-card">
+                <header>
+                  <h3>Novo jogo</h3>
+                  <p>
+                    {!selectedMatchday
+                      ? "Escolhe ou cria uma jornada primeiro."
+                      : participantTeamOptions.length < 2
+                        ? "Adiciona pelo menos dois participantes a esta epoca."
+                        : "Agenda simples, sem resultados nem TV."}
+                  </p>
+                </header>
+                <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                  <input type="hidden" name="action_type" value="match" />
+                  <input type="hidden" name="return_to" value={matchdayReturnTo} />
+                  <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
+                  <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+                  <input type="hidden" name="matchday_id" value={selectedMatchday?.id ?? ""} />
+                  <div className="manager-field">
+                    <label htmlFor="new-match-home">Casa</label>
+                    <select id="new-match-home" name="home_team_id" disabled={!canCreateMatch} required={canCreateMatch}>
+                      {participantTeamOptions.length < 2 ? <option value="">Sem participantes suficientes</option> : null}
+                      {participantTeamOptions.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-match-away">Fora</label>
+                    <select id="new-match-away" name="away_team_id" disabled={!canCreateMatch} required={canCreateMatch}>
+                      {participantTeamOptions.length < 2 ? <option value="">Sem participantes suficientes</option> : null}
+                      {participantTeamOptions.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-match-kickoff">Data e hora</label>
+                    <input id="new-match-kickoff" name="kickoff_at" type="datetime-local" disabled={!canCreateMatch} required={canCreateMatch} />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-match-venue">Estadio</label>
+                    <input id="new-match-venue" name="venue" placeholder="Opcional" disabled={!canCreateMatch} />
+                  </div>
+                  <button className="manager-button" type="submit" disabled={!canCreateMatch}>
+                    Criar jogo
+                  </button>
+                </form>
+              </article>
+
+              <article className="manager-create-card manager-wide-card">
+                <header>
+                  <h3>{selectedMatchday ? `${selectedMatchday.number}. ${selectedMatchday.label}` : "Sem jornada selecionada"}</h3>
+                  <p>{matchesForMatchday.length} jogos agendados nesta jornada.</p>
+                </header>
+                {!selectedMatchday ? (
+                  <div className="manager-empty">Escolhe uma jornada para ver os jogos.</div>
+                ) : matchesForMatchday.length === 0 ? (
+                  <div className="manager-empty">Ainda nao ha jogos nesta jornada.</div>
+                ) : (
+                  <ul className="manager-list">
+                    {matchesForMatchday.map((match) => {
+                      const homeTeam = participantTeamsById.get(match.home_team_id);
+                      const awayTeam = participantTeamsById.get(match.away_team_id);
+
+                      return (
+                        <li key={match.id}>
+                          <div>
+                            <b>
+                              {homeTeam?.name ?? "Casa"} vs {awayTeam?.name ?? "Fora"}
+                            </b>
+                            <small>
+                              {new Date(match.kickoff_at).toLocaleString("pt-PT")} - {match.venue ?? "Sem estadio"} - Agendado
+                            </small>
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </article>
