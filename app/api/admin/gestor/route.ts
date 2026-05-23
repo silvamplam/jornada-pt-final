@@ -250,31 +250,6 @@ async function removeOldParticipant(formData: FormData) {
   );
 }
 
-function oldParticipantDebugPayload(formData: FormData) {
-  const participantId = cleanText(formData.get("participant_id"));
-
-  return {
-    participant_id: participantId
-  };
-}
-
-function oldParticipantDebugFilters(formData: FormData) {
-  const participantId = cleanText(formData.get("participant_id"));
-  const encodedParticipantId = participantId ? encodeURIComponent(participantId) : "";
-
-  return {
-    lookup_old: participantId
-      ? `season_teams?select=id&id=eq.${encodedParticipantId}&or=(manual_override.is.false,manual_override.is.null)`
-      : null,
-    lookup_manual: participantId
-      ? `season_teams?select=id&id=eq.${encodedParticipantId}&manual_override=is.true`
-      : null,
-    delete_old: participantId
-      ? `season_teams?id=eq.${encodedParticipantId}&or=(manual_override.is.false,manual_override.is.null)`
-      : null
-  };
-}
-
 async function removeTeam(formData: FormData) {
   const teamId = cleanText(formData.get("team_id"));
   const countryId = cleanText(formData.get("country_id"));
@@ -295,84 +270,20 @@ async function removeTeam(formData: FormData) {
     throw new Error("team-has-old-participants");
   }
 
+  if (
+    await hasRows(
+      `matches?select=id&or=(home_team_id.eq.${encodeURIComponent(teamId)},away_team_id.eq.${encodeURIComponent(teamId)})`
+    )
+  ) {
+    throw new Error("team-has-matches");
+  }
+
   await writeSupabaseAdmin(
     `teams?id=eq.${encodeURIComponent(teamId)}&country_id=eq.${encodeURIComponent(countryId)}`,
     {
       method: "DELETE"
     }
   );
-}
-
-async function removeTeamDebug(formData: FormData) {
-  const teamId = cleanText(formData.get("team_id"));
-  const countryId = cleanText(formData.get("country_id"));
-  const debug = {
-    step: "start",
-    attemptedDelete: false,
-    foundManualParticipants: false,
-    foundOldParticipants: false,
-    payload: {
-      team_id: teamId,
-      country_id: countryId
-    },
-    filters: {
-      manual_participants: teamId
-        ? `season_teams?select=id&team_id=eq.${encodeURIComponent(
-            teamId
-          )}&data_source=eq.manual&sync_status=eq.manual&manual_override=is.true`
-        : null,
-      old_participants: teamId ? `season_teams?select=id&team_id=eq.${encodeURIComponent(teamId)}` : null,
-      delete_team:
-        teamId && countryId ? `teams?id=eq.${encodeURIComponent(teamId)}&country_id=eq.${encodeURIComponent(countryId)}` : null
-    }
-  };
-
-  try {
-    debug.step = "validate-payload";
-
-    if (!teamId || !countryId) {
-      throw new Error("missing-fields");
-    }
-
-    const teamParticipantsPath = `season_teams?select=id&team_id=eq.${encodeURIComponent(teamId)}`;
-    const manualTeamParticipantsPath =
-      `${teamParticipantsPath}&data_source=eq.manual&sync_status=eq.manual&manual_override=is.true`;
-
-    debug.step = "check-manual-participants";
-    debug.foundManualParticipants = await hasRows(manualTeamParticipantsPath);
-
-    if (debug.foundManualParticipants) {
-      throw new Error("team-has-participants");
-    }
-
-    debug.step = "check-old-participants";
-    debug.foundOldParticipants = await hasRows(teamParticipantsPath);
-
-    if (debug.foundOldParticipants) {
-      throw new Error("team-has-old-participants");
-    }
-
-    debug.step = "delete-team";
-    debug.attemptedDelete = true;
-
-    await writeSupabaseAdmin(
-      `teams?id=eq.${encodeURIComponent(teamId)}&country_id=eq.${encodeURIComponent(countryId)}`,
-      {
-        method: "DELETE"
-      }
-    );
-
-    debug.step = "done";
-  } catch (error) {
-    return {
-      ok: false,
-      action: "remove_team",
-      error: error instanceof Error ? error.message : String(error),
-      ...debug
-    };
-  }
-
-  return null;
 }
 
 async function createMatchday(formData: FormData) {
@@ -526,26 +437,9 @@ export async function POST(request: Request) {
     } else if (actionType === "remove_participant") {
       await removeParticipant(formData);
     } else if (actionType === "remove_old_participant") {
-      try {
-        await removeOldParticipant(formData);
-      } catch (error) {
-        return NextResponse.json(
-          {
-            ok: false,
-            action: "remove_old_participant",
-            error: error instanceof Error ? error.message : String(error),
-            payload: oldParticipantDebugPayload(formData),
-            filters: oldParticipantDebugFilters(formData)
-          },
-          { status: 500 }
-        );
-      }
+      await removeOldParticipant(formData);
     } else if (actionType === "remove_team") {
-      const debugResult = await removeTeamDebug(formData);
-
-      if (debugResult) {
-        return NextResponse.json(debugResult, { status: 500 });
-      }
+      await removeTeam(formData);
     } else if (actionType === "matchday") {
       await createMatchday(formData);
     } else if (actionType === "remove_matchday") {
