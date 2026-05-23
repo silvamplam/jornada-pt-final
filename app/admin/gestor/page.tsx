@@ -640,6 +640,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "season-has-matchdays": "Nao e possivel remover esta epoca porque ainda existem jornadas associadas.",
     "season-has-matches": "Nao e possivel remover esta epoca porque ainda existem jogos associados.",
     "team-has-participants": "Este clube ainda esta associado a uma epoca. Remove primeiro o participante da epoca.",
+    "team-has-old-participants": "Este clube tem associacoes antigas fora do novo fluxo. Reve esses dados antes de remover o clube.",
     "matchday-needs-participants": "Antes de criar jornadas, define os participantes desta epoca.",
     "matchday-duplicate": "Ja existe uma jornada com esse numero nesta epoca.",
     "matchday-has-matches": "Nao e possivel remover esta jornada porque ainda existem jogos associados.",

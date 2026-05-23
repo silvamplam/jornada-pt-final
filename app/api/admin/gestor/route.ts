@@ -232,8 +232,16 @@ async function removeTeam(formData: FormData) {
     throw new Error("missing-fields");
   }
 
-  if (await hasRows(`season_teams?select=id&team_id=eq.${encodeURIComponent(teamId)}`)) {
+  const teamParticipantsPath = `season_teams?select=id&team_id=eq.${encodeURIComponent(teamId)}`;
+  const manualTeamParticipantsPath =
+    `${teamParticipantsPath}&data_source=eq.manual&sync_status=eq.manual&manual_override=is.true`;
+
+  if (await hasRows(manualTeamParticipantsPath)) {
     throw new Error("team-has-participants");
+  }
+
+  if (await hasRows(teamParticipantsPath)) {
+    throw new Error("team-has-old-participants");
   }
 
   await writeSupabaseAdmin(
@@ -273,21 +281,25 @@ async function createMatchday(formData: FormData) {
 
   await writeSupabaseAdmin("matchdays", {
     method: "POST",
-    body: JSON.stringify({
-      season_id: seasonId,
-      number,
-      label,
-      starts_on: cleanText(formData.get("starts_on")),
-      ends_on: cleanText(formData.get("ends_on")),
-      status: cleanMatchdayStatus(formData.get("status")),
-      data_source: "manual",
-      sync_status: "manual",
-      manual_override: true,
-      external_provider: null,
-      external_id: null,
-      last_synced_at: null
-    })
+    body: JSON.stringify(matchdayPayload(formData, seasonId, number, label))
   });
+}
+
+function matchdayPayload(formData: FormData, seasonId?: string, number?: number | null, label?: string | null) {
+  return {
+    season_id: seasonId ?? cleanText(formData.get("season_id")),
+    number: number ?? cleanInteger(formData.get("number")),
+    label: label ?? cleanText(formData.get("label")),
+    starts_on: cleanText(formData.get("starts_on")),
+    ends_on: cleanText(formData.get("ends_on")),
+    status: cleanMatchdayStatus(formData.get("status")),
+    data_source: "manual",
+    sync_status: "manual",
+    manual_override: true,
+    external_provider: null,
+    external_id: null,
+    last_synced_at: null
+  };
 }
 
 async function removeMatchday(formData: FormData) {
@@ -397,7 +409,19 @@ export async function POST(request: Request) {
     } else if (actionType === "remove_team") {
       await removeTeam(formData);
     } else if (actionType === "matchday") {
-      await createMatchday(formData);
+      try {
+        await createMatchday(formData);
+      } catch (error) {
+        return NextResponse.json(
+          {
+            ok: false,
+            action: "matchday",
+            error: error instanceof Error ? error.message : String(error),
+            payload: matchdayPayload(formData)
+          },
+          { status: 500 }
+        );
+      }
     } else if (actionType === "remove_matchday") {
       await removeMatchday(formData);
     } else if (actionType === "remove_season") {
