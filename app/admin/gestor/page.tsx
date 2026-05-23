@@ -516,8 +516,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
           participant.manual_override === true
       )
     : [];
-  const participantTeamIds = new Set(participantsForSeason.map((participant) => participant.team_id));
-  const teamsAvailableForSeason = (participantData?.teams ?? []).filter((team) => !participantTeamIds.has(team.id));
   const selectorCountries = countries.map((country) => ({
     id: country.id,
     name: country.name
@@ -539,9 +537,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const actionError = oneParam(params, "error");
   const canCreateCompetition = Boolean(selectedCountry);
   const canCreateSeason = Boolean(selectedCompetition);
-  const canAddParticipant = Boolean(
-    selectedSeason && participantData?.writeConfigured && !participantData.error && teamsAvailableForSeason.length > 0
-  );
+  const canAddParticipant = false;
   const createdLabels: Record<string, string> = {
     country: "Pais criado. Agora podes escolher esse pais no caminho de trabalho.",
     competition: "Competicao criada e ligada ao pais escolhido.",
@@ -886,30 +882,15 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               <article className="manager-create-card manager-wide-card">
                 <header>
                   <h3>Adicionar participante</h3>
-                  <p>{selectedSeason ? "Escolhe um clube da base geral para esta epoca." : "Escolhe uma epoca primeiro."}</p>
+                  <p>
+                    E preciso associar clubes a este pais antes de adicionar participantes. Esta trava evita misturar
+                    clubes globais no contexto selecionado.
+                  </p>
                 </header>
-                <form className="manager-create-form" action="/api/admin/gestor" method="post">
-                  <input type="hidden" name="action_type" value="participant" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
-                  <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
-                  <input type="hidden" name="display_order" value={participantsForSeason.length + 1} />
-                  <div className="manager-field">
-                    <label htmlFor="new-participant-team">Clube</label>
-                    <select id="new-participant-team" name="team_id" disabled={!canAddParticipant} required={canAddParticipant}>
-                      {teamsAvailableForSeason.length === 0 ? (
-                        <option value="">Sem clubes disponiveis para adicionar</option>
-                      ) : null}
-                      {teamsAvailableForSeason.map((team) => (
-                        <option key={team.id} value={team.id}>
-                          {team.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <button className="manager-button" type="submit" disabled={!canAddParticipant}>
-                    Adicionar participante
-                  </button>
-                </form>
+                <div className="manager-empty">Ainda nao ha clubes disponiveis para este pais.</div>
+                <button className="manager-button" type="button" disabled={!canAddParticipant}>
+                  Adicionar participante
+                </button>
               </article>
 
               <article className="manager-create-card manager-wide-card">
