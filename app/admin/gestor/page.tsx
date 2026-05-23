@@ -510,6 +510,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const participantsForSeason = selectedSeason
     ? (participantData?.participants ?? []).filter((participant) => participant.season_id === selectedSeason.id)
     : [];
+  const participantTeamIds = new Set(participantsForSeason.map((participant) => participant.team_id));
+  const teamsAvailableForSeason = (participantData?.teams ?? []).filter((team) => !participantTeamIds.has(team.id));
   const selectorCountries = countries.map((country) => ({
     id: country.id,
     name: country.name
@@ -531,10 +533,14 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const actionError = oneParam(params, "error");
   const canCreateCompetition = Boolean(selectedCountry);
   const canCreateSeason = Boolean(selectedCompetition);
+  const canAddParticipant = Boolean(
+    selectedSeason && participantData?.writeConfigured && !participantData.error && teamsAvailableForSeason.length > 0
+  );
   const createdLabels: Record<string, string> = {
     country: "Pais criado. Agora podes escolher esse pais no caminho de trabalho.",
     competition: "Competicao criada e ligada ao pais escolhido.",
-    season: "Epoca criada dentro da competicao escolhida."
+    season: "Epoca criada dentro da competicao escolhida.",
+    participant: "Participante associado a epoca selecionada."
   };
   const errorLabels: Record<string, string> = {
     "missing-service": "Liga primeiro a Supabase na Vercel.",
@@ -854,7 +860,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
           <section className="manager-panel" aria-label="Participantes da epoca">
             <header>
               <h2>Participantes da epoca</h2>
-              <p>Lista apenas os participantes ja existentes na epoca selecionada.</p>
+              <p>Adiciona manualmente clubes a epoca selecionada e confirma a lista desse contexto.</p>
             </header>
             <div className="manager-stat-row">
               <article className="manager-stat">
@@ -871,6 +877,35 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               </article>
             </div>
             <div className="manager-summary-grid">
+              <article className="manager-create-card manager-wide-card">
+                <header>
+                  <h3>Adicionar participante</h3>
+                  <p>{selectedSeason ? "Escolhe um clube da base geral para esta epoca." : "Escolhe uma epoca primeiro."}</p>
+                </header>
+                <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                  <input type="hidden" name="action_type" value="participant" />
+                  <input type="hidden" name="return_to" value={currentReturnTo} />
+                  <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+                  <input type="hidden" name="display_order" value={participantsForSeason.length + 1} />
+                  <div className="manager-field">
+                    <label htmlFor="new-participant-team">Clube</label>
+                    <select id="new-participant-team" name="team_id" disabled={!canAddParticipant} required={canAddParticipant}>
+                      {teamsAvailableForSeason.length === 0 ? (
+                        <option value="">Sem clubes disponiveis para adicionar</option>
+                      ) : null}
+                      {teamsAvailableForSeason.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button className="manager-button" type="submit" disabled={!canAddParticipant}>
+                    Adicionar participante
+                  </button>
+                </form>
+              </article>
+
               <article className="manager-create-card manager-wide-card">
                 <header>
                   <h3>{selectedSeason?.label ?? "Sem epoca selecionada"}</h3>

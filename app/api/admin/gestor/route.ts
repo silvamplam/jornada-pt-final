@@ -10,6 +10,17 @@ function cleanText(value: FormDataEntryValue | null): string | null {
   return trimmed ? trimmed : null;
 }
 
+function cleanInteger(value: FormDataEntryValue | null): number | null {
+  const text = cleanText(value);
+
+  if (!text) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(text, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
 function slugify(value: string): string {
   return value
     .normalize("NFD")
@@ -95,6 +106,26 @@ async function createSeason(formData: FormData) {
   });
 }
 
+async function createParticipant(formData: FormData) {
+  const seasonId = cleanText(formData.get("season_id"));
+  const teamId = cleanText(formData.get("team_id"));
+
+  if (!seasonId || !teamId) {
+    throw new Error("missing-fields");
+  }
+
+  await writeSupabaseAdmin("season_teams?on_conflict=season_id,team_id", {
+    method: "POST",
+    headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
+    body: JSON.stringify({
+      season_id: seasonId,
+      team_id: teamId,
+      display_order: cleanInteger(formData.get("display_order")) ?? 999,
+      status: "active"
+    })
+  });
+}
+
 export async function POST(request: Request) {
   if (!getSupabaseServiceConfig()) {
     const formData = await request.formData();
@@ -111,6 +142,8 @@ export async function POST(request: Request) {
       await createCompetition(formData);
     } else if (actionType === "season") {
       await createSeason(formData);
+    } else if (actionType === "participant") {
+      await createParticipant(formData);
     } else {
       return returnUrl(request, formData, "error", "unknown-action");
     }
