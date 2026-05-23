@@ -44,6 +44,18 @@ function normalizeKickoff(value: string | null): string | null {
   return `${withSeconds}${portugalOffset}`;
 }
 
+type AgendaMatchRow = {
+  id: string;
+  competition_id: string;
+  season_id: string;
+  matchday_id: string | null;
+  status: string;
+  minute: number | null;
+  home_score: number | null;
+  away_score: number | null;
+  broadcast_channel_id: string | null;
+};
+
 function slugify(value: string): string {
   return value
     .normalize("NFD")
@@ -368,6 +380,70 @@ async function removeMatchday(formData: FormData) {
   );
 }
 
+async function readAgendaMatch(formData: FormData): Promise<AgendaMatchRow> {
+  const matchId = cleanText(formData.get("match_id"));
+  const competitionId = cleanText(formData.get("competition_id"));
+  const seasonId = cleanText(formData.get("season_id"));
+  const matchdayId = cleanText(formData.get("matchday_id"));
+
+  if (!matchId || !competitionId || !seasonId || !matchdayId) {
+    throw new Error("missing-fields");
+  }
+
+  const rows = await fetchSupabaseAdminTable<AgendaMatchRow>(
+    `matches?select=id,competition_id,season_id,matchday_id,status,minute,home_score,away_score,broadcast_channel_id&id=eq.${encodeURIComponent(
+      matchId
+    )}&competition_id=eq.${encodeURIComponent(competitionId)}&season_id=eq.${encodeURIComponent(
+      seasonId
+    )}&matchday_id=eq.${encodeURIComponent(matchdayId)}&manual_override=is.true&limit=1`
+  );
+  const match = rows[0];
+
+  if (!match) {
+    throw new Error("match-not-found");
+  }
+
+  return match;
+}
+
+function assertSimpleScheduledMatch(match: AgendaMatchRow) {
+  if (
+    match.status !== "scheduled" ||
+    match.minute !== null ||
+    match.home_score !== null ||
+    match.away_score !== null ||
+    match.broadcast_channel_id !== null
+  ) {
+    throw new Error("match-not-simple");
+  }
+}
+
+async function assertMatchTeamsAreManualParticipants(seasonId: string, homeTeamId: string, awayTeamId: string) {
+  const participantBasePath =
+    `season_teams?select=id&season_id=eq.${encodeURIComponent(
+      seasonId
+    )}&data_source=eq.manual&sync_status=eq.manual&manual_override=is.true`;
+
+  const homeIsParticipant = await hasRows(`${participantBasePath}&team_id=eq.${encodeURIComponent(homeTeamId)}`);
+  const awayIsParticipant = await hasRows(`${participantBasePath}&team_id=eq.${encodeURIComponent(awayTeamId)}`);
+
+  if (!homeIsParticipant || !awayIsParticipant) {
+    throw new Error("match-team-not-participant");
+  }
+}
+
+async function hasMatchDependencies(matchId: string) {
+  const encodedMatchId = encodeURIComponent(matchId);
+
+  if (await hasRows(`match_events?select=id&match_id=eq.${encodedMatchId}`)) return true;
+  if (await hasRows(`goals?select=id&match_id=eq.${encodedMatchId}`)) return true;
+  if (await hasRows(`live_updates?select=id&match_id=eq.${encodedMatchId}`)) return true;
+  if (await hasRows(`articles?select=id&match_id=eq.${encodedMatchId}`)) return true;
+  if (await hasRows(`headlines?select=id&match_id=eq.${encodedMatchId}`)) return true;
+
+  return false;
+}
+
 async function createMatch(formData: FormData) {
   const competitionId = cleanText(formData.get("competition_id"));
   const seasonId = cleanText(formData.get("season_id"));
@@ -398,17 +474,7 @@ async function createMatch(formData: FormData) {
     throw new Error("matchday-invalid");
   }
 
-  const participantBasePath =
-    `season_teams?select=id&season_id=eq.${encodeURIComponent(
-      seasonId
-    )}&data_source=eq.manual&sync_status=eq.manual&manual_override=is.true`;
-
-  const homeIsParticipant = await hasRows(`${participantBasePath}&team_id=eq.${encodeURIComponent(homeTeamId)}`);
-  const awayIsParticipant = await hasRows(`${participantBasePath}&team_id=eq.${encodeURIComponent(awayTeamId)}`);
-
-  if (!homeIsParticipant || !awayIsParticipant) {
-    throw new Error("match-team-not-participant");
-  }
+  await assertMatchTeamsAreManualParticipants(seasonId, homeTeamId, awayTeamId);
 
   await writeSupabaseAdmin("matches", {
     method: "POST",
@@ -431,6 +497,84 @@ async function createMatch(formData: FormData) {
       last_synced_at: null
     })
   });
+}
+
+async function updateMatch(formData: FormData) {
+  const competitionId = cleanText(formData.get("competition_id"));
+  const seasonId = cleanText(formData.get("season_id"));
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const matchId = cleanText(formData.get("match_id"));
+  const homeTeamId = cleanText(formData.get("home_team_id"));
+  const awayTeamId = cleanText(formData.get("away_team_id"));
+  const kickoffAt = normalizeKickoff(cleanText(formData.get("kickoff_at")));
+
+  if (!competitionId || !seasonId || !matchdayId || !matchId || !homeTeamId || !awayTeamId || !kickoffAt) {
+    throw new Error("missing-fields");
+  }
+
+  if (homeTeamId === awayTeamId) {
+    throw new Error("match-team-same");
+  }
+
+  const match = await readAgendaMatch(formData);
+  assertSimpleScheduledMatch(match);
+
+  if (
+    !(await hasRows(
+      `matchdays?select=id&id=eq.${encodeURIComponent(matchdayId)}&season_id=eq.${encodeURIComponent(
+        seasonId
+      )}&manual_override=is.true`
+    ))
+  ) {
+    throw new Error("matchday-invalid");
+  }
+
+  await assertMatchTeamsAreManualParticipants(seasonId, homeTeamId, awayTeamId);
+
+  await writeSupabaseAdmin(
+    `matches?id=eq.${encodeURIComponent(matchId)}&competition_id=eq.${encodeURIComponent(
+      competitionId
+    )}&season_id=eq.${encodeURIComponent(seasonId)}&matchday_id=eq.${encodeURIComponent(matchdayId)}&manual_override=is.true`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        home_team_id: homeTeamId,
+        away_team_id: awayTeamId,
+        kickoff_at: kickoffAt,
+        venue: cleanText(formData.get("venue")),
+        status: "scheduled",
+        data_source: "manual",
+        sync_status: "manual",
+        manual_override: true
+      })
+    }
+  );
+}
+
+async function removeMatch(formData: FormData) {
+  const matchId = cleanText(formData.get("match_id"));
+
+  if (!matchId) {
+    throw new Error("missing-fields");
+  }
+
+  const match = await readAgendaMatch(formData);
+  assertSimpleScheduledMatch(match);
+
+  if (await hasMatchDependencies(matchId)) {
+    throw new Error("match-has-dependencies");
+  }
+
+  await writeSupabaseAdmin(
+    `matches?id=eq.${encodeURIComponent(matchId)}&competition_id=eq.${encodeURIComponent(
+      match.competition_id
+    )}&season_id=eq.${encodeURIComponent(match.season_id)}&matchday_id=eq.${encodeURIComponent(
+      match.matchday_id ?? ""
+    )}&status=eq.scheduled&manual_override=is.true&minute=is.null&home_score=is.null&away_score=is.null&broadcast_channel_id=is.null`,
+    {
+      method: "DELETE"
+    }
+  );
 }
 
 async function removeSeason(formData: FormData) {
@@ -527,6 +671,10 @@ export async function POST(request: Request) {
       await removeMatchday(formData);
     } else if (actionType === "match") {
       await createMatch(formData);
+    } else if (actionType === "update_match") {
+      await updateMatch(formData);
+    } else if (actionType === "remove_match") {
+      await removeMatch(formData);
     } else if (actionType === "remove_season") {
       await removeSeason(formData);
     } else if (actionType === "remove_competition") {

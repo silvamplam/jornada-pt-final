@@ -1483,7 +1483,11 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   data-match-form="true"
                   method="post"
                 >
-                  <input type="hidden" name="action_type" value={editingMatch ? "update_match" : "match"} />
+                  {editingMatch ? (
+                    <input type="hidden" name="action_type" value="update_match" />
+                  ) : (
+                    <input type="hidden" name="action_type" value="match" />
+                  )}
                   <input type="hidden" name="return_to" value={matchdayReturnTo} />
                   <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
                   <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
