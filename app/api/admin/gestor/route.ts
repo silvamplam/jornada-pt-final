@@ -42,6 +42,11 @@ function returnUrl(request: Request, formData: FormData, key: "created" | "error
   return NextResponse.redirect(url, { status: 303 });
 }
 
+async function hasRows(path: string) {
+  const rows = await fetchSupabaseAdminTable<{ id: string }>(`${path}&limit=1`);
+  return rows.length > 0;
+}
+
 async function createCountry(formData: FormData) {
   const name = cleanText(formData.get("name"));
   const slug = cleanText(formData.get("slug")) ?? (name ? slugify(name) : null);
@@ -177,6 +182,66 @@ async function removeParticipant(formData: FormData) {
   );
 }
 
+async function removeSeason(formData: FormData) {
+  const seasonId = cleanText(formData.get("season_id"));
+
+  if (!seasonId) {
+    throw new Error("missing-fields");
+  }
+
+  if (await hasRows(`season_teams?select=id&season_id=eq.${encodeURIComponent(seasonId)}`)) {
+    throw new Error("season-has-participants");
+  }
+
+  if (await hasRows(`matchdays?select=id&season_id=eq.${encodeURIComponent(seasonId)}`)) {
+    throw new Error("season-has-matchdays");
+  }
+
+  if (await hasRows(`matches?select=id&season_id=eq.${encodeURIComponent(seasonId)}`)) {
+    throw new Error("season-has-matches");
+  }
+
+  await writeSupabaseAdmin(`seasons?id=eq.${encodeURIComponent(seasonId)}`, {
+    method: "DELETE"
+  });
+}
+
+async function removeCompetition(formData: FormData) {
+  const competitionId = cleanText(formData.get("competition_id"));
+
+  if (!competitionId) {
+    throw new Error("missing-fields");
+  }
+
+  if (await hasRows(`seasons?select=id&competition_id=eq.${encodeURIComponent(competitionId)}`)) {
+    throw new Error("competition-has-seasons");
+  }
+
+  await writeSupabaseAdmin(`competitions?id=eq.${encodeURIComponent(competitionId)}`, {
+    method: "DELETE"
+  });
+}
+
+async function removeCountry(formData: FormData) {
+  const countryId = cleanText(formData.get("country_id"));
+
+  if (!countryId) {
+    throw new Error("missing-fields");
+  }
+
+  if (await hasRows(`competitions?select=id&country_id=eq.${encodeURIComponent(countryId)}`)) {
+    throw new Error("country-has-competitions");
+  }
+
+  if (await hasRows(`teams?select=id&country_id=eq.${encodeURIComponent(countryId)}`)) {
+    throw new Error("country-has-teams");
+  }
+
+  await writeSupabaseAdmin(`countries?id=eq.${encodeURIComponent(countryId)}`, {
+    method: "DELETE"
+  });
+}
+
 export async function POST(request: Request) {
   if (!getSupabaseServiceConfig()) {
     const formData = await request.formData();
@@ -199,6 +264,12 @@ export async function POST(request: Request) {
       await createParticipant(formData);
     } else if (actionType === "remove_participant") {
       await removeParticipant(formData);
+    } else if (actionType === "remove_season") {
+      await removeSeason(formData);
+    } else if (actionType === "remove_competition") {
+      await removeCompetition(formData);
+    } else if (actionType === "remove_country") {
+      await removeCountry(formData);
     } else {
       return returnUrl(request, formData, "error", "unknown-action");
     }

@@ -575,13 +575,22 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     season: "Epoca criada dentro da competicao escolhida.",
     team: "Clube criado e associado ao pais selecionado.",
     participant: "Participante associado a epoca selecionada.",
-    remove_participant: "Participante removido da epoca selecionada."
+    remove_participant: "Participante removido da epoca selecionada.",
+    remove_country: "Pais removido.",
+    remove_competition: "Competicao removida.",
+    remove_season: "Epoca removida."
   };
   const errorLabels: Record<string, string> = {
     "missing-service": "Liga primeiro a Supabase na Vercel.",
     "missing-fields": "Preenche os campos obrigatorios antes de guardar.",
     "unknown-action": "A acao enviada pelo formulario nao foi reconhecida.",
     "invalid-team-country": "O clube escolhido nao esta associado ao pais selecionado.",
+    "country-has-competitions": "Nao e possivel remover este pais porque ainda existem competicoes associadas.",
+    "country-has-teams": "Nao e possivel remover este pais porque ainda existem clubes associados.",
+    "competition-has-seasons": "Nao e possivel remover esta competicao porque ainda existem epocas associadas.",
+    "season-has-participants": "Nao e possivel remover esta epoca porque ainda existem participantes associados.",
+    "season-has-matchdays": "Nao e possivel remover esta epoca porque ainda existem jornadas associadas.",
+    "season-has-matches": "Nao e possivel remover esta epoca porque ainda existem jogos associados.",
     save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
   };
 
@@ -903,6 +912,73 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     Epocas
                   </a>
                 </div>
+              </article>
+            </div>
+          </section>
+
+          <section className="manager-panel" aria-label="Remocao segura">
+            <header>
+              <h2>Remocao segura</h2>
+              <p>
+                Remove apenas itens sem dados associados. Se existirem dependencias, o gestor bloqueia a acao.
+              </p>
+            </header>
+            <div className="manager-summary-grid">
+              <article className="manager-create-card">
+                <header>
+                  <h3>Pais</h3>
+                  <p>{selectedCountry?.name ?? "Sem pais selecionado"}</p>
+                </header>
+                <form
+                  action="/api/admin/gestor"
+                  data-confirm="Tem a certeza que quer remover este pais? Esta acao so avanca se nao houver competicoes nem clubes associados."
+                  method="post"
+                >
+                  <input type="hidden" name="action_type" value="remove_country" />
+                  <input type="hidden" name="return_to" value="/admin/gestor" />
+                  <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
+                  <button className="manager-link-button" type="submit" disabled={!selectedCountry}>
+                    Remover pais
+                  </button>
+                </form>
+              </article>
+
+              <article className="manager-create-card">
+                <header>
+                  <h3>Competicao</h3>
+                  <p>{selectedCompetition?.name ?? "Sem competicao selecionada"}</p>
+                </header>
+                <form
+                  action="/api/admin/gestor"
+                  data-confirm="Tem a certeza que quer remover esta competicao? Esta acao so avanca se nao houver epocas associadas."
+                  method="post"
+                >
+                  <input type="hidden" name="action_type" value="remove_competition" />
+                  <input type="hidden" name="return_to" value={selectedCountry ? returnTo(selectedCountry, null, null) : "/admin/gestor"} />
+                  <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
+                  <button className="manager-link-button" type="submit" disabled={!selectedCompetition}>
+                    Remover competicao
+                  </button>
+                </form>
+              </article>
+
+              <article className="manager-create-card">
+                <header>
+                  <h3>Epoca</h3>
+                  <p>{selectedSeason?.label ?? "Sem epoca selecionada"}</p>
+                </header>
+                <form
+                  action="/api/admin/gestor"
+                  data-confirm="Tem a certeza que quer remover esta epoca? Esta acao so avanca se nao houver dados associados."
+                  method="post"
+                >
+                  <input type="hidden" name="action_type" value="remove_season" />
+                  <input type="hidden" name="return_to" value={returnTo(selectedCountry, selectedCompetition, null)} />
+                  <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+                  <button className="manager-link-button" type="submit" disabled={!selectedSeason}>
+                    Remover epoca
+                  </button>
+                </form>
               </article>
             </div>
           </section>
