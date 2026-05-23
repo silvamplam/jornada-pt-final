@@ -935,7 +935,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   method="post"
                 >
                   <input type="hidden" name="action_type" value="remove_country" />
-                  <input type="hidden" name="return_to" value="/admin/gestor" />
+                  <input type="hidden" name="return_to" value={currentReturnTo} />
                   <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
                   <button className="manager-link-button" type="submit" disabled={!selectedCountry}>
                     Remover pais
