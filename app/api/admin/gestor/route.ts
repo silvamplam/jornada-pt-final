@@ -162,7 +162,7 @@ async function attachTeamToCountry(formData: FormData) {
     throw new Error("team-not-found");
   }
 
-  if (team.country_id && team.country_id !== countryId) {
+  if (team.country_id) {
     throw new Error("team-already-linked");
   }
 
