@@ -2,6 +2,7 @@ import {
   fetchSupabaseAdminTable,
   getAdminSeasonParticipants,
   getAdminSeasons,
+  type SupabaseAdminSeasonTeam,
   type SupabaseCompetition,
   type SupabaseCountry,
   type SupabaseSeason,
@@ -39,6 +40,18 @@ type SeasonAgendaMatch = {
   home_score: number | null;
   away_score: number | null;
   broadcast_channel_id: string | null;
+};
+type ClassificationRow = {
+  teamId: string;
+  name: string;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
 };
 
 const managerStyles = `
@@ -394,6 +407,37 @@ const managerStyles = `
     color: #687380;
   }
 
+  .manager-table-wrap {
+    overflow-x: auto;
+  }
+
+  .manager-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .manager-table th,
+  .manager-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #e6ebf1;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .manager-table th {
+    color: #5e6874;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .manager-table th:nth-child(2),
+  .manager-table td:nth-child(2) {
+    min-width: 160px;
+    text-align: left;
+  }
+
   .manager-actions {
     display: flex;
     flex-wrap: wrap;
@@ -582,6 +626,114 @@ async function readMatchesForMatchday(matchdayId?: string): Promise<SeasonAgenda
   }
 }
 
+async function readMatchesForSeason(seasonId?: string): Promise<SeasonAgendaMatch[]> {
+  if (!seasonId) {
+    return [];
+  }
+
+  try {
+    return await fetchSupabaseAdminTable<SeasonAgendaMatch>(
+      `matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,kickoff_at,venue,status,minute,home_score,away_score,broadcast_channel_id&season_id=eq.${encodeURIComponent(
+        seasonId
+      )}&manual_override=is.true&order=kickoff_at.asc`
+    );
+  } catch {
+    return [];
+  }
+}
+
+function buildAccumulatedClassification({
+  participants,
+  matches,
+  matchdays,
+  selectedMatchday
+}: {
+  participants: SupabaseAdminSeasonTeam[];
+  matches: SeasonAgendaMatch[];
+  matchdays: SeasonMatchday[];
+  selectedMatchday: SeasonMatchday | null;
+}): ClassificationRow[] {
+  const rows = new Map<string, ClassificationRow>();
+  const matchdaysById = new Map(matchdays.map((matchday) => [matchday.id, matchday]));
+
+  participants.forEach((participant) => {
+    if (!participant.team) {
+      return;
+    }
+
+    rows.set(participant.team_id, {
+      teamId: participant.team_id,
+      name: participant.team.name,
+      played: 0,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      goalDifference: 0,
+      points: 0
+    });
+  });
+
+  if (!selectedMatchday) {
+    return Array.from(rows.values()).sort((a, b) => a.name.localeCompare(b.name, "pt"));
+  }
+
+  matches.forEach((match) => {
+    const matchday = match.matchday_id ? matchdaysById.get(match.matchday_id) : null;
+
+    if (
+      !matchday ||
+      matchday.number > selectedMatchday.number ||
+      match.status !== "finished" ||
+      match.home_score === null ||
+      match.away_score === null
+    ) {
+      return;
+    }
+
+    const home = rows.get(match.home_team_id);
+    const away = rows.get(match.away_team_id);
+
+    if (!home || !away) {
+      return;
+    }
+
+    home.played += 1;
+    away.played += 1;
+    home.goalsFor += match.home_score;
+    home.goalsAgainst += match.away_score;
+    away.goalsFor += match.away_score;
+    away.goalsAgainst += match.home_score;
+
+    if (match.home_score > match.away_score) {
+      home.wins += 1;
+      home.points += 3;
+      away.losses += 1;
+    } else if (match.home_score < match.away_score) {
+      away.wins += 1;
+      away.points += 3;
+      home.losses += 1;
+    } else {
+      home.draws += 1;
+      away.draws += 1;
+      home.points += 1;
+      away.points += 1;
+    }
+
+    home.goalDifference = home.goalsFor - home.goalsAgainst;
+    away.goalDifference = away.goalsFor - away.goalsAgainst;
+  });
+
+  return Array.from(rows.values()).sort(
+    (a, b) =>
+      b.points - a.points ||
+      b.goalDifference - a.goalDifference ||
+      b.goalsFor - a.goalsFor ||
+      a.name.localeCompare(b.name, "pt")
+  );
+}
+
 function resolveSelectedContext({
   countries,
   competitions,
@@ -684,6 +836,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const selectedMatchday =
     matchdaysForSeason.find((matchday) => matchday.id === requestedMatchdayId) ?? matchdaysForSeason[0] ?? null;
   const matchesForMatchday = await readMatchesForMatchday(selectedMatchday?.id);
+  const matchesForSeason = await readMatchesForSeason(selectedSeason?.id);
   const editingMatch = matchesForMatchday.find((match) => match.id === requestedEditMatchId) ?? null;
   const countryTeamIds = new Set(teamsForCountry.map((team) => team.id));
   const oldInvisibleParticipants = participantData?.syncMetadataAvailable
@@ -697,6 +850,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     .map((participant) => participant.team)
     .filter((team): team is SupabaseTeam => Boolean(team));
   const participantTeamsById = new Map(participantTeamOptions.map((team) => [team.id, team]));
+  const classificationRows = buildAccumulatedClassification({
+    participants: participantsForSeason,
+    matches: matchesForSeason,
+    matchdays: matchdaysForSeason,
+    selectedMatchday
+  });
   const teamsUsedInOtherMatches = new Set<string>();
   matchesForMatchday
     .filter((match) => match.id !== editingMatch?.id)
@@ -1776,6 +1935,67 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                       );
                     })}
                   </ul>
+                )}
+              </article>
+            </div>
+          </section>
+
+          <section className="manager-panel" id="classificacao" aria-label="Classificacao acumulada da jornada">
+            <header>
+              <h2>Classificacao da jornada</h2>
+              <p>
+                {selectedMatchday
+                  ? `Tabela acumulada da epoca ate a ${selectedMatchday.label}, usando apenas jogos finalizados.`
+                  : "Escolhe uma jornada para calcular a classificacao acumulada."}
+              </p>
+            </header>
+            <div className="manager-summary-grid">
+              <article className="manager-create-card manager-wide-card">
+                <header>
+                  <h3>{selectedSeason?.label ?? "Sem epoca selecionada"}</h3>
+                  <p>{classificationRows.length} participantes contabilizados.</p>
+                </header>
+                {!selectedMatchday ? (
+                  <div className="manager-empty">Escolhe uma jornada para ver a classificacao.</div>
+                ) : classificationRows.length === 0 ? (
+                  <div className="manager-empty">Ainda nao ha participantes para calcular a classificacao.</div>
+                ) : (
+                  <div className="manager-table-wrap">
+                    <table className="manager-table">
+                      <thead>
+                        <tr>
+                          <th>Pos</th>
+                          <th>Clube</th>
+                          <th>J</th>
+                          <th>V</th>
+                          <th>E</th>
+                          <th>D</th>
+                          <th>GM</th>
+                          <th>GS</th>
+                          <th>DG</th>
+                          <th>Pts</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {classificationRows.map((row, index) => (
+                          <tr key={row.teamId}>
+                            <td>{index + 1}</td>
+                            <td>{row.name}</td>
+                            <td>{row.played}</td>
+                            <td>{row.wins}</td>
+                            <td>{row.draws}</td>
+                            <td>{row.losses}</td>
+                            <td>{row.goalsFor}</td>
+                            <td>{row.goalsAgainst}</td>
+                            <td>{row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}</td>
+                            <td>
+                              <b>{row.points}</b>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </article>
             </div>
