@@ -272,6 +272,10 @@ const managerStyles = `
     line-height: 1.35;
   }
 
+  .manager-wide-card {
+    grid-column: 1 / -1;
+  }
+
   .manager-create-form {
     display: grid;
     gap: 10px;
@@ -660,7 +664,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   <input type="hidden" name="action_type" value="competition" />
                   <input type="hidden" name="return_to" value={currentReturnTo} />
                   <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
-                  <input type="hidden" name="country" value={selectedCountry?.name ?? ""} />
                   <div className="manager-field">
                     <label htmlFor="new-competition-country">Pais</label>
                     <input
