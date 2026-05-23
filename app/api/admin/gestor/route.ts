@@ -224,6 +224,32 @@ async function removeParticipant(formData: FormData) {
   );
 }
 
+async function removeOldParticipant(formData: FormData) {
+  const participantId = cleanText(formData.get("participant_id"));
+
+  if (!participantId) {
+    throw new Error("missing-fields");
+  }
+
+  const oldParticipantPath =
+    `season_teams?select=id&id=eq.${encodeURIComponent(participantId)}&or=(manual_override.is.false,manual_override.is.null)`;
+
+  if (!(await hasRows(oldParticipantPath))) {
+    if (await hasRows(`season_teams?select=id&id=eq.${encodeURIComponent(participantId)}&manual_override=is.true`)) {
+      throw new Error("old-participant-manual");
+    }
+
+    throw new Error("old-participant-not-found");
+  }
+
+  await writeSupabaseAdmin(
+    `season_teams?id=eq.${encodeURIComponent(participantId)}&or=(manual_override.is.false,manual_override.is.null)`,
+    {
+      method: "DELETE"
+    }
+  );
+}
+
 async function removeTeam(formData: FormData) {
   const teamId = cleanText(formData.get("team_id"));
   const countryId = cleanText(formData.get("country_id"));
@@ -281,25 +307,21 @@ async function createMatchday(formData: FormData) {
 
   await writeSupabaseAdmin("matchdays", {
     method: "POST",
-    body: JSON.stringify(matchdayPayload(formData, seasonId, number, label))
+    body: JSON.stringify({
+      season_id: seasonId,
+      number,
+      label,
+      starts_on: cleanText(formData.get("starts_on")),
+      ends_on: cleanText(formData.get("ends_on")),
+      status: cleanMatchdayStatus(formData.get("status")),
+      data_source: "manual",
+      sync_status: "manual",
+      manual_override: true,
+      external_provider: null,
+      external_id: null,
+      last_synced_at: null
+    })
   });
-}
-
-function matchdayPayload(formData: FormData, seasonId?: string, number?: number | null, label?: string | null) {
-  return {
-    season_id: seasonId ?? cleanText(formData.get("season_id")),
-    number: number ?? cleanInteger(formData.get("number")),
-    label: label ?? cleanText(formData.get("label")),
-    starts_on: cleanText(formData.get("starts_on")),
-    ends_on: cleanText(formData.get("ends_on")),
-    status: cleanMatchdayStatus(formData.get("status")),
-    data_source: "manual",
-    sync_status: "manual",
-    manual_override: true,
-    external_provider: null,
-    external_id: null,
-    last_synced_at: null
-  };
 }
 
 async function removeMatchday(formData: FormData) {
@@ -406,22 +428,12 @@ export async function POST(request: Request) {
       await createParticipant(formData);
     } else if (actionType === "remove_participant") {
       await removeParticipant(formData);
+    } else if (actionType === "remove_old_participant") {
+      await removeOldParticipant(formData);
     } else if (actionType === "remove_team") {
       await removeTeam(formData);
     } else if (actionType === "matchday") {
-      try {
-        await createMatchday(formData);
-      } catch (error) {
-        return NextResponse.json(
-          {
-            ok: false,
-            action: "matchday",
-            error: error instanceof Error ? error.message : String(error),
-            payload: matchdayPayload(formData)
-          },
-          { status: 500 }
-        );
-      }
+      await createMatchday(formData);
     } else if (actionType === "remove_matchday") {
       await removeMatchday(formData);
     } else if (actionType === "remove_season") {

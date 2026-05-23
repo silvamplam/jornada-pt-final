@@ -576,6 +576,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const teamsForCountry = await readTeamsForCountry(selectedCountry?.id);
   const unassignedTeams = await readUnassignedTeams();
   const matchdaysForSeason = await readMatchdaysForSeason(selectedSeason?.id);
+  const countryTeamIds = new Set(teamsForCountry.map((team) => team.id));
+  const oldInvisibleParticipants = participantData?.syncMetadataAvailable
+    ? (participantData.participants ?? []).filter(
+        (participant) => countryTeamIds.has(participant.team_id) && participant.manual_override !== true
+      )
+    : [];
   const participantTeamIds = new Set(participantsForSeason.map((participant) => participant.team_id));
   const teamsAvailableForSeason = teamsForCountry.filter((team) => !participantTeamIds.has(team.id));
   const unavailableTeamMessage =
@@ -618,6 +624,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     attach_team_to_country: "Clube existente associado ao pais selecionado.",
     participant: "Participante associado a epoca selecionada.",
     remove_participant: "Participante removido da epoca selecionada.",
+    remove_old_participant: "Associacao antiga invisivel removida de season_teams.",
     remove_team: "Clube removido do pais selecionado.",
     matchday: "Jornada criada dentro da epoca selecionada.",
     remove_matchday: "Jornada removida da epoca selecionada.",
@@ -641,6 +648,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "season-has-matches": "Nao e possivel remover esta epoca porque ainda existem jogos associados.",
     "team-has-participants": "Este clube ainda esta associado a uma epoca. Remove primeiro o participante da epoca.",
     "team-has-old-participants": "Este clube tem associacoes antigas fora do novo fluxo. Reve esses dados antes de remover o clube.",
+    "old-participant-manual": "Esta associacao pertence ao novo fluxo manual e nao pode ser limpa nesta area.",
+    "old-participant-not-found": "Nao foi possivel encontrar uma associacao antiga invisivel para remover.",
     "matchday-needs-participants": "Antes de criar jornadas, define os participantes desta epoca.",
     "matchday-duplicate": "Ja existe uma jornada com esse numero nesta epoca.",
     "matchday-has-matches": "Nao e possivel remover esta jornada porque ainda existem jogos associados.",
@@ -1129,6 +1138,54 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
                           <button className="manager-link-button" type="submit">
                             Remover
+                          </button>
+                        </form>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </article>
+            </div>
+          </section>
+
+          <section className="manager-panel" aria-label="Associacoes antigas invisiveis">
+            <header>
+              <h2>Associacoes antigas invisiveis</h2>
+              <p>
+                Remove apenas ligacoes antigas em season_teams que estao fora do novo fluxo manual. Clubes, epocas,
+                jornadas e jogos nao sao apagados.
+              </p>
+            </header>
+            <div className="manager-summary-grid">
+              <article className="manager-create-card manager-wide-card">
+                <header>
+                  <h3>{selectedCountry?.name ?? "Sem pais selecionado"}</h3>
+                  <p>{oldInvisibleParticipants.length} associacoes antigas invisiveis encontradas neste pais.</p>
+                </header>
+                {oldInvisibleParticipants.length === 0 ? (
+                  <div className="manager-empty">Nao ha associacoes antigas invisiveis para os clubes deste pais.</div>
+                ) : (
+                  <ul className="manager-list">
+                    {oldInvisibleParticipants.map((participant) => (
+                      <li key={participant.id}>
+                        <div>
+                          <b>{participant.team?.name ?? "Clube sem nome"}</b>
+                          <small>
+                            {participant.competition?.name ?? "Competicao desconhecida"} /{" "}
+                            {participant.season?.label ?? "Epoca desconhecida"} - estado {participant.status} - origem{" "}
+                            {participant.data_source ?? "sem origem"} / {participant.sync_status ?? "sem sync"}
+                          </small>
+                        </div>
+                        <form
+                          action="/api/admin/gestor"
+                          data-confirm="Tem a certeza que quer remover apenas esta associacao antiga invisivel de season_teams? O clube, a epoca, as jornadas e os jogos nao serao apagados."
+                          method="post"
+                        >
+                          <input type="hidden" name="action_type" value="remove_old_participant" />
+                          <input type="hidden" name="return_to" value={currentReturnTo} />
+                          <input type="hidden" name="participant_id" value={participant.id} />
+                          <button className="manager-link-button" type="submit">
+                            Remover associacao
                           </button>
                         </form>
                       </li>
