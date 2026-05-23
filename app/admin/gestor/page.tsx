@@ -540,6 +540,10 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const teamsForCountry = await readTeamsForCountry(selectedCountry?.id);
   const participantTeamIds = new Set(participantsForSeason.map((participant) => participant.team_id));
   const teamsAvailableForSeason = teamsForCountry.filter((team) => !participantTeamIds.has(team.id));
+  const unavailableTeamMessage =
+    teamsForCountry.length === 0
+      ? "Ainda nao ha clubes associados a este pais"
+      : "Todos os clubes disponiveis deste pais ja foram adicionados a esta epoca";
   const selectorCountries = countries.map((country) => ({
     id: country.id,
     name: country.name
@@ -988,7 +992,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     <label htmlFor="new-participant-team">Clube</label>
                     <select id="new-participant-team" name="team_id" disabled={!canAddParticipant} required={canAddParticipant}>
                       {teamsAvailableForSeason.length === 0 ? (
-                        <option value="">Ainda nao ha clubes disponiveis para este pais</option>
+                        <option value="">{unavailableTeamMessage}</option>
                       ) : null}
                       {teamsAvailableForSeason.map((team) => (
                         <option key={team.id} value={team.id}>
