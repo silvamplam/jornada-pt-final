@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServiceConfig, writeSupabaseAdmin } from "@/lib/supabase";
+import { fetchSupabaseAdminTable, getSupabaseServiceConfig, writeSupabaseAdmin } from "@/lib/supabase";
 
 function cleanText(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") {
@@ -106,12 +106,47 @@ async function createSeason(formData: FormData) {
   });
 }
 
+async function createTeam(formData: FormData) {
+  const name = cleanText(formData.get("name"));
+  const shortName = cleanText(formData.get("short_name"))?.toUpperCase();
+  const slug = cleanText(formData.get("slug")) ?? (name ? slugify(name) : null);
+  const countryId = cleanText(formData.get("country_id"));
+
+  if (!name || !shortName || !slug || !countryId) {
+    throw new Error("missing-fields");
+  }
+
+  await writeSupabaseAdmin("teams", {
+    method: "POST",
+    body: JSON.stringify({
+      name,
+      short_name: shortName,
+      slug,
+      country_id: countryId,
+      logo_url: cleanText(formData.get("logo_url")),
+      primary_color: cleanText(formData.get("primary_color")),
+      data_source: "manual",
+      sync_status: "manual",
+      manual_override: true
+    })
+  });
+}
+
 async function createParticipant(formData: FormData) {
   const seasonId = cleanText(formData.get("season_id"));
   const teamId = cleanText(formData.get("team_id"));
+  const countryId = cleanText(formData.get("country_id"));
 
-  if (!seasonId || !teamId) {
+  if (!seasonId || !teamId || !countryId) {
     throw new Error("missing-fields");
+  }
+
+  const linkedTeams = await fetchSupabaseAdminTable<{ id: string }>(
+    `teams?select=id&id=eq.${encodeURIComponent(teamId)}&country_id=eq.${encodeURIComponent(countryId)}&limit=1`
+  );
+
+  if (linkedTeams.length === 0) {
+    throw new Error("invalid-team-country");
   }
 
   await writeSupabaseAdmin("season_teams?on_conflict=season_id,team_id", {
@@ -145,6 +180,8 @@ export async function POST(request: Request) {
       await createCompetition(formData);
     } else if (actionType === "season") {
       await createSeason(formData);
+    } else if (actionType === "team") {
+      await createTeam(formData);
     } else if (actionType === "participant") {
       await createParticipant(formData);
     } else {

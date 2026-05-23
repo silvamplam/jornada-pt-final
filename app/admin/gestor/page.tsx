@@ -1,15 +1,20 @@
 import {
+  fetchSupabaseAdminTable,
   getAdminSeasonParticipants,
   getAdminSeasons,
   type SupabaseCompetition,
   type SupabaseCountry,
-  type SupabaseSeason
+  type SupabaseSeason,
+  type SupabaseTeam
 } from "@/lib/supabase";
 import { ContextSelector } from "./ContextSelector";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = Record<string, string | string[] | undefined>;
+type CountryTeam = SupabaseTeam & {
+  country_id: string | null;
+};
 
 const managerStyles = `
   body {
@@ -423,6 +428,22 @@ function returnTo(country: SupabaseCountry | null, competition: SupabaseCompetit
   return `/admin/gestor${query ? `?${query}` : ""}`;
 }
 
+async function readTeamsForCountry(countryId?: string): Promise<CountryTeam[]> {
+  if (!countryId) {
+    return [];
+  }
+
+  try {
+    return await fetchSupabaseAdminTable<CountryTeam>(
+      `teams?select=id,name,short_name,slug,country_id,logo_url,primary_color&country_id=eq.${encodeURIComponent(
+        countryId
+      )}&order=name.asc`
+    );
+  } catch {
+    return [];
+  }
+}
+
 function resolveSelectedContext({
   countries,
   competitions,
@@ -516,6 +537,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
           participant.manual_override === true
       )
     : [];
+  const teamsForCountry = await readTeamsForCountry(selectedCountry?.id);
+  const participantTeamIds = new Set(participantsForSeason.map((participant) => participant.team_id));
+  const teamsAvailableForSeason = teamsForCountry.filter((team) => !participantTeamIds.has(team.id));
   const selectorCountries = countries.map((country) => ({
     id: country.id,
     name: country.name
@@ -537,17 +561,22 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const actionError = oneParam(params, "error");
   const canCreateCompetition = Boolean(selectedCountry);
   const canCreateSeason = Boolean(selectedCompetition);
-  const canAddParticipant = false;
+  const canCreateTeam = Boolean(selectedCountry && participantData?.writeConfigured);
+  const canAddParticipant = Boolean(
+    selectedCountry && selectedSeason && participantData?.writeConfigured && !participantData.error && teamsAvailableForSeason.length > 0
+  );
   const createdLabels: Record<string, string> = {
     country: "Pais criado. Agora podes escolher esse pais no caminho de trabalho.",
     competition: "Competicao criada e ligada ao pais escolhido.",
     season: "Epoca criada dentro da competicao escolhida.",
+    team: "Clube criado e associado ao pais selecionado.",
     participant: "Participante associado a epoca selecionada."
   };
   const errorLabels: Record<string, string> = {
     "missing-service": "Liga primeiro a Supabase na Vercel.",
     "missing-fields": "Preenche os campos obrigatorios antes de guardar.",
     "unknown-action": "A acao enviada pelo formulario nao foi reconhecida.",
+    "invalid-team-country": "O clube escolhido nao esta associado ao pais selecionado.",
     save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
   };
 
@@ -859,6 +888,71 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
+          <section className="manager-panel" aria-label="Clubes do pais">
+            <header>
+              <h2>Clubes do pais</h2>
+              <p>Cria clubes ligados manualmente ao pais selecionado. So estes clubes entram no seletor da epoca.</p>
+            </header>
+            <div className="manager-create-grid">
+              <article className="manager-create-card">
+                <header>
+                  <h3>Novo clube</h3>
+                  <p>{selectedCountry ? `Associado a ${selectedCountry.name}.` : "Escolhe um pais primeiro."}</p>
+                </header>
+                <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                  <input type="hidden" name="action_type" value="team" />
+                  <input type="hidden" name="return_to" value={currentReturnTo} />
+                  <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
+                  <div className="manager-field">
+                    <label htmlFor="new-team-name">Nome</label>
+                    <input id="new-team-name" name="name" placeholder="Ex: F91 Dudelange" disabled={!canCreateTeam} required={canCreateTeam} />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-team-short">Sigla</label>
+                    <input id="new-team-short" name="short_name" maxLength={6} placeholder="F91" disabled={!canCreateTeam} required={canCreateTeam} />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-team-slug">Slug</label>
+                    <input id="new-team-slug" name="slug" placeholder="f91-dudelange" disabled={!canCreateTeam} />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-team-logo">Emblema URL</label>
+                    <input id="new-team-logo" name="logo_url" placeholder="https://..." disabled={!canCreateTeam} />
+                  </div>
+                  <div className="manager-field">
+                    <label htmlFor="new-team-color">Cor</label>
+                    <input id="new-team-color" name="primary_color" placeholder="#e5252a" disabled={!canCreateTeam} />
+                  </div>
+                  <button className="manager-button" type="submit" disabled={!canCreateTeam}>
+                    Criar clube
+                  </button>
+                </form>
+              </article>
+
+              <article className="manager-create-card manager-wide-card">
+                <header>
+                  <h3>{selectedCountry?.name ?? "Sem pais selecionado"}</h3>
+                  <p>{teamsForCountry.length} clubes associados manualmente a este pais.</p>
+                </header>
+                {teamsForCountry.length === 0 ? (
+                  <div className="manager-empty">Ainda nao ha clubes associados a este pais.</div>
+                ) : (
+                  <ul className="manager-list">
+                    {teamsForCountry.map((team) => (
+                      <li key={team.id}>
+                        <div>
+                          <b>{team.name}</b>
+                          <small>{team.short_name ?? team.slug}</small>
+                        </div>
+                        <em>{selectedCountry?.name}</em>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </article>
+            </div>
+          </section>
+
           <section className="manager-panel" aria-label="Participantes da epoca">
             <header>
               <h2>Participantes da epoca</h2>
@@ -882,15 +976,31 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               <article className="manager-create-card manager-wide-card">
                 <header>
                   <h3>Adicionar participante</h3>
-                  <p>
-                    E preciso associar clubes a este pais antes de adicionar participantes. Esta trava evita misturar
-                    clubes globais no contexto selecionado.
-                  </p>
+                  <p>{selectedSeason ? "Escolhe um clube associado ao pais selecionado." : "Escolhe uma epoca primeiro."}</p>
                 </header>
-                <div className="manager-empty">Ainda nao ha clubes disponiveis para este pais.</div>
-                <button className="manager-button" type="button" disabled={!canAddParticipant}>
-                  Adicionar participante
-                </button>
+                <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                  <input type="hidden" name="action_type" value="participant" />
+                  <input type="hidden" name="return_to" value={currentReturnTo} />
+                  <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
+                  <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+                  <input type="hidden" name="display_order" value={participantsForSeason.length + 1} />
+                  <div className="manager-field">
+                    <label htmlFor="new-participant-team">Clube</label>
+                    <select id="new-participant-team" name="team_id" disabled={!canAddParticipant} required={canAddParticipant}>
+                      {teamsAvailableForSeason.length === 0 ? (
+                        <option value="">Ainda nao ha clubes disponiveis para este pais</option>
+                      ) : null}
+                      {teamsAvailableForSeason.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button className="manager-button" type="submit" disabled={!canAddParticipant}>
+                    Adicionar participante
+                  </button>
+                </form>
               </article>
 
               <article className="manager-create-card manager-wide-card">
