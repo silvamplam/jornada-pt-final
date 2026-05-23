@@ -107,6 +107,44 @@ const adminPageStyles = `
     text-transform: uppercase;
   }
 
+  .admin-section-actions.secondary a {
+    background: #ffffff;
+    color: #10151b;
+    border: 1px solid #dce3eb;
+  }
+
+  .admin-tools {
+    margin-top: 18px;
+    padding: 20px;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
+  }
+
+  .admin-tools h2,
+  .admin-tools h3,
+  .admin-tools p {
+    margin: 0;
+  }
+
+  .admin-tools h2 {
+    font-size: 21px;
+    text-transform: uppercase;
+  }
+
+  .admin-tools h3 {
+    margin-top: 18px;
+    color: #5e6874;
+    font-size: 13px;
+    text-transform: uppercase;
+  }
+
+  .admin-tools p {
+    margin-top: 6px;
+    color: #687380;
+  }
+
   .admin-flow {
     margin-top: 18px;
     overflow: hidden;
@@ -366,8 +404,8 @@ export default async function AdminPage() {
       <header className="admin-hero">
         <div>
           <p>Jornada.pt</p>
-          <h1>Backoffice inicial</h1>
-          <span>A primeira ligação entre o site, a base de dados e a futura máquina editorial.</span>
+          <h1>Backoffice</h1>
+          <span>O Centro de gestao e a entrada principal para construir a epoca pela ordem certa.</span>
         </div>
         <div className="admin-hero-actions">
           <a href="/admin/gestor">Centro de gestao</a>
@@ -423,72 +461,72 @@ export default async function AdminPage() {
 
           <section className="admin-flow" aria-label="Fluxo recomendado do backoffice">
             <header>
-              <h2>Fluxo de trabalho</h2>
-              <p>Comeca no pais, entra na competicao, abre a epoca e fecha cada jornada com dados e contexto editorial.</p>
+              <h2>Fluxo principal</h2>
+              <p>Usa o Centro de gestao para seguir a cadeia: Pais -> Competicao -> Epoca -> Participantes -> Jornadas -> Jogos -> Resultados -> Classificacao.</p>
             </header>
             <ol>
               <li>
                 <span>01</span>
                 <div>
-                  <b>Paises</b>
-                  <small>Cria apenas os paises que vais gerir nesta fase.</small>
-                  <a href="/admin/paises">Abrir</a>
+                  <b>Pais</b>
+                  <small>Define o contexto nacional antes de abrir competicoes.</small>
+                  <a href="/admin/gestor">Abrir no centro</a>
                 </div>
               </li>
               <li>
                 <span>02</span>
                 <div>
-                  <b>Competicoes</b>
-                  <small>Cria cada competicao dentro do pais certo.</small>
-                  <a href="/admin/competicoes">Abrir</a>
+                  <b>Competicao</b>
+                  <small>Liga cada competicao manualmente ao pais escolhido.</small>
+                  <a href="/admin/gestor">Abrir no centro</a>
                 </div>
               </li>
               <li>
                 <span>03</span>
                 <div>
-                  <b>Epocas</b>
-                  <small>Abre cada epoca dentro da competicao certa.</small>
-                  <a href="/admin/epocas">Abrir</a>
+                  <b>Epoca</b>
+                  <small>Cria a epoca dentro da competicao selecionada.</small>
+                  <a href="/admin/gestor">Abrir no centro</a>
                 </div>
               </li>
               <li>
                 <span>04</span>
                 <div>
                   <b>Participantes</b>
-                  <small>Define os clubes que pertencem a cada epoca.</small>
-                  <a href="/admin/participantes">Abrir</a>
+                  <small>Escolhe clubes do pais e associa-os a epoca.</small>
+                  <a href="/admin/gestor#participantes">Abrir no centro</a>
                 </div>
               </li>
               <li>
                 <span>05</span>
                 <div>
                   <b>Jornadas</b>
-                  <small>Organiza o momento competitivo e a memoria historica.</small>
-                  <a href="/admin/jornadas">Abrir</a>
+                  <small>Organiza o calendario apenas depois dos participantes.</small>
+                  <a href="/admin/gestor#calendario">Abrir no centro</a>
                 </div>
               </li>
               <li>
                 <span>06</span>
                 <div>
-                  <b>Jogos e resultados</b>
-                  <small>Insere calendario, estados, resultados, estadio e transmissao.</small>
-                  <a href="/admin/jogos">Abrir</a>
+                  <b>Jogos</b>
+                  <small>Cria a agenda dentro da jornada selecionada.</small>
+                  <a href="/admin/gestor#jogos">Abrir no centro</a>
                 </div>
               </li>
               <li>
                 <span>07</span>
                 <div>
-                  <b>Classificacao</b>
-                  <small>Gera a fotografia competitiva desse momento.</small>
-                  <a href="/admin/classificacoes">Abrir</a>
+                  <b>Resultados</b>
+                  <small>Guarda resultados finais manuais nos jogos da jornada.</small>
+                  <a href="/admin/gestor#jogos">Abrir no centro</a>
                 </div>
               </li>
               <li>
                 <span>08</span>
                 <div>
-                  <b>Contexto editorial</b>
-                  <small>Fecha manchete, resumo, destaque, imagem, video e memoria.</small>
-                  <a href="/admin/jornadas">Abrir</a>
+                  <b>Classificacao</b>
+                  <small>Consulta a tabela acumulada calculada a partir dos resultados.</small>
+                  <a href="/admin/gestor#classificacao">Abrir no centro</a>
                 </div>
               </li>
             </ol>
@@ -496,17 +534,30 @@ export default async function AdminPage() {
 
           <nav className="admin-section-actions" aria-label="Ferramentas do backoffice">
             <a href="/admin/gestor">Centro de gestao</a>
+          </nav>
+
+          <section className="admin-tools" aria-label="Paginas de apoio tecnico">
+            <header>
+              <h2>Apoio tecnico</h2>
+              <p>Estas paginas continuam acessiveis para consulta e manutencao, mas nao substituem o fluxo principal do Centro de gestao.</p>
+            </header>
+            <h3>Dados base</h3>
+            <nav className="admin-section-actions secondary" aria-label="Dados base">
             <a href="/admin/paises">Gerir paises</a>
             <a href="/admin/competicoes">Gerir competicoes</a>
             <a href="/admin/epocas">Gerir epocas</a>
-            <a href="/admin/participantes">Gerir participantes</a>
-            <a href="/admin/jornadas">Gerir jornadas</a>
-            <a href="/admin/jogos">Gerir jogos</a>
-            <a href="/admin/classificacoes">Gerir classificacoes</a>
-            <a href="/admin/jogos-tv">Ligar jogos a TV</a>
             <a href="/admin/clubes">Gerir clubes</a>
             <a href="/admin/canais-tv">Gerir canais TV</a>
-          </nav>
+            </nav>
+            <h3>Manutencao tecnica / paginas antigas</h3>
+            <nav className="admin-section-actions secondary" aria-label="Manutencao tecnica">
+              <a href="/admin/participantes">Gerir participantes</a>
+              <a href="/admin/jornadas">Gerir jornadas</a>
+              <a href="/admin/jogos">Gerir jogos</a>
+              <a href="/admin/classificacoes">Gerir classificacoes</a>
+              <a href="/admin/jogos-tv">Ligar jogos a TV</a>
+            </nav>
+          </section>
 
           <section className="admin-grid">
             <article className="admin-panel">

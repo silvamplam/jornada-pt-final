@@ -152,6 +152,49 @@ const managerStyles = `
     box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
   }
 
+  .manager-workspace {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .manager-section-base {
+    order: 1;
+  }
+
+  .manager-section-check {
+    order: 2;
+  }
+
+  .manager-section-clubs {
+    order: 3;
+  }
+
+  .manager-section-participants {
+    order: 4;
+  }
+
+  .manager-section-calendar {
+    order: 5;
+  }
+
+  .manager-section-matches {
+    order: 6;
+  }
+
+  .manager-section-standings {
+    order: 7;
+  }
+
+  .manager-section-maintenance {
+    order: 8;
+    border-color: #f1d6b8;
+    background: #fffaf3;
+  }
+
+  .manager-section-maintenance .manager-create-card {
+    background: #fffdf8;
+  }
+
   .manager-warning {
     padding: 18px 20px;
     border-color: #ffd3a3;
@@ -1104,8 +1147,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
           <p>Jornada.pt</p>
           <h1>Centro de gestao</h1>
           <span>
-            Fase 1: cria o pais, liga manualmente cada competicao ao pais certo e cria as epocas
-            dentro dessa competicao. O gestor so mostra o que ja foi criado e relacionado por ti.
+            Fluxo principal: Pais -> Competicao -> Epoca -> Participantes -> Jornadas -> Jogos ->
+            Resultados -> Classificacao. As acoes tecnicas ficam separadas em manutencao.
           </span>
         </div>
         <a href="/admin">Voltar ao backoffice</a>
@@ -1174,7 +1217,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel" aria-label="Montador da fase 1">
+          <div className="manager-workspace">
+          <section className="manager-panel manager-section-base" aria-label="Montador da fase 1">
             <header>
               <h2>Fase 1 - base principal</h2>
               <p>
@@ -1320,7 +1364,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel" aria-label="Teste da fase 1">
+          <section className="manager-panel manager-section-check" aria-label="Teste da fase 1">
             <header>
               <h2>Teste da Fase 1</h2>
               <p>Usa este bloco para confirmar que nao ha misturas entre pais, competicao e epoca.</p>
@@ -1404,7 +1448,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel" aria-label="Remocao segura">
+          <section className="manager-panel manager-section-maintenance" aria-label="Remocao segura">
             <header>
               <h2>Remocao segura</h2>
               <p>
@@ -1471,7 +1515,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel" id="clubes" aria-label="Clubes do pais">
+          <section className="manager-panel manager-section-clubs" id="clubes" aria-label="Clubes do pais">
             <header>
               <h2>Clubes do pais</h2>
               <p>Cria clubes ligados manualmente ao pais selecionado. So estes clubes entram no seletor da epoca.</p>
@@ -1575,7 +1619,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel" id="associacoes-antigas" aria-label="Associacoes antigas invisiveis">
+          <section className="manager-panel manager-section-maintenance" id="associacoes-antigas" aria-label="Associacoes antigas invisiveis">
             <header>
               <h2>Associacoes antigas invisiveis</h2>
               <p>
@@ -1623,7 +1667,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel" id="calendario" aria-label="Calendario da epoca">
+          <section className="manager-panel manager-section-calendar" id="calendario" aria-label="Calendario da epoca">
             <header>
               <h2>Calendario da epoca</h2>
               <p>Cria e organiza jornadas simples dentro da epoca selecionada.</p>
@@ -1730,7 +1774,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel" id="jogos" aria-label="Jogos da jornada">
+          <section className="manager-panel manager-section-matches" id="jogos" aria-label="Jogos da jornada">
             <header>
               <h2>Jogos da jornada</h2>
               <p>Cria e lista apenas jogos de agenda dentro da jornada selecionada.</p>
@@ -1995,7 +2039,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel" id="classificacao" aria-label="Classificacao acumulada da jornada">
+          <section className="manager-panel manager-section-standings" id="classificacao" aria-label="Classificacao acumulada da jornada">
             <header>
               <h2>Classificacao da jornada</h2>
               <p>
@@ -2093,7 +2137,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel" id="participantes" aria-label="Participantes da epoca">
+          <section className="manager-panel manager-section-participants" id="participantes" aria-label="Participantes da epoca">
             <header>
               <h2>Participantes da epoca</h2>
               <p>Adiciona manualmente clubes a epoca selecionada e confirma a lista desse contexto.</p>
@@ -2183,6 +2227,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               </article>
             </div>
           </section>
+          </div>
         </>
       ) : null}
     </main>
