@@ -219,6 +219,16 @@ async function createMatchday(formData: FormData) {
   }
 
   if (
+    !(await hasRows(
+      `season_teams?select=id&season_id=eq.${encodeURIComponent(
+        seasonId
+      )}&data_source=eq.manual&sync_status=eq.manual&manual_override=is.true`
+    ))
+  ) {
+    throw new Error("matchday-needs-participants");
+  }
+
+  if (
     await hasRows(
       `matchdays?select=id&season_id=eq.${encodeURIComponent(seasonId)}&number=eq.${encodeURIComponent(String(number))}`
     )

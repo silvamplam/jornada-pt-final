@@ -596,7 +596,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     selectedCountry && selectedSeason && participantData?.writeConfigured && !participantData.error && teamsAvailableForSeason.length > 0
   );
   const nextMatchdayNumber = matchdaysForSeason.reduce((max, matchday) => Math.max(max, matchday.number), 0) + 1;
-  const canCreateMatchday = Boolean(selectedSeason && participantData?.writeConfigured);
+  const canCreateMatchday = Boolean(selectedSeason && participantData?.writeConfigured && participantsForSeason.length > 0);
   const createdLabels: Record<string, string> = {
     country: "Pais criado. Agora podes escolher esse pais no caminho de trabalho.",
     competition: "Competicao criada e ligada ao pais escolhido.",
@@ -623,6 +623,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "season-has-matchdays": "Nao e possivel remover esta epoca porque ainda existem jornadas associadas.",
     "season-has-matches": "Nao e possivel remover esta epoca porque ainda existem jogos associados.",
     "team-has-participants": "Este clube ainda esta associado a uma epoca. Remove primeiro o participante da epoca.",
+    "matchday-needs-participants": "Antes de criar jornadas, define os participantes desta epoca.",
     "matchday-duplicate": "Ja existe uma jornada com esse numero nesta epoca.",
     "matchday-has-matches": "Nao e possivel remover esta jornada porque ainda existem jogos associados.",
     save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
@@ -1103,7 +1104,13 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               <article className="manager-create-card">
                 <header>
                   <h3>Nova jornada</h3>
-                  <p>{selectedSeason ? `Dentro de ${selectedSeason.label}.` : "Escolhe uma epoca primeiro."}</p>
+                  <p>
+                    {!selectedSeason
+                      ? "Escolhe uma epoca primeiro."
+                      : participantsForSeason.length === 0
+                        ? "Antes de criar jornadas, define os participantes desta epoca."
+                        : `Dentro de ${selectedSeason.label}.`}
+                  </p>
                 </header>
                 <form className="manager-create-form" action="/api/admin/gestor" method="post">
                   <input type="hidden" name="action_type" value="matchday" />
