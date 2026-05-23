@@ -1725,10 +1725,11 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           : "Escolhe uma jornada."}
                   </p>
                 </header>
-                <form className="manager-create-form" action="/admin/gestor" method="get">
+                <form className="manager-create-form" action="/admin/gestor#jogos" method="get">
                   <input type="hidden" name="pais" value={selectedCountry?.id ?? ""} />
                   <input type="hidden" name="competicao" value={selectedCompetition?.id ?? ""} />
                   <input type="hidden" name="epoca" value={selectedSeason?.id ?? ""} />
+                  <input type="hidden" name="section" value="jogos" />
                   <div className="manager-field">
                     <label htmlFor="selected-matchday">Jornada</label>
                     <select
