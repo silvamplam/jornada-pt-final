@@ -441,6 +441,31 @@ const managerStyles = `
     text-align: left;
   }
 
+  .manager-goal-difference-positive,
+  .manager-form-win {
+    color: #15803d;
+    font-weight: 900;
+  }
+
+  .manager-goal-difference-neutral,
+  .manager-form-draw {
+    color: #64748b;
+    font-weight: 900;
+  }
+
+  .manager-goal-difference-negative,
+  .manager-form-loss {
+    color: #b91c1c;
+    font-weight: 900;
+  }
+
+  .manager-form-list {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
   .manager-actions {
     display: flex;
     flex-wrap: wrap;
@@ -2022,11 +2047,42 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                             <td>{row.losses}</td>
                             <td>{row.goalsFor}</td>
                             <td>{row.goalsAgainst}</td>
-                            <td>{row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}</td>
-                            <td>
-                              <b>{row.points}</b>
-                            </td>
-                            <td>{row.recentForm.length > 0 ? row.recentForm.join(" ") : "-"}</td>
+                              <td
+                                className={
+                                  row.goalDifference > 0
+                                    ? "manager-goal-difference-positive"
+                                    : row.goalDifference < 0
+                                      ? "manager-goal-difference-negative"
+                                      : "manager-goal-difference-neutral"
+                                }
+                              >
+                                {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
+                              </td>
+                              <td>
+                                <b>{row.points}</b>
+                              </td>
+                              <td>
+                                {row.recentForm.length > 0 ? (
+                                  <span className="manager-form-list">
+                                    {row.recentForm.map((result, resultIndex) => (
+                                      <span
+                                        key={`${row.teamId}-${resultIndex}-${result}`}
+                                        className={
+                                          result.startsWith("V")
+                                            ? "manager-form-win"
+                                            : result.startsWith("D")
+                                              ? "manager-form-loss"
+                                              : "manager-form-draw"
+                                        }
+                                      >
+                                        {result}
+                                      </span>
+                                    ))}
+                                  </span>
+                                ) : (
+                                  "-"
+                                )}
+                              </td>
                           </tr>
                         ))}
                       </tbody>
