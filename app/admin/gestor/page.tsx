@@ -463,7 +463,32 @@ function toDatetimeLocal(value?: string | null) {
     return "";
   }
 
-  return value.slice(0, 16);
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Lisbon",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  }).formatToParts(date);
+  const byType = new Map(parts.map((part) => [part.type, part.value]));
+
+  return `${byType.get("year")}-${byType.get("month")}-${byType.get("day")}T${byType.get("hour")}:${byType.get("minute")}`;
+}
+
+function formatLisbonDateTime(value: string) {
+  return new Intl.DateTimeFormat("pt-PT", {
+    timeZone: "Europe/Lisbon",
+    dateStyle: "short",
+    timeStyle: "short"
+  }).format(new Date(value));
 }
 
 async function readTeamsForCountry(countryId?: string): Promise<CountryTeam[]> {
@@ -1590,7 +1615,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                               {homeTeam?.name ?? "Casa"} vs {awayTeam?.name ?? "Fora"}
                             </b>
                             <small>
-                              {new Date(match.kickoff_at).toLocaleString("pt-PT")} - {match.venue ?? "Sem estadio"} - Agendado
+                              {formatLisbonDateTime(match.kickoff_at)} - {match.venue ?? "Sem estadio"} - Agendado
                             </small>
                           </div>
                           <div className="manager-actions">
