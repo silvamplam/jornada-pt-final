@@ -41,6 +41,7 @@ type SeasonAgendaMatch = {
   away_score: number | null;
   broadcast_channel_id: string | null;
 };
+type BlockingMatch = Pick<SeasonAgendaMatch, "id" | "season_id" | "matchday_id" | "home_team_id" | "away_team_id">;
 type ClassificationRow = {
   teamId: string;
   name: string;
@@ -713,6 +714,52 @@ async function readMatchesForSeason(seasonId?: string): Promise<SeasonAgendaMatc
   }
 }
 
+async function readBlockingMatchdaysForSeason(seasonId?: string): Promise<SeasonMatchday[]> {
+  if (!seasonId) {
+    return [];
+  }
+
+  try {
+    return await fetchSupabaseAdminTable<SeasonMatchday>(
+      `matchdays?select=id,season_id,number,label,starts_on,ends_on,status&season_id=eq.${encodeURIComponent(
+        seasonId
+      )}&order=number.asc`
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function readBlockingMatchesForSeason(seasonId?: string): Promise<BlockingMatch[]> {
+  if (!seasonId) {
+    return [];
+  }
+
+  try {
+    return await fetchSupabaseAdminTable<BlockingMatch>(
+      `matches?select=id,season_id,matchday_id,home_team_id,away_team_id&season_id=eq.${encodeURIComponent(seasonId)}`
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function readBlockingMatchesForTeams(teamIds: string[]): Promise<BlockingMatch[]> {
+  if (teamIds.length === 0) {
+    return [];
+  }
+
+  const ids = teamIds.join(",");
+
+  try {
+    return await fetchSupabaseAdminTable<BlockingMatch>(
+      `matches?select=id,season_id,matchday_id,home_team_id,away_team_id&or=(home_team_id.in.(${ids}),away_team_id.in.(${ids}))`
+    );
+  } catch {
+    return [];
+  }
+}
+
 function buildAccumulatedClassification({
   participants,
   matches,
@@ -934,13 +981,43 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     matchdaysForSeason.find((matchday) => matchday.id === requestedMatchdayId) ?? matchdaysForSeason[0] ?? null;
   const matchesForMatchday = await readMatchesForMatchday(selectedMatchday?.id);
   const matchesForSeason = await readMatchesForSeason(selectedSeason?.id);
+  const blockingMatchdaysForSeason = await readBlockingMatchdaysForSeason(selectedSeason?.id);
+  const blockingMatchesForSeason = await readBlockingMatchesForSeason(selectedSeason?.id);
+  const blockingMatchesForCountryTeams = await readBlockingMatchesForTeams(teamsForCountry.map((team) => team.id));
   const editingMatch = matchesForMatchday.find((match) => match.id === requestedEditMatchId) ?? null;
   const countryTeamIds = new Set(teamsForCountry.map((team) => team.id));
+  const allParticipants = participantData?.participants ?? [];
+  const allParticipantsForSeason = selectedSeason
+    ? allParticipants.filter((participant) => participant.season_id === selectedSeason.id)
+    : [];
   const oldInvisibleParticipants = participantData?.syncMetadataAvailable
-    ? (participantData.participants ?? []).filter(
+    ? allParticipants.filter(
         (participant) => countryTeamIds.has(participant.team_id) && participant.manual_override !== true
       )
     : [];
+  const blockingMatchesForSelectedMatchday = selectedMatchday
+    ? blockingMatchesForSeason.filter((match) => match.matchday_id === selectedMatchday.id)
+    : [];
+  const teamBlockDiagnostics = teamsForCountry.map((team) => {
+    const teamParticipants = allParticipants.filter((participant) => participant.team_id === team.id);
+    const manualParticipants = teamParticipants.filter(
+      (participant) =>
+        participant.data_source === "manual" &&
+        participant.sync_status === "manual" &&
+        participant.manual_override === true
+    );
+    const oldParticipants = teamParticipants.filter((participant) => participant.manual_override !== true);
+    const homeMatches = blockingMatchesForCountryTeams.filter((match) => match.home_team_id === team.id);
+    const awayMatches = blockingMatchesForCountryTeams.filter((match) => match.away_team_id === team.id);
+
+    return {
+      team,
+      manualParticipants: manualParticipants.length,
+      oldParticipants: oldParticipants.length,
+      homeMatches: homeMatches.length,
+      awayMatches: awayMatches.length
+    };
+  });
   const participantTeamIds = new Set(participantsForSeason.map((participant) => participant.team_id));
   const teamsAvailableForSeason = teamsForCountry.filter((team) => !participantTeamIds.has(team.id));
   const participantTeamOptions = participantsForSeason
@@ -1511,6 +1588,116 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     Remover epoca
                   </button>
                 </form>
+              </article>
+            </div>
+          </section>
+
+          <section className="manager-panel manager-section-maintenance" id="diagnostico-bloqueios" aria-label="Diagnostico de bloqueios">
+            <header>
+              <h2>Diagnostico de bloqueios</h2>
+              <p>Esta area apenas mostra dependencias. Nao apaga nem altera dados.</p>
+            </header>
+            <div className="manager-summary-grid">
+              <article className="manager-create-card">
+                <header>
+                  <h3>Pais selecionado</h3>
+                  <p>{selectedCountry?.name ?? "Sem pais selecionado"}</p>
+                </header>
+                <ul className="manager-list">
+                  <li>
+                    <div>
+                      <b>{competitionsForCountry.length}</b>
+                      <small>competicoes associadas</small>
+                    </div>
+                  </li>
+                  <li>
+                    <div>
+                      <b>{teamsForCountry.length}</b>
+                      <small>clubes associados</small>
+                    </div>
+                  </li>
+                </ul>
+              </article>
+
+              <article className="manager-create-card">
+                <header>
+                  <h3>Competicao selecionada</h3>
+                  <p>{selectedCompetition?.name ?? "Sem competicao selecionada"}</p>
+                </header>
+                <ul className="manager-list">
+                  <li>
+                    <div>
+                      <b>{seasonsForCompetition.length}</b>
+                      <small>epocas associadas</small>
+                    </div>
+                  </li>
+                </ul>
+              </article>
+
+              <article className="manager-create-card">
+                <header>
+                  <h3>Epoca selecionada</h3>
+                  <p>{selectedSeason?.label ?? "Sem epoca selecionada"}</p>
+                </header>
+                <ul className="manager-list">
+                  <li>
+                    <div>
+                      <b>{allParticipantsForSeason.length}</b>
+                      <small>participantes em season_teams</small>
+                    </div>
+                  </li>
+                  <li>
+                    <div>
+                      <b>{blockingMatchdaysForSeason.length}</b>
+                      <small>jornadas associadas</small>
+                    </div>
+                  </li>
+                  <li>
+                    <div>
+                      <b>{blockingMatchesForSeason.length}</b>
+                      <small>jogos associados</small>
+                    </div>
+                  </li>
+                </ul>
+              </article>
+
+              <article className="manager-create-card">
+                <header>
+                  <h3>Jornada selecionada</h3>
+                  <p>{selectedMatchday ? `${selectedMatchday.number}. ${selectedMatchday.label}` : "Sem jornada selecionada"}</p>
+                </header>
+                <ul className="manager-list">
+                  <li>
+                    <div>
+                      <b>{blockingMatchesForSelectedMatchday.length}</b>
+                      <small>jogos associados</small>
+                    </div>
+                  </li>
+                </ul>
+              </article>
+
+              <article className="manager-create-card manager-wide-card">
+                <header>
+                  <h3>Clubes do pais</h3>
+                  <p>Dependencias que podem bloquear a remocao de cada clube.</p>
+                </header>
+                {teamBlockDiagnostics.length === 0 ? (
+                  <div className="manager-empty">Nao ha clubes associados ao pais selecionado.</div>
+                ) : (
+                  <ul className="manager-list">
+                    {teamBlockDiagnostics.map((item) => (
+                      <li key={item.team.id}>
+                        <div>
+                          <b>{item.team.name}</b>
+                          <small>
+                            participantes manuais: {item.manualParticipants} / associacoes antigas invisiveis:{" "}
+                            {item.oldParticipants} / jogos casa: {item.homeMatches} / jogos fora: {item.awayMatches}
+                          </small>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </article>
             </div>
           </section>
