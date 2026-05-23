@@ -303,6 +303,78 @@ async function removeTeam(formData: FormData) {
   );
 }
 
+async function removeTeamDebug(formData: FormData) {
+  const teamId = cleanText(formData.get("team_id"));
+  const countryId = cleanText(formData.get("country_id"));
+  const debug = {
+    step: "start",
+    attemptedDelete: false,
+    foundManualParticipants: false,
+    foundOldParticipants: false,
+    payload: {
+      team_id: teamId,
+      country_id: countryId
+    },
+    filters: {
+      manual_participants: teamId
+        ? `season_teams?select=id&team_id=eq.${encodeURIComponent(
+            teamId
+          )}&data_source=eq.manual&sync_status=eq.manual&manual_override=is.true`
+        : null,
+      old_participants: teamId ? `season_teams?select=id&team_id=eq.${encodeURIComponent(teamId)}` : null,
+      delete_team:
+        teamId && countryId ? `teams?id=eq.${encodeURIComponent(teamId)}&country_id=eq.${encodeURIComponent(countryId)}` : null
+    }
+  };
+
+  try {
+    debug.step = "validate-payload";
+
+    if (!teamId || !countryId) {
+      throw new Error("missing-fields");
+    }
+
+    const teamParticipantsPath = `season_teams?select=id&team_id=eq.${encodeURIComponent(teamId)}`;
+    const manualTeamParticipantsPath =
+      `${teamParticipantsPath}&data_source=eq.manual&sync_status=eq.manual&manual_override=is.true`;
+
+    debug.step = "check-manual-participants";
+    debug.foundManualParticipants = await hasRows(manualTeamParticipantsPath);
+
+    if (debug.foundManualParticipants) {
+      throw new Error("team-has-participants");
+    }
+
+    debug.step = "check-old-participants";
+    debug.foundOldParticipants = await hasRows(teamParticipantsPath);
+
+    if (debug.foundOldParticipants) {
+      throw new Error("team-has-old-participants");
+    }
+
+    debug.step = "delete-team";
+    debug.attemptedDelete = true;
+
+    await writeSupabaseAdmin(
+      `teams?id=eq.${encodeURIComponent(teamId)}&country_id=eq.${encodeURIComponent(countryId)}`,
+      {
+        method: "DELETE"
+      }
+    );
+
+    debug.step = "done";
+  } catch (error) {
+    return {
+      ok: false,
+      action: "remove_team",
+      error: error instanceof Error ? error.message : String(error),
+      ...debug
+    };
+  }
+
+  return null;
+}
+
 async function createMatchday(formData: FormData) {
   const seasonId = cleanText(formData.get("season_id"));
   const number = cleanInteger(formData.get("number"));
@@ -469,7 +541,11 @@ export async function POST(request: Request) {
         );
       }
     } else if (actionType === "remove_team") {
-      await removeTeam(formData);
+      const debugResult = await removeTeamDebug(formData);
+
+      if (debugResult) {
+        return NextResponse.json(debugResult, { status: 500 });
+      }
     } else if (actionType === "matchday") {
       await createMatchday(formData);
     } else if (actionType === "remove_matchday") {
