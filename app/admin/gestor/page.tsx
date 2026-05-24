@@ -879,22 +879,24 @@ const managerStyles = `
     gap: 6px;
   }
 
-  .manager-home-away-detail {
-    display: grid;
-    gap: 5px;
-    min-width: 230px;
+  .manager-table .manager-table-group {
+    background: #f8fafc;
     color: #263241;
-    font-size: 12px;
-    line-height: 1.35;
+    font-size: 11px;
+    letter-spacing: 0;
+    text-transform: uppercase;
   }
 
-  .manager-home-away-detail span {
-    display: block;
-    white-space: nowrap;
+  .manager-table .manager-table-group-total {
+    background: #fff7f7;
   }
 
-  .manager-home-away-detail b {
-    color: #17202b;
+  .manager-table .manager-table-points {
+    font-weight: 900;
+  }
+
+  .manager-table .manager-table-divider-left {
+    border-left: 2px solid #dce3eb;
   }
 
   .manager-actions {
@@ -3464,11 +3466,15 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     <table className="manager-table">
                       <thead>
                         <tr>
-                          <th>Pos</th>
-                          <th>Clube</th>
-                          <th>J</th>
-                          <th>Casa</th>
-                          <th>Fora</th>
+                          <th rowSpan={2}>Pos</th>
+                          <th rowSpan={2}>Clube</th>
+                          <th className="manager-table-group manager-table-group-total manager-table-divider-left" colSpan={8}>Total</th>
+                          <th className="manager-table-group manager-table-divider-left" colSpan={8}>Casa</th>
+                          <th className="manager-table-group manager-table-divider-left" colSpan={8}>Fora</th>
+                          <th rowSpan={2}>Ult. 4</th>
+                        </tr>
+                        <tr>
+                          <th className="manager-table-divider-left">J</th>
                           <th>V</th>
                           <th>E</th>
                           <th>D</th>
@@ -3476,8 +3482,22 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           <th>GS</th>
                           <th>DG</th>
                           <th>Pts</th>
-                          <th>Ult. 4</th>
-                          <th>Casa / Fora</th>
+                          <th className="manager-table-divider-left">J</th>
+                          <th>V</th>
+                          <th>E</th>
+                          <th>D</th>
+                          <th>GM</th>
+                          <th>GS</th>
+                          <th>DG</th>
+                          <th>Pts</th>
+                          <th className="manager-table-divider-left">J</th>
+                          <th>V</th>
+                          <th>E</th>
+                          <th>D</th>
+                          <th>GM</th>
+                          <th>GS</th>
+                          <th>DG</th>
+                          <th>Pts</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3485,9 +3505,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           <tr key={row.teamId}>
                             <td>{index + 1}</td>
                             <td>{row.name}</td>
-                            <td>{row.played}</td>
-                            <td>{row.homePlayed}</td>
-                            <td>{row.awayPlayed}</td>
+                            <td className="manager-table-divider-left">{row.played}</td>
                             <td>{row.wins}</td>
                             <td>{row.draws}</td>
                             <td>{row.losses}</td>
@@ -3505,7 +3523,47 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                                 {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
                               </td>
                               <td>
-                                <b>{row.points}</b>
+                                <b className="manager-table-points">{row.points}</b>
+                              </td>
+                              <td className="manager-table-divider-left">{row.home.played}</td>
+                              <td>{row.home.wins}</td>
+                              <td>{row.home.draws}</td>
+                              <td>{row.home.losses}</td>
+                              <td>{row.home.goalsFor}</td>
+                              <td>{row.home.goalsAgainst}</td>
+                              <td
+                                className={
+                                  row.home.goalDifference > 0
+                                    ? "manager-goal-difference-positive"
+                                    : row.home.goalDifference < 0
+                                      ? "manager-goal-difference-negative"
+                                      : "manager-goal-difference-neutral"
+                                }
+                              >
+                                {signedNumber(row.home.goalDifference)}
+                              </td>
+                              <td>
+                                <b>{row.home.points}</b>
+                              </td>
+                              <td className="manager-table-divider-left">{row.away.played}</td>
+                              <td>{row.away.wins}</td>
+                              <td>{row.away.draws}</td>
+                              <td>{row.away.losses}</td>
+                              <td>{row.away.goalsFor}</td>
+                              <td>{row.away.goalsAgainst}</td>
+                              <td
+                                className={
+                                  row.away.goalDifference > 0
+                                    ? "manager-goal-difference-positive"
+                                    : row.away.goalDifference < 0
+                                      ? "manager-goal-difference-negative"
+                                      : "manager-goal-difference-neutral"
+                                }
+                              >
+                                {signedNumber(row.away.goalDifference)}
+                              </td>
+                              <td>
+                                <b>{row.away.points}</b>
                               </td>
                               <td>
                                 {row.recentForm.length > 0 ? (
@@ -3528,20 +3586,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                                 ) : (
                                   "-"
                                 )}
-                              </td>
-                              <td>
-                                <span className="manager-home-away-detail">
-                                  <span>
-                                    <b>Casa:</b> {row.home.played}J {row.home.wins}V {row.home.draws}E {row.home.losses}D{" "}
-                                    {row.home.goalsFor}-{row.home.goalsAgainst} DG {signedNumber(row.home.goalDifference)}{" "}
-                                    {row.home.points}pts
-                                  </span>
-                                  <span>
-                                    <b>Fora:</b> {row.away.played}J {row.away.wins}V {row.away.draws}E {row.away.losses}D{" "}
-                                    {row.away.goalsFor}-{row.away.goalsAgainst} DG {signedNumber(row.away.goalDifference)}{" "}
-                                    {row.away.points}pts
-                                  </span>
-                                </span>
                               </td>
                           </tr>
                         ))}
