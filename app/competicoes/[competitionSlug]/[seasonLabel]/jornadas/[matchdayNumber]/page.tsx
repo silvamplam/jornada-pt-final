@@ -218,23 +218,36 @@ const publicMatchdayStyles = `
   }
 
   .public-table-club {
-    min-width: 180px;
+    min-width: 300px;
     text-align: left;
   }
 
+  .public-club-cell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+  }
+
   .public-club-name {
-    display: block;
+    min-width: 0;
+    overflow: hidden;
     font-weight: 900;
+    text-overflow: ellipsis;
   }
 
   .public-club-form {
     display: flex;
     align-items: center;
-    gap: 5px;
-    margin-top: 4px;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-left: auto;
     color: #66717f;
     font-size: 11px;
     font-weight: 800;
+    text-align: right;
+    white-space: nowrap;
   }
 
   .public-table-divider {
@@ -529,6 +542,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                 <tr key={row.teamId}>
                   <td>{index + 1}</td>
                   <td className="public-table-club">
+                    <span className="public-club-cell">
                     <span className="public-club-name">{row.name}</span>
                     <span className="public-club-form">
                       <span>Últimos:</span>
@@ -553,6 +567,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                       ) : (
                         "—"
                       )}
+                    </span>
                     </span>
                   </td>
                   {renderStatsCells(totalClassificationStats(row), { divider: true, emphasizePoints: true, group: "total" })}
