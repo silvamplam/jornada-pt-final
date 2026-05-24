@@ -553,7 +553,6 @@ export default async function AdminPage() {
             <nav className="admin-section-actions secondary" aria-label="Manutencao tecnica">
               <a href="/admin/participantes">Gerir participantes</a>
               <a href="/admin/jornadas">Gerir jornadas</a>
-              <a href="/admin/jogos">Gerir jogos</a>
               <a href="/admin/classificacoes">Gerir classificacoes</a>
               <a href="/admin/jogos-tv">Ligar jogos a TV</a>
             </nav>

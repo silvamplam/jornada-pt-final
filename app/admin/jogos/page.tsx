@@ -116,6 +116,10 @@ const matchAdminStyles = `
     color: #687380;
   }
 
+  .match-admin-create .match-create-form {
+    display: none;
+  }
+
   .match-create-form {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -647,12 +651,7 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
   const params = await searchParams;
   const overview = await getAdminMatchesEditor();
   const message = errorMessage(params.error);
-  const canWrite = overview.writeConfigured && !overview.error;
-  const defaultCompetitionId = overview.competitions[0]?.id ?? "";
-  const defaultSeason = overview.seasons.find((season) => season.competition_id === defaultCompetitionId) ?? overview.seasons[0];
-  const defaultSeasonId = defaultSeason?.id ?? "";
-  const defaultMatchday =
-    overview.matchdays.find((matchday) => matchday.season_id === defaultSeasonId) ?? overview.matchdays[0];
+  const canWrite = false;
   const seasonIdsByTeam = overview.seasonTeams.reduce<Map<string, string[]>>((map, participant) => {
     if (participant.status === "inactive") {
       return map;
@@ -663,13 +662,6 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
     map.set(participant.team_id, seasonIds);
     return map;
   }, new Map());
-  const defaultSeasonTeamIds = overview.seasonTeams
-    .filter((participant) => participant.season_id === defaultSeasonId && participant.status !== "inactive")
-    .sort((first, second) => first.display_order - second.display_order)
-    .map((participant) => participant.team_id);
-  const defaultHomeTeamId = defaultSeasonTeamIds[0] ?? "";
-  const defaultAwayTeamId = defaultSeasonTeamIds.find((teamId) => teamId !== defaultHomeTeamId) ?? "";
-
   return (
     <main className="match-admin-shell">
       <style>{matchAdminStyles}</style>
@@ -677,11 +669,14 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
         <div>
           <p>Jornada.pt</p>
           <h1>Jogos</h1>
-          <span>Criar e corrigir jogos, resultados, estados, jornadas e canais de transmissao.</span>
+          <span>Consulta tecnica de jogos. A gestao operacional deve ser feita no Centro de gestao.</span>
         </div>
-        <a href="/admin">Voltar ao backoffice</a>
+        <a href="/admin/gestor">Abrir Centro de gestao</a>
       </header>
 
+      <section className="match-admin-message warning">
+        Esta pagina e tecnica/legada. A gestao operacional de jogos deve ser feita no Centro de gestao.
+      </section>
       {!overview.configured ? <section className="match-admin-message warning">Falta configurar a ligacao ao Supabase.</section> : null}
       {!overview.writeConfigured ? (
         <section className="match-admin-message warning">
@@ -695,8 +690,8 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
 
       <section className="match-admin-create">
         <header>
-          <h2>Novo jogo</h2>
-          <small>Cria o jogo uma vez. Depois podes ligar noticias, manchetes, eventos, golos e classificacao.</small>
+          <h2>Criacao de jogos desativada</h2>
+          <small>Esta pagina ficou apenas para consulta tecnica. Cria e gere jogos no Centro de gestao.</small>
         </header>
         <form action="/api/admin/matches" className="match-create-form" method="post">
           {overview.syncMetadataAvailable ? <input name="sync_metadata_available" type="hidden" value="1" /> : null}
