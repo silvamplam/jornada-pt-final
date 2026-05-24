@@ -766,6 +766,9 @@ export async function getAdminMatchesTv(): Promise<{
   writeConfigured: boolean;
   error?: string;
   matches: SupabaseAdminMatch[];
+  competitions: SupabaseCompetition[];
+  seasons: SupabaseSeason[];
+  matchdays: SupabaseMatchday[];
   broadcastChannels: SupabaseBroadcastChannel[];
 }> {
   const readConfigured = Boolean(getSupabaseConfig());
@@ -776,18 +779,27 @@ export async function getAdminMatchesTv(): Promise<{
       configured: false,
       writeConfigured,
       matches: [],
+      competitions: [],
+      seasons: [],
+      matchdays: [],
       broadcastChannels: []
     };
   }
 
   try {
     const readTable = writeConfigured ? fetchSupabaseAdminTable : fetchSupabaseTable;
-    const [matches, competitions, teams, broadcastChannels] = await Promise.all([
+    const [matches, competitions, seasons, matchdays, teams, broadcastChannels] = await Promise.all([
       readTable<SupabaseMatch>(
-        "matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,status,minute,kickoff_at,home_score,away_score,venue,broadcast_channel_id&order=kickoff_at.asc&limit=120"
+        "matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,status,minute,kickoff_at,home_score,away_score,venue,broadcast_channel_id&order=kickoff_at.asc&limit=1000"
       ),
       readTable<SupabaseCompetition>(
         "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
+      ),
+      readTable<SupabaseSeason>(
+        "seasons?select=id,competition_id,label,starts_on,ends_on,is_current&order=label.desc"
+      ),
+      readTable<SupabaseMatchday>(
+        "matchdays?select=id,season_id,number,label,starts_on,ends_on,status,context_summary&order=number.asc"
       ),
       readTable<SupabaseTeam>(
         "teams?select=id,name,short_name,slug,country,logo_url,primary_color&order=name.asc"
@@ -798,6 +810,8 @@ export async function getAdminMatchesTv(): Promise<{
     ]);
 
     const competitionsById = mapById(competitions);
+    const seasonsById = mapById(seasons);
+    const matchdaysById = mapById(matchdays);
     const teamsById = mapById(teams);
     const channelsById = mapById(broadcastChannels);
 
@@ -807,12 +821,15 @@ export async function getAdminMatchesTv(): Promise<{
       matches: matches.map((match) => ({
         ...match,
         competition: competitionsById.get(match.competition_id) ?? null,
-        season: null,
-        matchday: null,
+        season: seasonsById.get(match.season_id) ?? null,
+        matchday: match.matchday_id ? matchdaysById.get(match.matchday_id) ?? null : null,
         homeTeam: teamsById.get(match.home_team_id) ?? null,
         awayTeam: teamsById.get(match.away_team_id) ?? null,
         broadcastChannel: match.broadcast_channel_id ? channelsById.get(match.broadcast_channel_id) ?? null : null
       })),
+      competitions,
+      seasons,
+      matchdays,
       broadcastChannels
     };
   } catch (error) {
@@ -821,6 +838,9 @@ export async function getAdminMatchesTv(): Promise<{
       writeConfigured,
       error: error instanceof Error ? error.message : "Erro desconhecido ao ler jogos.",
       matches: [],
+      competitions: [],
+      seasons: [],
+      matchdays: [],
       broadcastChannels: []
     };
   }

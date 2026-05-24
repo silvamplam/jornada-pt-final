@@ -1,4 +1,5 @@
 import { getAdminMatchesTv } from "@/lib/supabase";
+import { BulkBroadcastTool } from "./BulkBroadcastTool";
 
 export const dynamic = "force-dynamic";
 
@@ -95,19 +96,161 @@ const matchTvAdminStyles = `
     box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
   }
 
+  .match-tv-bulk {
+    margin-top: 18px;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
+  }
+
+  .match-tv-bulk header,
   .match-tv-list header {
     padding: 18px 20px;
     border-bottom: 1px solid #e6ebf1;
   }
 
+  .match-tv-bulk h2,
   .match-tv-list h2 {
     margin: 0;
     font-size: 21px;
     text-transform: uppercase;
   }
 
+  .match-tv-bulk small,
   .match-tv-list small {
     color: #687380;
+  }
+
+  .match-tv-bulk-body {
+    display: grid;
+    gap: 14px;
+    padding: 18px 20px 20px;
+  }
+
+  .match-tv-bulk-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: end;
+    justify-content: space-between;
+  }
+
+  .match-tv-bulk-controls label {
+    display: grid;
+    flex: 1 1 280px;
+    gap: 5px;
+  }
+
+  .match-tv-bulk-controls span {
+    color: #687380;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .match-tv-bulk select,
+  .match-tv-bulk textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 11px;
+    border: 1px solid #cfd8e3;
+    border-radius: 6px;
+    background: #ffffff;
+    font: inherit;
+    font-size: 14px;
+  }
+
+  .match-tv-bulk textarea {
+    min-height: 150px;
+    resize: vertical;
+  }
+
+  .match-tv-bulk-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .match-tv-bulk button {
+    min-height: 39px;
+    padding: 10px 13px;
+    border: 0;
+    border-radius: 6px;
+    background: #e5252a;
+    color: #ffffff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .match-tv-bulk button.match-tv-secondary {
+    background: #25303c;
+  }
+
+  .match-tv-bulk button:disabled,
+  .match-tv-bulk select:disabled,
+  .match-tv-bulk textarea:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .match-tv-bulk-message,
+  .match-tv-bulk-help {
+    margin: 0;
+    color: #607086;
+    font-size: 13px;
+  }
+
+  .match-tv-preview {
+    display: grid;
+    gap: 12px;
+  }
+
+  .match-tv-preview-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .match-tv-preview-summary span {
+    padding: 6px 9px;
+    border-radius: 999px;
+    background: #eef2f6;
+    color: #34404d;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .match-tv-preview-table-wrap {
+    overflow-x: auto;
+    border: 1px solid #e3e9f0;
+    border-radius: 8px;
+  }
+
+  .match-tv-preview table {
+    width: 100%;
+    min-width: 920px;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .match-tv-preview th,
+  .match-tv-preview td {
+    padding: 10px;
+    border-bottom: 1px solid #e9eef4;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .match-tv-preview th {
+    background: #f8fafc;
+    color: #536173;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
   }
 
   .match-tv-form {
@@ -336,6 +479,13 @@ export default async function AdminMatchesTvPage({ searchParams }: MatchesTvPage
       {overview.error ? <section className="match-tv-message warning">{overview.error}</section> : null}
       {message ? <section className="match-tv-message warning">{message}</section> : null}
       {params.updated ? <section className="match-tv-message success">Canal do jogo atualizado.</section> : null}
+
+      <BulkBroadcastTool
+        broadcastChannels={overview.broadcastChannels}
+        canWrite={canWrite}
+        competitions={overview.competitions}
+        seasons={overview.seasons}
+      />
 
       <section className="match-tv-list">
         <header>
