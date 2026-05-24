@@ -53,6 +53,10 @@ type ClassificationSplit = {
   goalDifference: number;
   points: number;
 };
+type ClassificationRecentResult = {
+  label: string;
+  title: string;
+};
 type ClassificationRow = {
   teamId: string;
   name: string;
@@ -66,7 +70,7 @@ type ClassificationRow = {
   goalsAgainst: number;
   goalDifference: number;
   points: number;
-  recentForm: string[];
+  recentForm: ClassificationRecentResult[];
   home: ClassificationSplit;
   away: ClassificationSplit;
 };
@@ -1592,8 +1596,14 @@ function buildAccumulatedClassification({
       home.home.wins += 1;
       home.home.points += 3;
       away.away.losses += 1;
-      home.recentForm.push("V(C)");
-      away.recentForm.push("D(F)");
+      home.recentForm.push({
+        label: "V(C)",
+        title: `V(C) - vs ${away.name}, ${match.home_score}-${match.away_score}`
+      });
+      away.recentForm.push({
+        label: "D(F)",
+        title: `D(F) - vs ${home.name}, ${match.away_score}-${match.home_score}`
+      });
     } else if (match.home_score < match.away_score) {
       away.wins += 1;
       away.points += 3;
@@ -1601,8 +1611,14 @@ function buildAccumulatedClassification({
       away.away.wins += 1;
       away.away.points += 3;
       home.home.losses += 1;
-      home.recentForm.push("D(C)");
-      away.recentForm.push("V(F)");
+      home.recentForm.push({
+        label: "D(C)",
+        title: `D(C) - vs ${away.name}, ${match.home_score}-${match.away_score}`
+      });
+      away.recentForm.push({
+        label: "V(F)",
+        title: `V(F) - vs ${home.name}, ${match.away_score}-${match.home_score}`
+      });
     } else {
       home.draws += 1;
       away.draws += 1;
@@ -1612,8 +1628,14 @@ function buildAccumulatedClassification({
       away.away.draws += 1;
       home.home.points += 1;
       away.away.points += 1;
-      home.recentForm.push("E(C)");
-      away.recentForm.push("E(F)");
+      home.recentForm.push({
+        label: "E(C)",
+        title: `E(C) - vs ${away.name}, ${match.home_score}-${match.away_score}`
+      });
+      away.recentForm.push({
+        label: "E(F)",
+        title: `E(F) - vs ${home.name}, ${match.away_score}-${match.home_score}`
+      });
     }
 
     home.goalDifference = home.goalsFor - home.goalsAgainst;
@@ -2049,6 +2071,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               <button className="manager-link-button" type="button" disabled>
                 Remover
               </button>
+              <button className="manager-link-button" type="button" data-close-details="true">
+                Fechar correcao
+              </button>
             </div>
           </details>
         </li>
@@ -2173,6 +2198,16 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             document.addEventListener("click", function (event) {
               var target = event.target;
               if (!(target instanceof HTMLElement)) return;
+
+              var closeDetails = target.closest('[data-close-details="true"]');
+              if (closeDetails) {
+                var details = closeDetails.closest("details");
+                if (details instanceof HTMLDetailsElement) {
+                  details.open = false;
+                }
+                return;
+              }
+
               var trigger = target.closest('[data-file-trigger]');
               if (!trigger) return;
               var targetName = trigger.getAttribute("data-file-trigger");
@@ -3570,16 +3605,18 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                                   <span className="manager-form-list">
                                     {row.recentForm.map((result, resultIndex) => (
                                       <span
-                                        key={`${row.teamId}-${resultIndex}-${result}`}
+                                        key={`${row.teamId}-${resultIndex}-${result.label}`}
+                                        title={result.title}
+                                        aria-label={result.title}
                                         className={
-                                          result.startsWith("V")
+                                          result.label.startsWith("V")
                                             ? "manager-form-win"
-                                            : result.startsWith("D")
+                                            : result.label.startsWith("D")
                                               ? "manager-form-loss"
                                               : "manager-form-draw"
                                         }
                                       >
-                                        {result}
+                                        {result.label}
                                       </span>
                                     ))}
                                   </span>
