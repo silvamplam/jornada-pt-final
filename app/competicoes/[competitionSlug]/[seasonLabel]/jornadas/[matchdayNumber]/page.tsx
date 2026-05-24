@@ -103,21 +103,43 @@ const publicMatchdayStyles = `
 
   .public-matchday-list {
     display: grid;
-    gap: 12px;
+    gap: 18px;
     padding: 20px;
+  }
+
+  .public-matchday-group {
+    display: grid;
+    gap: 10px;
+  }
+
+  .public-matchday-group h3 {
+    color: #263241;
+    font-size: 14px;
+    font-weight: 900;
+    text-transform: uppercase;
   }
 
   .public-matchday-card {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    gap: 10px;
+    gap: 12px;
     align-items: center;
-    width: min(760px, 100%);
+    width: min(820px, 100%);
     margin: 0 auto;
-    padding: 16px;
+    padding: 14px 16px;
     border: 1px solid #e3e9f0;
     border-radius: 8px;
     background: #ffffff;
+  }
+
+  .public-matchday-card-finished {
+    border-color: #cfe5d7;
+    background: #fbfffc;
+  }
+
+  .public-matchday-card-live {
+    border-color: #f5c2c7;
+    background: #fff8f8;
   }
 
   .public-matchday-team:first-child {
@@ -126,6 +148,25 @@ const publicMatchdayStyles = `
 
   .public-matchday-team:last-of-type {
     text-align: left;
+  }
+
+  .public-matchday-team {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .public-matchday-team:first-child {
+    justify-content: flex-end;
+  }
+
+  .public-matchday-team:last-of-type {
+    justify-content: flex-start;
+  }
+
+  .public-matchday-team-copy {
+    min-width: 0;
   }
 
   .public-matchday-team strong,
@@ -144,13 +185,63 @@ const publicMatchdayStyles = `
     text-transform: uppercase;
   }
 
+  .public-matchday-team-winner strong {
+    color: #137a3a;
+  }
+
+  .public-team-badge {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    overflow: hidden;
+    border: 1px solid #d8dee6;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #263241;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .public-team-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
   .public-matchday-score {
-    min-width: 74px;
+    min-width: 86px;
     text-align: center;
   }
 
   .public-matchday-score strong {
-    font-size: 22px;
+    font-size: 24px;
+    letter-spacing: 0;
+  }
+
+  .public-matchday-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #eef2f6;
+  }
+
+  .public-matchday-status-finished {
+    background: #eaf7ef;
+    color: #137a3a;
+  }
+
+  .public-matchday-status-live {
+    background: #fee2e2;
+    color: #b4232b;
+  }
+
+  .public-matchday-status-scheduled {
+    background: #eef2f6;
+    color: #506075;
   }
 
   .public-matchday-meta {
@@ -369,18 +460,50 @@ function statusLabel(status: string) {
   const normalized = status.trim().toLowerCase();
   if (normalized === "finished") return "Finalizado";
   if (normalized === "scheduled") return "Agendado";
+  if (normalized === "live") return "Em direto";
+  if (normalized === "halftime") return "Intervalo";
   if (normalized === "postponed") return "Adiado";
   if (normalized === "cancelled") return "Cancelado";
   return status;
 }
 
+function statusKind(status: string) {
+  const normalized = status.trim().toLowerCase();
+  if (normalized === "finished") return "finished";
+  if (normalized === "live" || normalized === "halftime") return "live";
+  if (normalized === "scheduled") return "scheduled";
+  return "scheduled";
+}
+
 function matchResult(match: PublicSeasonMatch) {
   const hasScore = match.home_score !== null && match.away_score !== null;
-  if (match.status !== "finished" || !hasScore) {
+  const kind = statusKind(match.status);
+  if ((kind !== "finished" && kind !== "live") || !hasScore) {
     return "vs";
   }
 
-  return `${match.home_score}-${match.away_score}`;
+  return `${match.home_score} - ${match.away_score}`;
+}
+
+function teamInitials(name?: string | null, shortName?: string | null) {
+  const source = shortName || name || "";
+  const initials = source
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 3)
+    .toUpperCase();
+
+  return initials || "FC";
+}
+
+function isWinner(match: PublicSeasonMatch, side: "home" | "away") {
+  if (match.status !== "finished" || match.home_score === null || match.away_score === null || match.home_score === match.away_score) {
+    return false;
+  }
+
+  return side === "home" ? match.home_score > match.away_score : match.away_score > match.home_score;
 }
 
 function renderStatsCells(stats: ClassificationSplit, options: { divider?: boolean; emphasizePoints?: boolean; group?: string } = {}) {
@@ -413,6 +536,48 @@ function renderStatHeaders(group: string) {
       {column.label}
     </th>
   ));
+}
+
+function TeamBadge({ logoUrl, name, shortName }: { logoUrl?: string | null; name?: string | null; shortName?: string | null }) {
+  return (
+    <span className="public-team-badge" aria-hidden="true">
+      {logoUrl ? <img alt="" src={logoUrl} /> : teamInitials(name, shortName)}
+    </span>
+  );
+}
+
+function MatchCard({ match }: { match: PublicSeasonMatch }) {
+  const kind = statusKind(match.status);
+  const statusText = match.minute && kind === "live" ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
+  const homeWinner = isWinner(match, "home");
+  const awayWinner = isWinner(match, "away");
+
+  return (
+    <article className={`public-matchday-card public-matchday-card-${kind}`} key={match.id}>
+      <div className={`public-matchday-team ${homeWinner ? "public-matchday-team-winner" : ""}`}>
+        <div className="public-matchday-team-copy">
+          <strong>{match.homeTeam?.name ?? "Equipa da casa"}</strong>
+          <small>Casa</small>
+        </div>
+        <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
+      </div>
+      <div className="public-matchday-score">
+        <strong>{matchResult(match)}</strong>
+        <small className={`public-matchday-status public-matchday-status-${kind}`}>{statusText}</small>
+      </div>
+      <div className={`public-matchday-team ${awayWinner ? "public-matchday-team-winner" : ""}`}>
+        <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
+        <div className="public-matchday-team-copy">
+          <strong>{match.awayTeam?.name ?? "Equipa visitante"}</strong>
+          <small>Fora</small>
+        </div>
+      </div>
+      <div className="public-matchday-meta">
+        <span>{formatKickoff(match.kickoff_at)}</span>
+        {match.venue ? <span>{match.venue}</span> : null}
+      </div>
+    </article>
+  );
 }
 
 function DiagnosticPanel({ diagnostic }: { diagnostic: PublicMatchdayDiagnostic }) {
@@ -451,6 +616,9 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
     selectedMatchday: context.matchday
   });
   const matchdayHref = (number: number) => `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/${number}`;
+  const liveMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "live");
+  const finishedMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "finished");
+  const scheduledMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "scheduled");
 
   return (
     <main className="public-matchday-shell">
@@ -491,28 +659,25 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
         <div className="public-matchday-list">
           {context.matchesForMatchday.length === 0 ? (
             <p>Ainda não há jogos nesta jornada.</p>
-          ) : (
-            context.matchesForMatchday.map((match) => (
-              <article className="public-matchday-card" key={match.id}>
-                <div className="public-matchday-team">
-                  <strong>{match.homeTeam?.name ?? "Equipa da casa"}</strong>
-                  <small>Casa</small>
-                </div>
-                <div className="public-matchday-score">
-                  <strong>{matchResult(match)}</strong>
-                  <small>{statusLabel(match.status)}</small>
-                </div>
-                <div className="public-matchday-team">
-                  <strong>{match.awayTeam?.name ?? "Equipa visitante"}</strong>
-                  <small>Fora</small>
-                </div>
-                <div className="public-matchday-meta">
-                  <span>{formatKickoff(match.kickoff_at)}</span>
-                  {match.venue ? <span>{match.venue}</span> : null}
-                </div>
-              </article>
-            ))
-          )}
+          ) : null}
+          {liveMatches.length > 0 ? (
+            <section className="public-matchday-group" aria-label="Jogos em direto">
+              <h3>Jogos em direto</h3>
+              {liveMatches.map((match) => <MatchCard key={match.id} match={match} />)}
+            </section>
+          ) : null}
+          {finishedMatches.length > 0 ? (
+            <section className="public-matchday-group" aria-label="Jogos finalizados">
+              <h3>Jogos finalizados</h3>
+              {finishedMatches.map((match) => <MatchCard key={match.id} match={match} />)}
+            </section>
+          ) : null}
+          {scheduledMatches.length > 0 ? (
+            <section className="public-matchday-group" aria-label="Jogos agendados">
+              <h3>Jogos agendados</h3>
+              {scheduledMatches.map((match) => <MatchCard key={match.id} match={match} />)}
+            </section>
+          ) : null}
         </div>
       </section>
 
