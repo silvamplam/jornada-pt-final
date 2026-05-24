@@ -1,4 +1,5 @@
 import { getAdminTeams } from "@/lib/supabase";
+import { Fragment } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -192,6 +193,16 @@ const teamAdminStyles = `
     cursor: pointer;
   }
 
+  .team-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .team-form .team-remove-button {
+    background: #10151b;
+  }
+
   .team-form button:disabled,
   .team-field input:disabled {
     cursor: not-allowed;
@@ -204,6 +215,10 @@ const teamAdminStyles = `
     }
 
     .team-form button {
+      grid-column: 1 / -1;
+    }
+
+    .team-actions {
       grid-column: 1 / -1;
     }
   }
@@ -224,6 +239,7 @@ const teamAdminStyles = `
 type TeamsPageProps = {
   searchParams: Promise<{
     created?: string;
+    deleted?: string;
     updated?: string;
     error?: string;
   }>;
@@ -242,6 +258,14 @@ function errorMessage(error?: string) {
     return "Nao foi possivel guardar. Confirma se o slug nao esta repetido.";
   }
 
+  if (error === "delete") {
+    return "Nao foi possivel remover este clube.";
+  }
+
+  if (error === "team-has-dependencies") {
+    return "Este clube nao pode ser removido porque ainda tem participantes, jogos ou outros dados associados.";
+  }
+
   return null;
 }
 
@@ -254,6 +278,24 @@ export default async function AdminTeamsPage({ searchParams }: TeamsPageProps) {
   return (
     <main className="team-admin-shell">
       <style>{teamAdminStyles}</style>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            document.addEventListener("click", function (event) {
+              var button = event.target;
+              if (!(button instanceof HTMLButtonElement)) return;
+              var formId = button.getAttribute("data-submit-form");
+              var message = button.getAttribute("data-confirm");
+              if (!formId) return;
+              if (message && !window.confirm(message)) return;
+              var form = document.getElementById(formId);
+              if (form instanceof HTMLFormElement) {
+                form.requestSubmit();
+              }
+            });
+          `
+        }}
+      />
       <header className="team-admin-hero">
         <div>
           <p>Jornada.pt</p>
@@ -279,6 +321,7 @@ export default async function AdminTeamsPage({ searchParams }: TeamsPageProps) {
       {message ? <section className="team-admin-message warning">{message}</section> : null}
       {params.created ? <section className="team-admin-message success">Clube criado.</section> : null}
       {params.updated ? <section className="team-admin-message success">Clube atualizado.</section> : null}
+      {params.deleted ? <section className="team-admin-message success">Clube removido.</section> : null}
 
       <section className="team-admin-create">
         <header>
@@ -315,13 +358,14 @@ export default async function AdminTeamsPage({ searchParams }: TeamsPageProps) {
         </form>
       </section>
 
-      <section className="team-admin-list">
+      <section className="team-admin-list" id="clubes-existentes">
         <header>
           <h2>Clubes existentes</h2>
           <small>{overview.teams.length} clubes na base de dados</small>
         </header>
         {overview.teams.map((team) => (
-          <form action={`/api/admin/teams/${team.id}`} className="team-form" key={team.id} method="post">
+          <Fragment key={team.id}>
+          <form action={`/api/admin/teams/${team.id}`} className="team-form" id={`team-update-${team.id}`} method="post">
             <figure>{team.logo_url ? <img alt="" src={team.logo_url} /> : team.short_name}</figure>
             <div className="team-field">
               <label htmlFor={`name-${team.id}`}>Nome</label>
@@ -359,8 +403,23 @@ export default async function AdminTeamsPage({ searchParams }: TeamsPageProps) {
                 defaultValue={team.primary_color ?? ""}
               />
             </div>
-            <button disabled={!canWrite} type="submit">Guardar</button>
+            <div className="team-actions">
+              <button disabled={!canWrite} type="submit">Guardar</button>
+              <button
+                className="team-remove-button"
+                data-confirm="Tem a certeza que pretende remover este clube? Esta acao so sera possivel se o clube nao tiver dependencias."
+                data-submit-form={`team-delete-${team.id}`}
+                disabled={!canWrite}
+                type="button"
+              >
+                Remover
+              </button>
+            </div>
           </form>
+          <form action={`/api/admin/teams/${team.id}`} hidden id={`team-delete-${team.id}`} method="post">
+            <input type="hidden" name="action_type" value="delete" />
+          </form>
+          </Fragment>
         ))}
       </section>
     </main>
