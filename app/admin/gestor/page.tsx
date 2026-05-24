@@ -895,6 +895,44 @@ const managerStyles = `
     font-size: 15px;
   }
 
+  .manager-finished-match {
+    align-items: start;
+  }
+
+  .manager-finished-score {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    color: #17202b;
+    font-size: 15px;
+    font-weight: 900;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .manager-manual-actions {
+    justify-self: end;
+    min-width: min(360px, 100%);
+    border: 1px dashed #dce3eb;
+    border-radius: 8px;
+    background: #fbfcfe;
+  }
+
+  .manager-manual-actions summary {
+    display: flex;
+    cursor: pointer;
+    padding: 9px 11px;
+    color: #5b6673;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .manager-manual-actions .manager-actions {
+    justify-content: flex-start;
+    padding: 10px;
+  }
+
   @media (max-width: 1180px) {
     .manager-form,
     .manager-path,
@@ -1884,6 +1922,52 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
       match.status !== "scheduled" ||
       match.minute !== null ||
       match.broadcast_channel_id !== null;
+    const isFinished = match.status === "finished";
+
+    if (isFinished) {
+      return (
+        <li key={match.id} className="manager-finished-match">
+          <div>
+            <b className="manager-finished-score">
+              {homeTeam?.name ?? "Casa"} {match.home_score ?? "-"}-{match.away_score ?? "-"} {awayTeam?.name ?? "Fora"}
+            </b>
+            <small>
+              {formatLisbonDateTime(match.kickoff_at)} - {match.venue ?? "Sem estadio"} - {statusLabel}
+            </small>
+          </div>
+          <details className="manager-manual-actions">
+            <summary>Corrigir resultado</summary>
+            <div className="manager-actions">
+              <form className="manager-actions" action="/api/admin/gestor" method="post">
+                <input type="hidden" name="action_type" value="finish_match" />
+                <input type="hidden" name="return_to" value={matchesReturnTo} />
+                <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
+                <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+                <input type="hidden" name="matchday_id" value={selectedMatchday?.id ?? ""} />
+                <input type="hidden" name="match_id" value={match.id} />
+                <label className="manager-score-field">
+                  <span>Casa</span>
+                  <input name="home_score" type="number" min={0} step={1} defaultValue={match.home_score ?? ""} required />
+                </label>
+                <label className="manager-score-field">
+                  <span>Fora</span>
+                  <input name="away_score" type="number" min={0} step={1} defaultValue={match.away_score ?? ""} required />
+                </label>
+                <button className="manager-link-button" type="submit">
+                  Guardar resultado
+                </button>
+              </form>
+              <button className="manager-link-button" type="button" disabled>
+                Editar agenda
+              </button>
+              <button className="manager-link-button" type="button" disabled>
+                Remover
+              </button>
+            </div>
+          </details>
+        </li>
+      );
+    }
 
     return (
       <li key={match.id}>
