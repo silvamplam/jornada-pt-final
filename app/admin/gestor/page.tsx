@@ -335,6 +335,35 @@ const managerStyles = `
     box-shadow: none;
   }
 
+  .manager-future-card {
+    border-style: dashed;
+    background: #f8fafc;
+    box-shadow: none;
+  }
+
+  .manager-calendar-future,
+  .manager-jornada-selector {
+    order: 1;
+  }
+
+  .manager-calendar-list,
+  .manager-match-form {
+    order: 2;
+  }
+
+  .manager-calendar-fallback,
+  .manager-match-scheduled {
+    order: 3;
+  }
+
+  .manager-match-live {
+    order: 4;
+  }
+
+  .manager-match-finished {
+    order: 5;
+  }
+
   .manager-section-clubs {
     border-style: dashed;
     background: #fbfcfe;
@@ -1333,6 +1362,11 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const selectedMatchday =
     matchdaysForSeason.find((matchday) => matchday.id === requestedMatchdayId) ?? matchdaysForSeason[0] ?? null;
   const matchesForMatchday = await readMatchesForMatchday(selectedMatchday?.id);
+  const scheduledMatchesForMatchday = matchesForMatchday.filter((match) => match.status === "scheduled");
+  const futureLiveMatchesForMatchday = matchesForMatchday.filter(
+    (match) => match.status !== "scheduled" && match.status !== "finished"
+  );
+  const finishedMatchesForMatchday = matchesForMatchday.filter((match) => match.status === "finished");
   const matchesForSeason = await readMatchesForSeason(selectedSeason?.id);
   const blockingMatchdaysForSeason = await readBlockingMatchdaysForSeason(selectedSeason?.id);
   const blockingMatchesForSeason = await readBlockingMatchesForSeason(selectedSeason?.id);
@@ -1542,6 +1576,84 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     }
 
     return null;
+  };
+
+  const renderMatchListItem = (match: SeasonAgendaMatch) => {
+    const homeTeam = participantTeamsById.get(match.home_team_id);
+    const awayTeam = participantTeamsById.get(match.away_team_id);
+    const hasFinalScore = match.home_score !== null && match.away_score !== null;
+    const statusLabel = match.status === "finished" ? "Finalizado" : "Agendado";
+    const scoreLabel = hasFinalScore ? ` - ${match.home_score}-${match.away_score}` : "";
+    const hasCompetitiveData =
+      hasFinalScore ||
+      match.status !== "scheduled" ||
+      match.minute !== null ||
+      match.broadcast_channel_id !== null;
+
+    return (
+      <li key={match.id}>
+        <div>
+          <b>
+            {homeTeam?.name ?? "Casa"} vs {awayTeam?.name ?? "Fora"}
+          </b>
+          <small>
+            {formatLisbonDateTime(match.kickoff_at)} - {match.venue ?? "Sem estadio"} - {statusLabel}
+            {scoreLabel}
+          </small>
+        </div>
+        <div className="manager-actions">
+          <form className="manager-actions" action="/api/admin/gestor" method="post">
+            <input type="hidden" name="action_type" value="finish_match" />
+            <input type="hidden" name="return_to" value={matchesReturnTo} />
+            <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
+            <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+            <input type="hidden" name="matchday_id" value={selectedMatchday?.id ?? ""} />
+            <input type="hidden" name="match_id" value={match.id} />
+            <label className="manager-score-field">
+              <span>Casa</span>
+              <input name="home_score" type="number" min={0} step={1} defaultValue={match.home_score ?? ""} required />
+            </label>
+            <label className="manager-score-field">
+              <span>Fora</span>
+              <input name="away_score" type="number" min={0} step={1} defaultValue={match.away_score ?? ""} required />
+            </label>
+            <button className="manager-link-button" type="submit">
+              Guardar resultado
+            </button>
+          </form>
+          {hasCompetitiveData ? (
+            <button className="manager-link-button" type="button" disabled>
+              Editar agenda
+            </button>
+          ) : (
+            <a className="manager-link-button" href={`${matchdayReturnTo}&editar_jogo=${match.id}&section=jogos#jogos`}>
+              Editar
+            </a>
+          )}
+          {hasCompetitiveData ? (
+            <button className="manager-link-button" type="button" disabled>
+              Remover
+            </button>
+          ) : (
+            <form
+              action="/api/admin/gestor"
+              data-confirm="Tem a certeza que quer remover este jogo agendado? Esta acao so avanca se o jogo ainda nao tiver resultados, eventos ou outros dados competitivos."
+              method="post"
+            >
+              <input type="hidden" name="action_type" value="remove_match" />
+              <input type="hidden" name="return_to" value={matchesReturnTo} />
+              <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
+              <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+              <input type="hidden" name="matchday_id" value={selectedMatchday?.id ?? ""} />
+              <input type="hidden" name="match_id" value={match.id} />
+              <button className="manager-link-button" type="submit">
+                Remover
+              </button>
+            </form>
+          )}
+        </div>
+      </li>
+    );
   };
 
   return (
@@ -2296,7 +2408,17 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </header>
             {sectionMessage("calendario")}
             <div className="manager-create-grid">
-              <article className="manager-create-card manager-fallback-card">
+              <article className="manager-create-card manager-wide-card manager-future-card manager-calendar-future">
+                <header>
+                  <h3>Importar/colar calendario</h3>
+                  <p>
+                    Espaco futuro para colar jornadas e jogos, pre-visualizar conflitos e aplicar o calendario completo
+                    a epoca selecionada. Ainda sem funcionalidade nesta fase.
+                  </p>
+                </header>
+              </article>
+
+              <article className="manager-create-card manager-fallback-card manager-calendar-fallback">
                 <header>
                   <h3>Criar jornada manualmente</h3>
                   <p>
@@ -2356,7 +2478,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </form>
               </article>
 
-              <article className="manager-create-card manager-wide-card manager-primary-card">
+              <article className="manager-create-card manager-wide-card manager-calendar-list">
                 <header>
                   <h3>{selectedSeason?.label ?? "Sem epoca selecionada"}</h3>
                   <p>{matchdaysForSeason.length} jornadas no calendario desta epoca.</p>
@@ -2403,7 +2525,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </header>
             {sectionMessage("jogos")}
             <div className="manager-create-grid">
-              <article className="manager-create-card">
+              <article className="manager-create-card manager-jornada-selector">
                 <header>
                   <h3>Jornada</h3>
                   <p>
@@ -2443,7 +2565,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </form>
               </article>
 
-              <article className="manager-create-card">
+              <article className="manager-create-card manager-match-form">
                 <header>
                   <h3>{editingMatch ? "Editar jogo" : "Novo jogo"}</h3>
                   <p>
@@ -2550,112 +2672,50 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </form>
               </article>
 
-              <article className="manager-create-card manager-wide-card">
+              <article className="manager-create-card manager-wide-card manager-match-scheduled">
                 <header>
-                  <h3>{selectedMatchday ? `${selectedMatchday.number}. ${selectedMatchday.label}` : "Sem jornada selecionada"}</h3>
-                  <p>{matchesForMatchday.length} jogos agendados nesta jornada.</p>
+                  <h3>Jogos agendados</h3>
+                  <p>
+                    {selectedMatchday
+                      ? `${scheduledMatchesForMatchday.length} jogos ainda tratados como agenda nesta jornada.`
+                      : "Escolhe uma jornada para ver os jogos agendados."}
+                  </p>
                 </header>
                 {!selectedMatchday ? (
                   <div className="manager-empty">Escolhe uma jornada para ver os jogos.</div>
-                ) : matchesForMatchday.length === 0 ? (
-                  <div className="manager-empty">Ainda nao ha jogos nesta jornada.</div>
+                ) : scheduledMatchesForMatchday.length === 0 ? (
+                  <div className="manager-empty">Nao ha jogos agendados nesta jornada.</div>
                 ) : (
-                  <ul className="manager-list">
-                    {matchesForMatchday.map((match) => {
-                      const homeTeam = participantTeamsById.get(match.home_team_id);
-                      const awayTeam = participantTeamsById.get(match.away_team_id);
-                      const hasFinalScore = match.home_score !== null && match.away_score !== null;
-                      const statusLabel = match.status === "finished" ? "Finalizado" : "Agendado";
-                      const scoreLabel = hasFinalScore ? ` - ${match.home_score}-${match.away_score}` : "";
-                      const hasCompetitiveData =
-                        hasFinalScore ||
-                        match.status !== "scheduled" ||
-                        match.minute !== null ||
-                        match.broadcast_channel_id !== null;
+                  <ul className="manager-list">{scheduledMatchesForMatchday.map(renderMatchListItem)}</ul>
+                )}
+              </article>
 
-                      return (
-                        <li key={match.id}>
-                          <div>
-                            <b>
-                              {homeTeam?.name ?? "Casa"} vs {awayTeam?.name ?? "Fora"}
-                            </b>
-                            <small>
-                              {formatLisbonDateTime(match.kickoff_at)} - {match.venue ?? "Sem estadio"} - {statusLabel}
-                              {scoreLabel}
-                            </small>
-                          </div>
-                          <div className="manager-actions">
-                            <form className="manager-actions" action="/api/admin/gestor" method="post">
-                              <input type="hidden" name="action_type" value="finish_match" />
-                              <input type="hidden" name="return_to" value={matchesReturnTo} />
-                              <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
-                              <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
-                              <input type="hidden" name="matchday_id" value={selectedMatchday?.id ?? ""} />
-                              <input type="hidden" name="match_id" value={match.id} />
-                              <label className="manager-score-field">
-                                <span>Casa</span>
-                                <input
-                                  name="home_score"
-                                  type="number"
-                                  min={0}
-                                  step={1}
-                                  defaultValue={match.home_score ?? ""}
-                                  required
-                                />
-                              </label>
-                              <label className="manager-score-field">
-                                <span>Fora</span>
-                                <input
-                                  name="away_score"
-                                  type="number"
-                                  min={0}
-                                  step={1}
-                                  defaultValue={match.away_score ?? ""}
-                                  required
-                                />
-                              </label>
-                              <button className="manager-link-button" type="submit">
-                                Guardar resultado
-                              </button>
-                            </form>
-                            {hasCompetitiveData ? (
-                              <button className="manager-link-button" type="button" disabled>
-                                Editar agenda
-                              </button>
-                            ) : (
-                              <a
-                                className="manager-link-button"
-                                href={`${matchdayReturnTo}&editar_jogo=${match.id}&section=jogos#jogos`}
-                              >
-                                Editar
-                              </a>
-                            )}
-                            {hasCompetitiveData ? (
-                              <button className="manager-link-button" type="button" disabled>
-                                Remover
-                              </button>
-                            ) : (
-                              <form
-                                action="/api/admin/gestor"
-                                data-confirm="Tem a certeza que quer remover este jogo agendado? Esta acao so avanca se o jogo ainda nao tiver resultados, eventos ou outros dados competitivos."
-                                method="post"
-                              >
-                                <input type="hidden" name="action_type" value="remove_match" />
-                                <input type="hidden" name="return_to" value={matchesReturnTo} />
-                                <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
-                                <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
-                                <input type="hidden" name="matchday_id" value={selectedMatchday?.id ?? ""} />
-                                <input type="hidden" name="match_id" value={match.id} />
-                                <button className="manager-link-button" type="submit">
-                                  Remover
-                                </button>
-                              </form>
-                            )}
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
+              <article className="manager-create-card manager-wide-card manager-future-card manager-match-live">
+                <header>
+                  <h3>Jogos em direto</h3>
+                  <p>
+                    {futureLiveMatchesForMatchday.length > 0
+                      ? `${futureLiveMatchesForMatchday.length} jogos com estado reservado para operacao futura.`
+                      : "Espaco futuro para estado em direto, minuto e eventos. Ainda sem controlos nesta fase."}
+                  </p>
+                </header>
+              </article>
+
+              <article className="manager-create-card manager-wide-card manager-match-finished">
+                <header>
+                  <h3>Jogos finalizados</h3>
+                  <p>
+                    {selectedMatchday
+                      ? `${finishedMatchesForMatchday.length} jogos com resultado final nesta jornada.`
+                      : "Escolhe uma jornada para ver os jogos finalizados."}
+                  </p>
+                </header>
+                {!selectedMatchday ? (
+                  <div className="manager-empty">Escolhe uma jornada para ver os resultados.</div>
+                ) : finishedMatchesForMatchday.length === 0 ? (
+                  <div className="manager-empty">Ainda nao ha jogos finalizados nesta jornada.</div>
+                ) : (
+                  <ul className="manager-list">{finishedMatchesForMatchday.map(renderMatchListItem)}</ul>
                 )}
               </article>
             </div>
