@@ -1210,7 +1210,9 @@ function buildCalendarPreview({
   const matchdaysByNumber = new Map(matchdaysForSeason.map((matchday) => [matchday.number, matchday]));
   const usedTeamsByMatchday = new Map<number, Set<string>>();
   const existingMatchKeys = new Set<string>();
+  const existingSeasonMatchKeys = new Set<string>();
   const seenMatchKeys = new Set<string>();
+  const seenSeasonMatchKeys = new Set<string>();
   const seenNewMatchdays = new Set<number>();
   const seenReuseMatchdays = new Set<number>();
   const rows: CalendarPreviewRow[] = [];
@@ -1226,6 +1228,7 @@ function buildCalendarPreview({
 
   const matchdayNumberById = new Map(matchdaysForSeason.map((matchday) => [matchday.id, matchday.number]));
   matchesForSeason.forEach((match) => {
+    existingSeasonMatchKeys.add(`${match.home_team_id}:${match.away_team_id}`);
     if (!match.matchday_id) return;
     const number = matchdayNumberById.get(match.matchday_id);
     if (!number) return;
@@ -1280,6 +1283,7 @@ function buildCalendarPreview({
       }
 
       const matchKey = `${matchdayNumber}:${homeTeam.id}:${awayTeam.id}`;
+      const seasonMatchKey = `${homeTeam.id}:${awayTeam.id}`;
       if (existingMatchKeys.has(matchKey)) {
         summary.existingMatches += 1;
         seenReuseMatchdays.add(matchdayNumber);
@@ -1287,7 +1291,13 @@ function buildCalendarPreview({
         return;
       }
 
-      if (seenMatchKeys.has(matchKey)) {
+      if (existingSeasonMatchKeys.has(seasonMatchKey)) {
+        summary.conflicts += 1;
+        rows.push({ ...baseRow, status: "conflito", note: "Este jogo ja existe nesta epoca." });
+        return;
+      }
+
+      if (seenMatchKeys.has(matchKey) || seenSeasonMatchKeys.has(seasonMatchKey)) {
         summary.conflicts += 1;
         rows.push({ ...baseRow, status: "duplicado na lista", note: "Este jogo aparece mais do que uma vez na lista." });
         return;
@@ -1301,6 +1311,7 @@ function buildCalendarPreview({
       }
 
       seenMatchKeys.add(matchKey);
+      seenSeasonMatchKeys.add(seasonMatchKey);
       usedTeams.add(homeTeam.id);
       usedTeams.add(awayTeam.id);
       usedTeamsByMatchday.set(matchdayNumber, usedTeams);
@@ -1961,6 +1972,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "match-team-same": "A equipa da casa e a equipa visitante nao podem ser o mesmo clube.",
     "match-team-not-participant": "As equipas do jogo tem de ser participantes manuais desta epoca.",
     "match-team-already-in-matchday": "Esta equipa ja tem jogo nesta jornada.",
+    "match-duplicate-season": "Este jogo ja existe nesta epoca.",
     "match-not-found": "Nao foi possivel encontrar este jogo na jornada selecionada.",
     "match-not-simple": "Este jogo ja tem dados competitivos associados e nao pode ser alterado nesta area.",
     "match-has-dependencies": "Este jogo ja tem eventos, noticias ou atualizacoes associadas e nao pode ser removido nesta area.",

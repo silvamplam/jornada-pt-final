@@ -728,13 +728,15 @@ async function applyCalendarList(formData: FormData): Promise<CalendarApplySumma
   const involvedMatchdaysByNumber = new Map<number, CalendarMatchdayRow>();
   const seenCreatedOrReusedMatchdays = new Set<number>();
   const existingMatches = await fetchSupabaseAdminTable<ExistingCalendarMatchRow>(
-    `matches?select=id,matchday_id,home_team_id,away_team_id&season_id=eq.${encodeURIComponent(seasonId)}&manual_override=is.true&limit=1000`
+    `matches?select=id,matchday_id,home_team_id,away_team_id&season_id=eq.${encodeURIComponent(seasonId)}&limit=1000`
   );
   const matchdayNumberById = new Map(matchdayRows.map((matchday) => [matchday.id, matchday.number]));
   const usedTeamsByMatchday = new Map<number, Set<string>>();
   const existingMatchKeys = new Set<string>();
+  const existingSeasonMatchKeys = new Set<string>();
 
   existingMatches.forEach((match) => {
+    existingSeasonMatchKeys.add(`${match.home_team_id}:${match.away_team_id}`);
     if (!match.matchday_id) return;
     const number = matchdayNumberById.get(match.matchday_id);
     if (!number) return;
@@ -747,6 +749,7 @@ async function applyCalendarList(formData: FormData): Promise<CalendarApplySumma
   });
 
   const seenMatchKeys = new Set<string>();
+  const seenSeasonMatchKeys = new Set<string>();
 
   for (const row of parsed.rows) {
     const homeTeam = teamsByKey.get(teamLookupKey(row.homeName));
@@ -763,6 +766,7 @@ async function applyCalendarList(formData: FormData): Promise<CalendarApplySumma
     }
 
     const matchKey = `${row.matchdayNumber}:${homeTeam.id}:${awayTeam.id}`;
+    const seasonMatchKey = `${homeTeam.id}:${awayTeam.id}`;
     if (existingMatchKeys.has(matchKey)) {
       const existingMatchday = matchdaysByNumber.get(row.matchdayNumber);
       if (existingMatchday) {
@@ -772,7 +776,7 @@ async function applyCalendarList(formData: FormData): Promise<CalendarApplySumma
       continue;
     }
 
-    if (seenMatchKeys.has(matchKey)) {
+    if (existingSeasonMatchKeys.has(seasonMatchKey) || seenMatchKeys.has(matchKey) || seenSeasonMatchKeys.has(seasonMatchKey)) {
       summary.blockedConflicts += 1;
       continue;
     }
@@ -814,6 +818,7 @@ async function applyCalendarList(formData: FormData): Promise<CalendarApplySumma
     seenCreatedOrReusedMatchdays.add(row.matchdayNumber);
     involvedMatchdaysByNumber.set(row.matchdayNumber, matchday);
     seenMatchKeys.add(matchKey);
+    seenSeasonMatchKeys.add(seasonMatchKey);
     usedTeams.add(homeTeam.id);
     usedTeams.add(awayTeam.id);
     usedTeamsByMatchday.set(row.matchdayNumber, usedTeams);
@@ -928,6 +933,24 @@ async function assertTeamsFreeInMatchday(
   }
 }
 
+async function assertUniqueSeasonMatch(
+  seasonId: string,
+  homeTeamId: string,
+  awayTeamId: string,
+  ignoredMatchId?: string | null
+) {
+  const matches = await fetchSupabaseAdminTable<{ id: string }>(
+    `matches?select=id&season_id=eq.${encodeURIComponent(seasonId)}&home_team_id=eq.${encodeURIComponent(
+      homeTeamId
+    )}&away_team_id=eq.${encodeURIComponent(awayTeamId)}`
+  );
+  const duplicate = matches.some((match) => match.id !== ignoredMatchId);
+
+  if (duplicate) {
+    throw new Error("match-duplicate-season");
+  }
+}
+
 async function hasMatchDependencies(matchId: string) {
   const encodedMatchId = encodeURIComponent(matchId);
 
@@ -971,6 +994,7 @@ async function createMatch(formData: FormData) {
   }
 
   await assertMatchTeamsAreManualParticipants(seasonId, homeTeamId, awayTeamId);
+  await assertUniqueSeasonMatch(seasonId, homeTeamId, awayTeamId);
   await assertTeamsFreeInMatchday(matchdayId, homeTeamId, awayTeamId);
 
   await writeSupabaseAdmin("matches", {
@@ -1027,6 +1051,7 @@ async function updateMatch(formData: FormData) {
   }
 
   await assertMatchTeamsAreManualParticipants(seasonId, homeTeamId, awayTeamId);
+  await assertUniqueSeasonMatch(seasonId, homeTeamId, awayTeamId, matchId);
   await assertTeamsFreeInMatchday(matchdayId, homeTeamId, awayTeamId, matchId);
 
   await writeSupabaseAdmin(
