@@ -204,41 +204,48 @@ const managerStyles = `
   }
 
   .manager-section-base {
-    order: 1;
-  }
-
-  .manager-section-check {
-    order: 2;
-  }
-
-  .manager-section-clubs {
-    order: 4;
-  }
-
-  .manager-section-participants {
-    order: 5;
-  }
-
-  .manager-section-calendar {
-    order: 6;
-  }
-
-  .manager-section-matches {
     order: 7;
   }
 
-  .manager-section-standings {
+  .manager-section-check {
     order: 8;
   }
 
-  .manager-section-maintenance {
+  .manager-section-clubs {
     order: 9;
+  }
+
+  .manager-section-participants {
+    order: 2;
+  }
+
+  .manager-section-calendar {
+    order: 3;
+  }
+
+  .manager-section-matches {
+    order: 4;
+  }
+
+  .manager-section-standings {
+    order: 5;
+  }
+
+  .manager-section-editorial {
+    order: 6;
+    border-style: dashed;
+    background: #fbfcfe;
+    box-shadow: none;
+  }
+
+  .manager-section-maintenance {
+    order: 10;
     border-color: #f1d6b8;
     background: #fffaf3;
   }
 
   .manager-section-prepare {
-    order: 3;
+    order: 1;
   }
 
   .manager-section-maintenance .manager-create-card {
@@ -373,6 +380,10 @@ const managerStyles = `
 
   .manager-section-prepare > header {
     background: #f7fbff;
+  }
+
+  .manager-section-editorial > header {
+    background: #f8fafc;
   }
 
   .manager-warning {
@@ -2395,10 +2406,10 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </details>
 
-          <section className="manager-panel manager-section-calendar" id="calendario" aria-label="Calendario da epoca">
+          <section className="manager-panel manager-section-calendar" id="calendario" aria-label="Preparar calendario da epoca">
             <header>
-              <h2>Calendario da epoca</h2>
-              <p>Cria e organiza jornadas simples dentro da epoca selecionada.</p>
+              <h2>Preparar calendario da epoca</h2>
+              <p>Lista as jornadas da epoca selecionada e usa a criacao manual como apoio quando necessario.</p>
             </header>
             {sectionMessage("calendario")}
             <div className="manager-create-grid">
@@ -2502,10 +2513,10 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel manager-section-matches" id="jogos" aria-label="Jogos da jornada">
+          <section className="manager-panel manager-section-matches" id="jogos" aria-label="Jornada atual">
             <header>
-              <h2>Jogos da jornada</h2>
-              <p>Cria e lista apenas jogos de agenda dentro da jornada selecionada.</p>
+              <h2>Jornada atual</h2>
+              <p>Organiza os jogos da jornada selecionada, da agenda ao resultado final manual.</p>
             </header>
             {sectionMessage("jogos")}
             <div className="manager-create-grid">
@@ -2863,6 +2874,16 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 )}
               </article>
             </div>
+          </section>
+
+          <section className="manager-panel manager-section-editorial" id="linha-editorial" aria-label="Linha editorial da jornada">
+            <header>
+              <h2>Linha editorial da jornada</h2>
+              <p>
+                Espaco futuro para manchete, resumo, imagem, video, leitura da jornada e memoria historica.
+                Ainda sem funcionalidade nesta fase.
+              </p>
+            </header>
           </section>
 
           <section className="manager-panel manager-section-participants" id="participantes" aria-label="Participantes da epoca">
