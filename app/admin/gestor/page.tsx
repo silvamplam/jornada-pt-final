@@ -1903,9 +1903,10 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             document.addEventListener("click", function (event) {
               var target = event.target;
               if (!(target instanceof HTMLElement)) return;
-              var trigger = target.closest('[data-club-file-trigger="true"]');
+              var trigger = target.closest('[data-file-trigger]');
               if (!trigger) return;
-              var input = document.querySelector('[data-club-file-input="true"]');
+              var targetName = trigger.getAttribute("data-file-trigger");
+              var input = document.querySelector('[data-file-input="' + targetName + '"]');
               if (input instanceof HTMLInputElement) {
                 input.click();
               }
@@ -1914,7 +1915,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             document.addEventListener("change", function (event) {
               var field = event.target;
 
-              if (field instanceof HTMLInputElement && field.getAttribute("data-club-file-input") === "true") {
+              if (field instanceof HTMLInputElement && field.hasAttribute("data-file-input")) {
                 var file = field.files && field.files[0];
                 if (!file) return;
 
@@ -1926,7 +1927,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
 
                 var reader = new FileReader();
                 reader.onload = function () {
-                  var textarea = document.getElementById("club-preview-list");
+                  var targetId = field.getAttribute("data-file-target");
+                  var textarea = targetId ? document.getElementById(targetId) : null;
                   if (textarea instanceof HTMLTextAreaElement) {
                     textarea.value = String(reader.result || "");
                   }
@@ -2385,7 +2387,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                       <input
                         type="file"
                         accept=".txt,.csv,text/plain,text/csv"
-                        data-club-file-input="true"
+                        data-file-input="club-list"
+                        data-file-target="club-preview-list"
                         hidden
                       />
                       <textarea
@@ -2395,7 +2398,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                         defaultValue={rawClubPreviewList}
                       />
                     </div>
-                    <button className="manager-subtle-button" type="button" data-club-file-trigger="true">
+                    <button className="manager-subtle-button" type="button" data-file-trigger="club-list">
                       Carregar .txt/.csv
                     </button>
                     <button className="manager-button" type="submit">
@@ -2605,11 +2608,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             <div className="manager-create-grid">
               <article className="manager-create-card manager-wide-card manager-future-card manager-calendar-future">
                 <header>
-                  <h3>Importar/colar calendario</h3>
+                  <h3>Importar dados do calendario</h3>
                   <p>
-                    Cola uma lista de jogos por jornada para pre-visualizar e aplicar o calendario da epoca. Formato:
-                    Jornada;Nome da jornada;Casa;Fora;DataHora;Estadio.
+                    Carrega um ficheiro .txt/.csv ou cola manualmente a lista para analise. Importar aqui nao grava dados;
+                    gravar acontece apenas em Aplicar calendario validado.
                   </p>
+                  <p>Formato: Jornada;Nome da jornada;Casa;Fora;DataHora;Estadio.</p>
                 </header>
                 {calendarApplySummary ? (
                   <div className="manager-message">
@@ -2626,6 +2630,13 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   <input type="hidden" name="section" value="calendario" />
                   <div className="manager-field">
                     <label htmlFor="calendar-preview-list">Lista de jogos por jornada</label>
+                    <input
+                      type="file"
+                      accept=".txt,.csv,text/plain,text/csv"
+                      data-file-input="calendar-list"
+                      data-file-target="calendar-preview-list"
+                      hidden
+                    />
                     <textarea
                       id="calendar-preview-list"
                       name="calendar_preview"
@@ -2633,6 +2644,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                       defaultValue={rawCalendarPreviewList}
                     />
                   </div>
+                  <button className="manager-subtle-button" type="button" data-file-trigger="calendar-list">
+                    Carregar .txt/.csv
+                  </button>
                   <button className="manager-button" type="submit" disabled={!selectedSeason}>
                     Pre-visualizar calendario
                   </button>
