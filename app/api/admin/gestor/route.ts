@@ -882,12 +882,14 @@ async function readAgendaMatch(formData: FormData): Promise<AgendaMatchRow> {
   return match;
 }
 
-function assertSimpleScheduledMatch(match: AgendaMatchRow) {
+function assertSimpleScheduledMatch(match: AgendaMatchRow, action: "edit" | "remove" = "edit") {
+  if (match.status === "finished" || match.home_score !== null || match.away_score !== null) {
+    throw new Error(action === "remove" ? "match-has-result-remove" : "match-has-result-edit");
+  }
+
   if (
     match.status !== "scheduled" ||
     match.minute !== null ||
-    match.home_score !== null ||
-    match.away_score !== null ||
     match.broadcast_channel_id !== null
   ) {
     throw new Error("match-not-simple");
@@ -1038,7 +1040,7 @@ async function updateMatch(formData: FormData) {
   }
 
   const match = await readAgendaMatch(formData);
-  assertSimpleScheduledMatch(match);
+  assertSimpleScheduledMatch(match, "edit");
 
   if (
     !(await hasRows(
@@ -1082,7 +1084,7 @@ async function removeMatch(formData: FormData) {
   }
 
   const match = await readAgendaMatch(formData);
-  assertSimpleScheduledMatch(match);
+  assertSimpleScheduledMatch(match, "remove");
 
   if (await hasMatchDependencies(matchId)) {
     throw new Error("match-has-dependencies");

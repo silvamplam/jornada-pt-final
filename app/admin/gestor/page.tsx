@@ -2021,6 +2021,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "match-team-already-in-matchday": "Esta equipa ja tem jogo nesta jornada.",
     "match-duplicate-season": "Este jogo ja existe nesta epoca.",
     "match-not-found": "Nao foi possivel encontrar este jogo na jornada selecionada.",
+    "match-has-result-edit": "Este jogo ja tem resultado e nao pode ser editado como agenda.",
+    "match-has-result-remove": "Este jogo ja tem resultado e nao pode ser removido.",
     "match-not-simple": "Este jogo ja tem dados competitivos associados e nao pode ser alterado nesta area.",
     "match-has-dependencies": "Este jogo ja tem eventos, noticias ou atualizacoes associadas e nao pode ser removido nesta area.",
     "match-score-invalid": "O resultado tem de ter golos da casa e do fora, com numeros inteiros iguais ou superiores a zero.",
@@ -2046,14 +2048,16 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     const homeTeam = participantTeamsById.get(match.home_team_id);
     const awayTeam = participantTeamsById.get(match.away_team_id);
     const hasFinalScore = match.home_score !== null && match.away_score !== null;
+    const hasAnyScore = match.home_score !== null || match.away_score !== null;
     const statusLabel = match.status === "finished" ? "Finalizado" : "Agendado";
     const scoreLabel = hasFinalScore ? ` - ${match.home_score}-${match.away_score}` : "";
+    const isFinished = match.status === "finished";
     const hasCompetitiveData =
-      hasFinalScore ||
+      isFinished ||
+      hasAnyScore ||
       match.status !== "scheduled" ||
       match.minute !== null ||
       match.broadcast_channel_id !== null;
-    const isFinished = match.status === "finished";
 
     if (isFinished) {
       return (
