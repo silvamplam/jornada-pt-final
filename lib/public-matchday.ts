@@ -1,4 +1,4 @@
-import { fetchSupabaseAdminTable, type SupabaseCompetition, type SupabaseMatch, type SupabaseMatchday, type SupabaseSeason, type SupabaseSeasonTeam, type SupabaseTeam } from "@/lib/supabase";
+import { fetchSupabaseAdminTable, type SupabaseBroadcastChannel, type SupabaseCompetition, type SupabaseMatch, type SupabaseMatchday, type SupabaseSeason, type SupabaseSeasonTeam, type SupabaseTeam } from "@/lib/supabase";
 
 export type PublicSeasonParticipant = SupabaseSeasonTeam & {
   team: SupabaseTeam | null;
@@ -8,6 +8,7 @@ export type PublicSeasonMatch = SupabaseMatch & {
   matchday: SupabaseMatchday | null;
   homeTeam: SupabaseTeam | null;
   awayTeam: SupabaseTeam | null;
+  broadcastChannel: SupabaseBroadcastChannel | null;
 };
 
 export type PublicMatchdayContext = {
@@ -81,6 +82,17 @@ async function readTeams(ids: string[]) {
 
   return fetchSupabaseAdminTable<SupabaseTeam>(
     `teams?select=id,name,short_name,slug,country,logo_url,primary_color&id=in.(${idList(uniqueIds)})&limit=1000`
+  );
+}
+
+async function readBroadcastChannels(ids: string[]) {
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+  if (uniqueIds.length === 0) {
+    return [];
+  }
+
+  return fetchSupabaseAdminTable<SupabaseBroadcastChannel>(
+    `broadcast_channels?select=id,name,platform,country,logo_url&id=in.(${idList(uniqueIds)})&limit=500`
   );
 }
 
@@ -271,13 +283,16 @@ export async function getPublicMatchdayDiagnostic({
       ...manualParticipants.map((participant) => participant.team_id),
       ...matches.flatMap((match) => [match.home_team_id, match.away_team_id])
     ]);
+    const broadcastChannels = await readBroadcastChannels(matches.map((match) => match.broadcast_channel_id ?? ""));
     const teamsById = byId(teams);
+    const broadcastChannelsById = byId(broadcastChannels);
     const matchdaysById = byId(matchdays);
     const matchesForSeason = matches.map((match) => ({
       ...match,
       matchday: match.matchday_id ? matchdaysById.get(match.matchday_id) ?? null : null,
       homeTeam: teamsById.get(match.home_team_id) ?? null,
-      awayTeam: teamsById.get(match.away_team_id) ?? null
+      awayTeam: teamsById.get(match.away_team_id) ?? null,
+      broadcastChannel: match.broadcast_channel_id ? broadcastChannelsById.get(match.broadcast_channel_id) ?? null : null
     }));
 
     return {

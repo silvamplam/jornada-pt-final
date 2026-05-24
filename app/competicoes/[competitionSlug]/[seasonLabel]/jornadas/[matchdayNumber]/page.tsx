@@ -254,6 +254,24 @@ const publicMatchdayStyles = `
     font-size: 13px;
   }
 
+  .public-matchday-tv {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 7px;
+    border: 1px solid #dce3eb;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #263241;
+    font-weight: 800;
+  }
+
+  .public-matchday-tv img {
+    width: 28px;
+    height: 18px;
+    object-fit: contain;
+  }
+
   .public-matchday-nav {
     display: flex;
     flex-wrap: wrap;
@@ -546,6 +564,19 @@ function TeamBadge({ logoUrl, name, shortName }: { logoUrl?: string | null; name
   );
 }
 
+function BroadcastBadge({ match }: { match: PublicSeasonMatch }) {
+  if (!match.broadcastChannel) {
+    return null;
+  }
+
+  return (
+    <span className="public-matchday-tv">
+      {match.broadcastChannel.logo_url ? <img alt="" src={match.broadcastChannel.logo_url} /> : null}
+      <span>{match.broadcastChannel.name}</span>
+    </span>
+  );
+}
+
 function MatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const statusText = match.minute && kind === "live" ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
@@ -575,6 +606,7 @@ function MatchCard({ match }: { match: PublicSeasonMatch }) {
       <div className="public-matchday-meta">
         <span>{formatKickoff(match.kickoff_at)}</span>
         {match.venue ? <span>{match.venue}</span> : null}
+        <BroadcastBadge match={match} />
       </div>
     </article>
   );
