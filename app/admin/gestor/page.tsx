@@ -1093,6 +1093,19 @@ function renderClassificationStatCells(
   );
 }
 
+function totalClassificationStats(row: ClassificationRow): ClassificationSplit {
+  return {
+    played: row.played,
+    wins: row.wins,
+    draws: row.draws,
+    losses: row.losses,
+    goalsFor: row.goalsFor,
+    goalsAgainst: row.goalsAgainst,
+    goalDifference: row.goalDifference,
+    points: row.points
+  };
+}
+
 function buildContextQuery(country: SupabaseCountry | null, competition: SupabaseCompetition | null, season: SupabaseSeason | null) {
   const params = new URLSearchParams();
 
@@ -3561,7 +3574,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   <div className="manager-empty">Ainda nao ha participantes para calcular a classificacao.</div>
                 ) : (
                   <div className="manager-table-wrap">
-                    <table className="manager-table">
+                    <table className="manager-table manager-classification-table">
                       <thead>
                         <tr>
                           <th rowSpan={2}>Pos</th>
@@ -3603,7 +3616,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           <tr key={row.teamId}>
                             <td>{index + 1}</td>
                             <td>{row.name}</td>
-                            {renderClassificationStatCells(row, { divider: true, emphasizePoints: true })}
+                            {renderClassificationStatCells(totalClassificationStats(row), { divider: true, emphasizePoints: true })}
                             {renderClassificationStatCells(row.home, { divider: true })}
                             {renderClassificationStatCells(row.away, { divider: true })}
                               <td>
