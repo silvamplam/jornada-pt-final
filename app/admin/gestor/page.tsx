@@ -2050,7 +2050,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     apply_club_list: "Lista aplicada a esta epoca.",
     participant: "Participante associado a epoca selecionada.",
     remove_participant: "Participante removido da epoca selecionada.",
-    remove_old_participant: "Associacao tecnica removida de season_teams.",
+    remove_old_participant: "Ligacao de suporte removida de season_teams.",
     remove_team: "Clube removido do pais selecionado.",
     matchday: "Jornada criada dentro da epoca selecionada.",
     apply_calendar_list: "Calendario aplicado a esta epoca.",
@@ -2081,10 +2081,10 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "season-has-matchdays": "Nao e possivel remover esta epoca porque ainda existem jornadas associadas.",
     "season-has-matches": "Nao e possivel remover esta epoca porque ainda existem jogos associados.",
     "team-has-participants": "Este clube ainda esta associado a uma epoca. Remove primeiro o participante da epoca.",
-    "team-has-old-participants": "Este clube tem associacoes tecnicas fora da lista principal. Reve esses dados antes de remover o clube.",
+    "team-has-old-participants": "Este clube tem ligacoes de suporte fora da lista principal. Reve esses dados antes de remover o clube.",
     "team-has-matches": "Este clube nao pode ser removido porque ainda existem jogos associados a ele.",
     "old-participant-manual": "Esta associacao pertence a lista principal da epoca e nao pode ser limpa nesta area.",
-    "old-participant-not-found": "Nao foi possivel encontrar uma associacao tecnica para remover.",
+    "old-participant-not-found": "Nao foi possivel encontrar uma ligacao de suporte para remover.",
     "matchday-needs-participants": "Antes de criar jornadas, define os participantes desta epoca.",
     "matchday-duplicate": "Ja existe uma jornada com esse numero nesta epoca.",
     "matchday-has-matches": "Nao e possivel remover esta jornada porque ainda existem jogos associados.",
@@ -2362,7 +2362,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
           <h1>Centro de gestao</h1>
           <span>
             Fluxo principal: Pais - Competicao - Epoca - Preparar participantes - Jornadas - Jogos -
-            Resultados - Classificacao. As acoes tecnicas ficam separadas em manutencao.
+            Resultados - Classificacao. As acoes de suporte ficam separadas em manutencao.
           </span>
         </div>
         <a href="/admin">Voltar ao backoffice</a>
@@ -2750,7 +2750,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                         <div>
                           <b>{item.team.name}</b>
                           <small>
-                          participantes da lista principal: {item.manualParticipants} / associacoes tecnicas:{" "}
+                          participantes da lista principal: {item.manualParticipants} / ligacoes de suporte:{" "}
                             {item.oldParticipants} / jogos casa: {item.homeMatches} / jogos fora: {item.awayMatches}
                           </small>
                         </div>
@@ -3093,7 +3093,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 <article className="manager-create-card manager-wide-card manager-calendar-future">
                   <header>
                     <h3>Resultado da pre-visualizacao</h3>
-                    <p>Nesta fase, a aplicacao cria/reutiliza jornadas e cria apenas jogos agendados.</p>
+                    <p>A aplicacao cria/reutiliza jornadas e cria apenas jogos agendados.</p>
                   </header>
                   <div className="manager-stat-row">
                     <article className="manager-stat">
@@ -3555,7 +3555,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   <p>
                     {futureLiveMatchesForMatchday.length > 0
                       ? `${futureLiveMatchesForMatchday.length} jogos com estado reservado para operacao futura.`
-                      : "Espaco futuro para estado em direto, minuto e eventos. Ainda sem controlos nesta fase."}
+                      : "Espaco futuro para estado em direto, minuto e eventos. Controlos ainda nao ativos."}
                   </p>
                 </header>
               </article>
@@ -3668,7 +3668,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               <h2>Linha editorial da jornada</h2>
               <p>
                 Espaco futuro para manchete, resumo, imagem, video, leitura da jornada e memoria historica.
-                Ainda sem funcionalidade nesta fase.
+                Funcionalidade prevista para desenvolvimento posterior.
               </p>
             </header>
           </section>
