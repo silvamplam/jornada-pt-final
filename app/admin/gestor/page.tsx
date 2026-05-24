@@ -17,6 +17,7 @@ type CountryTeam = SupabaseTeam & {
   country_id: string | null;
 };
 type UnassignedTeam = Pick<CountryTeam, "id" | "name" | "short_name" | "slug" | "country_id">;
+type ClubPreviewTeam = Pick<CountryTeam, "id" | "name" | "short_name" | "slug" | "country_id" | "logo_url" | "primary_color">;
 type SeasonMatchday = {
   id: string;
   season_id: string;
@@ -56,6 +57,25 @@ type ClassificationRow = {
   goalDifference: number;
   points: number;
   recentForm: string[];
+};
+type ClubPreviewRow = {
+  lineNumber: number;
+  status: string;
+  name: string;
+  shortName: string;
+  slug: string;
+  logoUrl: string;
+  color: string;
+  note: string;
+};
+type ClubPreviewSummary = {
+  totalRows: number;
+  existingInCountry: number;
+  newClubs: number;
+  conflicts: number;
+  alreadyParticipants: number;
+  wouldAddToSeason: number;
+  invalidLines: number;
 };
 
 const managerStyles = `
@@ -167,29 +187,33 @@ const managerStyles = `
   }
 
   .manager-section-clubs {
-    order: 3;
-  }
-
-  .manager-section-participants {
     order: 4;
   }
 
-  .manager-section-calendar {
+  .manager-section-participants {
     order: 5;
   }
 
-  .manager-section-matches {
+  .manager-section-calendar {
     order: 6;
   }
 
-  .manager-section-standings {
+  .manager-section-matches {
     order: 7;
   }
 
-  .manager-section-maintenance {
+  .manager-section-standings {
     order: 8;
+  }
+
+  .manager-section-maintenance {
+    order: 9;
     border-color: #f1d6b8;
     background: #fffaf3;
+  }
+
+  .manager-section-prepare {
+    order: 3;
   }
 
   .manager-section-maintenance .manager-create-card {
@@ -260,7 +284,8 @@ const managerStyles = `
   }
 
   .manager-field select,
-  .manager-field input {
+  .manager-field input,
+  .manager-field textarea {
     width: 100%;
     min-height: 46px;
     padding: 0 12px;
@@ -270,6 +295,12 @@ const managerStyles = `
     color: #10151b;
     font: inherit;
     font-size: 16px;
+  }
+
+  .manager-field textarea {
+    min-height: 156px;
+    padding: 12px;
+    resize: vertical;
   }
 
   .manager-field input[type="checkbox"] {
@@ -585,6 +616,15 @@ function competitionCountryId(competition: SupabaseCompetition) {
   return competition.country_id ?? "";
 }
 
+function slugifyClub(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function buildContextQuery(country: SupabaseCountry | null, competition: SupabaseCompetition | null, season: SupabaseSeason | null) {
   const params = new URLSearchParams();
 
@@ -605,6 +645,121 @@ function withSection(url: string, section: string) {
   const separator = pathAndQuery.includes("?") ? "&" : "?";
 
   return `${pathAndQuery}${separator}section=${section}#${section}`;
+}
+
+function buildClubPreview({
+  rawList,
+  selectedCountry,
+  allTeams,
+  participantsForSeason,
+  countries
+}: {
+  rawList: string;
+  selectedCountry: SupabaseCountry | null;
+  allTeams: ClubPreviewTeam[];
+  participantsForSeason: SupabaseAdminSeasonTeam[];
+  countries: SupabaseCountry[];
+}): { rows: ClubPreviewRow[]; summary: ClubPreviewSummary } {
+  const teamsBySlug = new Map(allTeams.map((team) => [team.slug, team]));
+  const countryById = new Map(countries.map((country) => [country.id, country.name]));
+  const participantTeamIds = new Set(participantsForSeason.map((participant) => participant.team_id));
+  const seenSlugs = new Set<string>();
+  const rows: ClubPreviewRow[] = [];
+  const summary: ClubPreviewSummary = {
+    totalRows: 0,
+    existingInCountry: 0,
+    newClubs: 0,
+    conflicts: 0,
+    alreadyParticipants: 0,
+    wouldAddToSeason: 0,
+    invalidLines: 0
+  };
+
+  rawList
+    .split(/\r?\n/)
+    .map((line, index) => ({ line: line.trim(), lineNumber: index + 1 }))
+    .filter((item) => item.line.length > 0)
+    .forEach(({ line, lineNumber }) => {
+      summary.totalRows += 1;
+      const [nameValue = "", shortValue = "", slugValue = "", logoValue = "", colorValue = ""] = line
+        .split(";")
+        .map((value) => value.trim());
+      const name = nameValue;
+      const shortName = shortValue.toUpperCase();
+      const slug = slugifyClub(slugValue || name);
+      const logoUrl = logoValue;
+      const color = colorValue;
+
+      if (!name || !slug) {
+        summary.invalidLines += 1;
+        rows.push({ lineNumber, status: "linha invalida", name, shortName, slug, logoUrl, color, note: "A linha precisa de ter pelo menos nome." });
+        return;
+      }
+
+      if (seenSlugs.has(slug)) {
+        summary.invalidLines += 1;
+        rows.push({ lineNumber, status: "duplicado na lista", name, shortName, slug, logoUrl, color, note: "Este slug aparece mais do que uma vez na lista colada." });
+        return;
+      }
+
+      seenSlugs.add(slug);
+      const existingTeam = teamsBySlug.get(slug);
+
+      if (!existingTeam) {
+        summary.newClubs += 1;
+        summary.wouldAddToSeason += 1;
+        rows.push({ lineNumber, status: "novo clube", name, shortName, slug, logoUrl, color, note: "Seria criado no catalogo do pais e depois adicionado a epoca." });
+        return;
+      }
+
+      if (existingTeam.country_id && selectedCountry && existingTeam.country_id !== selectedCountry.id) {
+        summary.conflicts += 1;
+        rows.push({
+          lineNumber,
+          status: "conflito",
+          name,
+          shortName,
+          slug,
+          logoUrl,
+          color,
+          note: `Este slug ja pertence a outro pais: ${countryById.get(existingTeam.country_id) ?? "pais desconhecido"}.`
+        });
+        return;
+      }
+
+      if (participantTeamIds.has(existingTeam.id)) {
+        summary.existingInCountry += existingTeam.country_id === selectedCountry?.id ? 1 : 0;
+        summary.alreadyParticipants += 1;
+        rows.push({
+          lineNumber,
+          status: "ja participante",
+          name: existingTeam.name,
+          shortName: existingTeam.short_name ?? shortName,
+          slug,
+          logoUrl: existingTeam.logo_url ?? logoUrl,
+          color: existingTeam.primary_color ?? color,
+          note: "Este clube ja esta associado a epoca selecionada."
+        });
+        return;
+      }
+
+      summary.existingInCountry += existingTeam.country_id === selectedCountry?.id ? 1 : 0;
+      summary.wouldAddToSeason += 1;
+      rows.push({
+        lineNumber,
+        status: existingTeam.country_id ? "sera adicionado" : "registo existente por confirmar",
+        name: existingTeam.name,
+        shortName: existingTeam.short_name ?? shortName,
+        slug,
+        logoUrl: existingTeam.logo_url ?? logoUrl,
+        color: existingTeam.primary_color ?? color,
+        note: existingTeam.country_id
+          ? "Clube ja existe no pais e seria associado a epoca."
+          : "Clube existe sem pais confirmado; numa fase futura seria associado ao pais selecionado."
+      });
+    });
+
+  return { rows, summary };
 }
 
 function toDatetimeLocal(value?: string | null) {
@@ -640,6 +795,15 @@ function formatLisbonDateTime(value: string) {
   }).format(new Date(value));
 }
 
+function slugifyClub(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 async function readTeamsForCountry(countryId?: string): Promise<CountryTeam[]> {
   if (!countryId) {
     return [];
@@ -650,6 +814,16 @@ async function readTeamsForCountry(countryId?: string): Promise<CountryTeam[]> {
       `teams?select=id,name,short_name,slug,country_id,logo_url,primary_color&country_id=eq.${encodeURIComponent(
         countryId
       )}&order=name.asc`
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function readTeamsForClubPreview(): Promise<ClubPreviewTeam[]> {
+  try {
+    return await fetchSupabaseAdminTable<ClubPreviewTeam>(
+      "teams?select=id,name,short_name,slug,country_id,logo_url,primary_color&order=name.asc&limit=2000"
     );
   } catch {
     return [];
@@ -948,6 +1122,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const requestedSeasonId = oneParam(params, "epoca");
   const requestedMatchdayId = oneParam(params, "jornada");
   const requestedEditMatchId = oneParam(params, "editar_jogo");
+  const rawClubPreviewList = oneParam(params, "club_preview") ?? "";
   const messageSection = oneParam(params, "section");
   const {
     linkedCompetitions,
@@ -975,6 +1150,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
       )
     : [];
   const teamsForCountry = await readTeamsForCountry(selectedCountry?.id);
+  const teamsForClubPreview = rawClubPreviewList.trim() ? await readTeamsForClubPreview() : [];
   const unassignedTeams = await readUnassignedTeams();
   const matchdaysForSeason = await readMatchdaysForSeason(selectedSeason?.id);
   const selectedMatchday =
@@ -1019,6 +1195,13 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     };
   });
   const participantTeamIds = new Set(participantsForSeason.map((participant) => participant.team_id));
+  const clubPreview = buildClubPreview({
+    rawList: rawClubPreviewList,
+    selectedCountry,
+    allTeams: teamsForClubPreview,
+    participantsForSeason,
+    countries
+  });
   const teamsAvailableForSeason = teamsForCountry.filter((team) => !participantTeamIds.has(team.id));
   const participantTeamOptions = participantsForSeason
     .map((participant) => participant.team)
@@ -1716,6 +1899,106 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               </article>
             </div>
           </section>
+
+          {selectedCountry && selectedCompetition && selectedSeason ? (
+            <section className="manager-panel manager-section-prepare" id="preparar-participantes" aria-label="Preparar participantes da epoca">
+              <header>
+                <h2>Preparar participantes da epoca</h2>
+                <p>Cole uma lista de clubes para pre-visualizar a preparacao dos participantes desta epoca. Nesta fase nada e gravado.</p>
+              </header>
+              <div className="manager-summary-grid">
+                <article className="manager-create-card manager-wide-card">
+                  <header>
+                    <h3>
+                      {selectedCountry.name} / {selectedCompetition.name} / {selectedSeason.label}
+                    </h3>
+                    <p>Formato: Nome;Sigla;Slug;Logo;Cor</p>
+                  </header>
+                  <form className="manager-create-form" action="/admin/gestor#preparar-participantes" method="get">
+                    <input type="hidden" name="pais" value={selectedCountry.id} />
+                    <input type="hidden" name="competicao" value={selectedCompetition.id} />
+                    <input type="hidden" name="epoca" value={selectedSeason.id} />
+                    <input type="hidden" name="section" value="preparar-participantes" />
+                    <div className="manager-field">
+                      <label htmlFor="club-preview-list">Lista de clubes</label>
+                      <textarea
+                        id="club-preview-list"
+                        name="club_preview"
+                        placeholder={"Arsenal;ARS;arsenal;https://...;#EF0107\nChelsea;CHE;chelsea;https://...;#034694"}
+                        defaultValue={rawClubPreviewList}
+                      />
+                    </div>
+                    <button className="manager-button" type="submit">
+                      Pre-visualizar lista
+                    </button>
+                  </form>
+                </article>
+
+                {rawClubPreviewList.trim() ? (
+                  <article className="manager-create-card manager-wide-card">
+                    <header>
+                      <h3>Resultado da pre-visualizacao</h3>
+                      <p>Nada foi gravado. Esta tabela mostra apenas o que aconteceria numa fase futura.</p>
+                    </header>
+                    <div className="manager-stat-row">
+                      <article className="manager-stat">
+                        <strong>{clubPreview.summary.totalRows}</strong>
+                        <small>Total de linhas</small>
+                      </article>
+                      <article className="manager-stat">
+                        <strong>{clubPreview.summary.existingInCountry}</strong>
+                        <small>Ja existem no pais</small>
+                      </article>
+                      <article className="manager-stat">
+                        <strong>{clubPreview.summary.newClubs}</strong>
+                        <small>Novos clubes</small>
+                      </article>
+                      <article className="manager-stat">
+                        <strong>{clubPreview.summary.conflicts}</strong>
+                        <small>Conflitos</small>
+                      </article>
+                      <article className="manager-stat">
+                        <strong>{clubPreview.summary.alreadyParticipants}</strong>
+                        <small>Ja participantes</small>
+                      </article>
+                      <article className="manager-stat">
+                        <strong>{clubPreview.summary.wouldAddToSeason}</strong>
+                        <small>Seriam adicionados</small>
+                      </article>
+                    </div>
+                    <div className="manager-table-wrap">
+                      <table className="manager-table">
+                        <thead>
+                          <tr>
+                            <th>Estado</th>
+                            <th>Nome</th>
+                            <th>Sigla</th>
+                            <th>Slug</th>
+                            <th>Logo</th>
+                            <th>Cor</th>
+                            <th>Observacao</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {clubPreview.rows.map((row) => (
+                            <tr key={`${row.lineNumber}-${row.slug || row.name}`}>
+                              <td>{row.status}</td>
+                              <td>{row.name || "-"}</td>
+                              <td>{row.shortName || "-"}</td>
+                              <td>{row.slug || "-"}</td>
+                              <td>{row.logoUrl || "-"}</td>
+                              <td>{row.color || "-"}</td>
+                              <td>{row.note}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </article>
+                ) : null}
+              </div>
+            </section>
+          ) : null}
 
           <section className="manager-panel manager-section-clubs" id="clubes" aria-label="Clubes do pais">
             <header>
