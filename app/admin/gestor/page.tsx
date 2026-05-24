@@ -1005,6 +1005,17 @@ function buildClubPreview({
   return { rows, summary };
 }
 
+function buildMatchdayUrl(
+  currentReturnTo: string,
+  matchdayId: string,
+  section: string
+) {
+  const [pathAndQuery] = currentReturnTo.split("#");
+  const separator = pathAndQuery.includes("?") ? "&" : "?";
+
+  return `${pathAndQuery}${separator}jornada=${matchdayId}&section=${section}#${section}`;
+}
+
 function buildCalendarPreview({
   rawList,
   participantsForSeason,
@@ -1579,6 +1590,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     matchdaysForSeason,
     matchesForSeason
   });
+  const calendarPreviewMatchdayNumbers = Array.from(
+    new Set(calendarPreview.rows.map((row) => row.matchdayNumber).filter((number): number is number => number !== null))
+  ).sort((a, b) => a - b);
   const teamsAvailableForSeason = teamsForCountry.filter((team) => !participantTeamIds.has(team.id));
   const participantTeamOptions = participantsForSeason
     .map((participant) => participant.team)
@@ -1639,6 +1653,14 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
         ? `${currentReturnTo}?jornada=${selectedMatchday.id}`
         : currentReturnTo;
   const matchesReturnTo = withSection(matchdayReturnTo, "jogos");
+  const calendarInvolvedMatchdays = calendarPreviewMatchdayNumbers.map((number) => {
+    const matchday = matchdaysForSeason.find((item) => item.number === number);
+    return {
+      number,
+      label: matchday?.label ?? calendarPreview.rows.find((row) => row.matchdayNumber === number)?.matchdayLabel ?? `Jornada ${number}`,
+      href: matchday ? buildMatchdayUrl(currentReturnTo, matchday.id, "jogos") : null
+    };
+  });
   const unlinkedCompetitions = competitions.filter((competition) => !competitionCountryId(competition));
   const created = oneParam(params, "created");
   const actionError = oneParam(params, "error");
@@ -2719,6 +2741,37 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                       </tbody>
                     </table>
                   </div>
+                  {calendarInvolvedMatchdays.length > 0 ? (
+                    <div className="manager-summary-grid">
+                      <article className="manager-create-card manager-wide-card">
+                        <header>
+                          <h3>Jornadas envolvidas</h3>
+                          <p>Depois de aplicar, usa estes atalhos para verificar rapidamente os jogos importados.</p>
+                        </header>
+                        <ul className="manager-list">
+                          {calendarInvolvedMatchdays.map((matchday) => (
+                            <li key={matchday.number}>
+                              <div>
+                                <b>
+                                  {matchday.number}. {matchday.label}
+                                </b>
+                                <small>{matchday.href ? "Disponivel no gestor" : "Ainda sera criada ao aplicar"}</small>
+                              </div>
+                              {matchday.href ? (
+                                <a className="manager-link-button" href={matchday.href}>
+                                  Abrir
+                                </a>
+                              ) : (
+                                <span className="manager-link-button" aria-disabled="true">
+                                  Apos aplicar
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </article>
+                    </div>
+                  ) : null}
                 </article>
               ) : null}
 
