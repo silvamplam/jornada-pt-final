@@ -295,8 +295,6 @@ const managerStyles = `
 
   .manager-section-maintenance {
     order: 10;
-    border-color: #f1d6b8;
-    background: #fffaf3;
   }
 
   .manager-section-prepare {
@@ -304,7 +302,7 @@ const managerStyles = `
   }
 
   .manager-section-maintenance .manager-create-card {
-    background: #fffdf8;
+    background: #ffffff;
   }
 
   .manager-section-base,
@@ -314,7 +312,19 @@ const managerStyles = `
 
   .manager-section-base {
     border-style: dashed;
-    background: #fbfcfe;
+  }
+
+  .manager-support-section,
+  .manager-fallback-card,
+  .manager-manual-actions {
+    border: 1px solid #d8dee6;
+    background: #f6f8fa;
+    box-shadow: none;
+  }
+
+  .manager-support-section .manager-create-card {
+    border-color: #dfe5ec;
+    background: #ffffff;
   }
 
   .manager-section-base > summary,
@@ -324,7 +334,7 @@ const managerStyles = `
     justify-content: space-between;
     gap: 14px;
     padding: 14px 18px;
-    color: #403224;
+    color: #4d5866;
     cursor: pointer;
     list-style: none;
   }
@@ -341,15 +351,16 @@ const managerStyles = `
     place-items: center;
     width: 24px;
     height: 24px;
-    border: 1px solid #e0c5a1;
+    border: 1px solid #cbd3dd;
     border-radius: 999px;
-    color: #8a5a1f;
+    background: #ffffff;
+    color: #5f6b7a;
     font-weight: 900;
   }
 
   .manager-section-base[open] > summary,
   .manager-section-maintenance[open] > summary {
-    border-bottom: 1px solid #f1d6b8;
+    border-bottom: 1px solid #d8dee6;
   }
 
   .manager-section-base[open] > summary::after,
@@ -368,7 +379,7 @@ const managerStyles = `
   .manager-section-maintenance > summary small {
     display: block;
     margin-top: 3px;
-    color: #7a6c5e;
+    color: #66717f;
     font-size: 12px;
     line-height: 1.3;
   }
@@ -389,9 +400,6 @@ const managerStyles = `
 
   .manager-fallback-card {
     order: 2;
-    border-style: dashed;
-    background: #fbfcfe;
-    box-shadow: none;
   }
 
   .manager-future-card {
@@ -447,8 +455,6 @@ const managerStyles = `
   }
 
   .manager-section-clubs {
-    border-style: dashed;
-    background: #fbfcfe;
   }
 
   .manager-section-clubs > summary {
@@ -457,7 +463,7 @@ const managerStyles = `
     justify-content: space-between;
     gap: 14px;
     padding: 14px 18px;
-    color: #263241;
+    color: #4d5866;
     cursor: pointer;
     list-style: none;
   }
@@ -472,14 +478,15 @@ const managerStyles = `
     place-items: center;
     width: 24px;
     height: 24px;
-    border: 1px solid #c8d2dd;
+    border: 1px solid #cbd3dd;
     border-radius: 999px;
-    color: #445061;
+    background: #ffffff;
+    color: #5f6b7a;
     font-weight: 900;
   }
 
   .manager-section-clubs[open] > summary {
-    border-bottom: 1px solid #e6ebf1;
+    border-bottom: 1px solid #d8dee6;
   }
 
   .manager-section-clubs[open] > summary::after {
@@ -495,13 +502,13 @@ const managerStyles = `
   .manager-section-clubs > summary small {
     display: block;
     margin-top: 3px;
-    color: #687380;
+    color: #66717f;
     font-size: 12px;
     line-height: 1.3;
   }
 
   .manager-section-clubs > header {
-    background: #f7f9fc;
+    background: #f6f8fa;
   }
 
   .manager-section-prepare {
@@ -987,9 +994,7 @@ const managerStyles = `
   .manager-manual-actions {
     justify-self: end;
     min-width: min(360px, 100%);
-    border: 1px dashed #dce3eb;
     border-radius: 8px;
-    background: #fbfcfe;
   }
 
   .manager-manual-actions summary {
@@ -2432,7 +2437,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
           </section>
 
           <div className="manager-workspace">
-          <details className="manager-panel manager-section-base" id="base" aria-label="Apoio de estrutura" open={messageSection === "base"}>
+          <details className="manager-panel manager-section-base manager-support-section" id="base" aria-label="Apoio de estrutura" open={messageSection === "base"}>
             <summary>
               <span>
                 <strong>Apoio: pais, competicao e epoca</strong>
@@ -2578,7 +2583,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </details>
 
-          <details className="manager-panel manager-section-maintenance" id="manutencao" aria-label="Remocao segura" open={messageSection === "manutencao"}>
+          <details className="manager-panel manager-section-maintenance manager-support-section" id="manutencao" aria-label="Remocao segura" open={messageSection === "manutencao"}>
             <summary>
               <span>
                 <strong>Remocao segura</strong>
@@ -2650,7 +2655,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </details>
 
-          <details className="manager-panel manager-section-maintenance" id="diagnostico-bloqueios" aria-label="Manutencao e diagnostico">
+          <details className="manager-panel manager-section-maintenance manager-support-section" id="diagnostico-bloqueios" aria-label="Manutencao e diagnostico">
             <summary>
               <span>
                 <strong>Manutencao e diagnostico</strong>
@@ -2901,7 +2906,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </section>
           ) : null}
 
-          <details className="manager-panel manager-section-clubs" id="clubes" aria-label="Gestao manual de clubes" open={messageSection === "clubes"}>
+          <details className="manager-panel manager-section-clubs manager-support-section" id="clubes" aria-label="Gestao manual de clubes" open={messageSection === "clubes"}>
             <summary>
               <span>
                 <strong>Gestao manual de clubes</strong>
