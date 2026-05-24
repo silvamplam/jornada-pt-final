@@ -699,7 +699,7 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
             "new-competition",
             "Competicao",
             "competition_id",
-            defaultCompetitionId,
+            "",
             overview.competitions.map((competition) => (
               <option key={competition.id} value={competition.id}>
                 {competition.name}
@@ -712,7 +712,7 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
             "new-season",
             "Epoca",
             "season_id",
-            defaultSeasonId,
+            "",
             overview.seasons.map((season) => {
               const competition = overview.competitions.find((item) => item.id === season.competition_id);
 
@@ -729,7 +729,7 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
             "new-matchday",
             "Jornada",
             "matchday_id",
-            defaultMatchday?.id,
+            undefined,
             overview.matchdays.map((matchday) => {
               const season = overview.seasons.find((item) => item.id === matchday.season_id);
               const competition = season ? overview.competitions.find((item) => item.id === season.competition_id) : null;
@@ -746,7 +746,7 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
             "new-home",
             "Casa",
             "home_team_id",
-            defaultHomeTeamId,
+            "",
             <>
               <option value="">Escolhe equipa</option>
               {teamOptions(overview, seasonIdsByTeam)}
@@ -758,7 +758,7 @@ export default async function AdminMatchesPage({ searchParams }: AdminMatchesPag
             "new-away",
             "Fora",
             "away_team_id",
-            defaultAwayTeamId,
+            "",
             <>
               <option value="">Escolhe equipa</option>
               {teamOptions(overview, seasonIdsByTeam)}
