@@ -1325,7 +1325,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     apply_club_list: "Lista aplicada a esta epoca.",
     participant: "Participante associado a epoca selecionada.",
     remove_participant: "Participante removido da epoca selecionada.",
-    remove_old_participant: "Associacao antiga invisivel removida de season_teams.",
+    remove_old_participant: "Associacao tecnica removida de season_teams.",
     remove_team: "Clube removido do pais selecionado.",
     matchday: "Jornada criada dentro da epoca selecionada.",
     remove_matchday: "Jornada removida da epoca selecionada.",
@@ -1355,10 +1355,10 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "season-has-matchdays": "Nao e possivel remover esta epoca porque ainda existem jornadas associadas.",
     "season-has-matches": "Nao e possivel remover esta epoca porque ainda existem jogos associados.",
     "team-has-participants": "Este clube ainda esta associado a uma epoca. Remove primeiro o participante da epoca.",
-    "team-has-old-participants": "Este clube tem associacoes antigas fora do novo fluxo. Reve esses dados antes de remover o clube.",
+    "team-has-old-participants": "Este clube tem associacoes tecnicas fora da lista principal. Reve esses dados antes de remover o clube.",
     "team-has-matches": "Este clube nao pode ser removido porque ainda existem jogos associados a ele.",
-    "old-participant-manual": "Esta associacao pertence ao novo fluxo manual e nao pode ser limpa nesta area.",
-    "old-participant-not-found": "Nao foi possivel encontrar uma associacao antiga invisivel para remover.",
+    "old-participant-manual": "Esta associacao pertence a lista principal da epoca e nao pode ser limpa nesta area.",
+    "old-participant-not-found": "Nao foi possivel encontrar uma associacao tecnica para remover.",
     "matchday-needs-participants": "Antes de criar jornadas, define os participantes desta epoca.",
     "matchday-duplicate": "Ja existe uma jornada com esse numero nesta epoca.",
     "matchday-has-matches": "Nao e possivel remover esta jornada porque ainda existem jogos associados.",
@@ -1368,8 +1368,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "match-team-not-participant": "As equipas do jogo tem de ser participantes manuais desta epoca.",
     "match-team-already-in-matchday": "Esta equipa ja tem jogo nesta jornada.",
     "match-not-found": "Nao foi possivel encontrar este jogo na jornada selecionada.",
-    "match-not-simple": "Este jogo ja tem dados competitivos associados e nao pode ser alterado nesta fase.",
-    "match-has-dependencies": "Este jogo ja tem eventos, noticias ou atualizacoes associadas e nao pode ser removido nesta fase.",
+    "match-not-simple": "Este jogo ja tem dados competitivos associados e nao pode ser alterado nesta area.",
+    "match-has-dependencies": "Este jogo ja tem eventos, noticias ou atualizacoes associadas e nao pode ser removido nesta area.",
     "match-score-invalid": "O resultado tem de ter golos da casa e do fora, com numeros inteiros iguais ou superiores a zero.",
     save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
   };
@@ -1489,7 +1489,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
           <p>Jornada.pt</p>
           <h1>Centro de gestao</h1>
           <span>
-            Fluxo principal: Pais - Competicao - Epoca - Participantes - Jornadas - Jogos -
+            Fluxo principal: Pais - Competicao - Epoca - Preparar participantes - Jornadas - Jogos -
             Resultados - Classificacao. As acoes tecnicas ficam separadas em manutencao.
           </span>
         </div>
@@ -1504,7 +1504,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
       {!configured ? (
         <section className="manager-warning">
           <h2>Supabase ainda nao ligada</h2>
-          <p>Adiciona as variaveis da Supabase na Vercel antes de testar esta fase.</p>
+          <p>Adiciona as variaveis da Supabase na Vercel antes de usar o gestor.</p>
         </section>
       ) : null}
 
@@ -1517,7 +1517,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
 
       {configured && unlinkedCompetitions.length > 0 ? (
         <section className="manager-warning">
-          <h2>Competicoes sem pais associado</h2>
+          <h2>Competicoes por ligar ao gestor</h2>
           <p>
             Ha {unlinkedCompetitions.length} competicoes fora do gestor porque ainda nao foram ligadas
             manualmente a um pais. Liga-as em /admin/competicoes para aparecerem no caminho certo.
@@ -1560,12 +1560,11 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
           </section>
 
           <div className="manager-workspace">
-          <section className="manager-panel manager-section-base" id="base" aria-label="Montador da fase 1">
+          <section className="manager-panel manager-section-base" id="base" aria-label="Estrutura da competicao">
             <header>
-              <h2>Fase 1 - base principal</h2>
+              <h2>Estrutura da competicao</h2>
               <p>
-                Nesta fase fechamos apenas a estrutura Pais / Competicao / Epoca. As fases seguintes
-                ficam fora deste ecra por agora.
+                Define o pais, a competicao e a epoca que servem de base ao trabalho no gestor.
               </p>
             </header>
             {sectionMessage("base")}
@@ -1707,10 +1706,10 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel manager-section-check" aria-label="Teste da fase 1">
+          <section className="manager-panel manager-section-check" aria-label="Resumo da estrutura selecionada">
             <header>
-              <h2>Teste da Fase 1</h2>
-              <p>Usa este bloco para confirmar que nao ha misturas entre pais, competicao e epoca.</p>
+              <h2>Resumo da estrutura selecionada</h2>
+              <p>Confirma as ligacoes criadas entre pais, competicao e epoca antes de preparar participantes.</p>
             </header>
             <div className="manager-stat-row">
               <article className="manager-stat">
@@ -1774,7 +1773,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               <article className="manager-create-card">
                 <header>
                   <h3>Atalhos auxiliares</h3>
-                  <p>As paginas antigas continuam disponiveis para corrigir dados pontuais.</p>
+                  <p>As paginas auxiliares continuam disponiveis para corrigir dados pontuais.</p>
                 </header>
                 <div className="manager-actions">
                   <a className="manager-link-button" href="/admin/paises">
@@ -1863,10 +1862,10 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel manager-section-maintenance" id="diagnostico-bloqueios" aria-label="Diagnostico de bloqueios">
+          <section className="manager-panel manager-section-maintenance" id="diagnostico-bloqueios" aria-label="Manutencao e diagnostico">
             <header>
-              <h2>Diagnostico de bloqueios</h2>
-              <p>Esta area apenas mostra dependencias. Nao apaga nem altera dados.</p>
+              <h2>Manutencao e diagnostico</h2>
+              <p>Ferramentas auxiliares para verificar dependencias e bloqueios antes de remover dados.</p>
             </header>
             <div className="manager-summary-grid">
               <article className="manager-create-card">
@@ -1949,7 +1948,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
 
               <article className="manager-create-card manager-wide-card">
                 <header>
-                  <h3>Clubes do pais</h3>
+                  <h3>Clubes catalogados</h3>
                   <p>Dependencias que podem bloquear a remocao de cada clube.</p>
                 </header>
                 {teamBlockDiagnostics.length === 0 ? (
@@ -1961,7 +1960,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                         <div>
                           <b>{item.team.name}</b>
                           <small>
-                            participantes manuais: {item.manualParticipants} / associacoes antigas invisiveis:{" "}
+                          participantes da lista principal: {item.manualParticipants} / associacoes tecnicas:{" "}
                             {item.oldParticipants} / jogos casa: {item.homeMatches} / jogos fora: {item.awayMatches}
                           </small>
                         </div>
@@ -1977,7 +1976,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             <section className="manager-panel manager-section-prepare" id="preparar-participantes" aria-label="Preparar participantes da época">
               <header>
                 <h2>Preparar participantes da época</h2>
-                <p>Cole uma lista de clubes para pré-visualizar a preparação dos participantes desta época. Nesta fase nada é gravado.</p>
+                <p>Cole uma lista de clubes para pré-visualizar a preparação dos participantes desta época. A pré-visualização não grava dados; a aplicação da lista acontece apenas depois da confirmação.</p>
               </header>
               {sectionMessage("preparar-participantes")}
               {clubApplySummary ? (
@@ -2029,7 +2028,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   <article className="manager-create-card manager-wide-card">
                     <header>
                       <h3>Resultado da pré-visualização</h3>
-                      <p>Nada foi gravado. Esta tabela mostra apenas o que aconteceria numa fase futura.</p>
+                      <p>Esta pré-visualização ainda não grava dados. Se os resultados estiverem corretos, podes aplicar a lista validada à época selecionada.</p>
                     </header>
                     <div className="manager-stat-row">
                       <article className="manager-stat">
@@ -2111,10 +2110,10 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </section>
           ) : null}
 
-          <section className="manager-panel manager-section-clubs" id="clubes" aria-label="Clubes do pais">
+          <section className="manager-panel manager-section-clubs" id="clubes" aria-label="Gestao manual de clubes">
             <header>
-              <h2>Clubes do pais</h2>
-              <p>Cria clubes ligados manualmente ao pais selecionado. So estes clubes entram no seletor da epoca.</p>
+              <h2>Gestao manual de clubes</h2>
+              <p>Usa esta area apenas para criar ou ajustar clubes individualmente. Para preparar uma epoca completa, usa a lista de participantes acima.</p>
             </header>
             {sectionMessage("clubes")}
             <div className="manager-create-grid">
@@ -2155,17 +2154,17 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
 
               <article className="manager-create-card">
                 <header>
-                  <h3>Associar clube existente</h3>
-                  <p>Liga manualmente ao pais selecionado um clube ja existente que ainda nao tem pais associado.</p>
+                  <h3>Associar registo existente</h3>
+                  <p>Liga manualmente ao pais selecionado um registo que precisa de confirmacao no catalogo.</p>
                 </header>
                 <form className="manager-create-form" action="/api/admin/gestor" method="post">
                   <input type="hidden" name="action_type" value="attach_team_to_country" />
                   <input type="hidden" name="return_to" value={clubsReturnTo} />
                   <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
                   <div className="manager-field">
-                    <label htmlFor="attach-team-id">Clube existente</label>
+                    <label htmlFor="attach-team-id">Registo existente</label>
                     <select id="attach-team-id" name="team_id" disabled={!canAttachTeam} required={canAttachTeam}>
-                      {unassignedTeams.length === 0 ? <option value="">Nao ha clubes sem pais associado</option> : null}
+                      {unassignedTeams.length === 0 ? <option value="">Nao ha registos por confirmar</option> : null}
                       {unassignedTeams.map((team) => (
                         <option key={team.id} value={team.id}>
                           {team.name} ({team.slug})
@@ -2215,22 +2214,22 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel manager-section-maintenance" id="associacoes-antigas" aria-label="Associacoes antigas invisiveis">
+          <section className="manager-panel manager-section-maintenance" id="associacoes-antigas" aria-label="Revisao tecnica de associacoes">
             <header>
-              <h2>Associacoes antigas invisiveis</h2>
+              <h2>Revisao tecnica de associacoes</h2>
               <p>
-                Remove apenas ligacoes antigas em season_teams que estao fora do novo fluxo manual. Clubes, epocas,
-                jornadas e jogos nao sao apagados.
+                Remove apenas ligacoes auxiliares em season_teams que nao pertencem a lista principal da epoca.
+                Clubes, epocas, jornadas e jogos nao sao apagados.
               </p>
             </header>
             <div className="manager-summary-grid">
               <article className="manager-create-card manager-wide-card">
                 <header>
                   <h3>{selectedCountry?.name ?? "Sem pais selecionado"}</h3>
-                  <p>{oldInvisibleParticipants.length} associacoes antigas invisiveis encontradas neste pais.</p>
+                  <p>{oldInvisibleParticipants.length} associacoes tecnicas encontradas neste pais.</p>
                 </header>
                 {oldInvisibleParticipants.length === 0 ? (
-                  <div className="manager-empty">Nao ha associacoes antigas invisiveis para os clubes deste pais.</div>
+                  <div className="manager-empty">Nao ha associacoes tecnicas para os clubes deste pais.</div>
                 ) : (
                   <ul className="manager-list">
                     {oldInvisibleParticipants.map((participant) => (
@@ -2245,7 +2244,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                         </div>
                         <form
                           action="/api/admin/gestor"
-                          data-confirm="Tem a certeza que quer remover apenas esta associacao antiga invisivel de season_teams? O clube, a epoca, as jornadas e os jogos nao serao apagados."
+                          data-confirm="Tem a certeza que quer remover apenas esta associacao tecnica de season_teams? O clube, a epoca, as jornadas e os jogos nao serao apagados."
                           method="post"
                         >
                           <input type="hidden" name="action_type" value="remove_old_participant" />
@@ -2736,7 +2735,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
           <section className="manager-panel manager-section-participants" id="participantes" aria-label="Participantes da epoca">
             <header>
               <h2>Participantes da epoca</h2>
-              <p>Adiciona manualmente clubes a epoca selecionada e confirma a lista desse contexto.</p>
+              <p>Clubes inscritos na epoca selecionada. Podes adicionar manualmente ou aplicar uma lista validada na secao anterior.</p>
             </header>
             {sectionMessage("participantes")}
             <div className="manager-stat-row">
