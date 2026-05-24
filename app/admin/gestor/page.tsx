@@ -1066,6 +1066,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     isCurrent: season.is_current
   }));
   const currentReturnTo = returnTo(selectedCountry, selectedCompetition, selectedSeason);
+  const baseReturnTo = withSection(currentReturnTo, "base");
+  const maintenanceReturnTo = withSection(currentReturnTo, "manutencao");
   const clubsReturnTo = withSection(currentReturnTo, "clubes");
   const calendarReturnTo = withSection(currentReturnTo, "calendario");
   const participantsReturnTo = withSection(currentReturnTo, "participantes");
@@ -1176,6 +1178,13 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               var message = form.getAttribute("data-confirm");
               if (message && !window.confirm(message)) {
                 event.preventDefault();
+                return;
+              }
+
+              var method = (form.getAttribute("method") || "get").toLowerCase();
+              var action = form.getAttribute("action") || "";
+              if (method === "get" && action.indexOf("/admin/gestor") !== -1 && action.indexOf("#") === -1) {
+                form.setAttribute("action", "/admin/gestor#contexto");
               }
             });
 
@@ -1262,7 +1271,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
 
       {configured ? (
         <>
-          <section className="manager-context" aria-label="Caminho de trabalho">
+          <section className="manager-context" id="contexto" aria-label="Caminho de trabalho">
             <header>
               <h2>Caminho de trabalho</h2>
               <p>
@@ -1295,7 +1304,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
           </section>
 
           <div className="manager-workspace">
-          <section className="manager-panel manager-section-base" aria-label="Montador da fase 1">
+          <section className="manager-panel manager-section-base" id="base" aria-label="Montador da fase 1">
             <header>
               <h2>Fase 1 - base principal</h2>
               <p>
@@ -1303,6 +1312,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 ficam fora deste ecra por agora.
               </p>
             </header>
+            {sectionMessage("base")}
             <div className="manager-create-grid">
               <article className="manager-create-card">
                 <header>
@@ -1311,7 +1321,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </header>
                 <form className="manager-create-form" action="/api/admin/gestor" method="post">
                   <input type="hidden" name="action_type" value="country" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
+                  <input type="hidden" name="return_to" value={baseReturnTo} />
                   <div className="manager-field">
                     <label htmlFor="new-country-name">Nome</label>
                     <input id="new-country-name" name="name" placeholder="Ex: Portugal" required />
@@ -1341,7 +1351,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </header>
                 <form className="manager-create-form" action="/api/admin/gestor" method="post">
                   <input type="hidden" name="action_type" value="competition" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
+                  <input type="hidden" name="return_to" value={baseReturnTo} />
                   <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
                   <div className="manager-field">
                     <label htmlFor="new-competition-country">Pais</label>
@@ -1401,7 +1411,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </header>
                 <form className="manager-create-form" action="/api/admin/gestor" method="post">
                   <input type="hidden" name="action_type" value="season" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
+                  <input type="hidden" name="return_to" value={baseReturnTo} />
                   <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
                   <div className="manager-field">
                     <label htmlFor="new-season-competition">Competicao</label>
@@ -1525,13 +1535,14 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel manager-section-maintenance" aria-label="Remocao segura">
+          <section className="manager-panel manager-section-maintenance" id="manutencao" aria-label="Remocao segura">
             <header>
               <h2>Remocao segura</h2>
               <p>
                 Remove apenas itens sem dados associados. Se existirem dependencias, o gestor bloqueia a acao.
               </p>
             </header>
+            {sectionMessage("manutencao")}
             <div className="manager-summary-grid">
               <article className="manager-create-card">
                 <header>
@@ -1544,7 +1555,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   method="post"
                 >
                   <input type="hidden" name="action_type" value="remove_country" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
+                  <input type="hidden" name="return_to" value={maintenanceReturnTo} />
                   <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
                   <button className="manager-link-button" type="submit" disabled={!selectedCountry}>
                     Remover pais
@@ -1563,7 +1574,11 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   method="post"
                 >
                   <input type="hidden" name="action_type" value="remove_competition" />
-                  <input type="hidden" name="return_to" value={selectedCountry ? returnTo(selectedCountry, null, null) : "/admin/gestor"} />
+                  <input
+                    type="hidden"
+                    name="return_to"
+                    value={withSection(selectedCountry ? returnTo(selectedCountry, null, null) : "/admin/gestor", "manutencao")}
+                  />
                   <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
                   <button className="manager-link-button" type="submit" disabled={!selectedCompetition}>
                     Remover competicao
@@ -1582,7 +1597,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   method="post"
                 >
                   <input type="hidden" name="action_type" value="remove_season" />
-                  <input type="hidden" name="return_to" value={returnTo(selectedCountry, selectedCompetition, null)} />
+                  <input type="hidden" name="return_to" value={withSection(returnTo(selectedCountry, selectedCompetition, null), "manutencao")} />
                   <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
                   <button className="manager-link-button" type="submit" disabled={!selectedSeason}>
                     Remover epoca
