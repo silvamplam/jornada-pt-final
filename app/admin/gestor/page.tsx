@@ -77,6 +77,14 @@ type ClubPreviewSummary = {
   wouldAddToSeason: number;
   invalidLines: number;
 };
+type ClubApplySummary = {
+  createdTeams: number;
+  reusedTeams: number;
+  addedParticipants: number;
+  existingParticipants: number;
+  blockedConflicts: number;
+  invalidLines: number;
+};
 
 const managerStyles = `
   body {
@@ -708,7 +716,7 @@ function buildClubPreview({
       if (!existingTeam) {
         summary.newClubs += 1;
         summary.wouldAddToSeason += 1;
-        rows.push({ lineNumber, status: "novo clube", name, shortName, slug, logoUrl, color, note: "Seria criado no catalogo do pais e depois adicionado a epoca." });
+        rows.push({ lineNumber, status: "novo clube", name, shortName, slug, logoUrl, color, note: "Será criado no catálogo do país e depois adicionado à época." });
         return;
       }
 
@@ -754,8 +762,8 @@ function buildClubPreview({
         logoUrl: existingTeam.logo_url ?? logoUrl,
         color: existingTeam.primary_color ?? color,
         note: existingTeam.country_id
-          ? "Clube ja existe no pais e seria associado a epoca."
-          : "Clube existe sem pais confirmado; numa fase futura seria associado ao pais selecionado."
+          ? "Clube já existe no país e será associado à época."
+          : "Clube existe sem país confirmado; ao aplicar será associado ao país selecionado."
       });
     });
 
@@ -1242,6 +1250,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const currentReturnTo = returnTo(selectedCountry, selectedCompetition, selectedSeason);
   const baseReturnTo = withSection(currentReturnTo, "base");
   const maintenanceReturnTo = withSection(currentReturnTo, "manutencao");
+  const prepareParticipantsReturnTo = withSection(currentReturnTo, "preparar-participantes");
   const clubsReturnTo = withSection(currentReturnTo, "clubes");
   const calendarReturnTo = withSection(currentReturnTo, "calendario");
   const participantsReturnTo = withSection(currentReturnTo, "participantes");
@@ -1255,6 +1264,17 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const unlinkedCompetitions = competitions.filter((competition) => !competitionCountryId(competition));
   const created = oneParam(params, "created");
   const actionError = oneParam(params, "error");
+  const rawClubApplySummary = oneParam(params, "club_apply_summary");
+  let clubApplySummary: ClubApplySummary | null = null;
+
+  if (rawClubApplySummary) {
+    try {
+      clubApplySummary = JSON.parse(rawClubApplySummary) as ClubApplySummary;
+    } catch {
+      clubApplySummary = null;
+    }
+  }
+
   const canCreateCompetition = Boolean(selectedCountry);
   const canCreateSeason = Boolean(selectedCompetition);
   const canCreateTeam = Boolean(selectedCountry && participantData?.writeConfigured);
@@ -1271,12 +1291,21 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
       participantData?.writeConfigured &&
       matchTeamOptions.length >= 2
   );
+  const canApplyClubList = Boolean(
+    selectedCountry &&
+      selectedCompetition &&
+      selectedSeason &&
+      participantData?.writeConfigured &&
+      rawClubPreviewList.trim() &&
+      clubPreview.summary.totalRows > clubPreview.summary.invalidLines
+  );
   const createdLabels: Record<string, string> = {
     country: "Pais criado. Agora podes escolher esse pais no caminho de trabalho.",
     competition: "Competicao criada e ligada ao pais escolhido.",
     season: "Epoca criada dentro da competicao escolhida.",
     team: "Clube criado e associado ao pais selecionado.",
     attach_team_to_country: "Clube existente associado ao pais selecionado.",
+    apply_club_list: "Lista aplicada a esta epoca.",
     participant: "Participante associado a epoca selecionada.",
     remove_participant: "Participante removido da epoca selecionada.",
     remove_old_participant: "Associacao antiga invisivel removida de season_teams.",
@@ -1295,6 +1324,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "missing-service": "Liga primeiro a Supabase na Vercel.",
     "missing-fields": "Preenche os campos obrigatorios antes de guardar.",
     "unknown-action": "A acao enviada pelo formulario nao foi reconhecida.",
+    "country-not-found": "Nao foi possivel confirmar o pais selecionado.",
+    "competition-country-invalid": "A competicao selecionada nao pertence ao pais escolhido.",
+    "season-competition-invalid": "A epoca selecionada nao pertence a competicao escolhida.",
     "invalid-team-country": "O clube escolhido nao esta associado ao pais selecionado.",
     "team-slug-exists": "Este clube ja existe. Associe-o ao pais em vez de criar outro.",
     "team-not-found": "Nao foi possivel encontrar o clube escolhido.",
@@ -1930,6 +1962,14 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 <h2>Preparar participantes da época</h2>
                 <p>Cole uma lista de clubes para pré-visualizar a preparação dos participantes desta época. Nesta fase nada é gravado.</p>
               </header>
+              {sectionMessage("preparar-participantes")}
+              {clubApplySummary ? (
+                <div className="manager-message">
+                  Lista aplicada: {clubApplySummary.createdTeams} clubes criados, {clubApplySummary.reusedTeams} reutilizados,{" "}
+                  {clubApplySummary.addedParticipants} participantes adicionados, {clubApplySummary.existingParticipants} já existentes,{" "}
+                  {clubApplySummary.blockedConflicts} conflitos bloqueados e {clubApplySummary.invalidLines} linhas inválidas.
+                </div>
+              ) : null}
               <div className="manager-summary-grid">
                 <article className="manager-create-card manager-wide-card">
                   <header>
@@ -1999,6 +2039,10 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                         <strong>{clubPreview.summary.wouldAddToSeason}</strong>
                         <small>Seriam adicionados</small>
                       </article>
+                      <article className="manager-stat">
+                        <strong>{clubPreview.summary.invalidLines}</strong>
+                        <small>Linhas inválidas</small>
+                      </article>
                     </div>
                     <div className="manager-table-wrap">
                       <table className="manager-table">
@@ -2028,6 +2072,22 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                         </tbody>
                       </table>
                     </div>
+                    <form
+                      className="manager-create-form"
+                      action="/api/admin/gestor"
+                      method="post"
+                      data-confirm="Aplicar esta lista vai criar clubes necessários e associar participantes à época selecionada. Confirmas?"
+                    >
+                      <input type="hidden" name="action_type" value="apply_club_list" />
+                      <input type="hidden" name="return_to" value={prepareParticipantsReturnTo} />
+                      <input type="hidden" name="country_id" value={selectedCountry.id} />
+                      <input type="hidden" name="competition_id" value={selectedCompetition.id} />
+                      <input type="hidden" name="season_id" value={selectedSeason.id} />
+                      <textarea name="club_preview" hidden readOnly defaultValue={rawClubPreviewList} />
+                      <button className="manager-button" type="submit" disabled={!canApplyClubList}>
+                        Aplicar lista validada
+                      </button>
+                    </form>
                   </article>
                 ) : null}
               </div>

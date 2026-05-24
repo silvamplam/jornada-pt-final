@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchSupabaseAdminTable, getSupabaseServiceConfig, writeSupabaseAdmin } from "@/lib/supabase";
+import { fetchSupabaseAdminTable, getSupabaseServiceConfig, writeSupabaseAdmin, writeSupabaseAdminReturning } from "@/lib/supabase";
 
 function cleanText(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") {
@@ -72,6 +72,32 @@ type MatchdayTeamUse = {
   away_team_id: string;
 };
 
+type TeamRow = {
+  id: string;
+  name: string;
+  short_name: string | null;
+  slug: string;
+  country_id: string | null;
+};
+
+type ClubListRow = {
+  lineNumber: number;
+  name: string;
+  shortName: string | null;
+  slug: string;
+  logoUrl: string | null;
+  primaryColor: string | null;
+};
+
+type ApplyClubListSummary = {
+  createdTeams: number;
+  reusedTeams: number;
+  addedParticipants: number;
+  existingParticipants: number;
+  blockedConflicts: number;
+  invalidLines: number;
+};
+
 function slugify(value: string): string {
   return value
     .normalize("NFD")
@@ -81,14 +107,18 @@ function slugify(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-function returnUrl(request: Request, formData: FormData, key: "created" | "error", value: string) {
+function returnUrl(request: Request, formData: FormData, key: "created" | "error", value: string, extraParams?: Record<string, string>) {
   const rawReturnTo = cleanText(formData.get("return_to"));
   const safeReturnTo = rawReturnTo?.startsWith("/admin/gestor") ? rawReturnTo : "/admin/gestor";
   const url = new URL(safeReturnTo, request.url);
 
   url.searchParams.delete("created");
   url.searchParams.delete("error");
+  url.searchParams.delete("club_apply_summary");
   url.searchParams.set(key, value);
+  Object.entries(extraParams ?? {}).forEach(([paramKey, paramValue]) => {
+    url.searchParams.set(paramKey, paramValue);
+  });
 
   return NextResponse.redirect(url, { status: 303 });
 }
@@ -250,6 +280,160 @@ async function createParticipant(formData: FormData) {
     headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
     body: JSON.stringify(participantPayload)
   });
+}
+
+function parseClubList(rawList: string): { rows: ClubListRow[]; invalidLines: number } {
+  const seenSlugs = new Set<string>();
+  const rows: ClubListRow[] = [];
+  let invalidLines = 0;
+
+  rawList
+    .split(/\r?\n/)
+    .map((line, index) => ({ line: line.trim(), lineNumber: index + 1 }))
+    .filter((item) => item.line.length > 0)
+    .forEach(({ line, lineNumber }) => {
+      const [nameValue = "", shortValue = "", slugValue = "", logoValue = "", colorValue = ""] = line
+        .split(";")
+        .map((value) => value.trim());
+      const name = nameValue;
+      const slug = slugify(slugValue || name);
+
+      if (!name || !slug || seenSlugs.has(slug)) {
+        invalidLines += 1;
+        return;
+      }
+
+      seenSlugs.add(slug);
+      rows.push({
+        lineNumber,
+        name,
+        shortName: cleanText(shortValue) ? shortValue.toUpperCase() : null,
+        slug,
+        logoUrl: cleanText(logoValue),
+        primaryColor: cleanText(colorValue)
+      });
+    });
+
+  return { rows, invalidLines };
+}
+
+async function applyClubList(formData: FormData): Promise<ApplyClubListSummary> {
+  const countryId = cleanText(formData.get("country_id"));
+  const competitionId = cleanText(formData.get("competition_id"));
+  const seasonId = cleanText(formData.get("season_id"));
+  const rawList = cleanText(formData.get("club_preview"));
+
+  if (!countryId || !competitionId || !seasonId || !rawList) {
+    throw new Error("missing-fields");
+  }
+
+  if (!(await hasRows(`countries?select=id&id=eq.${encodeURIComponent(countryId)}`))) {
+    throw new Error("country-not-found");
+  }
+
+  if (
+    !(await hasRows(
+      `competitions?select=id&id=eq.${encodeURIComponent(competitionId)}&country_id=eq.${encodeURIComponent(countryId)}`
+    ))
+  ) {
+    throw new Error("competition-country-invalid");
+  }
+
+  if (
+    !(await hasRows(
+      `seasons?select=id&id=eq.${encodeURIComponent(seasonId)}&competition_id=eq.${encodeURIComponent(competitionId)}`
+    ))
+  ) {
+    throw new Error("season-competition-invalid");
+  }
+
+  const parsed = parseClubList(rawList);
+  const summary: ApplyClubListSummary = {
+    createdTeams: 0,
+    reusedTeams: 0,
+    addedParticipants: 0,
+    existingParticipants: 0,
+    blockedConflicts: 0,
+    invalidLines: parsed.invalidLines
+  };
+
+  for (const row of parsed.rows) {
+    const existingTeams = await fetchSupabaseAdminTable<TeamRow>(
+      `teams?select=id,name,short_name,slug,country_id&slug=eq.${encodeURIComponent(row.slug)}&limit=1`
+    );
+    let team = existingTeams[0];
+
+    if (team?.country_id && team.country_id !== countryId) {
+      summary.blockedConflicts += 1;
+      continue;
+    }
+
+    if (!team) {
+      const createdTeams = await writeSupabaseAdminReturning<TeamRow>("teams", {
+        method: "POST",
+        body: JSON.stringify({
+          name: row.name,
+          short_name: row.shortName ?? row.name.slice(0, 6).toUpperCase(),
+          slug: row.slug,
+          country_id: countryId,
+          logo_url: row.logoUrl,
+          primary_color: row.primaryColor
+        })
+      });
+      team = createdTeams[0];
+      summary.createdTeams += 1;
+    } else {
+      summary.reusedTeams += 1;
+
+      if (!team.country_id) {
+        await writeSupabaseAdmin(`teams?id=eq.${encodeURIComponent(team.id)}&country_id=is.null`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            country_id: countryId
+          })
+        });
+
+        if (
+          !(await hasRows(
+            `teams?select=id&id=eq.${encodeURIComponent(team.id)}&country_id=eq.${encodeURIComponent(countryId)}`
+          ))
+        ) {
+          throw new Error("invalid-team-country");
+        }
+      }
+    }
+
+    if (!team?.id) {
+      summary.invalidLines += 1;
+      continue;
+    }
+
+    const participantExists = await hasRows(
+      `season_teams?select=id&season_id=eq.${encodeURIComponent(seasonId)}&team_id=eq.${encodeURIComponent(team.id)}`
+    );
+
+    await writeSupabaseAdmin("season_teams?on_conflict=season_id,team_id", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({
+        season_id: seasonId,
+        team_id: team.id,
+        display_order: row.lineNumber,
+        status: "active",
+        data_source: "manual",
+        sync_status: "manual",
+        manual_override: true
+      })
+    });
+
+    if (participantExists) {
+      summary.existingParticipants += 1;
+    } else {
+      summary.addedParticipants += 1;
+    }
+  }
+
+  return summary;
 }
 
 async function removeParticipant(formData: FormData) {
@@ -736,6 +920,8 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const actionType = cleanText(formData.get("action_type"));
+  let createdValue = actionType ?? "1";
+  let extraParams: Record<string, string> | undefined;
 
   try {
     if (actionType === "country") {
@@ -750,6 +936,9 @@ export async function POST(request: Request) {
       await attachTeamToCountry(formData);
     } else if (actionType === "participant") {
       await createParticipant(formData);
+    } else if (actionType === "apply_club_list") {
+      const summary = await applyClubList(formData);
+      extraParams = { club_apply_summary: JSON.stringify(summary) };
     } else if (actionType === "remove_participant") {
       await removeParticipant(formData);
     } else if (actionType === "remove_old_participant") {
@@ -781,5 +970,5 @@ export async function POST(request: Request) {
     return returnUrl(request, formData, "error", error instanceof Error ? error.message : "save");
   }
 
-  return returnUrl(request, formData, "created", actionType ?? "1");
+  return returnUrl(request, formData, "created", createdValue, extraParams);
 }
