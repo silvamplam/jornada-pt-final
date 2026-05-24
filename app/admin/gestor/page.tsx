@@ -795,15 +795,6 @@ function formatLisbonDateTime(value: string) {
   }).format(new Date(value));
 }
 
-function slugifyClub(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 async function readTeamsForCountry(countryId?: string): Promise<CountryTeam[]> {
   if (!countryId) {
     return [];
