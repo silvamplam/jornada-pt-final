@@ -245,6 +245,136 @@ const managerStyles = `
     background: #fffdf8;
   }
 
+  .manager-section-maintenance {
+    box-shadow: none;
+  }
+
+  .manager-section-maintenance > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 18px;
+    color: #403224;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .manager-section-maintenance > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .manager-section-maintenance > summary::after {
+    content: "+";
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border: 1px solid #e0c5a1;
+    border-radius: 999px;
+    color: #8a5a1f;
+    font-weight: 900;
+  }
+
+  .manager-section-maintenance[open] > summary {
+    border-bottom: 1px solid #f1d6b8;
+  }
+
+  .manager-section-maintenance[open] > summary::after {
+    content: "-";
+  }
+
+  .manager-section-maintenance > summary strong {
+    display: block;
+    font-size: 15px;
+    text-transform: uppercase;
+  }
+
+  .manager-section-maintenance > summary small {
+    display: block;
+    margin-top: 3px;
+    color: #7a6c5e;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .manager-section-maintenance .manager-summary-grid,
+  .manager-section-maintenance .manager-create-grid {
+    padding: 12px 16px 16px;
+  }
+
+  .manager-section-maintenance .manager-create-card {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .manager-section-clubs {
+    border-style: dashed;
+    background: #fbfcfe;
+  }
+
+  .manager-section-clubs > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 18px;
+    color: #263241;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .manager-section-clubs > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .manager-section-clubs > summary::after {
+    content: "+";
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border: 1px solid #c8d2dd;
+    border-radius: 999px;
+    color: #445061;
+    font-weight: 900;
+  }
+
+  .manager-section-clubs[open] > summary {
+    border-bottom: 1px solid #e6ebf1;
+  }
+
+  .manager-section-clubs[open] > summary::after {
+    content: "-";
+  }
+
+  .manager-section-clubs > summary strong {
+    display: block;
+    font-size: 15px;
+    text-transform: uppercase;
+  }
+
+  .manager-section-clubs > summary small {
+    display: block;
+    margin-top: 3px;
+    color: #687380;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .manager-section-clubs > header {
+    background: #f7f9fc;
+  }
+
+  .manager-section-prepare {
+    border-color: #cddfeb;
+    box-shadow: 0 14px 28px rgba(12, 22, 34, 0.08);
+  }
+
+  .manager-section-prepare > header {
+    background: #f7fbff;
+  }
+
   .manager-warning {
     padding: 18px 20px;
     border-color: #ffd3a3;
@@ -1790,13 +1920,13 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </section>
 
-          <section className="manager-panel manager-section-maintenance" id="manutencao" aria-label="Remocao segura">
-            <header>
-              <h2>Remocao segura</h2>
-              <p>
-                Remove apenas itens sem dados associados. Se existirem dependencias, o gestor bloqueia a acao.
-              </p>
-            </header>
+          <details className="manager-panel manager-section-maintenance" id="manutencao" aria-label="Remocao segura" open={messageSection === "manutencao"}>
+            <summary>
+              <span>
+                <strong>Remocao segura</strong>
+                <small>Remove apenas itens sem dados associados. Se existirem dependencias, o gestor bloqueia a acao.</small>
+              </span>
+            </summary>
             {sectionMessage("manutencao")}
             <div className="manager-summary-grid">
               <article className="manager-create-card">
@@ -1860,13 +1990,15 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </form>
               </article>
             </div>
-          </section>
+          </details>
 
-          <section className="manager-panel manager-section-maintenance" id="diagnostico-bloqueios" aria-label="Manutencao e diagnostico">
-            <header>
-              <h2>Manutencao e diagnostico</h2>
-              <p>Ferramentas auxiliares para verificar dependencias e bloqueios antes de remover dados.</p>
-            </header>
+          <details className="manager-panel manager-section-maintenance" id="diagnostico-bloqueios" aria-label="Manutencao e diagnostico">
+            <summary>
+              <span>
+                <strong>Manutencao e diagnostico</strong>
+                <small>Ferramentas auxiliares para verificar dependencias e bloqueios antes de remover dados.</small>
+              </span>
+            </summary>
             <div className="manager-summary-grid">
               <article className="manager-create-card">
                 <header>
@@ -1970,7 +2102,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 )}
               </article>
             </div>
-          </section>
+          </details>
 
           {selectedCountry && selectedCompetition && selectedSeason ? (
             <section className="manager-panel manager-section-prepare" id="preparar-participantes" aria-label="Preparar participantes da época">
@@ -2110,11 +2242,13 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </section>
           ) : null}
 
-          <section className="manager-panel manager-section-clubs" id="clubes" aria-label="Gestao manual de clubes">
-            <header>
-              <h2>Gestao manual de clubes</h2>
-              <p>Usa esta area apenas para criar ou ajustar clubes individualmente. Para preparar uma epoca completa, usa a lista de participantes acima.</p>
-            </header>
+          <details className="manager-panel manager-section-clubs" id="clubes" aria-label="Gestao manual de clubes" open={messageSection === "clubes"}>
+            <summary>
+              <span>
+                <strong>Gestao manual de clubes</strong>
+                <small>Fallback para criar ou ajustar clubes individualmente. Para preparar uma epoca completa, usa a lista de participantes acima.</small>
+              </span>
+            </summary>
             {sectionMessage("clubes")}
             <div className="manager-create-grid">
               <article className="manager-create-card">
@@ -2212,16 +2346,15 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 )}
               </article>
             </div>
-          </section>
+          </details>
 
-          <section className="manager-panel manager-section-maintenance" id="associacoes-antigas" aria-label="Revisao tecnica de associacoes">
-            <header>
-              <h2>Revisao tecnica de associacoes</h2>
-              <p>
-                Remove apenas ligacoes auxiliares em season_teams que nao pertencem a lista principal da epoca.
-                Clubes, epocas, jornadas e jogos nao sao apagados.
-              </p>
-            </header>
+          <details className="manager-panel manager-section-maintenance" id="associacoes-antigas" aria-label="Revisao tecnica de associacoes">
+            <summary>
+              <span>
+                <strong>Revisao tecnica de associacoes</strong>
+                <small>Remove apenas ligacoes auxiliares em season_teams que nao pertencem a lista principal da epoca. Clubes, epocas, jornadas e jogos nao sao apagados.</small>
+              </span>
+            </summary>
             <div className="manager-summary-grid">
               <article className="manager-create-card manager-wide-card">
                 <header>
@@ -2260,7 +2393,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 )}
               </article>
             </div>
-          </section>
+          </details>
 
           <section className="manager-panel manager-section-calendar" id="calendario" aria-label="Calendario da epoca">
             <header>
