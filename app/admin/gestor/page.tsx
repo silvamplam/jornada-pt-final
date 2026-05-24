@@ -1537,6 +1537,42 @@ function buildAccumulatedClassification({
 }): ClassificationRow[] {
   const rows = new Map<string, ClassificationRow>();
   const matchdaysById = new Map(matchdays.map((matchday) => [matchday.id, matchday]));
+  const toScore = (value: number | string | null | undefined) => {
+    if (value === null || value === undefined || value === "") {
+      return null;
+    }
+
+    const score = typeof value === "number" ? value : Number(value);
+    return Number.isInteger(score) && score >= 0 ? score : null;
+  };
+  const addSplitResult = (split: ClassificationSplit, goalsFor: number, goalsAgainst: number) => {
+    split.played += 1;
+    split.goalsFor += goalsFor;
+    split.goalsAgainst += goalsAgainst;
+    split.goalDifference = split.goalsFor - split.goalsAgainst;
+
+    if (goalsFor > goalsAgainst) {
+      split.wins += 1;
+      split.points += 3;
+    } else if (goalsFor < goalsAgainst) {
+      split.losses += 1;
+    } else {
+      split.draws += 1;
+      split.points += 1;
+    }
+  };
+  const syncTotalFromSplits = (row: ClassificationRow) => {
+    row.homePlayed = row.home.played;
+    row.awayPlayed = row.away.played;
+    row.played = row.home.played + row.away.played;
+    row.wins = row.home.wins + row.away.wins;
+    row.draws = row.home.draws + row.away.draws;
+    row.losses = row.home.losses + row.away.losses;
+    row.goalsFor = row.home.goalsFor + row.away.goalsFor;
+    row.goalsAgainst = row.home.goalsAgainst + row.away.goalsAgainst;
+    row.goalDifference = row.goalsFor - row.goalsAgainst;
+    row.points = row.home.points + row.away.points;
+  };
 
   participants.forEach((participant) => {
     if (!participant.team) {
@@ -1571,14 +1607,19 @@ function buildAccumulatedClassification({
       match,
       matchday: match.matchday_id ? matchdaysById.get(match.matchday_id) ?? null : null
     }))
-    .filter(
-      ({ match, matchday }) =>
+    .filter(({ match, matchday }) => {
+      const homeScore = toScore(match.home_score);
+      const awayScore = toScore(match.away_score);
+
+      return (
         Boolean(matchday) &&
+        match.season_id === selectedMatchday.season_id &&
         matchday!.number <= selectedMatchday.number &&
-        match.status === "finished" &&
-        match.home_score !== null &&
-        match.away_score !== null
-    )
+        match.status?.trim().toLowerCase() === "finished" &&
+        homeScore !== null &&
+        awayScore !== null
+      );
+    })
     .sort(
       (a, b) =>
         a.matchday!.number - b.matchday!.number ||
@@ -1586,7 +1627,10 @@ function buildAccumulatedClassification({
     );
 
   finishedMatches.forEach(({ match }) => {
-    if (match.home_score === null || match.away_score === null) {
+    const homeScore = toScore(match.home_score);
+    const awayScore = toScore(match.away_score);
+
+    if (homeScore === null || awayScore === null) {
       return;
     }
 
@@ -1597,77 +1641,41 @@ function buildAccumulatedClassification({
       return;
     }
 
-    home.played += 1;
-    away.played += 1;
-    home.homePlayed += 1;
-    away.awayPlayed += 1;
-    home.home.played += 1;
-    away.away.played += 1;
-    home.goalsFor += match.home_score;
-    home.goalsAgainst += match.away_score;
-    away.goalsFor += match.away_score;
-    away.goalsAgainst += match.home_score;
-    home.home.goalsFor += match.home_score;
-    home.home.goalsAgainst += match.away_score;
-    away.away.goalsFor += match.away_score;
-    away.away.goalsAgainst += match.home_score;
+    addSplitResult(home.home, homeScore, awayScore);
+    addSplitResult(away.away, awayScore, homeScore);
 
-    if (match.home_score > match.away_score) {
-      home.wins += 1;
-      home.points += 3;
-      away.losses += 1;
-      home.home.wins += 1;
-      home.home.points += 3;
-      away.away.losses += 1;
+    if (homeScore > awayScore) {
       home.recentForm.push({
         label: "V(C)",
-        title: `V(C) - vs ${away.name}, ${match.home_score}-${match.away_score}`
+        title: `V(C) - vs ${away.name}, ${homeScore}-${awayScore}`
       });
       away.recentForm.push({
         label: "D(F)",
-        title: `D(F) - vs ${home.name}, ${match.away_score}-${match.home_score}`
+        title: `D(F) - vs ${home.name}, ${awayScore}-${homeScore}`
       });
-    } else if (match.home_score < match.away_score) {
-      away.wins += 1;
-      away.points += 3;
-      home.losses += 1;
-      away.away.wins += 1;
-      away.away.points += 3;
-      home.home.losses += 1;
+    } else if (homeScore < awayScore) {
       home.recentForm.push({
         label: "D(C)",
-        title: `D(C) - vs ${away.name}, ${match.home_score}-${match.away_score}`
+        title: `D(C) - vs ${away.name}, ${homeScore}-${awayScore}`
       });
       away.recentForm.push({
         label: "V(F)",
-        title: `V(F) - vs ${home.name}, ${match.away_score}-${match.home_score}`
+        title: `V(F) - vs ${home.name}, ${awayScore}-${homeScore}`
       });
     } else {
-      home.draws += 1;
-      away.draws += 1;
-      home.points += 1;
-      away.points += 1;
-      home.home.draws += 1;
-      away.away.draws += 1;
-      home.home.points += 1;
-      away.away.points += 1;
       home.recentForm.push({
         label: "E(C)",
-        title: `E(C) - vs ${away.name}, ${match.home_score}-${match.away_score}`
+        title: `E(C) - vs ${away.name}, ${homeScore}-${awayScore}`
       });
       away.recentForm.push({
         label: "E(F)",
-        title: `E(F) - vs ${home.name}, ${match.away_score}-${match.home_score}`
+        title: `E(F) - vs ${home.name}, ${awayScore}-${homeScore}`
       });
     }
-
-    home.goalDifference = home.goalsFor - home.goalsAgainst;
-    away.goalDifference = away.goalsFor - away.goalsAgainst;
-    home.home.goalDifference = home.home.goalsFor - home.home.goalsAgainst;
-    away.away.goalDifference = away.away.goalsFor - away.away.goalsAgainst;
   });
 
   rows.forEach((row) => {
+    syncTotalFromSplits(row);
     row.recentForm = row.recentForm.slice(-4);
   });
 
@@ -1844,21 +1852,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     .map((participant) => participant.team)
     .filter((team): team is SupabaseTeam => Boolean(team));
   const participantTeamsById = new Map(participantTeamOptions.map((team) => [team.id, team]));
-  const classificationMatchdaysById = new Map(matchdaysForSeason.map((matchday) => [matchday.id, matchday]));
-  const classificationCandidateMatches = matchesForSeason
-    .map((match) => ({
-      match,
-      matchday: match.matchday_id ? classificationMatchdaysById.get(match.matchday_id) ?? null : null
-    }))
-    .filter(
-      ({ match, matchday }) =>
-        Boolean(matchday) &&
-        selectedMatchday !== null &&
-        matchday!.number <= selectedMatchday.number &&
-        match.status === "finished" &&
-        match.home_score !== null &&
-        match.away_score !== null
-    );
   const classificationRows = buildAccumulatedClassification({
     participants: participantsForSeason,
     matches: matchesForSeason,
