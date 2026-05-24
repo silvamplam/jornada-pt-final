@@ -746,6 +746,61 @@ const managerStyles = `
     font-size: 12px;
   }
 
+  .manager-matchday-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .manager-matchday-card {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #fbfcfe;
+  }
+
+  .manager-matchday-card.is-selected {
+    border-color: #b71c1c;
+    background: #fff8f8;
+  }
+
+  .manager-matchday-card strong {
+    display: block;
+    overflow: hidden;
+    color: #17202b;
+    font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .manager-matchday-card small {
+    color: #687380;
+    font-size: 12px;
+  }
+
+  .manager-matchday-card code {
+    display: inline-flex;
+    width: fit-content;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: #eef2f7;
+    color: #263241;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .manager-matchday-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
   .manager-empty {
     padding: 10px 0;
     color: #687380;
@@ -2900,34 +2955,61 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 {matchdaysForSeason.length === 0 ? (
                   <div className="manager-empty">Ainda nao ha jornadas nesta epoca.</div>
                 ) : (
-                  <ul className="manager-list">
+                  <ul className="manager-matchday-grid">
                     {matchdaysForSeason.map((matchday) => (
-                      <li key={matchday.id}>
+                      <li
+                        key={matchday.id}
+                        className={`manager-matchday-card${selectedMatchday?.id === matchday.id ? " is-selected" : ""}`}
+                      >
                         <div>
-                          <b>
-                            {matchday.number}. {matchday.label}
-                          </b>
+                          <code>J{String(matchday.number).padStart(2, "0")}</code>
+                          <strong>{matchday.label}</strong>
                           <small>
                             {matchday.starts_on ?? "Sem inicio"} / {matchday.ends_on ?? "Sem fim"} - {matchday.status}
                           </small>
                         </div>
-                        <form
-                          action="/api/admin/gestor"
-                          data-confirm="Tem a certeza que quer remover esta jornada? Esta acao so avanca se nao houver jogos associados."
-                          method="post"
-                        >
-                          <input type="hidden" name="action_type" value="remove_matchday" />
-                          <input type="hidden" name="return_to" value={calendarReturnTo} />
-                          <input type="hidden" name="matchday_id" value={matchday.id} />
-                          <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
-                          <button className="manager-link-button" type="submit">
-                            Remover
-                          </button>
-                        </form>
+                        <div className="manager-matchday-actions">
+                          <a className="manager-link-button" href={buildMatchdayUrl(currentReturnTo, matchday.id, "jogos")}>
+                            Abrir
+                          </a>
+                        </div>
                       </li>
                     ))}
                   </ul>
                 )}
+                {matchdaysForSeason.length > 0 ? (
+                  <details className="manager-create-card manager-fallback-card">
+                    <summary>
+                      <span>
+                        <strong>Remover jornada</strong>
+                        <small>Acao secundaria. So remove jornadas sem jogos associados.</small>
+                      </span>
+                    </summary>
+                    <form
+                      className="manager-create-form"
+                      action="/api/admin/gestor"
+                      data-confirm="Tem a certeza que quer remover esta jornada? Esta acao so avanca se nao houver jogos associados."
+                      method="post"
+                    >
+                      <input type="hidden" name="action_type" value="remove_matchday" />
+                      <input type="hidden" name="return_to" value={calendarReturnTo} />
+                      <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+                      <div className="manager-field">
+                        <label htmlFor="remove-matchday-id">Jornada</label>
+                        <select id="remove-matchday-id" name="matchday_id" defaultValue={selectedMatchday?.id ?? matchdaysForSeason[0]?.id ?? ""}>
+                          {matchdaysForSeason.map((matchday) => (
+                            <option key={matchday.id} value={matchday.id}>
+                              {matchday.number}. {matchday.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <button className="manager-link-button" type="submit">
+                        Remover jornada
+                      </button>
+                    </form>
+                  </details>
+                ) : null}
               </article>
             </div>
           </section>
