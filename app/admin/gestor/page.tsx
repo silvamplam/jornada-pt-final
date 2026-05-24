@@ -903,6 +903,29 @@ const managerStyles = `
     border-left: 2px solid #dce3eb;
   }
 
+  .manager-classification-table {
+    min-width: 1280px;
+  }
+
+  .manager-classification-table th,
+  .manager-classification-table td {
+    padding: 8px 6px;
+  }
+
+  .manager-classification-table thead tr:nth-child(2) th {
+    min-width: 0;
+    text-align: right;
+  }
+
+  .manager-classification-table tbody td:nth-child(2) {
+    min-width: 150px;
+    text-align: left;
+  }
+
+  .manager-classification-table .manager-form-list {
+    min-width: 64px;
+  }
+
   .manager-actions {
     display: flex;
     flex-wrap: wrap;
@@ -3023,7 +3046,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     </article>
                   </div>
                   <div className="manager-table-wrap">
-                    <table className="manager-table">
+                    <table className="manager-table manager-classification-table">
                       <thead>
                         <tr>
                           <th>Estado</th>
