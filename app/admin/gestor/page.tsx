@@ -1065,6 +1065,34 @@ function signedNumber(value: number) {
   return value > 0 ? `+${value}` : `${value}`;
 }
 
+function goalDifferenceClass(value: number) {
+  return value > 0
+    ? "manager-goal-difference-positive"
+    : value < 0
+      ? "manager-goal-difference-negative"
+      : "manager-goal-difference-neutral";
+}
+
+function renderClassificationStatCells(
+  stats: ClassificationSplit,
+  options: { divider?: boolean; emphasizePoints?: boolean } = {}
+) {
+  return (
+    <>
+      <td className={options.divider ? "manager-table-divider-left" : undefined}>{stats.played}</td>
+      <td>{stats.wins}</td>
+      <td>{stats.draws}</td>
+      <td>{stats.losses}</td>
+      <td>{stats.goalsFor}</td>
+      <td>{stats.goalsAgainst}</td>
+      <td className={goalDifferenceClass(stats.goalDifference)}>{signedNumber(stats.goalDifference)}</td>
+      <td>
+        <b className={options.emphasizePoints ? "manager-table-points" : undefined}>{stats.points}</b>
+      </td>
+    </>
+  );
+}
+
 function buildContextQuery(country: SupabaseCountry | null, competition: SupabaseCompetition | null, season: SupabaseSeason | null) {
   const params = new URLSearchParams();
 
@@ -3575,66 +3603,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           <tr key={row.teamId}>
                             <td>{index + 1}</td>
                             <td>{row.name}</td>
-                            <td className="manager-table-divider-left">{row.played}</td>
-                            <td>{row.wins}</td>
-                            <td>{row.draws}</td>
-                            <td>{row.losses}</td>
-                            <td>{row.goalsFor}</td>
-                            <td>{row.goalsAgainst}</td>
-                              <td
-                                className={
-                                  row.goalDifference > 0
-                                    ? "manager-goal-difference-positive"
-                                    : row.goalDifference < 0
-                                      ? "manager-goal-difference-negative"
-                                      : "manager-goal-difference-neutral"
-                                }
-                              >
-                                {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
-                              </td>
-                              <td>
-                                <b className="manager-table-points">{row.points}</b>
-                              </td>
-                              <td className="manager-table-divider-left">{row.home.played}</td>
-                              <td>{row.home.wins}</td>
-                              <td>{row.home.draws}</td>
-                              <td>{row.home.losses}</td>
-                              <td>{row.home.goalsFor}</td>
-                              <td>{row.home.goalsAgainst}</td>
-                              <td
-                                className={
-                                  row.home.goalDifference > 0
-                                    ? "manager-goal-difference-positive"
-                                    : row.home.goalDifference < 0
-                                      ? "manager-goal-difference-negative"
-                                      : "manager-goal-difference-neutral"
-                                }
-                              >
-                                {signedNumber(row.home.goalDifference)}
-                              </td>
-                              <td>
-                                <b>{row.home.points}</b>
-                              </td>
-                              <td className="manager-table-divider-left">{row.away.played}</td>
-                              <td>{row.away.wins}</td>
-                              <td>{row.away.draws}</td>
-                              <td>{row.away.losses}</td>
-                              <td>{row.away.goalsFor}</td>
-                              <td>{row.away.goalsAgainst}</td>
-                              <td
-                                className={
-                                  row.away.goalDifference > 0
-                                    ? "manager-goal-difference-positive"
-                                    : row.away.goalDifference < 0
-                                      ? "manager-goal-difference-negative"
-                                      : "manager-goal-difference-neutral"
-                                }
-                              >
-                                {signedNumber(row.away.goalDifference)}
-                              </td>
-                              <td>
-                                <b>{row.away.points}</b>
-                              </td>
+                            {renderClassificationStatCells(row, { divider: true, emphasizePoints: true })}
+                            {renderClassificationStatCells(row.home, { divider: true })}
+                            {renderClassificationStatCells(row.away, { divider: true })}
                               <td>
                                 {row.recentForm.length > 0 ? (
                                   <span className="manager-form-list">
