@@ -1389,8 +1389,41 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               }
             }
 
+            document.addEventListener("click", function (event) {
+              var target = event.target;
+              if (!(target instanceof HTMLElement)) return;
+              var trigger = target.closest('[data-club-file-trigger="true"]');
+              if (!trigger) return;
+              var input = document.querySelector('[data-club-file-input="true"]');
+              if (input instanceof HTMLInputElement) {
+                input.click();
+              }
+            });
+
             document.addEventListener("change", function (event) {
               var field = event.target;
+
+              if (field instanceof HTMLInputElement && field.getAttribute("data-club-file-input") === "true") {
+                var file = field.files && field.files[0];
+                if (!file) return;
+
+                var fileName = file.name.toLowerCase();
+                if (!fileName.endsWith(".txt") && !fileName.endsWith(".csv")) {
+                  field.value = "";
+                  return;
+                }
+
+                var reader = new FileReader();
+                reader.onload = function () {
+                  var textarea = document.getElementById("club-preview-list");
+                  if (textarea instanceof HTMLTextAreaElement) {
+                    textarea.value = String(reader.result || "");
+                  }
+                };
+                reader.readAsText(file);
+                return;
+              }
+
               if (!(field instanceof HTMLSelectElement)) return;
               var form = field.closest('[data-match-form="true"]');
               if (form) syncMatchTeamSelectors(form);
@@ -1892,10 +1925,10 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
           </section>
 
           {selectedCountry && selectedCompetition && selectedSeason ? (
-            <section className="manager-panel manager-section-prepare" id="preparar-participantes" aria-label="Preparar participantes da epoca">
+            <section className="manager-panel manager-section-prepare" id="preparar-participantes" aria-label="Preparar participantes da época">
               <header>
-                <h2>Preparar participantes da epoca</h2>
-                <p>Cole uma lista de clubes para pre-visualizar a preparacao dos participantes desta epoca. Nesta fase nada e gravado.</p>
+                <h2>Preparar participantes da época</h2>
+                <p>Cole uma lista de clubes para pré-visualizar a preparação dos participantes desta época. Nesta fase nada é gravado.</p>
               </header>
               <div className="manager-summary-grid">
                 <article className="manager-create-card manager-wide-card">
@@ -1903,7 +1936,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     <h3>
                       {selectedCountry.name} / {selectedCompetition.name} / {selectedSeason.label}
                     </h3>
-                    <p>Formato: Nome;Sigla;Slug;Logo;Cor</p>
+                    <p>Formato: Nome;Sigla;Slug;Emblema URL;Cor</p>
+                    <p>Pode colar a lista manualmente ou carregar um ficheiro .txt/.csv com uma linha por clube.</p>
                   </header>
                   <form className="manager-create-form" action="/admin/gestor#preparar-participantes" method="get">
                     <input type="hidden" name="pais" value={selectedCountry.id} />
@@ -1912,6 +1946,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     <input type="hidden" name="section" value="preparar-participantes" />
                     <div className="manager-field">
                       <label htmlFor="club-preview-list">Lista de clubes</label>
+                      <input
+                        type="file"
+                        accept=".txt,.csv,text/plain,text/csv"
+                        data-club-file-input="true"
+                        hidden
+                      />
                       <textarea
                         id="club-preview-list"
                         name="club_preview"
@@ -1919,8 +1959,11 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                         defaultValue={rawClubPreviewList}
                       />
                     </div>
+                    <button className="manager-link-button" type="button" data-club-file-trigger="true">
+                      Carregar lista
+                    </button>
                     <button className="manager-button" type="submit">
-                      Pre-visualizar lista
+                      Pré-visualizar lista
                     </button>
                   </form>
                 </article>
@@ -1928,7 +1971,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 {rawClubPreviewList.trim() ? (
                   <article className="manager-create-card manager-wide-card">
                     <header>
-                      <h3>Resultado da pre-visualizacao</h3>
+                      <h3>Resultado da pré-visualização</h3>
                       <p>Nada foi gravado. Esta tabela mostra apenas o que aconteceria numa fase futura.</p>
                     </header>
                     <div className="manager-stat-row">
@@ -1938,7 +1981,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                       </article>
                       <article className="manager-stat">
                         <strong>{clubPreview.summary.existingInCountry}</strong>
-                        <small>Ja existem no pais</small>
+                        <small>Já existem no país</small>
                       </article>
                       <article className="manager-stat">
                         <strong>{clubPreview.summary.newClubs}</strong>
@@ -1950,7 +1993,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                       </article>
                       <article className="manager-stat">
                         <strong>{clubPreview.summary.alreadyParticipants}</strong>
-                        <small>Ja participantes</small>
+                        <small>Já participantes</small>
                       </article>
                       <article className="manager-stat">
                         <strong>{clubPreview.summary.wouldAddToSeason}</strong>
@@ -1965,9 +2008,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                             <th>Nome</th>
                             <th>Sigla</th>
                             <th>Slug</th>
-                            <th>Logo</th>
+                            <th>Emblema URL</th>
                             <th>Cor</th>
-                            <th>Observacao</th>
+                            <th>Observação</th>
                           </tr>
                         </thead>
                         <tbody>
