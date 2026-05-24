@@ -394,7 +394,7 @@ const managerStyles = `
   }
 
   .manager-calendar-list,
-  .manager-match-form {
+  .manager-match-summary {
     order: 2;
   }
 
@@ -409,6 +409,10 @@ const managerStyles = `
 
   .manager-match-finished {
     order: 5;
+  }
+
+  .manager-match-form {
+    order: 6;
   }
 
   .manager-section-clubs {
@@ -2937,15 +2941,15 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             <div className="manager-create-grid">
               <article className="manager-create-card manager-jornada-selector">
                 <header>
-                  <h3>Jornada</h3>
+                  <h3>Escolher jornada</h3>
                   <p>
                     {!selectedSeason
                       ? "Escolhe uma epoca primeiro."
                       : matchdaysForSeason.length === 0
-                        ? "Cria uma jornada antes de adicionar jogos."
+                        ? "Prepara o calendario antes de abrir uma jornada."
                         : selectedMatchday
-                          ? `${selectedMatchday.number}. ${selectedMatchday.label}`
-                          : "Escolhe uma jornada."}
+                          ? `Painel aberto: ${selectedMatchday.number}. ${selectedMatchday.label}`
+                          : "Escolhe uma jornada para abrir o painel operacional."}
                   </p>
                 </header>
                 <form className="manager-create-form" action="/admin/gestor#jogos" method="get">
@@ -2975,21 +2979,48 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </form>
               </article>
 
-              <article className="manager-create-card manager-match-form">
+              <article className="manager-create-card manager-wide-card manager-match-summary">
                 <header>
-                  <h3>{editingMatch ? "Editar jogo" : "Novo jogo"}</h3>
+                  <h3>{selectedMatchday ? `${selectedMatchday.number}. ${selectedMatchday.label}` : "Sem jornada selecionada"}</h3>
                   <p>
-                    {!selectedMatchday
-                      ? "Escolhe ou cria uma jornada primeiro."
-                      : participantTeamOptions.length < 2
-                        ? "E preciso ter pelo menos dois participantes para criar um jogo."
-                        : matchTeamOptions.length < 2
-                          ? "As equipas disponiveis ja tem jogo nesta jornada."
-                        : editingMatch
-                          ? "Corrige apenas a agenda deste jogo."
-                          : "Agenda simples, sem resultados nem TV."}
+                    {selectedMatchday
+                      ? "Resumo operacional da jornada selecionada."
+                      : "Escolhe uma jornada para ver jogos, resultados e classificacao."}
                   </p>
                 </header>
+                <div className="manager-stat-row">
+                  <article className="manager-stat">
+                    <strong>{scheduledMatchesForMatchday.length}</strong>
+                    <small>Jogos agendados</small>
+                  </article>
+                  <article className="manager-stat">
+                    <strong>{finishedMatchesForMatchday.length}</strong>
+                    <small>Jogos finalizados</small>
+                  </article>
+                  <article className="manager-stat">
+                    <strong>{matchesForMatchday.length}</strong>
+                    <small>Total nesta jornada</small>
+                  </article>
+                </div>
+              </article>
+
+              <details className="manager-create-card manager-wide-card manager-fallback-card manager-match-form" open={Boolean(editingMatch)}>
+                <summary>
+                  <span>
+                    <strong>{editingMatch ? "Editar jogo" : "Adicionar jogo manualmente"}</strong>
+                    <small>
+                      {!selectedMatchday
+                        ? "Escolhe uma jornada primeiro."
+                        : participantTeamOptions.length < 2
+                          ? "E preciso ter pelo menos dois participantes para criar um jogo."
+                          : matchTeamOptions.length < 2
+                            ? "As equipas disponiveis ja tem jogo nesta jornada."
+                          : editingMatch
+                            ? "Corrige apenas a agenda deste jogo."
+                            : "Usar apenas para correcoes pontuais ou jogos em falta."}
+                    </small>
+                  </span>
+                </summary>
                 <form
                   className="manager-create-form"
                   action="/api/admin/gestor"
@@ -3080,7 +3111,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     </a>
                   ) : null}
                 </form>
-              </article>
+              </details>
 
               <article className="manager-create-card manager-wide-card manager-match-scheduled">
                 <header>
