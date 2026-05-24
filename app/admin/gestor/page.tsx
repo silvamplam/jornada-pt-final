@@ -1478,22 +1478,6 @@ async function readMatchesForSeason(seasonId?: string): Promise<SeasonAgendaMatc
   }
 }
 
-async function readAllMatchesForSeasonDiagnostic(seasonId?: string): Promise<SeasonAgendaMatch[]> {
-  if (!seasonId) {
-    return [];
-  }
-
-  try {
-    return await fetchSupabaseAdminTable<SeasonAgendaMatch>(
-      `matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,kickoff_at,venue,status,minute,home_score,away_score,broadcast_channel_id&season_id=eq.${encodeURIComponent(
-        seasonId
-      )}&order=kickoff_at.asc`
-    );
-  } catch {
-    return [];
-  }
-}
-
 async function readBlockingMatchdaysForSeason(seasonId?: string): Promise<SeasonMatchday[]> {
   if (!seasonId) {
     return [];
@@ -1807,7 +1791,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   );
   const finishedMatchesForMatchday = matchesForMatchday.filter((match) => match.status === "finished");
   const matchesForSeason = await readMatchesForSeason(selectedSeason?.id);
-  const allMatchesForSeasonDiagnostic = await readAllMatchesForSeasonDiagnostic(selectedSeason?.id);
   const blockingMatchdaysForSeason = await readBlockingMatchdaysForSeason(selectedSeason?.id);
   const blockingMatchesForSeason = await readBlockingMatchesForSeason(selectedSeason?.id);
   const blockingMatchesForCountryTeams = await readBlockingMatchesForTeams(teamsForCountry.map((team) => team.id));
@@ -1876,53 +1859,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
         match.home_score !== null &&
         match.away_score !== null
     );
-  const classificationDebug = {
-    selectedSeasonId: selectedSeason?.id ?? "",
-    selectedMatchdayId: selectedMatchday?.id ?? "",
-    selectedMatchdayNumber: selectedMatchday?.number ?? null,
-    allMatchesInSeason: allMatchesForSeasonDiagnostic.length,
-    allFinishedMatchesInSeason: allMatchesForSeasonDiagnostic.filter((match) => match.status === "finished").length,
-    allMatchesWithScoresInSeason: allMatchesForSeasonDiagnostic.filter(
-      (match) => match.home_score !== null && match.away_score !== null
-    ).length,
-    matchesReadForSeason: matchesForSeason.length,
-    matchesWithStatus: matchesForSeason.filter((match) => Boolean(match.status)).length,
-    finishedMatches: matchesForSeason.filter((match) => match.status === "finished").length,
-    matchesWithScores: matchesForSeason.filter((match) => match.home_score !== null && match.away_score !== null).length,
-    matchesUpToSelectedMatchday: matchesForSeason.filter((match) => {
-      const matchday = match.matchday_id ? classificationMatchdaysById.get(match.matchday_id) ?? null : null;
-      return Boolean(matchday) && selectedMatchday !== null && matchday!.number <= selectedMatchday.number;
-    }).length,
-    readMatches: matchesForSeason.slice(0, 30).map((match) => {
-      const matchday = match.matchday_id ? classificationMatchdaysById.get(match.matchday_id) ?? null : null;
-      const blockers = [
-        matchday ? null : "jornada nao lida",
-        selectedMatchday !== null && matchday && matchday.number > selectedMatchday.number ? "jornada posterior" : null,
-        match.status === "finished" ? null : `status ${match.status || "vazio"}`,
-        match.home_score !== null && match.away_score !== null ? null : "resultado incompleto"
-      ].filter((item): item is string => Boolean(item));
-
-      return {
-        id: match.id,
-        matchdayLabel: matchday ? `${matchday.number}. ${matchday.label}` : "Sem jornada lida",
-        homeTeam: participantTeamsById.get(match.home_team_id)?.name ?? match.home_team_id,
-        awayTeam: participantTeamsById.get(match.away_team_id)?.name ?? match.away_team_id,
-        status: match.status,
-        homeScore: match.home_score,
-        awayScore: match.away_score,
-        result: blockers.length === 0 ? "conta" : blockers.join("; ")
-      };
-    }),
-    candidateMatches: classificationCandidateMatches.map(({ match, matchday }) => ({
-      id: match.id,
-      matchdayLabel: matchday ? `${matchday.number}. ${matchday.label}` : "Sem jornada lida",
-      homeTeam: participantTeamsById.get(match.home_team_id)?.name ?? match.home_team_id,
-      awayTeam: participantTeamsById.get(match.away_team_id)?.name ?? match.away_team_id,
-      status: match.status,
-      homeScore: match.home_score,
-      awayScore: match.away_score
-    }))
-  };
   const classificationRows = buildAccumulatedClassification({
     participants: participantsForSeason,
     matches: matchesForSeason,
@@ -3592,138 +3528,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   : "Escolhe uma jornada para calcular a classificacao acumulada."}
             </p>
           </header>
-          <details className="manager-advanced-panel">
-            <summary>
-              <span>
-                <strong>Diagnostico temporario da classificacao</strong>
-                <small>Mostra onde os jogos podem estar a ser perdidos antes do calculo.</small>
-              </span>
-            </summary>
-            <div className="manager-summary-grid">
-              <article className="manager-stat">
-                <strong>{classificationDebug.allMatchesInSeason}</strong>
-                <small>Jogos na epoca sem filtro manual</small>
-              </article>
-              <article className="manager-stat">
-                <strong>{classificationDebug.matchesReadForSeason}</strong>
-                <small>Jogos lidos para classificacao</small>
-              </article>
-              <article className="manager-stat">
-                <strong>{classificationDebug.finishedMatches}</strong>
-                <small>Finished lidos para classificacao</small>
-              </article>
-              <article className="manager-stat">
-                <strong>{classificationDebug.matchesWithScores}</strong>
-                <small>Com resultado lidos</small>
-              </article>
-              <article className="manager-stat">
-                <strong>{classificationDebug.matchesUpToSelectedMatchday}</strong>
-                <small>Ate a jornada selecionada</small>
-              </article>
-              <article className="manager-stat">
-                <strong>{classificationDebug.allFinishedMatchesInSeason}</strong>
-                <small>Finished na epoca sem filtro manual</small>
-              </article>
-              <article className="manager-stat">
-                <strong>{classificationDebug.allMatchesWithScoresInSeason}</strong>
-                <small>Com resultado sem filtro manual</small>
-              </article>
-            </div>
-            <div className="manager-table-wrap">
-              <table className="manager-table">
-                <tbody>
-                  <tr>
-                    <th>selectedSeason.id</th>
-                    <td>{classificationDebug.selectedSeasonId || "-"}</td>
-                  </tr>
-                  <tr>
-                    <th>selectedMatchday.id</th>
-                    <td>{classificationDebug.selectedMatchdayId || "-"}</td>
-                  </tr>
-                  <tr>
-                    <th>selectedMatchday.number</th>
-                    <td>{classificationDebug.selectedMatchdayNumber ?? "-"}</td>
-                  </tr>
-                  <tr>
-                    <th>Jogos com status</th>
-                    <td>{classificationDebug.matchesWithStatus}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div className="manager-table-wrap">
-              <table className="manager-table">
-                <thead>
-                  <tr>
-                    <th colSpan={7}>Jogos lidos da epoca, com motivo de inclusao/exclusao</th>
-                  </tr>
-                  <tr>
-                    <th>Jornada</th>
-                    <th>Casa</th>
-                    <th>Fora</th>
-                    <th>Status</th>
-                    <th>Casa golos</th>
-                    <th>Fora golos</th>
-                    <th>Diagnostico</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {classificationDebug.readMatches.length === 0 ? (
-                    <tr>
-                      <td colSpan={7}>Nenhum jogo foi lido para esta epoca.</td>
-                    </tr>
-                  ) : (
-                    classificationDebug.readMatches.map((match) => (
-                      <tr key={match.id}>
-                        <td>{match.matchdayLabel}</td>
-                        <td>{match.homeTeam}</td>
-                        <td>{match.awayTeam}</td>
-                        <td>{match.status || "-"}</td>
-                        <td>{match.homeScore ?? "-"}</td>
-                        <td>{match.awayScore ?? "-"}</td>
-                        <td>{match.result}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div className="manager-table-wrap">
-              <table className="manager-table">
-                <thead>
-                  <tr>
-                    <th colSpan={6}>Jogos que passam todos os filtros e deveriam contar</th>
-                  </tr>
-                  <tr>
-                    <th>Jornada</th>
-                    <th>Casa</th>
-                    <th>Fora</th>
-                    <th>Status</th>
-                    <th>Casa golos</th>
-                    <th>Fora golos</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {classificationDebug.candidateMatches.length === 0 ? (
-                    <tr>
-                      <td colSpan={6}>Nenhum jogo passou todos os filtros da classificacao.</td>
-                    </tr>
-                  ) : (
-                    classificationDebug.candidateMatches.map((match) => (
-                      <tr key={match.id}>
-                        <td>{match.matchdayLabel}</td>
-                        <td>{match.homeTeam}</td>
-                        <td>{match.awayTeam}</td>
-                        <td>{match.status}</td>
-                        <td>{match.homeScore}</td>
-                        <td>{match.awayScore}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </details>
           <div className="manager-summary-grid">
             <article className="manager-create-card manager-wide-card">
                 <header>
