@@ -369,6 +369,25 @@ const managerStyles = `
     box-shadow: none;
   }
 
+  .manager-compact-participants {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .manager-compact-participants li {
+    padding: 7px 10px;
+    border: 1px solid #dce3eb;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #263241;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
   .manager-calendar-future,
   .manager-jornada-selector {
     order: 1;
@@ -3239,36 +3258,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               </article>
             </div>
             <div className="manager-summary-grid">
-              <article className="manager-create-card manager-wide-card manager-fallback-card">
-                <header>
-                  <h3>Adicionar participante manualmente</h3>
-                  <p>{selectedSeason ? "Fallback para ajustes pontuais. Para preparar a epoca completa, usa a lista validada acima." : "Escolhe uma epoca primeiro."}</p>
-                </header>
-                <form className="manager-create-form" action="/api/admin/gestor" method="post">
-                  <input type="hidden" name="action_type" value="participant" />
-                  <input type="hidden" name="return_to" value={participantsReturnTo} />
-                  <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
-                  <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
-                  <input type="hidden" name="display_order" value={participantsForSeason.length + 1} />
-                  <div className="manager-field">
-                    <label htmlFor="new-participant-team">Clube</label>
-                    <select id="new-participant-team" name="team_id" disabled={!canAddParticipant} required={canAddParticipant}>
-                      {teamsAvailableForSeason.length === 0 ? (
-                        <option value="">{unavailableTeamMessage}</option>
-                      ) : null}
-                      {teamsAvailableForSeason.map((team) => (
-                        <option key={team.id} value={team.id}>
-                          {team.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <button className="manager-button" type="submit" disabled={!canAddParticipant}>
-                    Adicionar participante
-                  </button>
-                </form>
-              </article>
-
               <article className="manager-create-card manager-wide-card manager-primary-card">
                 <header>
                   <h3>{selectedSeason?.label ?? "Sem epoca selecionada"}</h3>
@@ -3281,31 +3270,92 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 ) : participantsForSeason.length === 0 ? (
                   <div className="manager-empty">Ainda nao ha participantes associados a esta epoca.</div>
                 ) : (
-                  <ul className="manager-list">
+                  <ul className="manager-compact-participants">
                     {participantsForSeason.map((participant) => (
-                      <li key={participant.id}>
-                        <div>
-                          <b>{participant.team?.name ?? "Clube sem nome"}</b>
-                          <small>{participant.team?.short_name ?? participant.team?.slug ?? "Sem sigla"}</small>
-                        </div>
-                        <form
-                          action="/api/admin/gestor"
-                          data-confirm="Tem a certeza que quer remover este participante desta epoca?"
-                          method="post"
-                        >
-                          <input type="hidden" name="action_type" value="remove_participant" />
-                          <input type="hidden" name="return_to" value={participantsReturnTo} />
-                          <input type="hidden" name="participant_id" value={participant.id} />
-                          <input type="hidden" name="season_id" value={selectedSeason.id} />
-                          <button className="manager-link-button" type="submit">
-                            Remover
-                          </button>
-                        </form>
-                      </li>
+                      <li key={participant.id}>{participant.team?.name ?? "Clube sem nome"}</li>
                     ))}
                   </ul>
                 )}
               </article>
+
+              <details className="manager-create-card manager-wide-card manager-fallback-card">
+                <summary>
+                  <span>
+                    <strong>Gerir participantes</strong>
+                    <small>Abre para adicionar manualmente ou remover participantes pontuais.</small>
+                  </span>
+                </summary>
+
+                <div className="manager-summary-grid">
+                  <article className="manager-create-card manager-wide-card manager-fallback-card">
+                    <header>
+                      <h3>Adicionar participante manualmente</h3>
+                      <p>{selectedSeason ? "Fallback para ajustes pontuais. Para preparar a epoca completa, usa a lista validada acima." : "Escolhe uma epoca primeiro."}</p>
+                    </header>
+                    <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                      <input type="hidden" name="action_type" value="participant" />
+                      <input type="hidden" name="return_to" value={participantsReturnTo} />
+                      <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
+                      <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+                      <input type="hidden" name="display_order" value={participantsForSeason.length + 1} />
+                      <div className="manager-field">
+                        <label htmlFor="new-participant-team">Clube</label>
+                        <select id="new-participant-team" name="team_id" disabled={!canAddParticipant} required={canAddParticipant}>
+                          {teamsAvailableForSeason.length === 0 ? (
+                            <option value="">{unavailableTeamMessage}</option>
+                          ) : null}
+                          {teamsAvailableForSeason.map((team) => (
+                            <option key={team.id} value={team.id}>
+                              {team.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <button className="manager-button" type="submit" disabled={!canAddParticipant}>
+                        Adicionar participante
+                      </button>
+                    </form>
+                  </article>
+
+                  <article className="manager-create-card manager-wide-card">
+                    <header>
+                      <h3>Lista completa</h3>
+                      <p>Usa apenas quando precisares de remover participantes individualmente.</p>
+                    </header>
+                    {participantData?.error ? (
+                      <div className="manager-empty">Nao foi possivel ler os participantes: {participantData.error}</div>
+                    ) : !selectedSeason ? (
+                      <div className="manager-empty">Escolhe ou cria uma epoca para ver os participantes.</div>
+                    ) : participantsForSeason.length === 0 ? (
+                      <div className="manager-empty">Ainda nao ha participantes associados a esta epoca.</div>
+                    ) : (
+                      <ul className="manager-list">
+                        {participantsForSeason.map((participant) => (
+                          <li key={participant.id}>
+                            <div>
+                              <b>{participant.team?.name ?? "Clube sem nome"}</b>
+                              <small>{participant.team?.short_name ?? participant.team?.slug ?? "Sem sigla"}</small>
+                            </div>
+                            <form
+                              action="/api/admin/gestor"
+                              data-confirm="Tem a certeza que quer remover este participante desta epoca?"
+                              method="post"
+                            >
+                              <input type="hidden" name="action_type" value="remove_participant" />
+                              <input type="hidden" name="return_to" value={participantsReturnTo} />
+                              <input type="hidden" name="participant_id" value={participant.id} />
+                              <input type="hidden" name="season_id" value={selectedSeason.id} />
+                              <button className="manager-link-button" type="submit">
+                                Remover
+                              </button>
+                            </form>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </article>
+                </div>
+              </details>
             </div>
           </section>
           </div>
