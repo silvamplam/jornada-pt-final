@@ -20,6 +20,32 @@ export type PublicMatchdayContext = {
   matchesForMatchday: PublicSeasonMatch[];
 };
 
+export type PublicMatchdayDiagnostic = {
+  params: {
+    competitionSlug: string;
+    seasonLabel: string;
+    normalizedSeasonLabel: string;
+    matchdayNumber: number;
+  };
+  step: string;
+  message: string;
+  competitionsFound?: number;
+  availableCompetitionSlugs?: string[];
+  seasonsFound?: number;
+  availableSeasonLabels?: string[];
+  availableSeasonUrlLabels?: string[];
+  matchdaysFound?: number;
+  availableMatchdayNumbers?: number[];
+  participantsFound?: number;
+  matchesFound?: number;
+  error?: string;
+};
+
+export type PublicMatchdayDiagnosticResult = {
+  context: PublicMatchdayContext | null;
+  diagnostic: PublicMatchdayDiagnostic;
+};
+
 export function seasonLabelToUrlSegment(label: string) {
   return label.trim().replace(/\//g, "-");
 }
@@ -56,76 +82,174 @@ export async function getPublicMatchdayContext({
   seasonLabel: string;
   matchdayNumber: number;
 }): Promise<PublicMatchdayContext | null> {
-  if (!Number.isInteger(matchdayNumber) || matchdayNumber < 1) {
-    return null;
-  }
+  return (await getPublicMatchdayDiagnostic({ competitionSlug, seasonLabel, matchdayNumber })).context;
+}
 
-  const competitions = await fetchSupabaseAdminTable<SupabaseCompetition>(
-    `competitions?select=id,name,slug,country_id,country,logo_url,accent_color,is_active&slug=eq.${encodeURIComponent(competitionSlug)}&limit=1`
-  );
-  const competition = competitions[0];
-
-  if (!competition || competition.is_active === false) {
-    return null;
-  }
-
-  const seasons = await fetchSupabaseAdminTable<SupabaseSeason>(
-    `seasons?select=id,competition_id,label,starts_on,ends_on,is_current&competition_id=eq.${encodeURIComponent(competition.id)}&order=label.desc&limit=100`
-  );
-  const requestedSeason = normalizeSeasonSegment(seasonLabel);
-  const season =
-    seasons.find((item) => normalizeSeasonSegment(seasonLabelToUrlSegment(item.label)) === requestedSeason) ?? null;
-
-  if (!season) {
-    return null;
-  }
-
-  const [matchdays, participants, matches] = await Promise.all([
-    fetchSupabaseAdminTable<SupabaseMatchday>(
-      `matchdays?select=id,season_id,number,label,starts_on,ends_on,status,context_summary&season_id=eq.${encodeURIComponent(season.id)}&order=number.asc&limit=100`
-    ),
-    fetchSupabaseAdminTable<SupabaseSeasonTeam>(
-      `season_teams?select=id,season_id,team_id,display_order,status,data_source,sync_status,manual_override&season_id=eq.${encodeURIComponent(season.id)}&order=display_order.asc&limit=1000`
-    ),
-    fetchSupabaseAdminTable<SupabaseMatch>(
-      `matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,status,minute,kickoff_at,home_score,away_score,venue,broadcast_channel_id&season_id=eq.${encodeURIComponent(season.id)}&order=kickoff_at.asc&limit=1000`
-    )
-  ]);
-  const matchday = matchdays.find((item) => item.number === matchdayNumber) ?? null;
-
-  if (!matchday) {
-    return null;
-  }
-
-  const manualParticipants = participants.filter(
-    (participant) =>
-      participant.data_source === "manual" &&
-      participant.sync_status === "manual" &&
-      participant.manual_override === true
-  );
-  const teams = await readTeams([
-    ...manualParticipants.map((participant) => participant.team_id),
-    ...matches.flatMap((match) => [match.home_team_id, match.away_team_id])
-  ]);
-  const teamsById = byId(teams);
-  const matchdaysById = byId(matchdays);
-  const matchesForSeason = matches.map((match) => ({
-    ...match,
-    matchday: match.matchday_id ? matchdaysById.get(match.matchday_id) ?? null : null,
-    homeTeam: teamsById.get(match.home_team_id) ?? null,
-    awayTeam: teamsById.get(match.away_team_id) ?? null
-  }));
-
-  return {
-    competition,
-    season,
-    matchday,
-    matchdays,
-    participants: manualParticipants.map((participant) => ({
-      ...participant,
-      team: teamsById.get(participant.team_id) ?? null
-    })),
-    matchesForSeason,
-    matchesForMatchday: matchesForSeason.filter((match) => match.matchday_id === matchday.id)
+export async function getPublicMatchdayDiagnostic({
+  competitionSlug,
+  seasonLabel,
+  matchdayNumber
+}: {
+  competitionSlug: string;
+  seasonLabel: string;
+  matchdayNumber: number;
+}): Promise<PublicMatchdayDiagnosticResult> {
+  const normalizedSeasonLabel = normalizeSeasonSegment(seasonLabel);
+  const baseDiagnostic: PublicMatchdayDiagnostic = {
+    params: {
+      competitionSlug,
+      seasonLabel,
+      normalizedSeasonLabel,
+      matchdayNumber
+    },
+    step: "start",
+    message: "Diagnostico iniciado."
   };
+
+  if (!Number.isInteger(matchdayNumber) || matchdayNumber < 1) {
+    return {
+      context: null,
+      diagnostic: {
+        ...baseDiagnostic,
+        step: "invalid-matchday-number",
+        message: "O parametro matchdayNumber nao e um numero inteiro valido."
+      }
+    };
+  }
+
+  try {
+    const competitions = await fetchSupabaseAdminTable<SupabaseCompetition>(
+      "competitions?select=id,name,slug,country_id,country,logo_url,accent_color,is_active&order=name.asc&limit=500"
+    );
+    const competition = competitions.find((item) => item.slug === competitionSlug) ?? null;
+
+    if (!competition) {
+      return {
+        context: null,
+        diagnostic: {
+          ...baseDiagnostic,
+          step: "competition-not-found",
+          message: "Competicao nao encontrada pelo slug recebido.",
+          competitionsFound: competitions.length,
+          availableCompetitionSlugs: competitions.map((item) => item.slug).filter(Boolean).slice(0, 40)
+        }
+      };
+    }
+
+    if (competition.is_active === false) {
+      return {
+        context: null,
+        diagnostic: {
+          ...baseDiagnostic,
+          step: "competition-inactive",
+          message: "A competicao existe, mas esta marcada como inativa.",
+          competitionsFound: competitions.length,
+          availableCompetitionSlugs: competitions.map((item) => item.slug).filter(Boolean).slice(0, 40)
+        }
+      };
+    }
+
+    const seasons = await fetchSupabaseAdminTable<SupabaseSeason>(
+      `seasons?select=id,competition_id,label,starts_on,ends_on,is_current&competition_id=eq.${encodeURIComponent(competition.id)}&order=label.desc&limit=100`
+    );
+    const season =
+      seasons.find((item) => normalizeSeasonSegment(seasonLabelToUrlSegment(item.label)) === normalizedSeasonLabel) ?? null;
+
+    if (!season) {
+      return {
+        context: null,
+        diagnostic: {
+          ...baseDiagnostic,
+          step: "season-not-found",
+          message: "Epoca nao encontrada para esta competicao.",
+          competitionsFound: competitions.length,
+          seasonsFound: seasons.length,
+          availableSeasonLabels: seasons.map((item) => item.label),
+          availableSeasonUrlLabels: seasons.map((item) => seasonLabelToUrlSegment(item.label))
+        }
+      };
+    }
+
+    const [matchdays, participants, matches] = await Promise.all([
+      fetchSupabaseAdminTable<SupabaseMatchday>(
+        `matchdays?select=id,season_id,number,label,starts_on,ends_on,status,context_summary&season_id=eq.${encodeURIComponent(season.id)}&order=number.asc&limit=100`
+      ),
+      fetchSupabaseAdminTable<SupabaseSeasonTeam>(
+        `season_teams?select=id,season_id,team_id,display_order,status,data_source,sync_status,manual_override&season_id=eq.${encodeURIComponent(season.id)}&order=display_order.asc&limit=1000`
+      ),
+      fetchSupabaseAdminTable<SupabaseMatch>(
+        `matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,status,minute,kickoff_at,home_score,away_score,venue,broadcast_channel_id&season_id=eq.${encodeURIComponent(season.id)}&order=kickoff_at.asc&limit=1000`
+      )
+    ]);
+    const matchday = matchdays.find((item) => item.number === matchdayNumber) ?? null;
+
+    if (!matchday) {
+      return {
+        context: null,
+        diagnostic: {
+          ...baseDiagnostic,
+          step: "matchday-not-found",
+          message: "Jornada nao encontrada para esta epoca.",
+          competitionsFound: competitions.length,
+          seasonsFound: seasons.length,
+          matchdaysFound: matchdays.length,
+          availableMatchdayNumbers: matchdays.map((item) => item.number)
+        }
+      };
+    }
+
+    const manualParticipants = participants.filter(
+      (participant) =>
+        participant.data_source === "manual" &&
+        participant.sync_status === "manual" &&
+        participant.manual_override === true
+    );
+    const teams = await readTeams([
+      ...manualParticipants.map((participant) => participant.team_id),
+      ...matches.flatMap((match) => [match.home_team_id, match.away_team_id])
+    ]);
+    const teamsById = byId(teams);
+    const matchdaysById = byId(matchdays);
+    const matchesForSeason = matches.map((match) => ({
+      ...match,
+      matchday: match.matchday_id ? matchdaysById.get(match.matchday_id) ?? null : null,
+      homeTeam: teamsById.get(match.home_team_id) ?? null,
+      awayTeam: teamsById.get(match.away_team_id) ?? null
+    }));
+
+    return {
+      context: {
+        competition,
+        season,
+        matchday,
+        matchdays,
+        participants: manualParticipants.map((participant) => ({
+          ...participant,
+          team: teamsById.get(participant.team_id) ?? null
+        })),
+        matchesForSeason,
+        matchesForMatchday: matchesForSeason.filter((match) => match.matchday_id === matchday.id)
+      },
+      diagnostic: {
+        ...baseDiagnostic,
+        step: "ok",
+        message: "Dados carregados com sucesso.",
+        competitionsFound: competitions.length,
+        seasonsFound: seasons.length,
+        matchdaysFound: matchdays.length,
+        participantsFound: manualParticipants.length,
+        matchesFound: matches.length
+      }
+    };
+  } catch (error) {
+    return {
+      context: null,
+      diagnostic: {
+        ...baseDiagnostic,
+        step: "load-error",
+        message: "Erro ao carregar dados da Supabase.",
+        error: error instanceof Error ? error.message : "Erro desconhecido"
+      }
+    };
+  }
 }

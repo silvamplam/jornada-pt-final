@@ -1,6 +1,5 @@
-import { notFound } from "next/navigation";
 import { buildAccumulatedClassification, STAT_COLUMNS, totalClassificationStats, type ClassificationSplit } from "@/lib/classification";
-import { getPublicMatchdayContext, seasonLabelToUrlSegment, type PublicSeasonMatch } from "@/lib/public-matchday";
+import { getPublicMatchdayDiagnostic, seasonLabelToUrlSegment, type PublicMatchdayDiagnostic, type PublicSeasonMatch } from "@/lib/public-matchday";
 
 export const dynamic = "force-dynamic";
 
@@ -254,6 +253,35 @@ const publicMatchdayStyles = `
     color: #b4232b;
   }
 
+  .public-diagnostic {
+    margin-top: 18px;
+    padding: 18px 20px;
+    border: 1px solid #ffd3a3;
+    border-radius: 8px;
+    background: #fff8ee;
+    color: #4a2d00;
+  }
+
+  .public-diagnostic h2,
+  .public-diagnostic p {
+    margin: 0;
+  }
+
+  .public-diagnostic p {
+    margin-top: 8px;
+  }
+
+  .public-diagnostic pre {
+    overflow-x: auto;
+    margin: 14px 0 0;
+    padding: 14px;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #10151b;
+    font-size: 13px;
+    white-space: pre-wrap;
+  }
+
   @media (max-width: 760px) {
     .public-matchday-shell {
       padding: 16px;
@@ -341,17 +369,30 @@ function renderStatHeaders(group: string) {
   ));
 }
 
+function DiagnosticPanel({ diagnostic }: { diagnostic: PublicMatchdayDiagnostic }) {
+  return (
+    <main className="public-matchday-shell">
+      <style>{publicMatchdayStyles}</style>
+      <section className="public-diagnostic">
+        <h2>Diagnóstico temporário da página pública</h2>
+        <p>A rota foi carregada, mas os dados necessários não foram encontrados ou ocorreu um erro de leitura.</p>
+        <pre>{JSON.stringify(diagnostic, null, 2)}</pre>
+      </section>
+    </main>
+  );
+}
+
 export default async function PublicMatchdayPage({ params }: PublicMatchdayPageProps) {
   const { competitionSlug, seasonLabel, matchdayNumber } = await params;
   const matchdayNumberValue = Number(matchdayNumber);
-  const context = await getPublicMatchdayContext({
+  const { context, diagnostic } = await getPublicMatchdayDiagnostic({
     competitionSlug,
     seasonLabel,
     matchdayNumber: matchdayNumberValue
   });
 
   if (!context) {
-    notFound();
+    return <DiagnosticPanel diagnostic={diagnostic} />;
   }
 
   const seasonSegment = seasonLabelToUrlSegment(context.season.label);
