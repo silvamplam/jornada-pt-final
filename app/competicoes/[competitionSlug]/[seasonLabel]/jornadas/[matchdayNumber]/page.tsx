@@ -1,4 +1,4 @@
-import { buildAccumulatedClassification, STAT_COLUMNS, totalClassificationStats, type ClassificationSplit } from "@/lib/classification";
+import { buildAccumulatedClassification, totalClassificationStats, type ClassificationSplit } from "@/lib/classification";
 import { getPublicMatchdayDiagnostic, seasonLabelToUrlSegment, type PublicMatchdayDiagnostic, type PublicSeasonMatch } from "@/lib/public-matchday";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +10,17 @@ type PublicMatchdayPageProps = {
     matchdayNumber: string;
   }>;
 };
+
+const PUBLIC_STAT_COLUMNS: Array<{ key: keyof ClassificationSplit; label: string }> = [
+  { key: "played", label: "J" },
+  { key: "wins", label: "V" },
+  { key: "draws", label: "E" },
+  { key: "losses", label: "D" },
+  { key: "goalsFor", label: "GM" },
+  { key: "goalsAgainst", label: "GS" },
+  { key: "goalDifference", label: "DG" },
+  { key: "points", label: "PTS" }
+];
 
 const publicMatchdayStyles = `
   body {
@@ -98,17 +109,23 @@ const publicMatchdayStyles = `
 
   .public-matchday-card {
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    gap: 14px;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 10px;
     align-items: center;
+    width: min(760px, 100%);
+    margin: 0 auto;
     padding: 16px;
     border: 1px solid #e3e9f0;
     border-radius: 8px;
     background: #ffffff;
   }
 
-  .public-matchday-team:last-child {
+  .public-matchday-team:first-child {
     text-align: right;
+  }
+
+  .public-matchday-team:last-of-type {
+    text-align: left;
   }
 
   .public-matchday-team strong,
@@ -128,7 +145,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-score {
-    min-width: 120px;
+    min-width: 74px;
     text-align: center;
   }
 
@@ -138,6 +155,7 @@ const publicMatchdayStyles = `
 
   .public-matchday-meta {
     grid-column: 1 / -1;
+    justify-content: center;
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
@@ -179,7 +197,7 @@ const publicMatchdayStyles = `
 
   .public-table {
     width: 100%;
-    min-width: 1200px;
+    min-width: 1080px;
     border-collapse: collapse;
     font-size: 13px;
   }
@@ -202,6 +220,21 @@ const publicMatchdayStyles = `
   .public-table-club {
     min-width: 180px;
     text-align: left;
+  }
+
+  .public-club-name {
+    display: block;
+    font-weight: 900;
+  }
+
+  .public-club-form {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 4px;
+    color: #66717f;
+    font-size: 11px;
+    font-weight: 800;
   }
 
   .public-table-divider {
@@ -295,7 +328,8 @@ const publicMatchdayStyles = `
       text-align: left;
     }
 
-    .public-matchday-team:last-child,
+    .public-matchday-team:first-child,
+    .public-matchday-team:last-of-type,
     .public-matchday-score {
       text-align: left;
     }
@@ -337,7 +371,7 @@ function matchResult(match: PublicSeasonMatch) {
 }
 
 function renderStatsCells(stats: ClassificationSplit, options: { divider?: boolean; emphasizePoints?: boolean; group?: string } = {}) {
-  return STAT_COLUMNS.map((column, index) => {
+  return PUBLIC_STAT_COLUMNS.map((column, index) => {
     const value = stats[column.key];
     const className = [
       options.divider && index === 0 ? "public-table-divider" : "",
@@ -361,7 +395,7 @@ function renderStatsCells(stats: ClassificationSplit, options: { divider?: boole
 }
 
 function renderStatHeaders(group: string) {
-  return STAT_COLUMNS.map((column, index) => (
+  return PUBLIC_STAT_COLUMNS.map((column, index) => (
     <th className={index === 0 ? "public-table-divider" : undefined} key={`${group}-${column.key}`}>
       {column.label}
     </th>
@@ -480,10 +514,9 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               <tr>
                 <th rowSpan={2}>Pos</th>
                 <th className="public-table-club" rowSpan={2}>Clube</th>
-                <th className="public-table-divider" colSpan={STAT_COLUMNS.length}>Total</th>
-                <th className="public-table-divider" colSpan={STAT_COLUMNS.length}>Casa</th>
-                <th className="public-table-divider" colSpan={STAT_COLUMNS.length}>Fora</th>
-                <th rowSpan={2}>Últ. 4</th>
+                <th className="public-table-divider" colSpan={PUBLIC_STAT_COLUMNS.length}>Total</th>
+                <th className="public-table-divider" colSpan={PUBLIC_STAT_COLUMNS.length}>Casa</th>
+                <th className="public-table-divider" colSpan={PUBLIC_STAT_COLUMNS.length}>Fora</th>
               </tr>
               <tr>
                 {renderStatHeaders("total")}
@@ -495,33 +528,36 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               {classificationRows.map((row, index) => (
                 <tr key={row.teamId}>
                   <td>{index + 1}</td>
-                  <td className="public-table-club">{row.name}</td>
+                  <td className="public-table-club">
+                    <span className="public-club-name">{row.name}</span>
+                    <span className="public-club-form">
+                      <span>Últimos:</span>
+                      {row.recentForm.length > 0 ? (
+                        <span className="public-form-list">
+                          {row.recentForm.map((result, resultIndex) => (
+                            <span
+                              className={
+                                result.label.startsWith("V")
+                                  ? "public-form-win"
+                                  : result.label.startsWith("D")
+                                    ? "public-form-loss"
+                                    : "public-form-draw"
+                              }
+                              key={`${row.teamId}-${resultIndex}-${result.label}`}
+                              title={result.title}
+                            >
+                              {result.label}
+                            </span>
+                          ))}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </span>
+                  </td>
                   {renderStatsCells(totalClassificationStats(row), { divider: true, emphasizePoints: true, group: "total" })}
                   {renderStatsCells(row.home, { divider: true, group: "home" })}
                   {renderStatsCells(row.away, { divider: true, group: "away" })}
-                  <td>
-                    {row.recentForm.length > 0 ? (
-                      <span className="public-form-list">
-                        {row.recentForm.map((result, resultIndex) => (
-                          <span
-                            className={
-                              result.label.startsWith("V")
-                                ? "public-form-win"
-                                : result.label.startsWith("D")
-                                  ? "public-form-loss"
-                                  : "public-form-draw"
-                            }
-                            key={`${row.teamId}-${resultIndex}-${result.label}`}
-                            title={result.title}
-                          >
-                            {result.label}
-                          </span>
-                        ))}
-                      </span>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
                 </tr>
               ))}
             </tbody>
