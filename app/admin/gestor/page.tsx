@@ -163,6 +163,23 @@ const managerStyles = `
     background: transparent;
   }
 
+  .manager-subtle-button {
+    display: inline-block;
+    align-self: flex-start;
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    border: 1px solid #c8d2dd;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #263241;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
   .manager-button:disabled,
   .manager-link-button:disabled,
   .manager-link-button[aria-disabled="true"] {
@@ -763,7 +780,7 @@ function buildClubPreview({
         color: existingTeam.primary_color ?? color,
         note: existingTeam.country_id
           ? "Clube já existe no país e será associado à época."
-          : "Clube existe sem país confirmado; ao aplicar será associado ao país selecionado."
+          : "Registo existente por confirmar; ao aplicar será ligado ao país selecionado."
       });
     });
 
@@ -1999,8 +2016,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                         defaultValue={rawClubPreviewList}
                       />
                     </div>
-                    <button className="manager-link-button" type="button" data-club-file-trigger="true">
-                      Carregar lista
+                    <button className="manager-subtle-button" type="button" data-club-file-trigger="true">
+                      Carregar .txt/.csv
                     </button>
                     <button className="manager-button" type="submit">
                       Pré-visualizar lista
