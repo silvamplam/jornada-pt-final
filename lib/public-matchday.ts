@@ -46,6 +46,17 @@ export type PublicMatchdayDiagnosticResult = {
   diagnostic: PublicMatchdayDiagnostic;
 };
 
+export type PublicSeasonMatchdaySummary = SupabaseMatchday & {
+  matchCount: number;
+  finishedMatchCount: number;
+};
+
+export type PublicSeasonContext = {
+  competition: SupabaseCompetition;
+  season: SupabaseSeason;
+  matchdays: PublicSeasonMatchdaySummary[];
+};
+
 export function seasonLabelToUrlSegment(label: string) {
   return label.trim().replace(/\//g, "-");
 }
@@ -71,6 +82,58 @@ async function readTeams(ids: string[]) {
   return fetchSupabaseAdminTable<SupabaseTeam>(
     `teams?select=id,name,short_name,slug,country,logo_url,primary_color&id=in.(${idList(uniqueIds)})&limit=1000`
   );
+}
+
+export async function getPublicSeasonContext({
+  competitionSlug,
+  seasonLabel
+}: {
+  competitionSlug: string;
+  seasonLabel: string;
+}): Promise<PublicSeasonContext | null> {
+  const normalizedSeasonLabel = normalizeSeasonSegment(seasonLabel);
+  const competitions = await fetchSupabaseAdminTable<SupabaseCompetition>(
+    "competitions?select=id,name,slug,country_id,country,logo_url,accent_color,is_active&order=name.asc&limit=500"
+  );
+  const competition = competitions.find((item) => item.slug === competitionSlug && item.is_active !== false) ?? null;
+
+  if (!competition) {
+    return null;
+  }
+
+  const seasons = await fetchSupabaseAdminTable<SupabaseSeason>(
+    `seasons?select=id,competition_id,label,starts_on,ends_on,is_current&competition_id=eq.${encodeURIComponent(competition.id)}&order=label.desc&limit=100`
+  );
+  const season =
+    seasons.find((item) => normalizeSeasonSegment(seasonLabelToUrlSegment(item.label)) === normalizedSeasonLabel) ?? null;
+
+  if (!season) {
+    return null;
+  }
+
+  const [matchdays, matches] = await Promise.all([
+    fetchSupabaseAdminTable<SupabaseMatchday>(
+      `matchdays?select=id,season_id,number,label,starts_on,ends_on,status,context_summary&season_id=eq.${encodeURIComponent(season.id)}&order=number.asc&limit=100`
+    ),
+    fetchSupabaseAdminTable<SupabaseMatch>(
+      `matches?select=id,season_id,matchday_id,status&season_id=eq.${encodeURIComponent(season.id)}&limit=1000`
+    )
+  ]);
+  const matchdaysWithCounts = matchdays.map((matchday) => {
+    const matchdayMatches = matches.filter((match) => match.matchday_id === matchday.id);
+
+    return {
+      ...matchday,
+      matchCount: matchdayMatches.length,
+      finishedMatchCount: matchdayMatches.filter((match) => match.status === "finished").length
+    };
+  });
+
+  return {
+    competition,
+    season,
+    matchdays: matchdaysWithCounts
+  };
 }
 
 export async function getPublicMatchdayContext({
