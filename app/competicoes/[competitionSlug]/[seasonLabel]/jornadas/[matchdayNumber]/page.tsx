@@ -199,8 +199,7 @@ const publicMatchdayStyles = `
     text-transform: uppercase;
   }
 
-  .public-table td:nth-child(2),
-  .public-table th:nth-child(2) {
+  .public-table-club {
     min-width: 180px;
     text-align: left;
   }
@@ -480,7 +479,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
             <thead>
               <tr>
                 <th rowSpan={2}>Pos</th>
-                <th rowSpan={2}>Clube</th>
+                <th className="public-table-club" rowSpan={2}>Clube</th>
                 <th className="public-table-divider" colSpan={STAT_COLUMNS.length}>Total</th>
                 <th className="public-table-divider" colSpan={STAT_COLUMNS.length}>Casa</th>
                 <th className="public-table-divider" colSpan={STAT_COLUMNS.length}>Fora</th>
@@ -496,7 +495,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               {classificationRows.map((row, index) => (
                 <tr key={row.teamId}>
                   <td>{index + 1}</td>
-                  <td>{row.name}</td>
+                  <td className="public-table-club">{row.name}</td>
                   {renderStatsCells(totalClassificationStats(row), { divider: true, emphasizePoints: true, group: "total" })}
                   {renderStatsCells(row.home, { divider: true, group: "home" })}
                   {renderStatsCells(row.away, { divider: true, group: "away" })}
