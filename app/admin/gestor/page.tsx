@@ -204,15 +204,11 @@ const managerStyles = `
   }
 
   .manager-section-base {
-    order: 7;
-  }
-
-  .manager-section-check {
-    order: 8;
+    order: 9;
   }
 
   .manager-section-clubs {
-    order: 9;
+    order: 8;
   }
 
   .manager-section-participants {
@@ -252,10 +248,17 @@ const managerStyles = `
     background: #fffdf8;
   }
 
+  .manager-section-base,
   .manager-section-maintenance {
     box-shadow: none;
   }
 
+  .manager-section-base {
+    border-style: dashed;
+    background: #fbfcfe;
+  }
+
+  .manager-section-base > summary,
   .manager-section-maintenance > summary {
     display: flex;
     align-items: center;
@@ -267,10 +270,12 @@ const managerStyles = `
     list-style: none;
   }
 
+  .manager-section-base > summary::-webkit-details-marker,
   .manager-section-maintenance > summary::-webkit-details-marker {
     display: none;
   }
 
+  .manager-section-base > summary::after,
   .manager-section-maintenance > summary::after {
     content: "+";
     display: grid;
@@ -283,20 +288,24 @@ const managerStyles = `
     font-weight: 900;
   }
 
+  .manager-section-base[open] > summary,
   .manager-section-maintenance[open] > summary {
     border-bottom: 1px solid #f1d6b8;
   }
 
+  .manager-section-base[open] > summary::after,
   .manager-section-maintenance[open] > summary::after {
     content: "-";
   }
 
+  .manager-section-base > summary strong,
   .manager-section-maintenance > summary strong {
     display: block;
     font-size: 15px;
     text-transform: uppercase;
   }
 
+  .manager-section-base > summary small,
   .manager-section-maintenance > summary small {
     display: block;
     margin-top: 3px;
@@ -313,6 +322,17 @@ const managerStyles = `
   .manager-section-maintenance .manager-create-card {
     gap: 10px;
     padding: 12px;
+  }
+
+  .manager-primary-card {
+    order: 1;
+  }
+
+  .manager-fallback-card {
+    order: 2;
+    border-style: dashed;
+    background: #fbfcfe;
+    box-shadow: none;
   }
 
   .manager-section-clubs {
@@ -1318,15 +1338,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const blockingMatchesForSeason = await readBlockingMatchesForSeason(selectedSeason?.id);
   const blockingMatchesForCountryTeams = await readBlockingMatchesForTeams(teamsForCountry.map((team) => team.id));
   const editingMatch = matchesForMatchday.find((match) => match.id === requestedEditMatchId) ?? null;
-  const countryTeamIds = new Set(teamsForCountry.map((team) => team.id));
   const allParticipants = participantData?.participants ?? [];
   const allParticipantsForSeason = selectedSeason
     ? allParticipants.filter((participant) => participant.season_id === selectedSeason.id)
-    : [];
-  const oldInvisibleParticipants = participantData?.syncMetadataAvailable
-    ? allParticipants.filter(
-        (participant) => countryTeamIds.has(participant.team_id) && participant.manual_override !== true
-      )
     : [];
   const blockingMatchesForSelectedMatchday = selectedMatchday
     ? blockingMatchesForSeason.filter((match) => match.matchday_id === selectedMatchday.id)
@@ -1701,13 +1715,13 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
           </section>
 
           <div className="manager-workspace">
-          <section className="manager-panel manager-section-base" id="base" aria-label="Estrutura da competicao">
-            <header>
-              <h2>Estrutura da competicao</h2>
-              <p>
-                Define o pais, a competicao e a epoca que servem de base ao trabalho no gestor.
-              </p>
-            </header>
+          <details className="manager-panel manager-section-base" id="base" aria-label="Apoio de estrutura" open={messageSection === "base"}>
+            <summary>
+              <span>
+                <strong>Apoio: pais, competicao e epoca</strong>
+                <small>Cria ou ajusta a estrutura base quando precisares; o fluxo operacional comeca na preparacao de participantes.</small>
+              </span>
+            </summary>
             {sectionMessage("base")}
             <div className="manager-create-grid">
               <article className="manager-create-card">
@@ -1845,91 +1859,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </form>
               </article>
             </div>
-          </section>
-
-          <section className="manager-panel manager-section-check" aria-label="Resumo da estrutura selecionada">
-            <header>
-              <h2>Resumo da estrutura selecionada</h2>
-              <p>Confirma as ligacoes criadas entre pais, competicao e epoca antes de preparar participantes.</p>
-            </header>
-            <div className="manager-stat-row">
-              <article className="manager-stat">
-                <strong>{countries.length}</strong>
-                <small>Paises criados</small>
-              </article>
-              <article className="manager-stat">
-                <strong>{linkedCompetitions.length}</strong>
-                <small>Competicoes ligadas a pais</small>
-              </article>
-              <article className="manager-stat">
-                <strong>{seasons.length}</strong>
-                <small>Epocas criadas</small>
-              </article>
-            </div>
-            <div className="manager-summary-grid">
-              <article className="manager-create-card">
-                <header>
-                  <h3>Competicoes neste pais</h3>
-                  <p>{selectedCountry?.name ?? "Sem pais selecionado"}</p>
-                </header>
-                {competitionsForCountry.length === 0 ? (
-                  <div className="manager-empty">Ainda nao ha competicoes ligadas a este pais.</div>
-                ) : (
-                  <ul className="manager-list">
-                    {competitionsForCountry.map((competition) => (
-                      <li key={competition.id}>
-                        <div>
-                          <b>{competition.name}</b>
-                          <small>{competition.slug}</small>
-                        </div>
-                        <em>{selectedCountry?.name}</em>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </article>
-
-              <article className="manager-create-card">
-                <header>
-                  <h3>Epocas nesta competicao</h3>
-                  <p>{selectedCompetition?.name ?? "Sem competicao selecionada"}</p>
-                </header>
-                {seasonsForCompetition.length === 0 ? (
-                  <div className="manager-empty">Ainda nao ha epocas nesta competicao.</div>
-                ) : (
-                  <ul className="manager-list">
-                    {seasonsForCompetition.map((season) => (
-                      <li key={season.id}>
-                        <div>
-                          <b>{season.label}</b>
-                          <small>{season.is_current ? "Epoca atual" : "Epoca guardada"}</small>
-                        </div>
-                        <em>{selectedCompetition?.name}</em>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </article>
-
-              <article className="manager-create-card">
-                <header>
-                  <h3>Atalhos auxiliares</h3>
-                  <p>As paginas auxiliares continuam disponiveis para corrigir dados pontuais.</p>
-                </header>
-                <div className="manager-actions">
-                  <a className="manager-link-button" href="/admin/paises">
-                    Paises
-                  </a>
-                  <a className="manager-link-button" href="/admin/competicoes">
-                    Competicoes
-                  </a>
-                  <a className="manager-link-button" href="/admin/epocas">
-                    Epocas
-                  </a>
-                </div>
-              </article>
-            </div>
-          </section>
+          </details>
 
           <details className="manager-panel manager-section-maintenance" id="manutencao" aria-label="Remocao segura" open={messageSection === "manutencao"}>
             <summary>
@@ -2359,53 +2289,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </div>
           </details>
 
-          <details className="manager-panel manager-section-maintenance" id="associacoes-antigas" aria-label="Revisao tecnica de associacoes">
-            <summary>
-              <span>
-                <strong>Revisao tecnica de associacoes</strong>
-                <small>Remove apenas ligacoes auxiliares em season_teams que nao pertencem a lista principal da epoca. Clubes, epocas, jornadas e jogos nao sao apagados.</small>
-              </span>
-            </summary>
-            <div className="manager-summary-grid">
-              <article className="manager-create-card manager-wide-card">
-                <header>
-                  <h3>{selectedCountry?.name ?? "Sem pais selecionado"}</h3>
-                  <p>{oldInvisibleParticipants.length} associacoes tecnicas encontradas neste pais.</p>
-                </header>
-                {oldInvisibleParticipants.length === 0 ? (
-                  <div className="manager-empty">Nao ha associacoes tecnicas para os clubes deste pais.</div>
-                ) : (
-                  <ul className="manager-list">
-                    {oldInvisibleParticipants.map((participant) => (
-                      <li key={participant.id}>
-                        <div>
-                          <b>{participant.team?.name ?? "Clube sem nome"}</b>
-                          <small>
-                            {participant.competition?.name ?? "Competicao desconhecida"} /{" "}
-                            {participant.season?.label ?? "Epoca desconhecida"} - estado {participant.status} - origem{" "}
-                            {participant.data_source ?? "sem origem"} / {participant.sync_status ?? "sem sync"}
-                          </small>
-                        </div>
-                        <form
-                          action="/api/admin/gestor"
-                          data-confirm="Tem a certeza que quer remover apenas esta associacao tecnica de season_teams? O clube, a epoca, as jornadas e os jogos nao serao apagados."
-                          method="post"
-                        >
-                          <input type="hidden" name="action_type" value="remove_old_participant" />
-                          <input type="hidden" name="return_to" value={clubsReturnTo} />
-                          <input type="hidden" name="participant_id" value={participant.id} />
-                          <button className="manager-link-button" type="submit">
-                            Remover associacao
-                          </button>
-                        </form>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </article>
-            </div>
-          </details>
-
           <section className="manager-panel manager-section-calendar" id="calendario" aria-label="Preparar calendario da epoca">
             <header>
               <h2>Preparar calendario da epoca</h2>
@@ -2413,9 +2296,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </header>
             {sectionMessage("calendario")}
             <div className="manager-create-grid">
-              <article className="manager-create-card">
+              <article className="manager-create-card manager-fallback-card">
                 <header>
-                  <h3>Nova jornada</h3>
+                  <h3>Criar jornada manualmente</h3>
                   <p>
                     {!selectedSeason
                       ? "Escolhe uma epoca primeiro."
@@ -2473,7 +2356,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </form>
               </article>
 
-              <article className="manager-create-card manager-wide-card">
+              <article className="manager-create-card manager-wide-card manager-primary-card">
                 <header>
                   <h3>{selectedSeason?.label ?? "Sem epoca selecionada"}</h3>
                   <p>{matchdaysForSeason.length} jornadas no calendario desta epoca.</p>
@@ -2907,10 +2790,10 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               </article>
             </div>
             <div className="manager-summary-grid">
-              <article className="manager-create-card manager-wide-card">
+              <article className="manager-create-card manager-wide-card manager-fallback-card">
                 <header>
-                  <h3>Adicionar participante</h3>
-                  <p>{selectedSeason ? "Escolhe um clube associado ao pais selecionado." : "Escolhe uma epoca primeiro."}</p>
+                  <h3>Adicionar participante manualmente</h3>
+                  <p>{selectedSeason ? "Fallback para ajustes pontuais. Para preparar a epoca completa, usa a lista validada acima." : "Escolhe uma epoca primeiro."}</p>
                 </header>
                 <form className="manager-create-form" action="/api/admin/gestor" method="post">
                   <input type="hidden" name="action_type" value="participant" />
@@ -2937,7 +2820,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </form>
               </article>
 
-              <article className="manager-create-card manager-wide-card">
+              <article className="manager-create-card manager-wide-card manager-primary-card">
                 <header>
                   <h3>{selectedSeason?.label ?? "Sem epoca selecionada"}</h3>
                   <p>{selectedCompetition?.name ?? "Escolhe uma competicao e uma epoca"}</p>
