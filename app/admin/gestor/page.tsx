@@ -239,6 +239,14 @@ const managerStyles = `
     cursor: pointer;
   }
 
+  .manager-clipboard-message {
+    margin: -4px 0 0;
+    color: #66717f;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
   .manager-button:disabled,
   .manager-link-button:disabled,
   .manager-link-button[aria-disabled="true"] {
@@ -2303,7 +2311,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               }
             }
 
-            document.addEventListener("click", function (event) {
+            document.addEventListener("click", async function (event) {
               var target = event.target;
               if (!(target instanceof HTMLElement)) return;
 
@@ -2312,6 +2320,36 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 var details = closeDetails.closest("details");
                 if (details instanceof HTMLDetailsElement) {
                   details.open = false;
+                }
+                return;
+              }
+
+              var pasteTrigger = target.closest("[data-paste-target]");
+              if (pasteTrigger) {
+                var pasteTargetId = pasteTrigger.getAttribute("data-paste-target");
+                var pasteMessageId = pasteTrigger.getAttribute("data-paste-message");
+                var pasteTarget = pasteTargetId ? document.getElementById(pasteTargetId) : null;
+                var pasteMessage = pasteMessageId ? document.getElementById(pasteMessageId) : null;
+
+                if (pasteMessage instanceof HTMLElement) {
+                  pasteMessage.hidden = true;
+                }
+
+                try {
+                  if (!navigator.clipboard || !navigator.clipboard.readText) {
+                    throw new Error("clipboard-unavailable");
+                  }
+
+                  var clipboardText = await navigator.clipboard.readText();
+                  if (pasteTarget instanceof HTMLTextAreaElement) {
+                    pasteTarget.value = clipboardText;
+                    pasteTarget.focus();
+                  }
+                } catch (error) {
+                  if (pasteMessage instanceof HTMLElement) {
+                    pasteMessage.textContent = "Nao foi possivel aceder automaticamente ao conteudo copiado. Usa Ctrl+V na caixa de texto.";
+                    pasteMessage.hidden = false;
+                  }
                 }
                 return;
               }
@@ -2814,6 +2852,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     <button className="manager-subtle-button" type="button" data-file-trigger="club-list">
                       Carregar .txt/.csv
                     </button>
+                    <button className="manager-subtle-button" type="button" data-paste-target="club-preview-list" data-paste-message="club-paste-message">
+                      Colar
+                    </button>
+                    <p className="manager-clipboard-message" id="club-paste-message" hidden>
+                      Nao foi possivel aceder automaticamente ao conteudo copiado. Usa Ctrl+V na caixa de texto.
+                    </p>
                     <button className="manager-button" type="submit">
                       Pré-visualizar lista
                     </button>
@@ -3088,6 +3132,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   <button className="manager-subtle-button" type="button" data-file-trigger="calendar-list">
                     Carregar .txt/.csv
                   </button>
+                  <button className="manager-subtle-button" type="button" data-paste-target="calendar-preview-list" data-paste-message="calendar-paste-message">
+                    Colar
+                  </button>
+                  <p className="manager-clipboard-message" id="calendar-paste-message" hidden>
+                    Nao foi possivel aceder automaticamente ao conteudo copiado. Usa Ctrl+V na caixa de texto.
+                  </p>
                   <button className="manager-button" type="submit" disabled={!selectedSeason}>
                     Pre-visualizar calendario
                   </button>
