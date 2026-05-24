@@ -74,6 +74,16 @@ type ClassificationRow = {
   home: ClassificationSplit;
   away: ClassificationSplit;
 };
+const STAT_COLUMNS: Array<{ key: keyof ClassificationSplit; label: string }> = [
+  { key: "played", label: "J" },
+  { key: "wins", label: "V" },
+  { key: "draws", label: "E" },
+  { key: "losses", label: "D" },
+  { key: "goalsFor", label: "GM" },
+  { key: "goalsAgainst", label: "GS" },
+  { key: "goalDifference", label: "DG" },
+  { key: "points", label: "PTS" }
+];
 type ClubPreviewRow = {
   lineNumber: number;
   status: string;
@@ -1075,22 +1085,39 @@ function goalDifferenceClass(value: number) {
 
 function renderClassificationStatCells(
   stats: ClassificationSplit,
-  options: { divider?: boolean; emphasizePoints?: boolean } = {}
+  options: { divider?: boolean; emphasizePoints?: boolean; group?: string } = {}
 ) {
-  return (
-    <>
-      <td className={options.divider ? "manager-table-divider-left" : undefined}>{stats.played}</td>
-      <td>{stats.wins}</td>
-      <td>{stats.draws}</td>
-      <td>{stats.losses}</td>
-      <td>{stats.goalsFor}</td>
-      <td>{stats.goalsAgainst}</td>
-      <td className={goalDifferenceClass(stats.goalDifference)}>{signedNumber(stats.goalDifference)}</td>
-      <td>
-        <b className={options.emphasizePoints ? "manager-table-points" : undefined}>{stats.points}</b>
+  return STAT_COLUMNS.map((column, index) => {
+    const value = stats[column.key];
+    const className = [
+      options.divider && index === 0 ? "manager-table-divider-left" : "",
+      column.key === "goalDifference" ? goalDifferenceClass(value) : ""
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    if (column.key === "points") {
+      return (
+        <td className={className || undefined} key={`${options.group ?? "stats"}-${column.key}`}>
+          <b className={options.emphasizePoints ? "manager-table-points" : undefined}>{value}</b>
+        </td>
+      );
+    }
+
+    return (
+      <td className={className || undefined} key={`${options.group ?? "stats"}-${column.key}`}>
+        {column.key === "goalDifference" ? signedNumber(value) : value}
       </td>
-    </>
-  );
+    );
+  });
+}
+
+function renderClassificationStatHeaders(group: string) {
+  return STAT_COLUMNS.map((column, index) => (
+    <th className={index === 0 ? "manager-table-divider-left" : undefined} key={`${group}-${column.key}`}>
+      {column.label}
+    </th>
+  ));
 }
 
 function totalClassificationStats(row: ClassificationRow): ClassificationSplit {
@@ -3099,7 +3126,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     </article>
                   </div>
                   <div className="manager-table-wrap">
-                    <table className="manager-table manager-classification-table">
+                    <table className="manager-table">
                       <thead>
                         <tr>
                           <th>Estado</th>
@@ -3579,36 +3606,15 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                         <tr>
                           <th rowSpan={2}>Pos</th>
                           <th rowSpan={2}>Clube</th>
-                          <th className="manager-table-group manager-table-group-total manager-table-divider-left" colSpan={8}>Total</th>
-                          <th className="manager-table-group manager-table-divider-left" colSpan={8}>Casa</th>
-                          <th className="manager-table-group manager-table-divider-left" colSpan={8}>Fora</th>
+                          <th className="manager-table-group manager-table-group-total manager-table-divider-left" colSpan={STAT_COLUMNS.length}>Total</th>
+                          <th className="manager-table-group manager-table-divider-left" colSpan={STAT_COLUMNS.length}>Casa</th>
+                          <th className="manager-table-group manager-table-divider-left" colSpan={STAT_COLUMNS.length}>Fora</th>
                           <th rowSpan={2}>Ult. 4</th>
                         </tr>
                         <tr>
-                          <th className="manager-table-divider-left">J</th>
-                          <th>V</th>
-                          <th>E</th>
-                          <th>D</th>
-                          <th>GM</th>
-                          <th>GS</th>
-                          <th>DG</th>
-                          <th>Pts</th>
-                          <th className="manager-table-divider-left">J</th>
-                          <th>V</th>
-                          <th>E</th>
-                          <th>D</th>
-                          <th>GM</th>
-                          <th>GS</th>
-                          <th>DG</th>
-                          <th>Pts</th>
-                          <th className="manager-table-divider-left">J</th>
-                          <th>V</th>
-                          <th>E</th>
-                          <th>D</th>
-                          <th>GM</th>
-                          <th>GS</th>
-                          <th>DG</th>
-                          <th>Pts</th>
+                          {renderClassificationStatHeaders("total")}
+                          {renderClassificationStatHeaders("home")}
+                          {renderClassificationStatHeaders("away")}
                         </tr>
                       </thead>
                       <tbody>
@@ -3616,9 +3622,13 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           <tr key={row.teamId}>
                             <td>{index + 1}</td>
                             <td>{row.name}</td>
-                            {renderClassificationStatCells(totalClassificationStats(row), { divider: true, emphasizePoints: true })}
-                            {renderClassificationStatCells(row.home, { divider: true })}
-                            {renderClassificationStatCells(row.away, { divider: true })}
+                            {renderClassificationStatCells(totalClassificationStats(row), {
+                              divider: true,
+                              emphasizePoints: true,
+                              group: "total"
+                            })}
+                            {renderClassificationStatCells(row.home, { divider: true, group: "home" })}
+                            {renderClassificationStatCells(row.away, { divider: true, group: "away" })}
                               <td>
                                 {row.recentForm.length > 0 ? (
                                   <span className="manager-form-list">
