@@ -115,6 +115,7 @@ type CalendarApplySummary = {
   existingMatches: number;
   blockedConflicts: number;
   invalidLines: number;
+  involvedMatchdays: CalendarMatchdayRow[];
 };
 
 type ManualParticipantRow = {
@@ -692,7 +693,8 @@ async function applyCalendarList(formData: FormData): Promise<CalendarApplySumma
     createdMatches: 0,
     existingMatches: 0,
     blockedConflicts: 0,
-    invalidLines: parsed.invalidLines
+    invalidLines: parsed.invalidLines,
+    involvedMatchdays: []
   };
 
   const participants = await fetchSupabaseAdminTable<ManualParticipantRow>(
@@ -723,6 +725,7 @@ async function applyCalendarList(formData: FormData): Promise<CalendarApplySumma
     `matchdays?select=id,number,label&season_id=eq.${encodeURIComponent(seasonId)}&manual_override=is.true&limit=500`
   );
   const matchdaysByNumber = new Map(matchdayRows.map((matchday) => [matchday.number, matchday]));
+  const involvedMatchdaysByNumber = new Map<number, CalendarMatchdayRow>();
   const seenCreatedOrReusedMatchdays = new Set<number>();
   const existingMatches = await fetchSupabaseAdminTable<ExistingCalendarMatchRow>(
     `matches?select=id,matchday_id,home_team_id,away_team_id&season_id=eq.${encodeURIComponent(seasonId)}&manual_override=is.true&limit=1000`
@@ -761,6 +764,10 @@ async function applyCalendarList(formData: FormData): Promise<CalendarApplySumma
 
     const matchKey = `${row.matchdayNumber}:${homeTeam.id}:${awayTeam.id}`;
     if (existingMatchKeys.has(matchKey)) {
+      const existingMatchday = matchdaysByNumber.get(row.matchdayNumber);
+      if (existingMatchday) {
+        involvedMatchdaysByNumber.set(row.matchdayNumber, existingMatchday);
+      }
       summary.existingMatches += 1;
       continue;
     }
@@ -805,6 +812,7 @@ async function applyCalendarList(formData: FormData): Promise<CalendarApplySumma
     }
 
     seenCreatedOrReusedMatchdays.add(row.matchdayNumber);
+    involvedMatchdaysByNumber.set(row.matchdayNumber, matchday);
     seenMatchKeys.add(matchKey);
     usedTeams.add(homeTeam.id);
     usedTeams.add(awayTeam.id);
@@ -837,6 +845,8 @@ async function applyCalendarList(formData: FormData): Promise<CalendarApplySumma
   if (summary.createdMatches === 0 && summary.existingMatches === 0) {
     throw new Error("calendar-list-invalid");
   }
+
+  summary.involvedMatchdays = Array.from(involvedMatchdaysByNumber.values()).sort((a, b) => a.number - b.number);
 
   return summary;
 }

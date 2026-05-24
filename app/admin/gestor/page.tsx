@@ -112,6 +112,11 @@ type CalendarApplySummary = {
   existingMatches: number;
   blockedConflicts: number;
   invalidLines: number;
+  involvedMatchdays?: Array<{
+    id: string;
+    number: number;
+    label: string;
+  }>;
 };
 
 const managerStyles = `
@@ -2800,12 +2805,40 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   <p>Formato: Jornada;Nome da jornada;Casa;Fora;DataHora;Estadio.</p>
                 </header>
                 {calendarApplySummary ? (
-                  <div className="manager-message">
-                    Calendario aplicado: {calendarApplySummary.createdMatchdays} jornadas criadas,{" "}
-                    {calendarApplySummary.reusedMatchdays} reutilizadas, {calendarApplySummary.createdMatches} jogos criados,{" "}
-                    {calendarApplySummary.existingMatches} ja existentes, {calendarApplySummary.blockedConflicts} conflitos bloqueados
-                    e {calendarApplySummary.invalidLines} linhas invalidas.
-                  </div>
+                  <>
+                    <div className="manager-message">
+                      Calendario aplicado: {calendarApplySummary.createdMatchdays} jornadas criadas,{" "}
+                      {calendarApplySummary.reusedMatchdays} reutilizadas, {calendarApplySummary.createdMatches} jogos criados,{" "}
+                      {calendarApplySummary.existingMatches} ja existentes, {calendarApplySummary.blockedConflicts} conflitos bloqueados
+                      e {calendarApplySummary.invalidLines} linhas invalidas.
+                    </div>
+                    {calendarApplySummary.involvedMatchdays?.length ? (
+                      <div className="manager-summary-grid">
+                        <article className="manager-create-card manager-wide-card">
+                          <header>
+                            <h3>Jornadas envolvidas</h3>
+                            <p>Atalhos para abrir rapidamente as jornadas criadas ou reutilizadas.</p>
+                          </header>
+                          <ul className="manager-matchday-grid">
+                            {calendarApplySummary.involvedMatchdays.map((matchday) => (
+                              <li key={matchday.id} className="manager-matchday-card">
+                                <div>
+                                  <code>J{String(matchday.number).padStart(2, "0")}</code>
+                                  <strong>{matchday.label}</strong>
+                                  <small>Disponivel no painel da jornada.</small>
+                                </div>
+                                <div className="manager-matchday-actions">
+                                  <a className="manager-link-button" href={buildMatchdayUrl(currentReturnTo, matchday.id, "jogos")}>
+                                    Abrir
+                                  </a>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </article>
+                      </div>
+                    ) : null}
+                  </>
                 ) : null}
                 <form className="manager-create-form" action="/admin/gestor#calendario" method="get">
                   <input type="hidden" name="pais" value={selectedCountry?.id ?? ""} />
