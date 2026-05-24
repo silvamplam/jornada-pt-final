@@ -302,7 +302,7 @@ export default async function AdminTeamsPage({ searchParams }: TeamsPageProps) {
           <h1>Clubes</h1>
           <span>Adicionar e corrigir nomes, siglas, paises, cores e emblemas.</span>
         </div>
-        <a href="/admin">Voltar ao backoffice</a>
+        <a href="/admin/gestor">Voltar ao gestor</a>
       </header>
 
       {!overview.configured ? (
