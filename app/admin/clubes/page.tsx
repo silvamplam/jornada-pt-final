@@ -115,6 +115,22 @@ const teamAdminStyles = `
     color: #687380;
   }
 
+  .team-admin-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .team-admin-summary span {
+    padding: 6px 9px;
+    border-radius: 999px;
+    background: #eef2f6;
+    color: #34404d;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
   .team-form {
     display: grid;
     grid-template-columns: 48px minmax(150px, 1.2fr) 90px minmax(130px, 1fr) minmax(110px, 0.8fr) minmax(220px, 1.5fr) 110px auto;
@@ -174,12 +190,32 @@ const teamAdminStyles = `
     font-size: 14px;
   }
 
-  .team-field input:focus {
+  .team-field textarea {
+    min-height: 150px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 11px;
+    border: 1px solid #cfd8e3;
+    border-radius: 6px;
+    font: inherit;
+    font-size: 14px;
+    resize: vertical;
+  }
+
+  .team-field input:focus,
+  .team-field textarea:focus {
     outline: 2px solid rgba(229, 37, 42, 0.16);
     border-color: #e5252a;
   }
 
-  .team-form button {
+  .team-assets-form {
+    display: grid;
+    gap: 14px;
+    padding: 18px 20px 20px;
+  }
+
+  .team-form button,
+  .team-assets-form button {
     min-height: 39px;
     padding: 10px 13px;
     border: 0;
@@ -193,6 +229,10 @@ const teamAdminStyles = `
     cursor: pointer;
   }
 
+  .team-assets-form button {
+    justify-self: start;
+  }
+
   .team-actions {
     display: flex;
     gap: 8px;
@@ -204,7 +244,9 @@ const teamAdminStyles = `
   }
 
   .team-form button:disabled,
-  .team-field input:disabled {
+  .team-assets-form button:disabled,
+  .team-field input:disabled,
+  .team-field textarea:disabled {
     cursor: not-allowed;
     opacity: 0.55;
   }
@@ -241,6 +283,10 @@ type TeamsPageProps = {
     created?: string;
     deleted?: string;
     updated?: string;
+    assets_updated?: string;
+    assets_existing?: string;
+    assets_missing?: string;
+    assets_invalid?: string;
     error?: string;
   }>;
 };
@@ -274,6 +320,15 @@ export default async function AdminTeamsPage({ searchParams }: TeamsPageProps) {
   const overview = await getAdminTeams();
   const message = errorMessage(params.error);
   const canWrite = overview.writeConfigured && !overview.error;
+  const assetSummary =
+    params.assets_updated || params.assets_existing || params.assets_missing || params.assets_invalid
+      ? {
+          updated: Number(params.assets_updated ?? 0),
+          existing: Number(params.assets_existing ?? 0),
+          missing: Number(params.assets_missing ?? 0),
+          invalid: Number(params.assets_invalid ?? 0)
+        }
+      : null;
 
   return (
     <main className="team-admin-shell">
@@ -322,6 +377,17 @@ export default async function AdminTeamsPage({ searchParams }: TeamsPageProps) {
       {params.created ? <section className="team-admin-message success">Clube criado.</section> : null}
       {params.updated ? <section className="team-admin-message success">Clube atualizado.</section> : null}
       {params.deleted ? <section className="team-admin-message success">Clube removido.</section> : null}
+      {assetSummary ? (
+        <section className="team-admin-message success">
+          Atualizacao de emblemas concluida.
+          <div className="team-admin-summary">
+            <span>{assetSummary.updated} clubes atualizados</span>
+            <span>{assetSummary.existing} ja tinham emblema</span>
+            <span>{assetSummary.missing} nao encontrados</span>
+            <span>{assetSummary.invalid} linhas invalidas</span>
+          </div>
+        </section>
+      ) : null}
 
       <section className="team-admin-create">
         <header>
@@ -355,6 +421,29 @@ export default async function AdminTeamsPage({ searchParams }: TeamsPageProps) {
             <input disabled={!canWrite} id="new-primary-color" name="primary_color" placeholder="#e5252a" />
           </div>
           <button disabled={!canWrite} type="submit">Criar</button>
+        </form>
+      </section>
+
+      <section className="team-admin-create">
+        <header>
+          <h2>Atualizar emblemas e cores</h2>
+          <small>
+            Atualiza apenas Emblema URL e Cor de clubes existentes por slug. Nao altera nomes, paises,
+            participantes, jornadas, jogos ou resultados.
+          </small>
+        </header>
+        <form action="/api/admin/teams" className="team-assets-form" method="post">
+          <input type="hidden" name="action_type" value="bulk_assets" />
+          <div className="team-field">
+            <label htmlFor="team-assets">Lista</label>
+            <textarea
+              disabled={!canWrite}
+              id="team-assets"
+              name="team_assets"
+              placeholder={"Slug;Emblema URL;Cor\nfc-barcelona;https://...;#A50044\natletico-de-madrid;https://...;#CB3524"}
+            />
+          </div>
+          <button disabled={!canWrite} type="submit">Atualizar clubes</button>
         </form>
       </section>
 
