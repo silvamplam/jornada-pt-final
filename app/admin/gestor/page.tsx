@@ -2826,17 +2826,19 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </article>
               ) : null}
 
-              <article className="manager-create-card manager-fallback-card manager-calendar-fallback">
-                <header>
-                  <h3>Criar jornada manualmente</h3>
-                  <p>
-                    {!selectedSeason
-                      ? "Escolhe uma epoca primeiro."
-                      : participantsForSeason.length === 0
-                        ? "Antes de criar jornadas, define os participantes desta epoca."
-                        : `Dentro de ${selectedSeason.label}.`}
-                  </p>
-                </header>
+              <details className="manager-create-card manager-fallback-card manager-calendar-fallback">
+                <summary>
+                  <span>
+                    <strong>Criar jornada manualmente</strong>
+                    <small>
+                      {!selectedSeason
+                        ? "Escolhe uma epoca primeiro."
+                        : participantsForSeason.length === 0
+                          ? "Antes de criar jornadas, define os participantes desta epoca."
+                          : "Usar apenas para ajustes pontuais."}
+                    </small>
+                  </span>
+                </summary>
                 <form className="manager-create-form" action="/api/admin/gestor" method="post">
                   <input type="hidden" name="action_type" value="matchday" />
                   <input type="hidden" name="return_to" value={calendarReturnTo} />
@@ -2884,7 +2886,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     Criar jornada
                   </button>
                 </form>
-              </article>
+              </details>
 
               <article className="manager-create-card manager-wide-card manager-calendar-list">
                 <header>
