@@ -43,6 +43,16 @@ type SeasonAgendaMatch = {
   broadcast_channel_id: string | null;
 };
 type BlockingMatch = Pick<SeasonAgendaMatch, "id" | "season_id" | "matchday_id" | "home_team_id" | "away_team_id">;
+type ClassificationSplit = {
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
+};
 type ClassificationRow = {
   teamId: string;
   name: string;
@@ -57,6 +67,8 @@ type ClassificationRow = {
   goalDifference: number;
   points: number;
   recentForm: string[];
+  home: ClassificationSplit;
+  away: ClassificationSplit;
 };
 type ClubPreviewRow = {
   lineNumber: number;
@@ -867,6 +879,24 @@ const managerStyles = `
     gap: 6px;
   }
 
+  .manager-home-away-detail {
+    display: grid;
+    gap: 5px;
+    min-width: 230px;
+    color: #263241;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .manager-home-away-detail span {
+    display: block;
+    white-space: nowrap;
+  }
+
+  .manager-home-away-detail b {
+    color: #17202b;
+  }
+
   .manager-actions {
     display: flex;
     flex-wrap: wrap;
@@ -987,6 +1017,23 @@ function slugifyClub(value: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function emptyClassificationSplit(): ClassificationSplit {
+  return {
+    played: 0,
+    wins: 0,
+    draws: 0,
+    losses: 0,
+    goalsFor: 0,
+    goalsAgainst: 0,
+    goalDifference: 0,
+    points: 0
+  };
+}
+
+function signedNumber(value: number) {
+  return value > 0 ? `+${value}` : `${value}`;
 }
 
 function buildContextQuery(country: SupabaseCountry | null, competition: SupabaseCompetition | null, season: SupabaseSeason | null) {
@@ -1469,7 +1516,9 @@ function buildAccumulatedClassification({
       goalsAgainst: 0,
       goalDifference: 0,
       points: 0,
-      recentForm: []
+      recentForm: [],
+      home: emptyClassificationSplit(),
+      away: emptyClassificationSplit()
     });
   });
 
@@ -1512,21 +1561,33 @@ function buildAccumulatedClassification({
     away.played += 1;
     home.homePlayed += 1;
     away.awayPlayed += 1;
+    home.home.played += 1;
+    away.away.played += 1;
     home.goalsFor += match.home_score;
     home.goalsAgainst += match.away_score;
     away.goalsFor += match.away_score;
     away.goalsAgainst += match.home_score;
+    home.home.goalsFor += match.home_score;
+    home.home.goalsAgainst += match.away_score;
+    away.away.goalsFor += match.away_score;
+    away.away.goalsAgainst += match.home_score;
 
     if (match.home_score > match.away_score) {
       home.wins += 1;
       home.points += 3;
       away.losses += 1;
+      home.home.wins += 1;
+      home.home.points += 3;
+      away.away.losses += 1;
       home.recentForm.push("V(C)");
       away.recentForm.push("D(F)");
     } else if (match.home_score < match.away_score) {
       away.wins += 1;
       away.points += 3;
       home.losses += 1;
+      away.away.wins += 1;
+      away.away.points += 3;
+      home.home.losses += 1;
       home.recentForm.push("D(C)");
       away.recentForm.push("V(F)");
     } else {
@@ -1534,12 +1595,18 @@ function buildAccumulatedClassification({
       away.draws += 1;
       home.points += 1;
       away.points += 1;
+      home.home.draws += 1;
+      away.away.draws += 1;
+      home.home.points += 1;
+      away.away.points += 1;
       home.recentForm.push("E(C)");
       away.recentForm.push("E(F)");
     }
 
     home.goalDifference = home.goalsFor - home.goalsAgainst;
     away.goalDifference = away.goalsFor - away.goalsAgainst;
+    home.home.goalDifference = home.home.goalsFor - home.home.goalsAgainst;
+    away.away.goalDifference = away.away.goalsFor - away.away.goalsAgainst;
   });
 
   rows.forEach((row) => {
@@ -3398,6 +3465,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           <th>DG</th>
                           <th>Pts</th>
                           <th>Ult. 4</th>
+                          <th>Casa / Fora</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3448,6 +3516,20 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                                 ) : (
                                   "-"
                                 )}
+                              </td>
+                              <td>
+                                <span className="manager-home-away-detail">
+                                  <span>
+                                    <b>Casa:</b> {row.home.played}J {row.home.wins}V {row.home.draws}E {row.home.losses}D{" "}
+                                    {row.home.goalsFor}-{row.home.goalsAgainst} DG {signedNumber(row.home.goalDifference)}{" "}
+                                    {row.home.points}pts
+                                  </span>
+                                  <span>
+                                    <b>Fora:</b> {row.away.played}J {row.away.wins}V {row.away.draws}E {row.away.losses}D{" "}
+                                    {row.away.goalsFor}-{row.away.goalsAgainst} DG {signedNumber(row.away.goalDifference)}{" "}
+                                    {row.away.points}pts
+                                  </span>
+                                </span>
                               </td>
                           </tr>
                         ))}
