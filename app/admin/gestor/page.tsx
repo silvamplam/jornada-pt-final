@@ -85,6 +85,34 @@ type ClubApplySummary = {
   blockedConflicts: number;
   invalidLines: number;
 };
+type CalendarPreviewRow = {
+  lineNumber: number;
+  status: string;
+  matchdayNumber: number | null;
+  matchdayLabel: string;
+  homeName: string;
+  awayName: string;
+  kickoffAt: string;
+  venue: string;
+  note: string;
+};
+type CalendarPreviewSummary = {
+  totalRows: number;
+  matchdaysToCreate: number;
+  matchdaysToReuse: number;
+  matchesToCreate: number;
+  existingMatches: number;
+  conflicts: number;
+  invalidLines: number;
+};
+type CalendarApplySummary = {
+  createdMatchdays: number;
+  reusedMatchdays: number;
+  createdMatches: number;
+  existingMatches: number;
+  blockedConflicts: number;
+  invalidLines: number;
+};
 
 const managerStyles = `
   body {
@@ -977,6 +1005,143 @@ function buildClubPreview({
   return { rows, summary };
 }
 
+function buildCalendarPreview({
+  rawList,
+  participantsForSeason,
+  matchdaysForSeason,
+  matchesForSeason
+}: {
+  rawList: string;
+  participantsForSeason: SupabaseAdminSeasonTeam[];
+  matchdaysForSeason: SeasonMatchday[];
+  matchesForSeason: SeasonAgendaMatch[];
+}): { rows: CalendarPreviewRow[]; summary: CalendarPreviewSummary } {
+  const participantEntries = participantsForSeason
+    .map((participant) => participant.team)
+    .filter((team): team is SupabaseTeam => Boolean(team));
+  const teamsByKey = new Map<string, SupabaseTeam>();
+  participantEntries.forEach((team) => {
+    teamsByKey.set(slugifyClub(team.name), team);
+    teamsByKey.set(team.slug, team);
+    if (team.short_name) {
+      teamsByKey.set(slugifyClub(team.short_name), team);
+    }
+  });
+
+  const matchdaysByNumber = new Map(matchdaysForSeason.map((matchday) => [matchday.number, matchday]));
+  const usedTeamsByMatchday = new Map<number, Set<string>>();
+  const existingMatchKeys = new Set<string>();
+  const seenMatchKeys = new Set<string>();
+  const seenNewMatchdays = new Set<number>();
+  const seenReuseMatchdays = new Set<number>();
+  const rows: CalendarPreviewRow[] = [];
+  const summary: CalendarPreviewSummary = {
+    totalRows: 0,
+    matchdaysToCreate: 0,
+    matchdaysToReuse: 0,
+    matchesToCreate: 0,
+    existingMatches: 0,
+    conflicts: 0,
+    invalidLines: 0
+  };
+
+  const matchdayNumberById = new Map(matchdaysForSeason.map((matchday) => [matchday.id, matchday.number]));
+  matchesForSeason.forEach((match) => {
+    if (!match.matchday_id) return;
+    const number = matchdayNumberById.get(match.matchday_id);
+    if (!number) return;
+
+    const usedTeams = usedTeamsByMatchday.get(number) ?? new Set<string>();
+    usedTeams.add(match.home_team_id);
+    usedTeams.add(match.away_team_id);
+    usedTeamsByMatchday.set(number, usedTeams);
+    existingMatchKeys.add(`${number}:${match.home_team_id}:${match.away_team_id}`);
+  });
+
+  rawList
+    .split(/\r?\n/)
+    .map((line, index) => ({ line: line.trim(), lineNumber: index + 1 }))
+    .filter((item) => item.line.length > 0)
+    .forEach(({ line, lineNumber }) => {
+      summary.totalRows += 1;
+      const [numberValue = "", labelValue = "", homeValue = "", awayValue = "", kickoffValue = "", venueValue = ""] = line
+        .split(";")
+        .map((value) => value.trim());
+      const matchdayNumber = Number.parseInt(numberValue, 10);
+      const matchdayLabel = labelValue || (Number.isNaN(matchdayNumber) ? "" : `Jornada ${String(matchdayNumber).padStart(2, "0")}`);
+      const homeTeam = teamsByKey.get(slugifyClub(homeValue));
+      const awayTeam = teamsByKey.get(slugifyClub(awayValue));
+
+      const baseRow = {
+        lineNumber,
+        matchdayNumber: Number.isNaN(matchdayNumber) ? null : matchdayNumber,
+        matchdayLabel,
+        homeName: homeValue,
+        awayName: awayValue,
+        kickoffAt: kickoffValue,
+        venue: venueValue
+      };
+
+      if (Number.isNaN(matchdayNumber) || matchdayNumber < 1 || !matchdayLabel || !homeValue || !awayValue || !kickoffValue) {
+        summary.invalidLines += 1;
+        rows.push({ ...baseRow, status: "linha invalida", note: "A linha precisa de jornada, nome, casa, fora e data/hora." });
+        return;
+      }
+
+      if (!homeTeam || !awayTeam) {
+        summary.conflicts += 1;
+        rows.push({ ...baseRow, status: "conflito", note: "Casa ou Fora nao pertence aos participantes manuais desta epoca." });
+        return;
+      }
+
+      if (homeTeam.id === awayTeam.id) {
+        summary.conflicts += 1;
+        rows.push({ ...baseRow, status: "conflito", note: "Casa e Fora nao podem ser o mesmo clube." });
+        return;
+      }
+
+      const matchKey = `${matchdayNumber}:${homeTeam.id}:${awayTeam.id}`;
+      if (existingMatchKeys.has(matchKey)) {
+        summary.existingMatches += 1;
+        seenReuseMatchdays.add(matchdayNumber);
+        rows.push({ ...baseRow, status: "jogo existente", note: "Este jogo ja existe nesta jornada e nao sera duplicado." });
+        return;
+      }
+
+      if (seenMatchKeys.has(matchKey)) {
+        summary.conflicts += 1;
+        rows.push({ ...baseRow, status: "duplicado na lista", note: "Este jogo aparece mais do que uma vez na lista." });
+        return;
+      }
+
+      const usedTeams = usedTeamsByMatchday.get(matchdayNumber) ?? new Set<string>();
+      if (usedTeams.has(homeTeam.id) || usedTeams.has(awayTeam.id)) {
+        summary.conflicts += 1;
+        rows.push({ ...baseRow, status: "conflito", note: "Uma destas equipas ja tem jogo nesta jornada." });
+        return;
+      }
+
+      seenMatchKeys.add(matchKey);
+      usedTeams.add(homeTeam.id);
+      usedTeams.add(awayTeam.id);
+      usedTeamsByMatchday.set(matchdayNumber, usedTeams);
+      summary.matchesToCreate += 1;
+
+      if (matchdaysByNumber.has(matchdayNumber)) {
+        seenReuseMatchdays.add(matchdayNumber);
+        rows.push({ ...baseRow, status: "jogo a criar", note: "A jornada ja existe e sera reutilizada." });
+      } else {
+        seenNewMatchdays.add(matchdayNumber);
+        rows.push({ ...baseRow, status: "jogo a criar", note: "A jornada sera criada e o jogo sera agendado." });
+      }
+    });
+
+  summary.matchdaysToCreate = seenNewMatchdays.size;
+  summary.matchdaysToReuse = seenReuseMatchdays.size;
+
+  return { rows, summary };
+}
+
 function toDatetimeLocal(value?: string | null) {
   if (!value) {
     return "";
@@ -1329,6 +1494,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const requestedMatchdayId = oneParam(params, "jornada");
   const requestedEditMatchId = oneParam(params, "editar_jogo");
   const rawClubPreviewList = oneParam(params, "club_preview") ?? "";
+  const rawCalendarPreviewList = oneParam(params, "calendar_preview") ?? "";
   const messageSection = oneParam(params, "section");
   const {
     linkedCompetitions,
@@ -1407,6 +1573,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     participantsForSeason,
     countries
   });
+  const calendarPreview = buildCalendarPreview({
+    rawList: rawCalendarPreviewList,
+    participantsForSeason,
+    matchdaysForSeason,
+    matchesForSeason
+  });
   const teamsAvailableForSeason = teamsForCountry.filter((team) => !participantTeamIds.has(team.id));
   const participantTeamOptions = participantsForSeason
     .map((participant) => participant.team)
@@ -1471,13 +1643,23 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const created = oneParam(params, "created");
   const actionError = oneParam(params, "error");
   const rawClubApplySummary = oneParam(params, "club_apply_summary");
+  const rawCalendarApplySummary = oneParam(params, "calendar_apply_summary");
   let clubApplySummary: ClubApplySummary | null = null;
+  let calendarApplySummary: CalendarApplySummary | null = null;
 
   if (rawClubApplySummary) {
     try {
       clubApplySummary = JSON.parse(rawClubApplySummary) as ClubApplySummary;
     } catch {
       clubApplySummary = null;
+    }
+  }
+
+  if (rawCalendarApplySummary) {
+    try {
+      calendarApplySummary = JSON.parse(rawCalendarApplySummary) as CalendarApplySummary;
+    } catch {
+      calendarApplySummary = null;
     }
   }
 
@@ -1505,6 +1687,16 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
       rawClubPreviewList.trim() &&
       clubPreview.summary.totalRows > clubPreview.summary.invalidLines
   );
+  const canApplyCalendarList = Boolean(
+    selectedCountry &&
+      selectedCompetition &&
+      selectedSeason &&
+      participantData?.writeConfigured &&
+      rawCalendarPreviewList.trim() &&
+      calendarPreview.summary.matchesToCreate > 0 &&
+      calendarPreview.summary.conflicts === 0 &&
+      calendarPreview.summary.invalidLines === 0
+  );
   const createdLabels: Record<string, string> = {
     country: "Pais criado. Agora podes escolher esse pais no caminho de trabalho.",
     competition: "Competicao criada e ligada ao pais escolhido.",
@@ -1517,6 +1709,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     remove_old_participant: "Associacao tecnica removida de season_teams.",
     remove_team: "Clube removido do pais selecionado.",
     matchday: "Jornada criada dentro da epoca selecionada.",
+    apply_calendar_list: "Calendario aplicado a esta epoca.",
     remove_matchday: "Jornada removida da epoca selecionada.",
     match: "Jogo criado dentro da jornada selecionada.",
     update_match: "Jogo atualizado na jornada selecionada.",
@@ -1551,6 +1744,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "matchday-needs-participants": "Antes de criar jornadas, define os participantes desta epoca.",
     "matchday-duplicate": "Ja existe uma jornada com esse numero nesta epoca.",
     "matchday-has-matches": "Nao e possivel remover esta jornada porque ainda existem jogos associados.",
+    "calendar-list-invalid": "A lista do calendario tem linhas invalidas ou conflitos por resolver.",
+    "calendar-no-matches": "Nao ha jogos novos validos para criar nesta lista.",
     "match-missing-context": "Escolhe uma competicao, epoca e jornada antes de criar o jogo.",
     "matchday-invalid": "A jornada escolhida nao pertence a epoca selecionada.",
     "match-team-same": "A equipa da casa e a equipa visitante nao podem ser o mesmo clube.",
@@ -2412,11 +2607,122 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 <header>
                   <h3>Importar/colar calendario</h3>
                   <p>
-                    Espaco futuro para colar jornadas e jogos, pre-visualizar conflitos e aplicar o calendario completo
-                    a epoca selecionada. Ainda sem funcionalidade nesta fase.
+                    Cola uma lista de jogos por jornada para pre-visualizar e aplicar o calendario da epoca. Formato:
+                    Jornada;Nome da jornada;Casa;Fora;DataHora;Estadio.
                   </p>
                 </header>
+                {calendarApplySummary ? (
+                  <div className="manager-message">
+                    Calendario aplicado: {calendarApplySummary.createdMatchdays} jornadas criadas,{" "}
+                    {calendarApplySummary.reusedMatchdays} reutilizadas, {calendarApplySummary.createdMatches} jogos criados,{" "}
+                    {calendarApplySummary.existingMatches} ja existentes, {calendarApplySummary.blockedConflicts} conflitos bloqueados
+                    e {calendarApplySummary.invalidLines} linhas invalidas.
+                  </div>
+                ) : null}
+                <form className="manager-create-form" action="/admin/gestor#calendario" method="get">
+                  <input type="hidden" name="pais" value={selectedCountry?.id ?? ""} />
+                  <input type="hidden" name="competicao" value={selectedCompetition?.id ?? ""} />
+                  <input type="hidden" name="epoca" value={selectedSeason?.id ?? ""} />
+                  <input type="hidden" name="section" value="calendario" />
+                  <div className="manager-field">
+                    <label htmlFor="calendar-preview-list">Lista de jogos por jornada</label>
+                    <textarea
+                      id="calendar-preview-list"
+                      name="calendar_preview"
+                      placeholder={"1;Jornada 01;Arsenal;Aston Villa;2026-08-15T20:00;Emirates Stadium\n1;Jornada 01;Brentford;Newcastle;2026-08-16T15:00;Gtech Community Stadium\n2;Jornada 02;Chelsea;Arsenal;2026-08-22T18:00;Stamford Bridge"}
+                      defaultValue={rawCalendarPreviewList}
+                    />
+                  </div>
+                  <button className="manager-button" type="submit" disabled={!selectedSeason}>
+                    Pre-visualizar calendario
+                  </button>
+                </form>
               </article>
+
+              {rawCalendarPreviewList.trim() ? (
+                <article className="manager-create-card manager-wide-card manager-calendar-future">
+                  <header>
+                    <h3>Resultado da pre-visualizacao</h3>
+                    <p>Nesta fase, a aplicacao cria/reutiliza jornadas e cria apenas jogos agendados.</p>
+                  </header>
+                  <div className="manager-stat-row">
+                    <article className="manager-stat">
+                      <strong>{calendarPreview.summary.totalRows}</strong>
+                      <small>Total de linhas</small>
+                    </article>
+                    <article className="manager-stat">
+                      <strong>{calendarPreview.summary.matchdaysToCreate}</strong>
+                      <small>Jornadas a criar</small>
+                    </article>
+                    <article className="manager-stat">
+                      <strong>{calendarPreview.summary.matchdaysToReuse}</strong>
+                      <small>Jornadas a reutilizar</small>
+                    </article>
+                    <article className="manager-stat">
+                      <strong>{calendarPreview.summary.matchesToCreate}</strong>
+                      <small>Jogos a criar</small>
+                    </article>
+                    <article className="manager-stat">
+                      <strong>{calendarPreview.summary.existingMatches}</strong>
+                      <small>Jogos existentes</small>
+                    </article>
+                    <article className="manager-stat">
+                      <strong>{calendarPreview.summary.conflicts}</strong>
+                      <small>Conflitos</small>
+                    </article>
+                    <article className="manager-stat">
+                      <strong>{calendarPreview.summary.invalidLines}</strong>
+                      <small>Linhas invalidas</small>
+                    </article>
+                  </div>
+                  <div className="manager-table-wrap">
+                    <table className="manager-table">
+                      <thead>
+                        <tr>
+                          <th>Estado</th>
+                          <th>Jornada</th>
+                          <th>Nome</th>
+                          <th>Casa</th>
+                          <th>Fora</th>
+                          <th>Data/hora</th>
+                          <th>Estadio</th>
+                          <th>Observacao</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {calendarPreview.rows.map((row) => (
+                          <tr key={`${row.lineNumber}-${row.homeName}-${row.awayName}`}>
+                            <td>{row.status}</td>
+                            <td>{row.matchdayNumber ?? "-"}</td>
+                            <td>{row.matchdayLabel || "-"}</td>
+                            <td>{row.homeName || "-"}</td>
+                            <td>{row.awayName || "-"}</td>
+                            <td>{row.kickoffAt || "-"}</td>
+                            <td>{row.venue || "-"}</td>
+                            <td>{row.note}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <form
+                    className="manager-create-form"
+                    action="/api/admin/gestor"
+                    method="post"
+                    data-confirm="Aplicar esta lista vai criar/reutilizar jornadas e criar jogos agendados. Confirmas?"
+                  >
+                    <input type="hidden" name="action_type" value="apply_calendar_list" />
+                    <input type="hidden" name="return_to" value={calendarReturnTo} />
+                    <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
+                    <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
+                    <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+                    <textarea name="calendar_preview" hidden readOnly defaultValue={rawCalendarPreviewList} />
+                    <button className="manager-button" type="submit" disabled={!canApplyCalendarList}>
+                      Aplicar calendario validado
+                    </button>
+                  </form>
+                </article>
+              ) : null}
 
               <article className="manager-create-card manager-fallback-card manager-calendar-fallback">
                 <header>

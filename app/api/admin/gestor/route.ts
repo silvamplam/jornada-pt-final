@@ -98,6 +98,42 @@ type ApplyClubListSummary = {
   invalidLines: number;
 };
 
+type CalendarListRow = {
+  lineNumber: number;
+  matchdayNumber: number;
+  matchdayLabel: string;
+  homeName: string;
+  awayName: string;
+  kickoffAt: string;
+  venue: string | null;
+};
+
+type CalendarApplySummary = {
+  createdMatchdays: number;
+  reusedMatchdays: number;
+  createdMatches: number;
+  existingMatches: number;
+  blockedConflicts: number;
+  invalidLines: number;
+};
+
+type ManualParticipantRow = {
+  team_id: string;
+};
+
+type CalendarMatchdayRow = {
+  id: string;
+  number: number;
+  label: string;
+};
+
+type ExistingCalendarMatchRow = {
+  id: string;
+  matchday_id: string | null;
+  home_team_id: string;
+  away_team_id: string;
+};
+
 function slugify(value: string): string {
   return value
     .normalize("NFD")
@@ -115,6 +151,7 @@ function returnUrl(request: Request, formData: FormData, key: "created" | "error
   url.searchParams.delete("created");
   url.searchParams.delete("error");
   url.searchParams.delete("club_apply_summary");
+  url.searchParams.delete("calendar_apply_summary");
   url.searchParams.set(key, value);
   Object.entries(extraParams ?? {}).forEach(([paramKey, paramValue]) => {
     url.searchParams.set(paramKey, paramValue);
@@ -580,6 +617,230 @@ async function removeMatchday(formData: FormData) {
   );
 }
 
+function parseCalendarList(rawList: string): { rows: CalendarListRow[]; invalidLines: number } {
+  const rows: CalendarListRow[] = [];
+  let invalidLines = 0;
+
+  rawList
+    .split(/\r?\n/)
+    .map((line, index) => ({ line: line.trim(), lineNumber: index + 1 }))
+    .filter((item) => item.line.length > 0)
+    .forEach(({ line, lineNumber }) => {
+      const [numberValue = "", labelValue = "", homeValue = "", awayValue = "", kickoffValue = "", venueValue = ""] = line
+        .split(";")
+        .map((value) => value.trim());
+      const matchdayNumber = Number.parseInt(numberValue, 10);
+      const matchdayLabel = labelValue || (Number.isNaN(matchdayNumber) ? "" : `Jornada ${String(matchdayNumber).padStart(2, "0")}`);
+
+      if (Number.isNaN(matchdayNumber) || matchdayNumber < 1 || !matchdayLabel || !homeValue || !awayValue || !kickoffValue) {
+        invalidLines += 1;
+        return;
+      }
+
+      rows.push({
+        lineNumber,
+        matchdayNumber,
+        matchdayLabel,
+        homeName: homeValue,
+        awayName: awayValue,
+        kickoffAt: kickoffValue,
+        venue: cleanText(venueValue)
+      });
+    });
+
+  return { rows, invalidLines };
+}
+
+function teamLookupKey(value: string | null | undefined) {
+  return value ? slugify(value) : "";
+}
+
+async function applyCalendarList(formData: FormData): Promise<CalendarApplySummary> {
+  const countryId = cleanText(formData.get("country_id"));
+  const competitionId = cleanText(formData.get("competition_id"));
+  const seasonId = cleanText(formData.get("season_id"));
+  const rawList = cleanText(formData.get("calendar_preview"));
+
+  if (!countryId || !competitionId || !seasonId || !rawList) {
+    throw new Error("missing-fields");
+  }
+
+  if (!(await hasRows(`countries?select=id&id=eq.${encodeURIComponent(countryId)}`))) {
+    throw new Error("country-not-found");
+  }
+
+  if (
+    !(await hasRows(
+      `competitions?select=id&id=eq.${encodeURIComponent(competitionId)}&country_id=eq.${encodeURIComponent(countryId)}`
+    ))
+  ) {
+    throw new Error("competition-country-invalid");
+  }
+
+  if (
+    !(await hasRows(
+      `seasons?select=id&id=eq.${encodeURIComponent(seasonId)}&competition_id=eq.${encodeURIComponent(competitionId)}`
+    ))
+  ) {
+    throw new Error("season-competition-invalid");
+  }
+
+  const parsed = parseCalendarList(rawList);
+  const summary: CalendarApplySummary = {
+    createdMatchdays: 0,
+    reusedMatchdays: 0,
+    createdMatches: 0,
+    existingMatches: 0,
+    blockedConflicts: 0,
+    invalidLines: parsed.invalidLines
+  };
+
+  const participants = await fetchSupabaseAdminTable<ManualParticipantRow>(
+    `season_teams?select=team_id&season_id=eq.${encodeURIComponent(
+      seasonId
+    )}&data_source=eq.manual&sync_status=eq.manual&manual_override=is.true&limit=500`
+  );
+  const participantTeamIds = Array.from(new Set(participants.map((participant) => participant.team_id)));
+
+  if (participantTeamIds.length === 0) {
+    throw new Error("matchday-needs-participants");
+  }
+
+  const teamsQuery = participantTeamIds.map((id) => encodeURIComponent(id)).join(",");
+  const teams = await fetchSupabaseAdminTable<TeamRow>(
+    `teams?select=id,name,short_name,slug,country_id&id=in.(${teamsQuery})&country_id=eq.${encodeURIComponent(countryId)}&limit=500`
+  );
+  const teamsByKey = new Map<string, TeamRow>();
+  teams.forEach((team) => {
+    teamsByKey.set(teamLookupKey(team.name), team);
+    teamsByKey.set(team.slug, team);
+    if (team.short_name) {
+      teamsByKey.set(teamLookupKey(team.short_name), team);
+    }
+  });
+
+  const matchdayRows = await fetchSupabaseAdminTable<CalendarMatchdayRow>(
+    `matchdays?select=id,number,label&season_id=eq.${encodeURIComponent(seasonId)}&manual_override=is.true&limit=500`
+  );
+  const matchdaysByNumber = new Map(matchdayRows.map((matchday) => [matchday.number, matchday]));
+  const seenCreatedOrReusedMatchdays = new Set<number>();
+  const existingMatches = await fetchSupabaseAdminTable<ExistingCalendarMatchRow>(
+    `matches?select=id,matchday_id,home_team_id,away_team_id&season_id=eq.${encodeURIComponent(seasonId)}&manual_override=is.true&limit=1000`
+  );
+  const matchdayNumberById = new Map(matchdayRows.map((matchday) => [matchday.id, matchday.number]));
+  const usedTeamsByMatchday = new Map<number, Set<string>>();
+  const existingMatchKeys = new Set<string>();
+
+  existingMatches.forEach((match) => {
+    if (!match.matchday_id) return;
+    const number = matchdayNumberById.get(match.matchday_id);
+    if (!number) return;
+
+    const usedTeams = usedTeamsByMatchday.get(number) ?? new Set<string>();
+    usedTeams.add(match.home_team_id);
+    usedTeams.add(match.away_team_id);
+    usedTeamsByMatchday.set(number, usedTeams);
+    existingMatchKeys.add(`${number}:${match.home_team_id}:${match.away_team_id}`);
+  });
+
+  const seenMatchKeys = new Set<string>();
+
+  for (const row of parsed.rows) {
+    const homeTeam = teamsByKey.get(teamLookupKey(row.homeName));
+    const awayTeam = teamsByKey.get(teamLookupKey(row.awayName));
+
+    if (!homeTeam || !awayTeam) {
+      summary.blockedConflicts += 1;
+      continue;
+    }
+
+    if (homeTeam.id === awayTeam.id) {
+      summary.blockedConflicts += 1;
+      continue;
+    }
+
+    const matchKey = `${row.matchdayNumber}:${homeTeam.id}:${awayTeam.id}`;
+    if (existingMatchKeys.has(matchKey)) {
+      summary.existingMatches += 1;
+      continue;
+    }
+
+    if (seenMatchKeys.has(matchKey)) {
+      summary.blockedConflicts += 1;
+      continue;
+    }
+
+    const usedTeams = usedTeamsByMatchday.get(row.matchdayNumber) ?? new Set<string>();
+    if (usedTeams.has(homeTeam.id) || usedTeams.has(awayTeam.id)) {
+      summary.blockedConflicts += 1;
+      continue;
+    }
+
+    let matchday = matchdaysByNumber.get(row.matchdayNumber);
+    if (!matchday) {
+      const createdMatchdays = await writeSupabaseAdminReturning<CalendarMatchdayRow>("matchdays", {
+        method: "POST",
+        body: JSON.stringify({
+          season_id: seasonId,
+          number: row.matchdayNumber,
+          label: row.matchdayLabel,
+          status: "scheduled",
+          data_source: "manual",
+          sync_status: "manual",
+          manual_override: true,
+          external_provider: null,
+          external_id: null,
+          last_synced_at: null
+        })
+      });
+      matchday = createdMatchdays[0];
+      if (!matchday) {
+        summary.blockedConflicts += 1;
+        continue;
+      }
+      matchdaysByNumber.set(row.matchdayNumber, matchday);
+      summary.createdMatchdays += 1;
+    } else if (!seenCreatedOrReusedMatchdays.has(row.matchdayNumber)) {
+      summary.reusedMatchdays += 1;
+    }
+
+    seenCreatedOrReusedMatchdays.add(row.matchdayNumber);
+    seenMatchKeys.add(matchKey);
+    usedTeams.add(homeTeam.id);
+    usedTeams.add(awayTeam.id);
+    usedTeamsByMatchday.set(row.matchdayNumber, usedTeams);
+
+    await writeSupabaseAdmin("matches", {
+      method: "POST",
+      body: JSON.stringify({
+        source_key: `manual-calendar-${Date.now()}-${row.lineNumber}`,
+        competition_id: competitionId,
+        season_id: seasonId,
+        matchday_id: matchday.id,
+        home_team_id: homeTeam.id,
+        away_team_id: awayTeam.id,
+        kickoff_at: normalizeKickoff(row.kickoffAt),
+        venue: row.venue,
+        status: "scheduled",
+        data_source: "manual",
+        sync_status: "manual",
+        manual_override: true,
+        external_provider: null,
+        external_id: null,
+        external_match_id: null,
+        last_synced_at: null
+      })
+    });
+    summary.createdMatches += 1;
+  }
+
+  if (summary.createdMatches === 0 && summary.existingMatches === 0) {
+    throw new Error("calendar-list-invalid");
+  }
+
+  return summary;
+}
+
 async function readAgendaMatch(formData: FormData): Promise<AgendaMatchRow> {
   const matchId = cleanText(formData.get("match_id"));
   const competitionId = cleanText(formData.get("competition_id"));
@@ -947,6 +1208,9 @@ export async function POST(request: Request) {
       await removeTeam(formData);
     } else if (actionType === "matchday") {
       await createMatchday(formData);
+    } else if (actionType === "apply_calendar_list") {
+      const summary = await applyCalendarList(formData);
+      extraParams = { calendar_apply_summary: JSON.stringify(summary) };
     } else if (actionType === "remove_matchday") {
       await removeMatchday(formData);
     } else if (actionType === "match") {
