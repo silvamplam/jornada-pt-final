@@ -2705,6 +2705,22 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                       </tbody>
                     </table>
                   </div>
+                </article>
+              ) : null}
+
+              {rawCalendarPreviewList.trim() ? (
+                <article className="manager-create-card manager-wide-card manager-calendar-future">
+                  <header>
+                    <h3>Aplicar calendario validado</h3>
+                    <p>
+                      Este e o passo que grava dados: cria/reutiliza jornadas e cria apenas jogos agendados.
+                    </p>
+                  </header>
+                  {!canApplyCalendarList ? (
+                    <div className="manager-empty">
+                      Resolve conflitos, linhas invalidas ou garante que existe pelo menos um jogo novo valido antes de aplicar.
+                    </div>
+                  ) : null}
                   <form
                     className="manager-create-form"
                     action="/api/admin/gestor"
