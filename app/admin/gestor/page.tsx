@@ -895,7 +895,7 @@ const managerStyles = `
   }
 
   .manager-classification-table {
-    min-width: 1280px;
+    min-width: 1180px;
   }
 
   .manager-classification-table th,
@@ -909,12 +909,40 @@ const managerStyles = `
   }
 
   .manager-classification-table tbody td:nth-child(2) {
-    min-width: 150px;
+    min-width: 300px;
     text-align: left;
   }
 
   .manager-classification-table .manager-form-list {
-    min-width: 64px;
+    min-width: 0;
+  }
+
+  .manager-classification-club-cell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .manager-classification-club-name {
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 900;
+    text-overflow: ellipsis;
+  }
+
+  .manager-classification-club-form {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-left: auto;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 800;
+    text-align: right;
+    white-space: nowrap;
   }
 
   .manager-actions {
@@ -3440,7 +3468,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                           <th className="manager-table-group manager-table-group-total manager-table-divider-left" colSpan={STAT_COLUMNS.length}>Total</th>
                           <th className="manager-table-group manager-table-divider-left" colSpan={STAT_COLUMNS.length}>Casa</th>
                           <th className="manager-table-group manager-table-divider-left" colSpan={STAT_COLUMNS.length}>Fora</th>
-                          <th rowSpan={2}>Ult. 4</th>
                         </tr>
                         <tr>
                           {renderClassificationStatHeaders("total")}
@@ -3452,7 +3479,36 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                         {classificationRows.map((row, index) => (
                           <tr key={row.teamId}>
                             <td>{index + 1}</td>
-                            <td>{row.name}</td>
+                            <td>
+                              <span className="manager-classification-club-cell">
+                                <span className="manager-classification-club-name">{row.name}</span>
+                                <span className="manager-classification-club-form">
+                                  <span>Ultimos:</span>
+                                  {row.recentForm.length > 0 ? (
+                                    <span className="manager-form-list">
+                                      {row.recentForm.map((result, resultIndex) => (
+                                        <span
+                                          key={`${row.teamId}-${resultIndex}-${result.label}`}
+                                          title={result.title}
+                                          aria-label={result.title}
+                                          className={
+                                            result.label.startsWith("V")
+                                              ? "manager-form-win"
+                                              : result.label.startsWith("D")
+                                                ? "manager-form-loss"
+                                                : "manager-form-draw"
+                                          }
+                                        >
+                                          {result.label}
+                                        </span>
+                                      ))}
+                                    </span>
+                                  ) : (
+                                    "-"
+                                  )}
+                                </span>
+                              </span>
+                            </td>
                             {renderClassificationStatCells(totalClassificationStats(row), {
                               divider: true,
                               emphasizePoints: true,
@@ -3460,30 +3516,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                             })}
                             {renderClassificationStatCells(row.home, { divider: true, group: "home" })}
                             {renderClassificationStatCells(row.away, { divider: true, group: "away" })}
-                              <td>
-                                {row.recentForm.length > 0 ? (
-                                  <span className="manager-form-list">
-                                    {row.recentForm.map((result, resultIndex) => (
-                                      <span
-                                        key={`${row.teamId}-${resultIndex}-${result.label}`}
-                                        title={result.title}
-                                        aria-label={result.title}
-                                        className={
-                                          result.label.startsWith("V")
-                                            ? "manager-form-win"
-                                            : result.label.startsWith("D")
-                                              ? "manager-form-loss"
-                                              : "manager-form-draw"
-                                        }
-                                      >
-                                        {result.label}
-                                      </span>
-                                    ))}
-                                  </span>
-                                ) : (
-                                  "-"
-                                )}
-                              </td>
                           </tr>
                         ))}
                       </tbody>
