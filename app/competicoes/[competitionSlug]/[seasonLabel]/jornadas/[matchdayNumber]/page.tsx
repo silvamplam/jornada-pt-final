@@ -352,7 +352,7 @@ const publicMatchdayStyles = `
     gap: 20px;
     padding: 22px 20px;
     align-items: stretch;
-    min-height: 520px;
+    min-height: 420px;
   }
 
   .public-matchday-editorial,
@@ -381,7 +381,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-editorial h2 {
-    color: #ffffff;
+    color: #c40012;
     font-family: Georgia, "Times New Roman", serif;
     font-size: 34px;
     line-height: 1.08;
@@ -390,26 +390,17 @@ const publicMatchdayStyles = `
   .public-cover-headline {
     position: relative;
     display: grid;
-    align-content: end;
-    min-height: 330px;
-    overflow: hidden;
-    padding: 24px;
-    background:
-      linear-gradient(180deg, rgba(10, 14, 20, 0.18), rgba(10, 14, 20, 0.9)),
-      linear-gradient(135deg, rgba(196, 0, 18, 0.54), rgba(16, 21, 27, 0.62)),
-      #263241;
-    color: #ffffff;
+    align-content: start;
+    min-height: 220px;
+    overflow: visible;
+    padding: 18px 0 20px;
+    border-bottom: 1px solid #dfe5ec;
+    background: #ffffff;
+    color: #10151b;
   }
 
   .public-cover-headline::before {
-    content: "";
-    position: absolute;
-    inset: -14px;
-    background:
-      radial-gradient(circle at 28% 24%, rgba(255, 255, 255, 0.2), transparent 28%),
-      linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 42%);
-    filter: blur(10px);
-    opacity: 0.7;
+    content: none;
   }
 
   .public-cover-headline > div {
@@ -419,7 +410,7 @@ const publicMatchdayStyles = `
 
   .public-cover-headline p {
     max-width: 720px;
-    color: rgba(255, 255, 255, 0.86);
+    color: #526174;
     font-size: 15px;
     line-height: 1.45;
   }
@@ -1256,8 +1247,8 @@ function DiagnosticPanel({ diagnostic }: { diagnostic: PublicMatchdayDiagnostic 
     <main className="public-matchday-shell">
       <style>{publicMatchdayStyles}</style>
       <section className="public-diagnostic">
-        <h2>DiagnÃ³stico temporÃ¡rio da pÃ¡gina pÃºblica</h2>
-        <p>A rota foi carregada, mas os dados necessÃ¡rios nÃ£o foram encontrados ou ocorreu um erro de leitura.</p>
+        <h2>Diagnóstico temporário da página pública</h2>
+        <p>A rota foi carregada, mas os dados necessários não foram encontrados ou ocorreu um erro de leitura.</p>
         <pre>{JSON.stringify(diagnostic, null, 2)}</pre>
       </section>
     </main>
@@ -1313,15 +1304,15 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
         <a className="public-site-brand" href="/">
           Jornada<span>.pt</span>
         </a>
-        <nav className="public-site-menu" aria-label="CompetiÃ§Ãµes principais">
+        <nav className="public-site-menu" aria-label="Competições principais">
           <a aria-current="page" href={`/competicoes/${context.competition.slug}/${seasonSegment}`}>{context.competition.name}</a>
           <a href="/competicoes/liga-portugal/2025-26">Liga Portugal</a>
           <a href="/competicoes/liga-espanha/2026-27">La Liga</a>
           <a href="/competicoes/premier-league/2025-26">Premier League</a>
           <a href="#jogos">Jogos</a>
-          <a href="#classificacao">ClassificaÃ§Ã£o</a>
+          <a href="#classificacao">Classificação</a>
         </nav>
-        <div className="public-site-actions" aria-label="AÃ§Ãµes">
+        <div className="public-site-actions" aria-label="Ações">
           <a href="#jogos">Ver jornada</a>
           <a href="/admin/gestor">Entrar</a>
         </div>
@@ -1329,11 +1320,11 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
       <section className="public-season-nav-bar" aria-label="Navegacao de jornadas">
         <div className="public-hidden-heading">
           <h2>Jornadas</h2>
-          <p>NavegaÃ§Ã£o principal da Ã©poca {context.season.label}.</p>
+          <p>Navegação principal da época {context.season.label}.</p>
         </div>
         <div className="public-season-nav-inner">
         <label className="public-season-select-wrap">
-          <span>Ã‰poca</span>
+          <span>Época</span>
           <select className="public-season-select" data-season-select defaultValue={currentSeasonHref}>
             {seasonOptions.map((season) => (
               <option key={season.id} value={season.href}>
@@ -1373,7 +1364,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
       <section className="public-matchday-panel" aria-label="Visao rapida dos jogos">
         <div className="public-matchday-strip-shell">
           <button className="public-matchday-strip-button" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
-            â€¹
+            ‹
           </button>
           <div className="public-matchday-strip" data-matchday-strip>
             {context.matchesForMatchday.length > 0 ? (
@@ -1385,7 +1376,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
             )}
           </div>
           <button className="public-matchday-strip-button" data-strip-scroll="right" type="button" aria-label="Ver jogos seguintes">
-            â€º
+            ›
           </button>
         </div>
         <script
@@ -1412,9 +1403,9 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
 
       <section className="public-matchday-panel" aria-label="Capa da jornada">
         <div className="public-matchday-cover">
-          <aside className="public-matchday-feature" aria-label="InformaÃ§Ã£o em destaque">
+          <aside className="public-matchday-feature" aria-label="Informação em destaque">
             <div>
-              <h3>InformaÃ§Ã£o em destaque</h3>
+              <h3>Informação em destaque</h3>
             </div>
             <div className="public-cover-support">
               <h4>Onde ver</h4>
@@ -1438,14 +1429,14 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               <h2 style={context.editorial?.title_color ? { color: context.editorial.title_color } : undefined}>
                 {context.editorial?.title || "Manchete da jornada"}
               </h2>
-              <p>{context.editorial?.summary || "EspaÃ§o reservado para a leitura editorial desta jornada."}</p>
+              <p>{context.editorial?.summary || "Espaço reservado para a leitura editorial desta jornada."}</p>
             </div>
             </div>
-            <div className="public-cover-story-strip" aria-label="NotÃ­cias de apoio da jornada">
+            <div className="public-cover-story-strip" aria-label="Notícias de apoio da jornada">
               <article className="public-cover-story">
                 <div className="public-cover-story-photo" aria-hidden="true" />
-                <span>AntevisÃ£o</span>
-                <strong>Os pontos de atenÃ§Ã£o antes da bola rolar</strong>
+                <span>Antevisão</span>
+                <strong>Os pontos de atenção antes da bola rolar</strong>
               </article>
               <article className="public-cover-story">
                 <div className="public-cover-story-photo" aria-hidden="true" />
@@ -1459,17 +1450,17 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               </article>
             </div>
           </article>
-          <aside className="public-matchday-cover-side" aria-label="Resumo automÃ¡tico da jornada">
+          <aside className="public-matchday-cover-side" aria-label="Resumo automático da jornada">
             <h3>Resumo</h3>
             <div className="public-matchday-summary">
               <span>Caso de arbitragem a acompanhar durante a jornada.</span>
-              <span>Intriga dominante: pressÃ£o sobre as equipas da frente.</span>
-              <span>Ponto de tensÃ£o: calendÃ¡rio curto e decisÃµes no detalhe.</span>
+              <span>Intriga dominante: pressão sobre as equipas da frente.</span>
+              <span>Ponto de tensão: calendário curto e decisões no detalhe.</span>
               <span>Contexto competitivo ainda aberto na parte alta da tabela.</span>
             </div>
           </aside>
-          <aside className="public-matchday-news" aria-label="Ãšltimas notÃ­cias">
-            <h3>Ãšltimas notÃ­cias</h3>
+          <aside className="public-matchday-news" aria-label="Últimas notícias">
+            <h3>Últimas notícias</h3>
             <ul className="public-news-list">
               <li>
                 <time dateTime="12:30">12:30</time>
@@ -1477,11 +1468,11 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               </li>
               <li>
                 <time dateTime="12:45">12:45</time>
-                <span>Treinador confirma alteraÃ§Ãµes no onze</span>
+                <span>Treinador confirma alterações no onze</span>
               </li>
               <li>
                 <time dateTime="13:10">13:10</time>
-                <span>Adeptos esgotam bilhetes para o clÃ¡ssico</span>
+                <span>Adeptos esgotam bilhetes para o clássico</span>
               </li>
             </ul>
           </aside>
@@ -1495,7 +1486,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
         </header>
         <div className="public-matchday-list">
           {context.matchesForMatchday.length === 0 ? (
-            <p>Ainda nÃ£o hÃ¡ jogos nesta jornada.</p>
+            <p>Ainda não há jogos nesta jornada.</p>
           ) : null}
           {liveMatches.length > 0 ? (
             <section className="public-matchday-group" aria-label="Jogos em direto">
@@ -1526,8 +1517,8 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
 
       <section className="public-matchday-panel" id="classificacao" aria-label="Classificacao acumulada">
         <header>
-          <h2>ClassificaÃ§Ã£o da jornada</h2>
-          <p>Tabela acumulada atÃ© Ã  Jornada {context.matchday.number}, usando apenas jogos finalizados.</p>
+          <h2>Classificação da jornada</h2>
+          <p>Tabela acumulada até à Jornada {context.matchday.number}, usando apenas jogos finalizados.</p>
         </header>
         <div className="public-table-wrap">
           <table className="public-table">
@@ -1553,7 +1544,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                     <span className="public-club-cell">
                     <span className="public-club-name">{row.name}</span>
                     <span className="public-club-form">
-                      <span>Ãšltimos:</span>
+                      <span>Últimos:</span>
                       {row.recentForm.length > 0 ? (
                         <span className="public-form-list">
                           {row.recentForm.map((result, resultIndex) => (
@@ -1573,7 +1564,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                           ))}
                         </span>
                       ) : (
-                        "â€”"
+                        "—"
                       )}
                     </span>
                     </span>
@@ -1590,3 +1581,5 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
     </main>
   );
 }
+
+
