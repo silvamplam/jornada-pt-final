@@ -35,6 +35,17 @@ const publicMatchdayStyles = `
     padding: 0 28px 28px;
   }
 
+  .public-top-stack {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    margin: 0 -28px;
+    padding: 0 28px;
+    border-bottom: 1px solid #d8dee6;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.08);
+  }
+
   .public-site-topbar {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -42,7 +53,7 @@ const publicMatchdayStyles = `
     align-items: center;
     max-width: 1540px;
     margin: 0 auto;
-    padding: 14px 0 16px;
+    padding: 12px 0 11px;
     border-bottom: 1px solid #dfe5ec;
   }
 
@@ -65,6 +76,10 @@ const publicMatchdayStyles = `
     text-transform: uppercase;
   }
 
+  .public-site-menu a[aria-current="page"] {
+    color: #c40012;
+  }
+
   .public-site-menu a,
   .public-site-actions a {
     color: #10151b;
@@ -85,6 +100,24 @@ const publicMatchdayStyles = `
     background: #ffe04f;
   }
 
+  .public-season-nav-bar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 18px;
+    align-items: center;
+    max-width: 1540px;
+    margin: 0 auto;
+    padding: 9px 0 10px;
+    background: #ffffff;
+  }
+
+  .public-season-label {
+    color: #10151b;
+    font-size: 14px;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
   .public-matchday-hero,
   .public-matchday-panel {
     border: 1px solid #dde4ec;
@@ -94,15 +127,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-hero {
-    max-width: 1540px;
-    margin: 18px auto 0;
-    padding: 18px 0;
-    border: 0;
-    border-bottom: 3px solid #10151b;
-    border-radius: 0;
-    background: transparent;
-    color: #10151b;
-    box-shadow: none;
+    display: none;
   }
 
   .public-matchday-hero p,
@@ -597,21 +622,23 @@ const publicMatchdayStyles = `
     flex-wrap: wrap;
     gap: 0;
     padding: 0;
-    border-top: 3px solid #10151b;
-    border-bottom: 1px solid #dfe5ec;
+    overflow-x: auto;
+    border-top: 2px solid #10151b;
+    border-bottom: 0;
     background: #ffffff;
   }
 
   .public-matchday-nav a,
   .public-matchday-nav span {
     display: inline-block;
-    padding: 14px 17px;
+    flex: 0 0 auto;
+    padding: 10px 14px;
     border: 0;
     border-right: 1px solid #dfe5ec;
     border-radius: 0;
     background: #ffffff;
     color: #263241;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 900;
     text-decoration: none;
     text-transform: uppercase;
@@ -765,6 +792,19 @@ const publicMatchdayStyles = `
       padding: 0 16px 16px;
     }
 
+    .public-top-stack {
+      margin: 0 -16px;
+      padding: 0 16px;
+    }
+
+    .public-matchday-panel[aria-label="Navegacao de jornadas"] {
+      margin: 0 -16px;
+    }
+
+    .public-season-nav-inner {
+      padding: 8px 16px 9px;
+    }
+
     .public-matchday-hero h1 {
       font-size: 32px;
     }
@@ -776,6 +816,11 @@ const publicMatchdayStyles = `
     .public-site-menu,
     .public-site-actions {
       display: none;
+    }
+
+  .public-season-nav-bar {
+      grid-template-columns: 1fr;
+      gap: 8px;
     }
 
     .public-matchday-card {
@@ -799,6 +844,41 @@ const publicMatchdayStyles = `
     .public-matchday-team:last-of-type,
     .public-matchday-score {
       text-align: left;
+    }
+  }
+
+  .public-matchday-panel[aria-label="Navegacao de jornadas"] {
+    max-width: none;
+    margin: 0 -28px;
+    border: 0;
+    border-radius: 0;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 10px 18px rgba(12, 22, 34, 0.06);
+  }
+
+  .public-matchday-panel[aria-label="Navegacao de jornadas"] header {
+    display: none;
+  }
+
+  .public-season-nav-inner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 18px;
+    align-items: center;
+    max-width: 1540px;
+    margin: 0 auto;
+    padding: 9px 28px 10px;
+  }
+
+  @media (max-width: 760px) {
+    .public-matchday-panel[aria-label="Navegacao de jornadas"] {
+      margin: 0 -16px;
+    }
+
+    .public-season-nav-inner {
+      grid-template-columns: 1fr;
+      gap: 8px;
+      padding: 8px 16px 9px;
     }
   }
 `;
@@ -1055,8 +1135,6 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   }
 
   const seasonSegment = seasonLabelToUrlSegment(context.season.label);
-  const previousMatchday = context.matchdays.filter((item) => item.number < context.matchday.number).at(-1) ?? null;
-  const nextMatchday = context.matchdays.find((item) => item.number > context.matchday.number) ?? null;
   const classificationRows = buildAccumulatedClassification({
     participants: context.participants,
     matches: context.matchesForSeason,
@@ -1074,12 +1152,13 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   return (
     <main className="public-matchday-shell">
       <style>{publicMatchdayStyles}</style>
+      <div className="public-top-stack">
       <header className="public-site-topbar" aria-label="Topo do Jornada.pt">
         <a className="public-site-brand" href="/">
           J
         </a>
         <nav className="public-site-menu" aria-label="Competições principais">
-          <a href={`/competicoes/${context.competition.slug}/${seasonSegment}`}>{context.competition.name}</a>
+          <a aria-current="page" href={`/competicoes/${context.competition.slug}/${seasonSegment}`}>{context.competition.name}</a>
           <a href="/competicoes/liga-portugal/2025-26">Liga Portugal</a>
           <a href="/competicoes/liga-espanha/2026-27">La Liga</a>
           <a href="/competicoes/premier-league/2025-26">Premier League</a>
@@ -1104,9 +1183,9 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
           <h2>Jornadas</h2>
           <p>Navegação principal da época {context.season.label}.</p>
         </header>
+        <div className="public-season-nav-inner">
+        <span className="public-season-label">{context.season.label}</span>
         <nav className="public-matchday-nav">
-          {previousMatchday ? <a href={matchdayHref(previousMatchday.number)}>Jornada anterior</a> : <span>Sem anterior</span>}
-          {nextMatchday ? <a href={matchdayHref(nextMatchday.number)}>Jornada seguinte</a> : <span>Sem seguinte</span>}
           {context.matchdays.map((matchday) => (
             <a
               aria-current={matchday.id === context.matchday.id ? "page" : undefined}
@@ -1117,7 +1196,9 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
             </a>
           ))}
         </nav>
+        </div>
       </section>
+      </div>
 
       <section className="public-matchday-panel" aria-label="Visao rapida dos jogos">
         <header>
