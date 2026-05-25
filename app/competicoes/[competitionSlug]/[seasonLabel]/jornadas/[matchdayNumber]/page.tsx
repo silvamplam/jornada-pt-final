@@ -108,51 +108,115 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-strip {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scroll-padding: 18px;
+    padding: 20px 6px;
+  }
+
+  .public-matchday-strip-shell {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 10px;
-    padding: 20px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: stretch;
+    padding: 0 12px;
+  }
+
+  .public-matchday-strip-button {
+    align-self: center;
+    width: 34px;
+    height: 54px;
+    border: 1px solid #d8dee6;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #263241;
+    font-size: 22px;
+    font-weight: 900;
+    cursor: pointer;
   }
 
   .public-matchday-mini-card {
     display: grid;
+    flex: 0 0 280px;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     gap: 8px;
     align-items: center;
-    padding: 10px 12px;
+    padding: 12px;
     border: 1px solid #e3e9f0;
     border-radius: 8px;
     background: #ffffff;
     font-size: 13px;
   }
 
+  .public-matchday-mini-card-live {
+    border-color: #f5c2c7;
+    background: #fff8f8;
+  }
+
+  .public-matchday-mini-card-halftime {
+    border-color: #ffd3a3;
+    background: #fffaf2;
+  }
+
+  .public-matchday-mini-card-finished {
+    border-color: #dce8e1;
+  }
+
   .public-matchday-mini-card strong {
-    font-size: 15px;
+    font-size: 18px;
     text-align: center;
     white-space: nowrap;
   }
 
   .public-matchday-mini-team {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    overflow: hidden;
+    font-weight: 900;
+  }
+
+  .public-matchday-mini-team:first-child {
+    justify-content: flex-end;
+  }
+
+  .public-matchday-mini-team:last-child {
+    justify-content: flex-start;
+  }
+
+  .public-matchday-mini-team span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .public-matchday-mini-team:first-child {
-    text-align: right;
-  }
-
-  .public-matchday-mini-team:last-child {
-    text-align: left;
-  }
-
   .public-matchday-mini-status {
     grid-column: 1 / -1;
-    justify-self: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     color: #607086;
     font-size: 11px;
     font-weight: 900;
     text-transform: uppercase;
+  }
+
+  .public-matchday-mini-tv {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #263241;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .public-matchday-mini-tv img {
+    width: 24px;
+    height: 15px;
+    object-fit: contain;
   }
 
   .public-matchday-cover {
@@ -367,6 +431,11 @@ const publicMatchdayStyles = `
   .public-matchday-status-live {
     background: #fee2e2;
     color: #b4232b;
+  }
+
+  .public-matchday-status-halftime {
+    background: #fff0d8;
+    color: #8a3a00;
   }
 
   .public-matchday-status-scheduled {
@@ -622,7 +691,8 @@ function statusLabel(status: string) {
 function statusKind(status: string) {
   const normalized = status.trim().toLowerCase();
   if (normalized === "finished") return "finished";
-  if (normalized === "live" || normalized === "halftime") return "live";
+  if (normalized === "live") return "live";
+  if (normalized === "halftime") return "halftime";
   if (normalized === "scheduled") return "scheduled";
   return "scheduled";
 }
@@ -630,7 +700,7 @@ function statusKind(status: string) {
 function matchResult(match: PublicSeasonMatch) {
   const hasScore = match.home_score !== null && match.away_score !== null;
   const kind = statusKind(match.status);
-  if ((kind !== "finished" && kind !== "live") || !hasScore) {
+  if ((kind !== "finished" && kind !== "live" && kind !== "halftime") || !hasScore) {
     return "vs";
   }
 
@@ -648,6 +718,10 @@ function teamInitials(name?: string | null, shortName?: string | null) {
     .toUpperCase();
 
   return initials || "FC";
+}
+
+function shortTeamLabel(name?: string | null, shortName?: string | null) {
+  return shortName || name || "Equipa";
 }
 
 function isWinner(match: PublicSeasonMatch, side: "home" | "away") {
@@ -711,14 +785,37 @@ function BroadcastBadge({ match }: { match: PublicSeasonMatch }) {
   );
 }
 
-function CompactMatchCard({ match }: { match: PublicSeasonMatch }) {
+function MiniBroadcastBadge({ match }: { match: PublicSeasonMatch }) {
+  if (!match.broadcastChannel) {
+    return null;
+  }
+
   return (
-    <article className="public-matchday-mini-card">
-      <span className="public-matchday-mini-team">{match.homeTeam?.name ?? "Equipa da casa"}</span>
+    <span className="public-matchday-mini-tv">
+      {match.broadcastChannel.logo_url ? <img alt="" src={match.broadcastChannel.logo_url} /> : null}
+      <span>{match.broadcastChannel.name}</span>
+    </span>
+  );
+}
+
+function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: boolean }) {
+  const kind = statusKind(match.status);
+  const statusText = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} - ${match.minute}'` : statusLabel(match.status);
+
+  return (
+    <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>
+      <span className="public-matchday-mini-team">
+        <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
+        <span>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</span>
+      </span>
       <strong>{matchResult(match)}</strong>
-      <span className="public-matchday-mini-team">{match.awayTeam?.name ?? "Equipa visitante"}</span>
+      <span className="public-matchday-mini-team">
+        <span>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</span>
+        <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
+      </span>
       <span className={`public-matchday-mini-status public-matchday-status-${statusKind(match.status)}`}>
-        {statusLabel(match.status)}
+        <span>{statusText}</span>
+        <MiniBroadcastBadge match={match} />
       </span>
     </article>
   );
@@ -756,7 +853,7 @@ function FeaturedMatch({ match }: { match: PublicSeasonMatch | null }) {
 
 function MatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
-  const statusText = match.minute && kind === "live" ? `${statusLabel(match.status)} - ${match.minute}'` : statusLabel(match.status);
+  const statusText = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} - ${match.minute}'` : statusLabel(match.status);
   const homeWinner = isWinner(match, "home");
   const awayWinner = isWinner(match, "away");
 
@@ -826,9 +923,11 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   });
   const matchdayHref = (number: number) => `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/${number}`;
   const liveMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "live");
+  const halftimeMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "halftime");
   const finishedMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "finished");
   const scheduledMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "scheduled");
-  const featuredMatch = liveMatches[0] ?? finishedMatches[0] ?? scheduledMatches[0] ?? null;
+  const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
+  const featuredMatch = liveMatches[0] ?? halftimeMatches[0] ?? finishedMatches[0] ?? scheduledMatches[0] ?? null;
 
   return (
     <main className="public-matchday-shell">
@@ -864,15 +963,45 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
       <section className="public-matchday-panel" aria-label="Visao rapida dos jogos">
         <header>
           <h2>Mapa da jornada</h2>
-          <p>Visao rapida de todos os jogos desta jornada.</p>
+          <p>Placard completo com todos os jogos desta jornada.</p>
         </header>
-        <div className="public-matchday-strip">
-          {context.matchesForMatchday.length > 0 ? (
-            context.matchesForMatchday.map((match) => <CompactMatchCard key={match.id} match={match} />)
-          ) : (
-            <p>Ainda nao ha jogos nesta jornada.</p>
-          )}
+        <div className="public-matchday-strip-shell">
+          <button className="public-matchday-strip-button" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
+            ‹
+          </button>
+          <div className="public-matchday-strip" data-matchday-strip>
+            {context.matchesForMatchday.length > 0 ? (
+              context.matchesForMatchday.map((match) => (
+                <CompactMatchCard focus={focusedStripMatch?.id === match.id} key={match.id} match={match} />
+              ))
+            ) : (
+              <p>Ainda nao ha jogos nesta jornada.</p>
+            )}
+          </div>
+          <button className="public-matchday-strip-button" data-strip-scroll="right" type="button" aria-label="Ver jogos seguintes">
+            ›
+          </button>
         </div>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              document.addEventListener("DOMContentLoaded", function () {
+                var strip = document.querySelector("[data-matchday-strip]");
+                if (!strip) return;
+                var focused = strip.querySelector("[data-live-focus='true']");
+                if (focused && "scrollIntoView" in focused) {
+                  focused.scrollIntoView({ block: "nearest", inline: "center" });
+                }
+                document.querySelectorAll("[data-strip-scroll]").forEach(function (button) {
+                  button.addEventListener("click", function () {
+                    var direction = button.getAttribute("data-strip-scroll") === "left" ? -1 : 1;
+                    strip.scrollBy({ left: direction * Math.max(260, Math.round(strip.clientWidth * 0.85)), behavior: "smooth" });
+                  });
+                });
+              });
+            `
+          }}
+        />
       </section>
 
       <section className="public-matchday-panel" aria-label="Capa da jornada">
@@ -888,7 +1017,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               <span>{context.matchesForMatchday.length} jogos</span>
               <span>{finishedMatches.length} finalizados</span>
               <span>{scheduledMatches.length} agendados</span>
-              <span>{liveMatches.length} em direto</span>
+              <span>{liveMatches.length + halftimeMatches.length} em direto/intervalo</span>
             </div>
           </article>
           <aside className="public-matchday-feature" aria-label="Jogo em destaque">
@@ -914,6 +1043,12 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
             <section className="public-matchday-group" aria-label="Jogos em direto">
               <h3>Jogos em direto</h3>
               {liveMatches.map((match) => <MatchCard key={match.id} match={match} />)}
+            </section>
+          ) : null}
+          {halftimeMatches.length > 0 ? (
+            <section className="public-matchday-group" aria-label="Jogos no intervalo">
+              <h3>Jogos no intervalo</h3>
+              {halftimeMatches.map((match) => <MatchCard key={match.id} match={match} />)}
             </section>
           ) : null}
           {finishedMatches.length > 0 ? (
