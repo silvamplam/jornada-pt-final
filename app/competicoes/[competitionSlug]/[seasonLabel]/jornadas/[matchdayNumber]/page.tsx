@@ -1507,42 +1507,6 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
         </div>
       </section>
 
-      <section className="public-matchday-panel" id="jogos" aria-label="Jogos da jornada">
-        <header>
-          <h2>Lista completa dos jogos</h2>
-          <p>{context.matchesForMatchday.length} jogos nesta jornada.</p>
-        </header>
-        <div className="public-matchday-list">
-          {context.matchesForMatchday.length === 0 ? (
-            <p>Ainda não há jogos nesta jornada.</p>
-          ) : null}
-          {liveMatches.length > 0 ? (
-            <section className="public-matchday-group" aria-label="Jogos em direto">
-              <h3>Jogos em direto</h3>
-              {liveMatches.map((match) => <MatchCard key={match.id} match={match} />)}
-            </section>
-          ) : null}
-          {halftimeMatches.length > 0 ? (
-            <section className="public-matchday-group" aria-label="Jogos no intervalo">
-              <h3>Jogos no intervalo</h3>
-              {halftimeMatches.map((match) => <MatchCard key={match.id} match={match} />)}
-            </section>
-          ) : null}
-          {finishedMatches.length > 0 ? (
-            <section className="public-matchday-group" aria-label="Jogos finalizados">
-              <h3>Jogos finalizados</h3>
-              {finishedMatches.map((match) => <MatchCard key={match.id} match={match} />)}
-            </section>
-          ) : null}
-          {scheduledMatches.length > 0 ? (
-            <section className="public-matchday-group" aria-label="Jogos agendados">
-              <h3>Jogos agendados</h3>
-              {scheduledMatches.map((match) => <MatchCard key={match.id} match={match} />)}
-            </section>
-          ) : null}
-        </div>
-      </section>
-
       <section className="public-matchday-panel" id="classificacao" aria-label="Classificacao acumulada">
         <header>
           <h2>Classificação da jornada</h2>
