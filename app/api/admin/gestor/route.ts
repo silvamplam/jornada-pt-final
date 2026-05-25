@@ -623,6 +623,7 @@ async function saveMatchdayEditorial(formData: FormData) {
   const status = cleanText(formData.get("status")) ?? "draft";
   const title = cleanText(formData.get("title"));
   const summary = cleanText(formData.get("summary"));
+  const titleColor = cleanText(formData.get("title_color"));
 
   if (!matchdayId || !["draft", "published"].includes(status)) {
     throw new Error("missing-fields");
@@ -645,6 +646,7 @@ async function saveMatchdayEditorial(formData: FormData) {
       matchday_id: matchdayId,
       title,
       summary,
+      title_color: titleColor,
       status,
       updated_at: new Date().toISOString()
     })

@@ -1535,7 +1535,7 @@ async function readMatchdayEditorial(matchdayId?: string): Promise<SupabaseMatch
 
   try {
     const rows = await fetchSupabaseAdminTable<SupabaseMatchdayEditorial>(
-      `matchday_editorials?select=id,matchday_id,title,summary,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+      `matchday_editorials?select=id,matchday_id,title,summary,title_color,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}&limit=1`
     );
@@ -3590,6 +3590,15 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                         name="summary"
                         defaultValue={matchdayEditorial?.summary ?? ""}
                         placeholder="Resumo editorial curto da jornada."
+                      />
+                    </div>
+                    <div className="manager-field">
+                      <label htmlFor="matchday-editorial-title-color">Cor do titulo da manchete</label>
+                      <input
+                        id="matchday-editorial-title-color"
+                        name="title_color"
+                        defaultValue={matchdayEditorial?.title_color ?? ""}
+                        placeholder="#e5252a"
                       />
                     </div>
                     <div className="manager-field">
