@@ -58,12 +58,24 @@ const publicMatchdayStyles = `
   }
 
   .public-site-brand {
-    color: #c40012;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+    color: #2f343b;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: 46px;
+    font-size: 34px;
     font-weight: 900;
-    line-height: 0.9;
+    line-height: 1;
     text-decoration: none;
+    letter-spacing: -0.02em;
+  }
+
+  .public-site-brand span {
+    color: #6b7480;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0;
   }
 
   .public-site-menu {
@@ -84,6 +96,10 @@ const publicMatchdayStyles = `
   .public-site-actions a {
     color: #10151b;
     text-decoration: none;
+  }
+
+  .public-site-menu a[aria-current="page"] {
+    color: #c40012;
   }
 
   .public-site-menu a[aria-current="page"] {
@@ -119,6 +135,30 @@ const publicMatchdayStyles = `
     font-size: 14px;
     font-weight: 900;
     white-space: nowrap;
+  }
+
+  .public-season-select-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 6px 10px;
+    border: 1px solid #cfd7e1;
+    background: #f8fafc;
+    color: #263241;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .public-season-select {
+    min-width: 118px;
+    border: 0;
+    background: transparent;
+    color: #10151b;
+    font: inherit;
+    outline: none;
+    cursor: pointer;
   }
 
   .public-matchday-hero,
@@ -1138,6 +1178,12 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   }
 
   const seasonSegment = seasonLabelToUrlSegment(context.season.label);
+  const seasonOptions = context.seasons.map((season) => ({
+    id: season.id,
+    label: season.label,
+    href: `/competicoes/${context.competition.slug}/${seasonLabelToUrlSegment(season.label)}/jornadas/1`
+  }));
+  const currentSeasonHref = `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/1`;
   const classificationRows = buildAccumulatedClassification({
     participants: context.participants,
     matches: context.matchesForSeason,
@@ -1158,7 +1204,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
       <div className="public-top-stack">
       <header className="public-site-topbar" aria-label="Topo do Jornada.pt">
         <a className="public-site-brand" href="/">
-          J
+          Jornada<span>.pt</span>
         </a>
         <nav className="public-site-menu" aria-label="Competições principais">
           <a aria-current="page" href={`/competicoes/${context.competition.slug}/${seasonSegment}`}>{context.competition.name}</a>
@@ -1179,7 +1225,16 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
           <p>Navegação principal da época {context.season.label}.</p>
         </div>
         <div className="public-season-nav-inner">
-        <span className="public-season-label">{context.season.label}</span>
+        <label className="public-season-select-wrap">
+          <span>Época</span>
+          <select className="public-season-select" data-season-select defaultValue={currentSeasonHref}>
+            {seasonOptions.map((season) => (
+              <option key={season.id} value={season.href}>
+                {season.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <nav className="public-matchday-nav">
           {context.matchdays.map((matchday) => (
             <a
@@ -1194,6 +1249,19 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
         </div>
       </section>
       </div>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            document.addEventListener("DOMContentLoaded", function () {
+              var select = document.querySelector("[data-season-select]");
+              if (!select) return;
+              select.addEventListener("change", function () {
+                if (select.value) window.location.href = select.value;
+              });
+            });
+          `
+        }}
+      />
 
       <section className="public-matchday-panel" aria-label="Visao rapida dos jogos">
         <div className="public-matchday-strip-shell">

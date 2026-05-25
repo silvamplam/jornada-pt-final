@@ -14,6 +14,7 @@ export type PublicSeasonMatch = SupabaseMatch & {
 export type PublicMatchdayContext = {
   competition: SupabaseCompetition;
   season: SupabaseSeason;
+  seasons: SupabaseSeason[];
   matchday: SupabaseMatchday;
   matchdays: SupabaseMatchday[];
   participants: PublicSeasonParticipant[];
@@ -317,6 +318,7 @@ export async function getPublicMatchdayDiagnostic({
       context: {
         competition,
         season,
+        seasons,
         matchday,
         matchdays,
         participants: manualParticipants.map((participant) => ({
