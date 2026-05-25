@@ -202,8 +202,16 @@ const publicMatchdayStyles = `
     max-width: 1540px;
     margin-left: auto;
     margin-right: auto;
-    margin-top: 18px;
+    margin-top: 12px;
     overflow: hidden;
+  }
+
+  .public-matchday-scoreboard-panel {
+    margin-top: 8px;
+  }
+
+  .public-matchday-scoreboard-panel + .public-matchday-panel {
+    margin-top: 10px;
   }
 
   .public-matchday-panel header {
@@ -240,7 +248,7 @@ const publicMatchdayStyles = `
     overflow-x: auto;
     scroll-behavior: smooth;
     scroll-padding: 14px;
-    padding: 14px 4px;
+    padding: 8px 4px;
   }
 
   .public-matchday-strip-shell {
@@ -248,7 +256,7 @@ const publicMatchdayStyles = `
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 6px;
     align-items: stretch;
-    padding: 0 10px;
+    padding: 0 8px;
   }
 
   .public-matchday-strip-button {
@@ -1361,7 +1369,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
         }}
       />
 
-      <section className="public-matchday-panel" aria-label="Visao rapida dos jogos">
+      <section className="public-matchday-panel public-matchday-scoreboard-panel" aria-label="Visao rapida dos jogos">
         <div className="public-matchday-strip-shell">
           <button className="public-matchday-strip-button" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
             ‹
