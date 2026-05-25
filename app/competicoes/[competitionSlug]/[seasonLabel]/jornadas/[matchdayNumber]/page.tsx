@@ -32,7 +32,57 @@ const publicMatchdayStyles = `
 
   .public-matchday-shell {
     min-height: 100vh;
-    padding: 28px;
+    padding: 0 28px 28px;
+  }
+
+  .public-site-topbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 22px;
+    align-items: center;
+    max-width: 1540px;
+    margin: 0 auto;
+    padding: 14px 0 16px;
+    border-bottom: 1px solid #dfe5ec;
+  }
+
+  .public-site-brand {
+    color: #c40012;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 46px;
+    font-weight: 900;
+    line-height: 0.9;
+    text-decoration: none;
+  }
+
+  .public-site-menu {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .public-site-menu a,
+  .public-site-actions a {
+    color: #10151b;
+    text-decoration: none;
+  }
+
+  .public-site-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .public-site-actions a:first-child {
+    padding: 9px 16px;
+    border-radius: 999px;
+    background: #ffe04f;
   }
 
   .public-matchday-hero,
@@ -44,9 +94,15 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-hero {
-    padding: 28px;
-    background: #10151b;
-    color: #ffffff;
+    max-width: 1540px;
+    margin: 18px auto 0;
+    padding: 18px 0;
+    border: 0;
+    border-bottom: 3px solid #10151b;
+    border-radius: 0;
+    background: transparent;
+    color: #10151b;
+    box-shadow: none;
   }
 
   .public-matchday-hero p,
@@ -62,19 +118,22 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-hero h1 {
-    margin-top: 8px;
-    font-size: 42px;
+    margin-top: 6px;
+    font-size: 34px;
     line-height: 1;
   }
 
   .public-matchday-hero span {
     display: block;
-    margin-top: 10px;
-    color: #cdd5df;
-    font-size: 16px;
+    margin-top: 8px;
+    color: #526174;
+    font-size: 15px;
   }
 
   .public-matchday-panel {
+    max-width: 1540px;
+    margin-left: auto;
+    margin-right: auto;
     margin-top: 18px;
     overflow: hidden;
   }
@@ -221,49 +280,97 @@ const publicMatchdayStyles = `
 
   .public-matchday-cover {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+    grid-template-columns: minmax(360px, 1.25fr) minmax(280px, 0.85fr) minmax(260px, 0.75fr) minmax(260px, 0.8fr);
     gap: 18px;
-    padding: 20px;
+    padding: 22px 20px;
   }
 
   .public-matchday-editorial,
-  .public-matchday-feature {
+  .public-matchday-feature,
+  .public-matchday-cover-side,
+  .public-matchday-news {
     display: grid;
     gap: 14px;
-    padding: 20px;
-    border: 1px solid #e3e9f0;
-    border-radius: 8px;
+    align-content: start;
+    padding: 0 18px 0 0;
+    border-right: 1px solid #dfe5ec;
     background: #ffffff;
   }
 
   .public-matchday-editorial h2,
-  .public-matchday-feature h3 {
+  .public-matchday-feature h3,
+  .public-matchday-cover-side h3,
+  .public-matchday-news h3 {
     margin: 0;
   }
 
   .public-matchday-editorial h2 {
-    font-size: 34px;
-    line-height: 1.05;
+    color: #c40012;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 36px;
+    line-height: 1.02;
   }
 
   .public-matchday-editorial p,
-  .public-matchday-feature p {
+  .public-matchday-feature p,
+  .public-matchday-cover-side p {
     margin: 0;
     color: #607086;
   }
 
+  .public-matchday-cover-side h3,
+  .public-matchday-news h3 {
+    padding-top: 24px;
+    border-top: 4px solid #10151b;
+    font-size: 14px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .public-matchday-news {
+    padding-right: 0;
+    border-right: 0;
+  }
+
+  .public-news-list {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .public-news-list li {
+    display: grid;
+    gap: 5px;
+    padding: 14px 0;
+    border-bottom: 1px solid #e6ebf1;
+  }
+
+  .public-news-list time {
+    color: #c40012;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .public-news-list span {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 18px;
+    line-height: 1.15;
+  }
+
   .public-matchday-summary {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
     gap: 8px;
   }
 
   .public-matchday-summary span {
-    padding: 7px 10px;
-    border-radius: 999px;
-    background: #eef2f6;
+    padding: 8px 0;
+    border-bottom: 1px solid #e6ebf1;
+    border-radius: 0;
+    background: transparent;
     color: #34404d;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 900;
   }
 
@@ -272,9 +379,10 @@ const publicMatchdayStyles = `
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     gap: 10px;
     align-items: center;
-    padding: 14px;
+    min-height: 280px;
+    padding: 18px;
     border: 1px solid #dde4ec;
-    border-radius: 8px;
+    border-radius: 0;
     background: #f8fafc;
   }
 
@@ -474,16 +582,19 @@ const publicMatchdayStyles = `
   .public-matchday-nav {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    padding: 18px 20px;
+    gap: 0;
+    padding: 0;
+    border-top: 1px solid #10151b;
+    border-bottom: 1px solid #dfe5ec;
   }
 
   .public-matchday-nav a,
   .public-matchday-nav span {
     display: inline-block;
-    padding: 9px 12px;
-    border: 1px solid #cfd8e3;
-    border-radius: 999px;
+    padding: 12px 15px;
+    border: 0;
+    border-right: 1px solid #dfe5ec;
+    border-radius: 0;
     background: #ffffff;
     color: #263241;
     font-size: 12px;
@@ -493,8 +604,8 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-nav a[aria-current="page"] {
-    border-color: #e5252a;
-    background: #e5252a;
+    border-color: #c40012;
+    background: #c40012;
     color: #ffffff;
   }
 
@@ -637,11 +748,20 @@ const publicMatchdayStyles = `
 
   @media (max-width: 760px) {
     .public-matchday-shell {
-      padding: 16px;
+      padding: 0 16px 16px;
     }
 
     .public-matchday-hero h1 {
       font-size: 32px;
+    }
+
+    .public-site-topbar {
+      grid-template-columns: 1fr;
+    }
+
+    .public-site-menu,
+    .public-site-actions {
+      display: none;
     }
 
     .public-matchday-card {
@@ -651,6 +771,14 @@ const publicMatchdayStyles = `
 
     .public-matchday-cover {
       grid-template-columns: 1fr;
+    }
+
+    .public-matchday-editorial,
+    .public-matchday-feature,
+    .public-matchday-cover-side,
+    .public-matchday-news {
+      padding-right: 0;
+      border-right: 0;
     }
 
     .public-matchday-team:first-child,
@@ -932,6 +1060,23 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   return (
     <main className="public-matchday-shell">
       <style>{publicMatchdayStyles}</style>
+      <header className="public-site-topbar" aria-label="Topo do Jornada.pt">
+        <a className="public-site-brand" href="/">
+          J
+        </a>
+        <nav className="public-site-menu" aria-label="Competições principais">
+          <a href={`/competicoes/${context.competition.slug}/${seasonSegment}`}>{context.competition.name}</a>
+          <a href="/competicoes/liga-portugal/2025-26">Liga Portugal</a>
+          <a href="/competicoes/liga-espanha/2026-27">La Liga</a>
+          <a href="/competicoes/premier-league/2025-26">Premier League</a>
+          <a href="#jogos">Jogos</a>
+          <a href="#classificacao">Classificação</a>
+        </nav>
+        <div className="public-site-actions" aria-label="Ações">
+          <a href="#jogos">Ver jornada</a>
+          <a href="/admin/gestor">Entrar</a>
+        </div>
+      </header>
       <section className="public-matchday-hero">
         <p>{context.competition.name}</p>
         <h1>{context.matchday.label}</h1>
@@ -942,8 +1087,8 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
 
       <section className="public-matchday-panel" aria-label="Navegacao de jornadas">
         <header>
-          <h2>Jornadas da época</h2>
-          <p>Escolhe outra jornada desta competição.</p>
+          <h2>Jornadas</h2>
+          <p>Navegação principal da época {context.season.label}.</p>
         </header>
         <nav className="public-matchday-nav">
           {previousMatchday ? <a href={matchdayHref(previousMatchday.number)}>Jornada anterior</a> : <span>Sem anterior</span>}
@@ -1006,31 +1151,51 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
 
       <section className="public-matchday-panel" aria-label="Capa da jornada">
         <div className="public-matchday-cover">
+          <aside className="public-matchday-feature" aria-label="Jogo em destaque">
+            <div>
+              <h3>Jogo em destaque</h3>
+              <p>Escolha automática a partir dos jogos desta jornada.</p>
+            </div>
+            <FeaturedMatch match={featuredMatch} />
+          </aside>
           <article className="public-matchday-editorial">
             <div>
               <h2 style={context.editorial?.title_color ? { color: context.editorial.title_color } : undefined}>
                 {context.editorial?.title || "Manchete da jornada"}
               </h2>
-              <p>{context.editorial?.summary || "Espaco reservado para a leitura editorial desta jornada."}</p>
+              <p>{context.editorial?.summary || "Espaço reservado para a leitura editorial desta jornada."}</p>
             </div>
-            <div className="public-matchday-summary" aria-label="Resumo da jornada">
+          </article>
+          <aside className="public-matchday-cover-side" aria-label="Resumo automático da jornada">
+            <h3>Resumo</h3>
+            <div className="public-matchday-summary">
               <span>{context.matchesForMatchday.length} jogos</span>
               <span>{finishedMatches.length} finalizados</span>
               <span>{scheduledMatches.length} agendados</span>
               <span>{liveMatches.length + halftimeMatches.length} em direto/intervalo</span>
             </div>
-          </article>
-          <aside className="public-matchday-feature" aria-label="Jogo em destaque">
-            <div>
-              <h3>Jogo em destaque</h3>
-              <p>Escolha automatica a partir dos jogos desta jornada.</p>
-            </div>
-            <FeaturedMatch match={featuredMatch} />
+          </aside>
+          <aside className="public-matchday-news" aria-label="Últimas notícias">
+            <h3>Últimas notícias</h3>
+            <ul className="public-news-list">
+              <li>
+                <time dateTime="12:30">12:30</time>
+                <span>Mercado aquece antes da jornada europeia</span>
+              </li>
+              <li>
+                <time dateTime="12:45">12:45</time>
+                <span>Treinador confirma alterações no onze</span>
+              </li>
+              <li>
+                <time dateTime="13:10">13:10</time>
+                <span>Adeptos esgotam bilhetes para o clássico</span>
+              </li>
+            </ul>
           </aside>
         </div>
       </section>
 
-      <section className="public-matchday-panel" aria-label="Jogos da jornada">
+      <section className="public-matchday-panel" id="jogos" aria-label="Jogos da jornada">
         <header>
           <h2>Lista completa dos jogos</h2>
           <p>{context.matchesForMatchday.length} jogos nesta jornada.</p>
@@ -1066,7 +1231,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
         </div>
       </section>
 
-      <section className="public-matchday-panel" aria-label="Classificacao acumulada">
+      <section className="public-matchday-panel" id="classificacao" aria-label="Classificacao acumulada">
         <header>
           <h2>Classificação da jornada</h2>
           <p>Tabela acumulada até à Jornada {context.matchday.number}, usando apenas jogos finalizados.</p>
@@ -1127,16 +1292,6 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               ))}
             </tbody>
           </table>
-        </div>
-      </section>
-
-      <section className="public-matchday-panel" aria-label="Destaques futuros da jornada">
-        <header>
-          <h2>Destaques da jornada</h2>
-          <p>Funcionalidade editorial prevista para desenvolvimento posterior.</p>
-        </header>
-        <div className="public-matchday-future">
-          Este espaco podera receber manchetes, memoria historica, noticias, video e leitura competitiva da jornada.
         </div>
       </section>
     </main>
