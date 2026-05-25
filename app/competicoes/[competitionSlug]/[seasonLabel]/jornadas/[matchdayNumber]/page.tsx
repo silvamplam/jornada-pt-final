@@ -351,6 +351,7 @@ const publicMatchdayStyles = `
     grid-template-columns: minmax(220px, 0.68fr) minmax(500px, 1.7fr) minmax(220px, 0.62fr) minmax(260px, 0.78fr);
     gap: 20px;
     padding: 22px 20px;
+    align-items: stretch;
   }
 
   .public-matchday-editorial,
@@ -363,6 +364,11 @@ const publicMatchdayStyles = `
     padding: 0 18px 0 0;
     border-right: 1px solid #dfe5ec;
     background: #ffffff;
+  }
+
+  .public-matchday-editorial {
+    align-content: space-between;
+    min-height: 420px;
   }
 
   .public-matchday-editorial h2,
@@ -390,6 +396,85 @@ const publicMatchdayStyles = `
 
   .public-matchday-feature p {
     font-size: 13px;
+  }
+
+  .public-cover-support {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid #dde4ec;
+    background: #f8fafc;
+  }
+
+  .public-cover-support h4 {
+    margin: 0;
+    font-size: 13px;
+    text-transform: uppercase;
+  }
+
+  .public-cover-support p {
+    margin: 0;
+    color: #607086;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .public-cover-channel-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .public-cover-channel-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 8px 0;
+    border-top: 1px solid #e6ebf1;
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .public-cover-channel-list img {
+    width: 38px;
+    height: 22px;
+    object-fit: contain;
+  }
+
+  .public-cover-story-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    padding-top: 18px;
+    border-top: 1px solid #dfe5ec;
+  }
+
+  .public-cover-story {
+    display: grid;
+    gap: 8px;
+  }
+
+  .public-cover-story-photo {
+    min-height: 86px;
+    background:
+      linear-gradient(135deg, rgba(16, 21, 27, 0.12), rgba(196, 0, 18, 0.08)),
+      #eef2f6;
+  }
+
+  .public-cover-story span {
+    color: #c40012;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .public-cover-story strong {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.15;
   }
 
   .public-matchday-editorial p,
@@ -875,6 +960,10 @@ const publicMatchdayStyles = `
       grid-template-columns: 1fr;
     }
 
+    .public-cover-story-strip {
+      grid-template-columns: 1fr;
+    }
+
     .public-matchday-editorial,
     .public-matchday-feature,
     .public-matchday-cover-side,
@@ -1086,36 +1175,6 @@ function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: 
   );
 }
 
-function FeaturedMatch({ match }: { match: PublicSeasonMatch | null }) {
-  if (!match) {
-    return <p>Ainda nao ha jogos definidos nesta jornada.</p>;
-  }
-
-  const kind = statusKind(match.status);
-
-  return (
-    <div className="public-matchday-feature-game">
-      <div className="public-matchday-feature-team">
-        <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
-        <span>{match.homeTeam?.name ?? "Equipa da casa"}</span>
-      </div>
-      <div className="public-matchday-feature-score">
-        <strong>{matchResult(match)}</strong>
-        <small className={`public-matchday-status public-matchday-status-${kind}`}>{statusLabel(match.status)}</small>
-      </div>
-      <div className="public-matchday-feature-team">
-        <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
-        <span>{match.awayTeam?.name ?? "Equipa visitante"}</span>
-      </div>
-      <div className="public-matchday-meta">
-        <span>{formatKickoff(match.kickoff_at)}</span>
-        {match.venue ? <span>{match.venue}</span> : null}
-        <BroadcastBadge match={match} />
-      </div>
-    </div>
-  );
-}
-
 function MatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const statusText = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} - ${match.minute}'` : statusLabel(match.status);
@@ -1196,7 +1255,14 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   const finishedMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "finished");
   const scheduledMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "scheduled");
   const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
-  const featuredMatch = liveMatches[0] ?? halftimeMatches[0] ?? finishedMatches[0] ?? scheduledMatches[0] ?? null;
+  const broadcastChannels = Array.from(
+    new Map(
+      context.matchesForMatchday
+        .map((match) => match.broadcastChannel)
+        .filter((channel): channel is NonNullable<PublicSeasonMatch["broadcastChannel"]> => Boolean(channel))
+        .map((channel) => [channel.id, channel])
+    ).values()
+  ).slice(0, 4);
 
   return (
     <main className="public-matchday-shell">
@@ -1305,12 +1371,25 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
 
       <section className="public-matchday-panel" aria-label="Capa da jornada">
         <div className="public-matchday-cover">
-          <aside className="public-matchday-feature" aria-label="Jogo em destaque">
+          <aside className="public-matchday-feature" aria-label="Informação em destaque">
             <div>
-              <h3>Jogo em destaque</h3>
-              <p>Escolha automática a partir dos jogos desta jornada.</p>
+              <h3>Informação em destaque</h3>
             </div>
-            <FeaturedMatch match={featuredMatch} />
+            <div className="public-cover-support">
+              <h4>Onde ver</h4>
+              {broadcastChannels.length > 0 ? (
+                <ul className="public-cover-channel-list">
+                  {broadcastChannels.map((channel) => (
+                    <li key={channel.id}>
+                      {channel.logo_url ? <img alt="" src={channel.logo_url} /> : null}
+                      <span>{channel.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Canais da jornada por definir.</p>
+              )}
+            </div>
           </aside>
           <article className="public-matchday-editorial">
             <div>
@@ -1318,6 +1397,23 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                 {context.editorial?.title || "Manchete da jornada"}
               </h2>
               <p>{context.editorial?.summary || "Espaço reservado para a leitura editorial desta jornada."}</p>
+            </div>
+            <div className="public-cover-story-strip" aria-label="Notícias de apoio da jornada">
+              <article className="public-cover-story">
+                <div className="public-cover-story-photo" aria-hidden="true" />
+                <span>Antevisão</span>
+                <strong>Os pontos de atenção antes da bola rolar</strong>
+              </article>
+              <article className="public-cover-story">
+                <div className="public-cover-story-photo" aria-hidden="true" />
+                <span>Ambiente</span>
+                <strong>A jornada vista pelas bancadas e pelos protagonistas</strong>
+              </article>
+              <article className="public-cover-story">
+                <div className="public-cover-story-photo" aria-hidden="true" />
+                <span>Contexto</span>
+                <strong>O que pode mudar na tabela depois dos resultados</strong>
+              </article>
             </div>
           </article>
           <aside className="public-matchday-cover-side" aria-label="Resumo automático da jornada">
