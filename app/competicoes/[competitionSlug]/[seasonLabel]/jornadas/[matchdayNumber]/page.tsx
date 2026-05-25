@@ -879,8 +879,8 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
         <div className="public-matchday-cover">
           <article className="public-matchday-editorial">
             <div>
-              <h2>Manchete da jornada</h2>
-              <p>Espaco reservado para a leitura editorial desta jornada.</p>
+              <h2>{context.editorial?.title || "Manchete da jornada"}</h2>
+              <p>{context.editorial?.summary || "Espaco reservado para a leitura editorial desta jornada."}</p>
             </div>
             <div className="public-matchday-summary" aria-label="Resumo da jornada">
               <span>{context.matchesForMatchday.length} jogos</span>

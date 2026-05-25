@@ -1,4 +1,4 @@
-import { fetchSupabaseAdminTable, type SupabaseBroadcastChannel, type SupabaseCompetition, type SupabaseMatch, type SupabaseMatchday, type SupabaseSeason, type SupabaseSeasonTeam, type SupabaseTeam } from "@/lib/supabase";
+import { fetchSupabaseAdminTable, type SupabaseBroadcastChannel, type SupabaseCompetition, type SupabaseMatch, type SupabaseMatchday, type SupabaseMatchdayEditorial, type SupabaseSeason, type SupabaseSeasonTeam, type SupabaseTeam } from "@/lib/supabase";
 
 export type PublicSeasonParticipant = SupabaseSeasonTeam & {
   team: SupabaseTeam | null;
@@ -19,6 +19,7 @@ export type PublicMatchdayContext = {
   participants: PublicSeasonParticipant[];
   matchesForSeason: PublicSeasonMatch[];
   matchesForMatchday: PublicSeasonMatch[];
+  editorial: SupabaseMatchdayEditorial | null;
 };
 
 export type PublicMatchdayDiagnostic = {
@@ -94,6 +95,20 @@ async function readBroadcastChannels(ids: string[]) {
   return fetchSupabaseAdminTable<SupabaseBroadcastChannel>(
     `broadcast_channels?select=id,name,platform,country,logo_url&id=in.(${idList(uniqueIds)})&limit=500`
   );
+}
+
+async function readPublishedMatchdayEditorial(matchdayId: string) {
+  try {
+    const rows = await fetchSupabaseAdminTable<SupabaseMatchdayEditorial>(
+      `matchday_editorials?select=id,matchday_id,title,summary,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+        matchdayId
+      )}&status=eq.published&limit=1`
+    );
+
+    return rows[0] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getPublicSeasonContext({
@@ -283,7 +298,10 @@ export async function getPublicMatchdayDiagnostic({
       ...manualParticipants.map((participant) => participant.team_id),
       ...matches.flatMap((match) => [match.home_team_id, match.away_team_id])
     ]);
-    const broadcastChannels = await readBroadcastChannels(matches.map((match) => match.broadcast_channel_id ?? ""));
+    const [broadcastChannels, editorial] = await Promise.all([
+      readBroadcastChannels(matches.map((match) => match.broadcast_channel_id ?? "")),
+      readPublishedMatchdayEditorial(matchday.id)
+    ]);
     const teamsById = byId(teams);
     const broadcastChannelsById = byId(broadcastChannels);
     const matchdaysById = byId(matchdays);
@@ -306,7 +324,8 @@ export async function getPublicMatchdayDiagnostic({
           team: teamsById.get(participant.team_id) ?? null
         })),
         matchesForSeason,
-        matchesForMatchday: matchesForSeason.filter((match) => match.matchday_id === matchday.id)
+        matchesForMatchday: matchesForSeason.filter((match) => match.matchday_id === matchday.id),
+        editorial
       },
       diagnostic: {
         ...baseDiagnostic,

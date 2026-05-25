@@ -618,6 +618,39 @@ async function removeMatchday(formData: FormData) {
   );
 }
 
+async function saveMatchdayEditorial(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const status = cleanText(formData.get("status")) ?? "draft";
+  const title = cleanText(formData.get("title"));
+  const summary = cleanText(formData.get("summary"));
+
+  if (!matchdayId || !["draft", "published"].includes(status)) {
+    throw new Error("missing-fields");
+  }
+
+  if (status === "published" && !title) {
+    throw new Error("editorial-title-required");
+  }
+
+  if (!(await hasRows(`matchdays?select=id&id=eq.${encodeURIComponent(matchdayId)}`))) {
+    throw new Error("matchday-invalid");
+  }
+
+  await writeSupabaseAdmin("matchday_editorials?on_conflict=matchday_id", {
+    method: "POST",
+    headers: {
+      Prefer: "resolution=merge-duplicates,return=minimal"
+    },
+    body: JSON.stringify({
+      matchday_id: matchdayId,
+      title,
+      summary,
+      status,
+      updated_at: new Date().toISOString()
+    })
+  });
+}
+
 function parseCalendarList(rawList: string): { rows: CalendarListRow[]; invalidLines: number } {
   const rows: CalendarListRow[] = [];
   let invalidLines = 0;
@@ -1250,6 +1283,8 @@ export async function POST(request: Request) {
       extraParams = { calendar_apply_summary: JSON.stringify(summary) };
     } else if (actionType === "remove_matchday") {
       await removeMatchday(formData);
+    } else if (actionType === "save_matchday_editorial") {
+      await saveMatchdayEditorial(formData);
     } else if (actionType === "match") {
       await createMatch(formData);
     } else if (actionType === "update_match") {

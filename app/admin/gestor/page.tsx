@@ -12,6 +12,7 @@ import {
   type SupabaseAdminSeasonTeam,
   type SupabaseCompetition,
   type SupabaseCountry,
+  type SupabaseMatchdayEditorial,
   type SupabaseSeason,
   type SupabaseTeam
 } from "@/lib/supabase";
@@ -1527,6 +1528,24 @@ async function readMatchesForSeason(seasonId?: string): Promise<SeasonAgendaMatc
   }
 }
 
+async function readMatchdayEditorial(matchdayId?: string): Promise<SupabaseMatchdayEditorial | null> {
+  if (!matchdayId) {
+    return null;
+  }
+
+  try {
+    const rows = await fetchSupabaseAdminTable<SupabaseMatchdayEditorial>(
+      `matchday_editorials?select=id,matchday_id,title,summary,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+        matchdayId
+      )}&limit=1`
+    );
+
+    return rows[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function readBlockingMatchdaysForSeason(seasonId?: string): Promise<SeasonMatchday[]> {
   if (!seasonId) {
     return [];
@@ -1678,6 +1697,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const selectedMatchday =
     matchdaysForSeason.find((matchday) => matchday.id === requestedMatchdayId) ?? matchdaysForSeason[0] ?? null;
   const matchesForMatchday = await readMatchesForMatchday(selectedMatchday?.id);
+  const matchdayEditorial = await readMatchdayEditorial(selectedMatchday?.id);
   const scheduledMatchesForMatchday = matchesForMatchday.filter((match) => match.status === "scheduled");
   const futureLiveMatchesForMatchday = matchesForMatchday.filter(
     (match) => match.status !== "scheduled" && match.status !== "finished"
@@ -1792,6 +1812,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
         ? `${currentReturnTo}?jornada=${selectedMatchday.id}`
         : currentReturnTo;
   const matchesReturnTo = withSection(matchdayReturnTo, "jogos");
+  const editorialReturnTo = withSection(matchdayReturnTo, "linha-editorial");
   const calendarInvolvedMatchdays = calendarPreviewMatchdayNumbers.map((number) => {
     const matchday = matchdaysForSeason.find((item) => item.number === number);
     return {
@@ -1876,6 +1897,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     update_match: "Jogo atualizado na jornada selecionada.",
     remove_match: "Jogo removido da jornada selecionada.",
     finish_match: "Resultado final guardado.",
+    save_matchday_editorial: "Linha editorial da jornada guardada.",
     remove_country: "Pais removido.",
     remove_competition: "Competicao removida.",
     remove_season: "Epoca removida."
@@ -1919,6 +1941,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "match-not-simple": "Este jogo ja tem dados competitivos associados e nao pode ser alterado nesta area.",
     "match-has-dependencies": "Este jogo ja tem eventos, noticias ou atualizacoes associadas e nao pode ser removido nesta area.",
     "match-score-invalid": "O resultado tem de ter golos da casa e do fora, com numeros inteiros iguais ou superiores a zero.",
+    "editorial-title-required": "Para publicar, indica uma manchete da jornada.",
     save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
   };
   const sectionMessage = (section: string) => {
@@ -3530,10 +3553,59 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             <header>
               <h2>Linha editorial da jornada</h2>
               <p>
-                Espaco futuro para manchete, resumo, imagem, video, leitura da jornada e memoria historica.
-                Funcionalidade prevista para desenvolvimento posterior.
+                Primeira camada editorial da jornada: manchete, resumo curto e estado de publicacao.
               </p>
             </header>
+            {sectionMessage("linha-editorial")}
+            {!selectedMatchday ? (
+              <div className="manager-empty">Escolhe uma jornada para editar a linha editorial.</div>
+            ) : (
+              <div className="manager-create-grid">
+                <article className="manager-create-card manager-wide-card">
+                  <header>
+                    <h3>{selectedMatchday.label}</h3>
+                    <p>
+                      {matchdayEditorial?.status === "published"
+                        ? "Editorial publicado na pagina publica desta jornada."
+                        : "Editorial guardado como rascunho ou ainda por criar."}
+                    </p>
+                  </header>
+                  <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                    <input type="hidden" name="action_type" value="save_matchday_editorial" />
+                    <input type="hidden" name="return_to" value={editorialReturnTo} />
+                    <input type="hidden" name="matchday_id" value={selectedMatchday.id} />
+                    <div className="manager-field">
+                      <label htmlFor="matchday-editorial-title">Manchete da jornada</label>
+                      <input
+                        id="matchday-editorial-title"
+                        name="title"
+                        defaultValue={matchdayEditorial?.title ?? ""}
+                        placeholder="Ex: Girona abre a jornada com autoridade"
+                      />
+                    </div>
+                    <div className="manager-field">
+                      <label htmlFor="matchday-editorial-summary">Resumo curto</label>
+                      <textarea
+                        id="matchday-editorial-summary"
+                        name="summary"
+                        defaultValue={matchdayEditorial?.summary ?? ""}
+                        placeholder="Resumo editorial curto da jornada."
+                      />
+                    </div>
+                    <div className="manager-field">
+                      <label htmlFor="matchday-editorial-status">Estado</label>
+                      <select id="matchday-editorial-status" name="status" defaultValue={matchdayEditorial?.status ?? "draft"}>
+                        <option value="draft">Rascunho</option>
+                        <option value="published">Publicado</option>
+                      </select>
+                    </div>
+                    <button className="manager-button" type="submit">
+                      Guardar linha editorial
+                    </button>
+                  </form>
+                </article>
+              </div>
+            )}
           </section>
 
           <section className="manager-panel manager-section-participants" id="participantes" aria-label="Participantes da epoca">

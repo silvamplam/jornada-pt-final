@@ -97,6 +97,16 @@ export type SupabaseMatchday = {
   manual_override?: boolean | null;
 };
 
+export type SupabaseMatchdayEditorial = {
+  id: string;
+  matchday_id: string;
+  title: string | null;
+  summary: string | null;
+  status: "draft" | "published";
+  created_at: string;
+  updated_at: string;
+};
+
 export type SupabaseTeam = {
   id: string;
   name: string;
