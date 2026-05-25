@@ -381,8 +381,8 @@ const publicMatchdayStyles = `
   .public-matchday-editorial h2 {
     color: #c40012;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: 42px;
-    line-height: 1.02;
+    font-size: 38px;
+    line-height: 1.06;
   }
 
   .public-matchday-feature {
