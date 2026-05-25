@@ -227,11 +227,11 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-scoreboard-panel {
-    margin-top: 8px;
+    margin-top: 10px;
   }
 
   .public-matchday-scoreboard-panel + .public-matchday-panel {
-    margin-top: 10px;
+    margin-top: 12px;
   }
 
   .public-matchday-panel header {
@@ -268,7 +268,7 @@ const publicMatchdayStyles = `
     overflow-x: auto;
     scroll-behavior: smooth;
     scroll-padding: 14px;
-    padding: 8px 4px;
+    padding: 12px 4px;
   }
 
   .public-matchday-strip-shell {
@@ -276,7 +276,7 @@ const publicMatchdayStyles = `
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 6px;
     align-items: stretch;
-    padding: 0 8px;
+    padding: 0 10px;
   }
 
   .public-matchday-strip-button {
