@@ -86,6 +86,10 @@ const publicMatchdayStyles = `
     text-decoration: none;
   }
 
+  .public-site-menu a[aria-current="page"] {
+    color: #c40012;
+  }
+
   .public-site-actions {
     display: flex;
     gap: 12px;
@@ -101,14 +105,13 @@ const publicMatchdayStyles = `
   }
 
   .public-season-nav-bar {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 18px;
-    align-items: center;
-    max-width: 1540px;
-    margin: 0 auto;
-    padding: 9px 0 10px;
+    margin: 0;
+    padding: 0;
     background: #ffffff;
+  }
+
+  .public-hidden-heading {
+    display: none;
   }
 
   .public-season-label {
@@ -1170,19 +1173,11 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
           <a href="/admin/gestor">Entrar</a>
         </div>
       </header>
-      <section className="public-matchday-hero">
-        <p>{context.competition.name}</p>
-        <h1>{context.matchday.label}</h1>
-        <span>
-          {context.season.label} / Jornada {context.matchday.number}
-        </span>
-      </section>
-
-      <section className="public-matchday-panel" aria-label="Navegacao de jornadas">
-        <header>
+      <section className="public-season-nav-bar" aria-label="Navegacao de jornadas">
+        <div className="public-hidden-heading">
           <h2>Jornadas</h2>
           <p>Navegação principal da época {context.season.label}.</p>
-        </header>
+        </div>
         <div className="public-season-nav-inner">
         <span className="public-season-label">{context.season.label}</span>
         <nav className="public-matchday-nav">
@@ -1201,10 +1196,6 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
       </div>
 
       <section className="public-matchday-panel" aria-label="Visao rapida dos jogos">
-        <header>
-          <h2>Mapa da jornada</h2>
-          <p>Placard completo com todos os jogos desta jornada.</p>
-        </header>
         <div className="public-matchday-strip-shell">
           <button className="public-matchday-strip-button" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
             ‹
