@@ -182,6 +182,13 @@ const publicMatchdayStyles = `
     line-height: 1.05;
   }
 
+  .public-matchday-kicker {
+    color: #e5252a;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
   .public-matchday-editorial p,
   .public-matchday-feature p {
     margin: 0;
@@ -879,6 +886,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
         <div className="public-matchday-cover">
           <article className="public-matchday-editorial">
             <div>
+              {context.editorial ? <span className="public-matchday-kicker">Manchete da jornada</span> : null}
               <h2>{context.editorial?.title || "Manchete da jornada"}</h2>
               <p>{context.editorial?.summary || "Espaco reservado para a leitura editorial desta jornada."}</p>
             </div>
