@@ -114,10 +114,30 @@ const publicMatchdayStyles = `
     font-weight: 900;
   }
 
-  .public-site-actions a:first-child {
-    padding: 9px 16px;
+  .public-site-search {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 170px;
+    padding: 8px 12px;
+    border: 1px solid #d8dee6;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #66717f;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .public-site-search::before {
+    content: "⌕";
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
     border-radius: 999px;
     background: #ffe04f;
+    color: #10151b;
+    font-size: 13px;
   }
 
   .public-season-nav-bar {
@@ -1321,7 +1341,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
           <a href="#classificacao">Classificação</a>
         </nav>
         <div className="public-site-actions" aria-label="Ações">
-          <a href="#jogos">Ver jornada</a>
+          <span className="public-site-search" aria-label="Pesquisar">Pesquisar</span>
           <a href="/admin/gestor">Entrar</a>
         </div>
       </header>
