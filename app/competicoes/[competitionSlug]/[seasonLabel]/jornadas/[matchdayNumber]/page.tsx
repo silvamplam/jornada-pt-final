@@ -1508,10 +1508,6 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
       </section>
 
       <section className="public-matchday-panel" id="classificacao" aria-label="Classificacao acumulada">
-        <header>
-          <h2>Classificação da jornada</h2>
-          <p>Tabela acumulada até à Jornada {context.matchday.number}, usando apenas jogos finalizados.</p>
-        </header>
         <div className="public-table-wrap">
           <table className="public-table">
             <thead>
