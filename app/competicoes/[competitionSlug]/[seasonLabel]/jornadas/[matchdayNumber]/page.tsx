@@ -1415,7 +1415,6 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
           <aside className="public-matchday-feature" aria-label="InformaÃ§Ã£o em destaque">
             <div>
               <h3>InformaÃ§Ã£o em destaque</h3>
-              </div>
             </div>
             <div className="public-cover-support">
               <h4>Onde ver</h4>
