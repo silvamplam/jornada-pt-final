@@ -941,6 +941,7 @@ const publicMatchdayStyles = `
     display: flex;
     flex-wrap: wrap;
     gap: 0;
+    min-width: 0;
     padding: 0;
     overflow-x: auto;
     border-top: 2px solid #10151b;
@@ -968,6 +969,17 @@ const publicMatchdayStyles = `
     border-color: #c40012;
     background: #c40012;
     color: #ffffff;
+  }
+
+  .public-matchday-date-context {
+    flex: 0 0 auto;
+    margin-left: auto;
+    color: #66717f;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.25;
+    text-align: right;
+    white-space: nowrap;
   }
 
   .public-table-wrap {
@@ -1195,9 +1207,9 @@ const publicMatchdayStyles = `
   }
 
   .public-season-nav-inner {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 18px;
     align-items: center;
     max-width: 1540px;
     margin: 0 auto;
@@ -1210,9 +1222,15 @@ const publicMatchdayStyles = `
     }
 
     .public-season-nav-inner {
-      grid-template-columns: 1fr;
       gap: 8px;
       padding: 8px 16px 9px;
+    }
+
+    .public-matchday-date-context {
+      flex-basis: 100%;
+      margin-left: 0;
+      text-align: left;
+      white-space: normal;
     }
   }
 `;
@@ -1249,6 +1267,46 @@ function formatBroadcastGuideKickoff(value: string) {
     minute: "2-digit",
     timeZone: "Europe/Lisbon"
   }).format(new Date(value));
+}
+
+function formatMatchdayDateContext(matches: PublicSeasonMatch[]) {
+  const kickoffDates = matches
+    .map((match) => new Date(match.kickoff_at))
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((firstDate, secondDate) => firstDate.getTime() - secondDate.getTime());
+
+  if (kickoffDates.length === 0) return "Data por definir";
+
+  const firstDate = kickoffDates[0];
+  const lastDate = kickoffDates[kickoffDates.length - 1];
+  const dateFormatter = new Intl.DateTimeFormat("pt-PT", {
+    day: "numeric",
+    month: "long",
+    timeZone: "Europe/Lisbon"
+  });
+  const dayFormatter = new Intl.DateTimeFormat("pt-PT", {
+    day: "numeric",
+    timeZone: "Europe/Lisbon"
+  });
+  const monthFormatter = new Intl.DateTimeFormat("pt-PT", {
+    month: "long",
+    timeZone: "Europe/Lisbon"
+  });
+  const monthKeyFormatter = new Intl.DateTimeFormat("en-CA", {
+    month: "2-digit",
+    timeZone: "Europe/Lisbon"
+  });
+
+  const firstLabel = dateFormatter.format(firstDate);
+  const lastLabel = dateFormatter.format(lastDate);
+  if (firstLabel === lastLabel) return firstLabel;
+
+  const sameMonth = monthKeyFormatter.format(firstDate) === monthKeyFormatter.format(lastDate);
+  if (sameMonth) {
+    return `${dayFormatter.format(firstDate)}–${dayFormatter.format(lastDate)} ${monthFormatter.format(lastDate)}`;
+  }
+
+  return `${firstLabel} – ${lastLabel}`;
 }
 
 function statusLabel(status: string) {
@@ -1476,6 +1534,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   const halftimeMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "halftime");
   const finishedMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "finished");
   const scheduledMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "scheduled");
+  const selectedMatchdayDateContext = formatMatchdayDateContext(context.matchesForMatchday);
   const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
   const nextScheduledMatches = [...scheduledMatches]
     .sort((firstMatch, secondMatch) => new Date(firstMatch.kickoff_at).getTime() - new Date(secondMatch.kickoff_at).getTime())
@@ -1565,6 +1624,9 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
             </a>
           ))}
         </nav>
+        <span className="public-matchday-date-context">
+          Jornada {String(context.matchday.number).padStart(2, "0")} · {selectedMatchdayDateContext}
+        </span>
         </div>
       </section>
       </div>
