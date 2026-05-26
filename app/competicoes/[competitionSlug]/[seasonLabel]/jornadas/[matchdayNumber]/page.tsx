@@ -1632,11 +1632,9 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
           </aside>
           <article className="public-matchday-editorial">
             <div className="public-cover-headline">
-              <img
-                className="public-cover-headline-photo"
-                src="https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=1200&q=80"
-                alt=""
-              />
+              {context.editorial?.image_url ? (
+                <img className="public-cover-headline-photo" src={context.editorial.image_url} alt="" />
+              ) : null}
               <div>
                 <h2 style={context.editorial?.title_color ? { color: context.editorial.title_color } : undefined}>
                   {context.editorial?.title || "Manchete da jornada"}

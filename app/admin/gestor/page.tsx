@@ -1547,7 +1547,7 @@ async function readMatchdayEditorial(matchdayId?: string): Promise<SupabaseMatch
 
   try {
     const rows = await fetchSupabaseAdminTable<SupabaseMatchdayEditorial>(
-      `matchday_editorials?select=id,matchday_id,title,summary,title_color,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}&limit=1`
     );
@@ -3677,6 +3677,15 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                         name="title_color"
                         defaultValue={matchdayEditorial?.title_color ?? ""}
                         placeholder="#e5252a"
+                      />
+                    </div>
+                    <div className="manager-field">
+                      <label htmlFor="matchday-editorial-image-url">Imagem da manchete URL</label>
+                      <input
+                        id="matchday-editorial-image-url"
+                        name="image_url"
+                        defaultValue={matchdayEditorial?.image_url ?? ""}
+                        placeholder="https://exemplo.com/imagem.jpg"
                       />
                     </div>
                     <div className="manager-field">

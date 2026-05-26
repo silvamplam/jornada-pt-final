@@ -103,6 +103,7 @@ export type SupabaseMatchdayEditorial = {
   title: string | null;
   summary: string | null;
   title_color: string | null;
+  image_url: string | null;
   status: "draft" | "published";
   created_at: string;
   updated_at: string;

@@ -773,6 +773,7 @@ async function saveMatchdayEditorial(formData: FormData) {
   const title = cleanText(formData.get("title"));
   const summary = cleanText(formData.get("summary"));
   const titleColor = cleanText(formData.get("title_color"));
+  const imageUrl = cleanText(formData.get("image_url"));
 
   if (!matchdayId || !["draft", "published"].includes(status)) {
     throw new Error("missing-fields");
@@ -796,6 +797,7 @@ async function saveMatchdayEditorial(formData: FormData) {
       title,
       summary,
       title_color: titleColor,
+      image_url: imageUrl,
       status,
       updated_at: new Date().toISOString()
     })
