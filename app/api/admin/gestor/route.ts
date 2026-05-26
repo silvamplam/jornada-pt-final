@@ -1409,20 +1409,12 @@ async function removeSeason(formData: FormData) {
     throw new Error("missing-fields");
   }
 
-  if (await hasRows(`season_teams?select=id&season_id=eq.${encodeURIComponent(seasonId)}`)) {
-    throw new Error("season-has-participants");
-  }
+  await clearSeasonCalendar(formData);
 
-  if (await hasRows(`matchdays?select=id&season_id=eq.${encodeURIComponent(seasonId)}`)) {
-    throw new Error("season-has-matchdays");
-  }
-
-  if (await hasRows(`matches?select=id&season_id=eq.${encodeURIComponent(seasonId)}`)) {
-    throw new Error("season-has-matches");
-  }
-
-  await writeSupabaseAdmin(`seasons?id=eq.${encodeURIComponent(seasonId)}`, {
-    method: "DELETE"
+  await runClearSeasonStep("apagar epoca", async () => {
+    await writeSupabaseAdmin(`seasons?id=eq.${encodeURIComponent(seasonId)}`, {
+      method: "DELETE"
+    });
   });
 }
 

@@ -1915,7 +1915,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     save_matchday_editorial: "Linha editorial da jornada guardada.",
     remove_country: "Pais removido.",
     remove_competition: "Competicao removida.",
-    remove_season: "Epoca removida."
+    remove_season: "Epoca removida. Jogos, jornadas, participantes e editoriais desta epoca foram limpos."
   };
   const errorLabels: Record<string, string> = {
     "missing-service": "Liga primeiro a Supabase na Vercel.",
@@ -1931,6 +1931,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "country-has-competitions": "Nao e possivel remover este pais porque ainda existem competicoes associadas.",
     "country-has-teams": "Nao e possivel remover este pais porque ainda existem clubes associados.",
     "competition-has-seasons": "Nao e possivel remover esta competicao porque ainda existem epocas associadas.",
+    "season-has-data": "Esta época ainda tem dados associados. Use primeiro LIMPAR ÉPOCA.",
     "season-has-participants": "Nao e possivel remover esta epoca porque ainda existem participantes associados.",
     "season-has-matchdays": "Nao e possivel remover esta epoca porque ainda existem jornadas associadas.",
     "season-has-matches": "Nao e possivel remover esta epoca porque ainda existem jogos associados.",
@@ -2525,14 +2526,14 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </header>
                 <form
                   action="/api/admin/gestor"
-                  data-confirm="Tem a certeza que quer remover esta epoca? Esta acao so avanca se nao houver dados associados."
+                  data-confirm="Tem a certeza que pretende remover esta época? Serão apagados jogos, jornadas, participantes e editoriais desta época. Os clubes continuarão no catálogo do país. Esta ação não pode ser desfeita."
                   method="post"
                 >
                   <input type="hidden" name="action_type" value="remove_season" />
                   <input type="hidden" name="return_to" value={withSection(returnTo(selectedCountry, selectedCompetition, null), "manutencao")} />
                   <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
                   <button className="manager-link-button" type="submit" disabled={!selectedSeason}>
-                    Remover epoca
+                    REMOVER ÉPOCA
                   </button>
                 </form>
               </article>
