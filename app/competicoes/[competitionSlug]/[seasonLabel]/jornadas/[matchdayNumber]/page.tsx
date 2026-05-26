@@ -478,11 +478,21 @@ const publicMatchdayStyles = `
     z-index: 1;
   }
 
-  .public-cover-headline-photo {
+  .public-editorial-main-image {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    max-height: 260px;
+    overflow: hidden;
+    border-radius: 6px;
+    background: #eef2f6;
+  }
+
+  .public-editorial-main-image img {
     display: block;
     width: 100%;
-    height: clamp(170px, 22vw, 260px);
+    height: 100%;
     object-fit: cover;
+    object-position: center;
   }
 
   .public-cover-headline p {
@@ -629,12 +639,20 @@ const publicMatchdayStyles = `
     align-content: start;
   }
 
-  .public-cover-story-photo {
+  .public-highlight-image {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #eef2f6;
+  }
+
+  .public-highlight-image img {
     display: block;
     width: 100%;
-    height: clamp(76px, 8vw, 108px);
+    height: 100%;
     object-fit: cover;
-    background: #ffffff;
+    object-position: center;
   }
 
   .public-cover-story span {
@@ -1633,7 +1651,9 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
           <article className="public-matchday-editorial">
             <div className="public-cover-headline">
               {context.editorial?.image_url ? (
-                <img className="public-cover-headline-photo" src={context.editorial.image_url} alt="" />
+                <div className="public-editorial-main-image">
+                  <img src={context.editorial.image_url} alt="" />
+                </div>
               ) : null}
               <div>
                 <h2 style={context.editorial?.title_color ? { color: context.editorial.title_color } : undefined}>
@@ -1646,7 +1666,11 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               {context.highlights.length > 0 ? (
                 context.highlights.map((highlight) => (
                   <article className="public-cover-story" key={highlight.id}>
-                    {highlight.image_url ? <img className="public-cover-story-photo" src={highlight.image_url} alt="" /> : null}
+                    {highlight.image_url ? (
+                      <div className="public-highlight-image">
+                        <img src={highlight.image_url} alt="" />
+                      </div>
+                    ) : null}
                     {highlight.label ? <span>{highlight.label}</span> : null}
                     <strong>{highlight.title}</strong>
                   </article>
@@ -1654,29 +1678,32 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               ) : (
                 <>
                   <article className="public-cover-story">
-                    <img
-                      className="public-cover-story-photo"
-                      src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80"
-                      alt=""
-                    />
+                    <div className="public-highlight-image">
+                      <img
+                        src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80"
+                        alt=""
+                      />
+                    </div>
                     <span>Antevisão</span>
                     <strong>Os pontos de atenção antes da bola rolar</strong>
                   </article>
                   <article className="public-cover-story">
-                    <img
-                      className="public-cover-story-photo"
-                      src="https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=700&q=80"
-                      alt=""
-                    />
+                    <div className="public-highlight-image">
+                      <img
+                        src="https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=700&q=80"
+                        alt=""
+                      />
+                    </div>
                     <span>Ambiente</span>
                     <strong>A jornada vista pelas bancadas e pelos protagonistas</strong>
                   </article>
                   <article className="public-cover-story">
-                    <img
-                      className="public-cover-story-photo"
-                      src="https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=700&q=80"
-                      alt=""
-                    />
+                    <div className="public-highlight-image">
+                      <img
+                        src="https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=700&q=80"
+                        alt=""
+                      />
+                    </div>
                     <span>Contexto</span>
                     <strong>O que pode mudar na tabela depois dos resultados</strong>
                   </article>
