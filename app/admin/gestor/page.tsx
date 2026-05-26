@@ -1836,6 +1836,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const unlinkedCompetitions = competitions.filter((competition) => !competitionCountryId(competition));
   const created = oneParam(params, "created");
   const actionError = oneParam(params, "error");
+  const clearCalendarErrorDetail = oneParam(params, "clear_calendar_error_detail");
   const rawClubApplySummary = oneParam(params, "club_apply_summary");
   const rawCalendarApplySummary = oneParam(params, "calendar_apply_summary");
   let clubApplySummary: ClubApplySummary | null = null;
@@ -1955,6 +1956,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "match-has-result-remove": "Este jogo ja tem resultado e nao pode ser removido.",
     "match-not-simple": "Este jogo ja tem dados competitivos associados e nao pode ser alterado nesta area.",
     "match-has-dependencies": "Este jogo ja tem eventos, noticias ou atualizacoes associadas e nao pode ser removido nesta area.",
+    "clear-season-calendar-step-failed": clearCalendarErrorDetail ?? "Nao foi possivel limpar o calendario da epoca. O detalhe do passo nao foi devolvido.",
     "clear-season-calendar-fk": "Nao foi possivel limpar o calendario porque ainda existe uma dependencia ligada aos jogos ou jornadas. O detalhe ficou registado no log do servidor.",
     "clear-season-calendar-failed": "Nao foi possivel limpar o calendario da epoca. O detalhe ficou registado no log do servidor.",
     "match-score-invalid": "O resultado tem de ter golos da casa e do fora, com numeros inteiros iguais ou superiores a zero.",

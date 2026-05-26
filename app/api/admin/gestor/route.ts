@@ -139,6 +139,19 @@ type MatchIdRow = {
   id: string;
 };
 
+type MatchdayIdRow = {
+  id: string;
+};
+
+class ClearSeasonCalendarError extends Error {
+  detail: string;
+
+  constructor(detail: string) {
+    super("clear-season-calendar-step-failed");
+    this.detail = detail;
+  }
+}
+
 function slugify(value: string): string {
   return value
     .normalize("NFD")
@@ -157,6 +170,7 @@ function returnUrl(request: Request, formData: FormData, key: "created" | "error
   url.searchParams.delete("error");
   url.searchParams.delete("club_apply_summary");
   url.searchParams.delete("calendar_apply_summary");
+  url.searchParams.delete("clear_calendar_error_detail");
   url.searchParams.set(key, value);
   Object.entries(extraParams ?? {}).forEach(([paramKey, paramValue]) => {
     url.searchParams.set(paramKey, paramValue);
@@ -207,8 +221,24 @@ function isMissingOptionalRelationError(error: unknown) {
   );
 }
 
-function isForeignKeyError(error: unknown) {
-  return error instanceof Error && error.message.toLowerCase().includes('"code":"23503"');
+function formatActionError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return "Erro desconhecido.";
+  }
+
+  try {
+    const parsed = JSON.parse(error.message) as { message?: string; details?: string; hint?: string; code?: string };
+    return [parsed.message, parsed.details, parsed.hint, parsed.code ? `Codigo: ${parsed.code}` : null]
+      .filter(Boolean)
+      .join(" ");
+  } catch {
+    return error.message;
+  }
+}
+
+function shortActionError(error: unknown) {
+  const message = formatActionError(error).replace(/\s+/g, " ").trim();
+  return message.length > 700 ? `${message.slice(0, 700)}...` : message;
 }
 
 async function deleteOptionalRows(path: string, label: string) {
@@ -220,7 +250,15 @@ async function deleteOptionalRows(path: string, label: string) {
       return;
     }
 
-    throw error;
+    throw new Error(`${label}: ${shortActionError(error)}`);
+  }
+}
+
+async function runClearSeasonStep(stepLabel: string, operation: () => Promise<void>) {
+  try {
+    await operation();
+  } catch (error) {
+    throw new ClearSeasonCalendarError(`Erro ao ${stepLabel}: ${shortActionError(error)}`);
   }
 }
 
@@ -1222,41 +1260,61 @@ async function clearSeasonCalendar(formData: FormData) {
     throw new Error("missing-fields");
   }
 
-  try {
-    const encodedSeasonId = encodeURIComponent(seasonId);
-    let matches = await fetchSupabaseAdminTable<MatchIdRow>(
+  const encodedSeasonId = encodeURIComponent(seasonId);
+  let matches: MatchIdRow[] = [];
+  let matchdays: MatchdayIdRow[] = [];
+
+  await runClearSeasonStep("ler jogos da epoca selecionada", async () => {
+    matches = await fetchSupabaseAdminTable<MatchIdRow>(
       `matches?select=id&season_id=eq.${encodedSeasonId}&limit=500`
     );
+  });
 
-    while (matches.length > 0) {
-      for (const matchChunk of chunkRows(matches, 100)) {
-        const matchIds = matchChunk.map((match) => match.id);
-        const matchList = encodedInList(matchIds);
-        const matchFilter = `match_id=in.(${matchList})`;
+  await runClearSeasonStep("ler jornadas da epoca selecionada", async () => {
+    matchdays = await fetchSupabaseAdminTable<MatchdayIdRow>(
+      `matchdays?select=id&season_id=eq.${encodedSeasonId}&limit=5000`
+    );
+  });
 
+  while (matches.length > 0) {
+    for (const matchChunk of chunkRows(matches, 100)) {
+      const matchIds = matchChunk.map((match) => match.id);
+      const matchList = encodedInList(matchIds);
+      const matchFilter = `match_id=in.(${matchList})`;
+
+      await runClearSeasonStep("apagar dependencias por match_id", async () => {
         await deleteOptionalRows(`headlines?${matchFilter}`, "headlines.match_id");
         await deleteOptionalRows(`articles?${matchFilter}`, "articles.match_id");
         await deleteOptionalRows(`live_updates?${matchFilter}`, "live_updates.match_id");
         await deleteOptionalRows(`match_events?${matchFilter}`, "match_events.match_id");
         await deleteOptionalRows(`goals?${matchFilter}`, "goals.match_id");
-        await deleteRows(`matches?id=in.(${matchList})&season_id=eq.${encodedSeasonId}`);
-      }
+      });
 
+      await runClearSeasonStep("apagar matches", async () => {
+        await deleteRows(`matches?id=in.(${matchList})&season_id=eq.${encodedSeasonId}`);
+      });
+    }
+
+    await runClearSeasonStep("confirmar jogos restantes da epoca selecionada", async () => {
       matches = await fetchSupabaseAdminTable<MatchIdRow>(
         `matches?select=id&season_id=eq.${encodedSeasonId}&limit=500`
       );
-    }
-
-    await deleteRows(`matchdays?season_id=eq.${encodedSeasonId}`);
-  } catch (error) {
-    console.error(`[admin/gestor] clear_season_calendar failed for season ${seasonId}:`, error);
-
-    if (isForeignKeyError(error)) {
-      throw new Error("clear-season-calendar-fk");
-    }
-
-    throw new Error("clear-season-calendar-failed");
+    });
   }
+
+  for (const matchdayChunk of chunkRows(matchdays, 100)) {
+    const matchdayIds = matchdayChunk.map((matchday) => matchday.id);
+    const matchdayList = encodedInList(matchdayIds);
+    const matchdayFilter = `matchday_id=in.(${matchdayList})`;
+
+    await runClearSeasonStep("apagar editoriais das jornadas", async () => {
+      await deleteOptionalRows(`matchday_editorials?${matchdayFilter}`, "matchday_editorials.matchday_id");
+    });
+  }
+
+  await runClearSeasonStep("apagar matchdays", async () => {
+    await deleteRows(`matchdays?season_id=eq.${encodedSeasonId}`);
+  });
 }
 
 async function finishMatch(formData: FormData) {
@@ -1431,6 +1489,13 @@ export async function POST(request: Request) {
       return returnUrl(request, formData, "error", "unknown-action");
     }
   } catch (error) {
+    if (error instanceof ClearSeasonCalendarError) {
+      console.error("[admin/gestor] clear_season_calendar failed:", error.detail);
+      return returnUrl(request, formData, "error", error.message, {
+        clear_calendar_error_detail: error.detail
+      });
+    }
+
     return returnUrl(request, formData, "error", error instanceof Error ? error.message : "save");
   }
 
