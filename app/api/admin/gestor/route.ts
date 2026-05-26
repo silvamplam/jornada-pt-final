@@ -221,6 +221,16 @@ function isMissingOptionalRelationError(error: unknown) {
   );
 }
 
+function isPermissionDeniedError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+
+  return message.includes('"code":"42501"') || message.includes("permission denied");
+}
+
 function formatActionError(error: unknown) {
   if (!(error instanceof Error)) {
     return "Erro desconhecido.";
@@ -241,10 +251,33 @@ function shortActionError(error: unknown) {
   return message.length > 700 ? `${message.slice(0, 700)}...` : message;
 }
 
-async function deleteOptionalRows(path: string, label: string) {
+async function deleteExistingOptionalRows(table: string, filter: string, label: string) {
+  let linkedRows: { id: string }[] = [];
+
   try {
-    await deleteRows(path);
+    linkedRows = await fetchSupabaseAdminTable<{ id: string }>(`${table}?select=id&${filter}&limit=1`);
   } catch (error) {
+    if (isMissingOptionalRelationError(error)) {
+      console.warn(`[admin/gestor] clear_season_calendar skipped optional dependency ${label}:`, error);
+      return;
+    }
+
+    throw new Error(`${label}: ${shortActionError(error)}`);
+  }
+
+  if (linkedRows.length === 0) {
+    return;
+  }
+
+  try {
+    await deleteRows(`${table}?${filter}`);
+  } catch (error) {
+    if (isPermissionDeniedError(error)) {
+      throw new Error(
+        `Existem dados em ${table} ligados a estes jogos ou jornadas, mas a aplicacao nao tem permissao para os apagar. ${shortActionError(error)}`
+      );
+    }
+
     if (isMissingOptionalRelationError(error)) {
       console.warn(`[admin/gestor] clear_season_calendar skipped optional dependency ${label}:`, error);
       return;
@@ -1283,11 +1316,11 @@ async function clearSeasonCalendar(formData: FormData) {
       const matchFilter = `match_id=in.(${matchList})`;
 
       await runClearSeasonStep("apagar dependencias por match_id", async () => {
-        await deleteOptionalRows(`headlines?${matchFilter}`, "headlines.match_id");
-        await deleteOptionalRows(`articles?${matchFilter}`, "articles.match_id");
-        await deleteOptionalRows(`live_updates?${matchFilter}`, "live_updates.match_id");
-        await deleteOptionalRows(`match_events?${matchFilter}`, "match_events.match_id");
-        await deleteOptionalRows(`goals?${matchFilter}`, "goals.match_id");
+        await deleteExistingOptionalRows("headlines", matchFilter, "headlines.match_id");
+        await deleteExistingOptionalRows("articles", matchFilter, "articles.match_id");
+        await deleteExistingOptionalRows("live_updates", matchFilter, "live_updates.match_id");
+        await deleteExistingOptionalRows("match_events", matchFilter, "match_events.match_id");
+        await deleteExistingOptionalRows("goals", matchFilter, "goals.match_id");
       });
 
       await runClearSeasonStep("apagar matches", async () => {
@@ -1308,12 +1341,16 @@ async function clearSeasonCalendar(formData: FormData) {
     const matchdayFilter = `matchday_id=in.(${matchdayList})`;
 
     await runClearSeasonStep("apagar editoriais das jornadas", async () => {
-      await deleteOptionalRows(`matchday_editorials?${matchdayFilter}`, "matchday_editorials.matchday_id");
+      await deleteExistingOptionalRows("matchday_editorials", matchdayFilter, "matchday_editorials.matchday_id");
     });
   }
 
   await runClearSeasonStep("apagar matchdays", async () => {
     await deleteRows(`matchdays?season_id=eq.${encodedSeasonId}`);
+  });
+
+  await runClearSeasonStep("apagar participantes", async () => {
+    await deleteRows(`season_teams?season_id=eq.${encodedSeasonId}`);
   });
 }
 
