@@ -135,6 +135,10 @@ type ExistingCalendarMatchRow = {
   away_team_id: string;
 };
 
+type MatchIdRow = {
+  id: string;
+};
+
 function slugify(value: string): string {
   return value
     .normalize("NFD")
@@ -164,6 +168,26 @@ function returnUrl(request: Request, formData: FormData, key: "created" | "error
 async function hasRows(path: string) {
   const rows = await fetchSupabaseAdminTable<{ id: string }>(`${path}&limit=1`);
   return rows.length > 0;
+}
+
+function chunkRows<T>(rows: T[], size: number) {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < rows.length; index += size) {
+    chunks.push(rows.slice(index, index + size));
+  }
+
+  return chunks;
+}
+
+function encodedInList(values: string[]) {
+  return values.map((value) => encodeURIComponent(value)).join(",");
+}
+
+async function deleteRows(path: string) {
+  await writeSupabaseAdmin(path, {
+    method: "DELETE"
+  });
 }
 
 async function createCountry(formData: FormData) {
@@ -1157,6 +1181,40 @@ async function removeMatch(formData: FormData) {
   );
 }
 
+async function clearSeasonCalendar(formData: FormData) {
+  const seasonId = cleanText(formData.get("season_id"));
+
+  if (!seasonId) {
+    throw new Error("missing-fields");
+  }
+
+  const encodedSeasonId = encodeURIComponent(seasonId);
+  let matches = await fetchSupabaseAdminTable<MatchIdRow>(
+    `matches?select=id&season_id=eq.${encodedSeasonId}&limit=500`
+  );
+
+  while (matches.length > 0) {
+    for (const matchChunk of chunkRows(matches, 100)) {
+      const matchIds = matchChunk.map((match) => match.id);
+      const matchList = encodedInList(matchIds);
+      const matchFilter = `match_id=in.(${matchList})`;
+
+      await deleteRows(`headlines?${matchFilter}`);
+      await deleteRows(`articles?${matchFilter}`);
+      await deleteRows(`live_updates?${matchFilter}`);
+      await deleteRows(`match_events?${matchFilter}`);
+      await deleteRows(`goals?${matchFilter}`);
+      await deleteRows(`matches?id=in.(${matchList})&season_id=eq.${encodedSeasonId}`);
+    }
+
+    matches = await fetchSupabaseAdminTable<MatchIdRow>(
+      `matches?select=id&season_id=eq.${encodedSeasonId}&limit=500`
+    );
+  }
+
+  await deleteRows(`matchdays?season_id=eq.${encodedSeasonId}`);
+}
+
 async function finishMatch(formData: FormData) {
   const competitionId = cleanText(formData.get("competition_id"));
   const seasonId = cleanText(formData.get("season_id"));
@@ -1315,6 +1373,8 @@ export async function POST(request: Request) {
       await updateMatch(formData);
     } else if (actionType === "remove_match") {
       await removeMatch(formData);
+    } else if (actionType === "clear_season_calendar") {
+      await clearSeasonCalendar(formData);
     } else if (actionType === "finish_match") {
       await finishMatch(formData);
     } else if (actionType === "remove_season") {

@@ -1909,6 +1909,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     match: "Jogo criado dentro da jornada selecionada.",
     update_match: "Jogo atualizado na jornada selecionada.",
     remove_match: "Jogo removido da jornada selecionada.",
+    clear_season_calendar: "Calendario da epoca limpo. Os participantes continuam associados.",
     finish_match: "Resultado final guardado.",
     save_matchday_editorial: "Linha editorial da jornada guardada.",
     remove_country: "Pais removido.",
@@ -2531,6 +2532,27 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                   </button>
                 </form>
               </article>
+
+              {selectedSeason ? (
+                <article className="manager-create-card manager-wide-card">
+                  <header>
+                    <h3>Limpar calendario da epoca</h3>
+                    <p>Remove jogos e jornadas da epoca selecionada sem apagar clubes nem participantes.</p>
+                  </header>
+                  <form
+                    action="/api/admin/gestor"
+                    data-confirm="Tem a certeza que pretende remover todos os jogos e jornadas desta época? Esta ação apaga jogos agendados e finalizados, mas não apaga clubes nem participantes. As linhas editoriais associadas às jornadas também serão removidas."
+                    method="post"
+                  >
+                    <input type="hidden" name="action_type" value="clear_season_calendar" />
+                    <input type="hidden" name="return_to" value={maintenanceReturnTo} />
+                    <input type="hidden" name="season_id" value={selectedSeason.id} />
+                    <button className="manager-link-button" type="submit">
+                      LIMPAR CALENDÁRIO DA ÉPOCA
+                    </button>
+                  </form>
+                </article>
+              ) : null}
             </div>
           </details>
 
