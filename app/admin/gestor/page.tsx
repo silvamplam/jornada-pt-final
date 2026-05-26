@@ -661,6 +661,13 @@ const managerStyles = `
     border: 0;
   }
 
+  .manager-card-heading-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+  }
+
   .manager-create-card h3,
   .manager-create-card p {
     margin: 0;
@@ -1044,6 +1051,11 @@ const managerStyles = `
     .manager-button {
       width: 100%;
       text-align: center;
+    }
+
+    .manager-card-heading-row {
+      display: grid;
+      grid-template-columns: 1fr;
     }
   }
 `;
@@ -1888,6 +1900,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     apply_club_list: "Lista aplicada a esta epoca.",
     participant: "Participante associado a epoca selecionada.",
     remove_participant: "Participante removido da epoca selecionada.",
+    remove_all_participants: "Participantes removidos da epoca selecionada.",
     remove_old_participant: "Ligacao de suporte removida de season_teams.",
     remove_team: "Clube removido do pais selecionado.",
     matchday: "Jornada criada dentro da epoca selecionada.",
@@ -1925,6 +1938,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "old-participant-manual": "Esta associacao pertence a lista principal da epoca e nao pode ser limpa nesta area.",
     "old-participant-not-found": "Nao foi possivel encontrar uma ligacao de suporte para remover.",
     "matchday-needs-participants": "Antes de criar jornadas, define os participantes desta epoca.",
+    "season-participants-has-calendar": "Não é possível remover todos os participantes porque esta época já tem jornadas ou jogos associados. Remova primeiro o calendário/jogos.",
     "matchday-duplicate": "Ja existe uma jornada com esse numero nesta epoca.",
     "matchday-has-matches": "Nao e possivel remover esta jornada porque ainda existem jogos associados.",
     "calendar-list-invalid": "A lista do calendario tem linhas invalidas ou conflitos por resolver.",
@@ -3699,8 +3713,26 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
 
                   <article className="manager-create-card manager-wide-card">
                     <header>
-                      <h3>Lista completa</h3>
-                      <p>Usa apenas quando precisares de remover participantes individualmente.</p>
+                      <div className="manager-card-heading-row">
+                        <div>
+                          <h3>Lista completa</h3>
+                          <p>Usa apenas quando precisares de remover participantes individualmente.</p>
+                        </div>
+                        {selectedSeason && participantsForSeason.length > 0 ? (
+                          <form
+                            action="/api/admin/gestor"
+                            data-confirm="Tem a certeza que pretende remover todos os participantes desta época? Os clubes não serão apagados."
+                            method="post"
+                          >
+                            <input type="hidden" name="action_type" value="remove_all_participants" />
+                            <input type="hidden" name="return_to" value={participantsReturnTo} />
+                            <input type="hidden" name="season_id" value={selectedSeason.id} />
+                            <button className="manager-link-button" type="submit">
+                              REMOVER TODOS
+                            </button>
+                          </form>
+                        ) : null}
+                      </div>
                     </header>
                     {participantData?.error ? (
                       <div className="manager-empty">Nao foi possivel ler os participantes: {participantData.error}</div>

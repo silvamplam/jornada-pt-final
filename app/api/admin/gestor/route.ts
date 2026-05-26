@@ -490,6 +490,26 @@ async function removeParticipant(formData: FormData) {
   );
 }
 
+async function removeAllParticipants(formData: FormData) {
+  const seasonId = cleanText(formData.get("season_id"));
+
+  if (!seasonId) {
+    throw new Error("missing-fields");
+  }
+
+  if (await hasRows(`matchdays?select=id&season_id=eq.${encodeURIComponent(seasonId)}`)) {
+    throw new Error("season-participants-has-calendar");
+  }
+
+  if (await hasRows(`matches?select=id&season_id=eq.${encodeURIComponent(seasonId)}`)) {
+    throw new Error("season-participants-has-calendar");
+  }
+
+  await writeSupabaseAdmin(`season_teams?season_id=eq.${encodeURIComponent(seasonId)}`, {
+    method: "DELETE"
+  });
+}
+
 async function removeOldParticipant(formData: FormData) {
   const participantId = cleanText(formData.get("participant_id"));
 
@@ -1274,6 +1294,8 @@ export async function POST(request: Request) {
       extraParams = { club_apply_summary: JSON.stringify(summary) };
     } else if (actionType === "remove_participant") {
       await removeParticipant(formData);
+    } else if (actionType === "remove_all_participants") {
+      await removeAllParticipants(formData);
     } else if (actionType === "remove_old_participant") {
       await removeOldParticipant(formData);
     } else if (actionType === "remove_team") {
