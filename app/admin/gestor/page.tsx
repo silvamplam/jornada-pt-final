@@ -523,6 +523,18 @@ const managerStyles = `
     border-radius: 6px;
   }
 
+  .manager-highlight-card-1 {
+    background: #fbfcfe;
+  }
+
+  .manager-highlight-card-2 {
+    background: #f7f9fc;
+  }
+
+  .manager-highlight-card-3 {
+    background: #f2f5f8;
+  }
+
   .manager-highlight-fieldset legend {
     padding: 0 6px;
     font-size: 12px;
@@ -1963,6 +1975,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     save_matchday_editorial: "Linha editorial da jornada guardada.",
     save_matchday_highlights: "Destaques da jornada guardados.",
     upload_matchday_editorial_image: "Imagem da manchete carregada.",
+    upload_matchday_highlight_image: "Imagem do destaque carregada.",
     remove_country: "Pais removido.",
     remove_competition: "Competicao removida.",
     remove_season: "Epoca removida. Jogos, jornadas, participantes e editoriais desta epoca foram limpos."
@@ -3780,68 +3793,99 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                       Carregar imagem da manchete
                     </button>
                   </form>
-                  <form className="manager-create-form" action="/api/admin/gestor" method="post">
-                    <input type="hidden" name="action_type" value="save_matchday_highlights" />
-                    <input type="hidden" name="return_to" value={editorialReturnTo} />
-                    <input type="hidden" name="matchday_id" value={selectedMatchday.id} />
+                  <div className="manager-create-form">
                     <header>
                       <h3>Destaques da jornada</h3>
-                      <p>Edita ate tres blocos abaixo da manchete. Nesta fase, usa URL manual da imagem.</p>
+                      <p>Edita ate tres blocos abaixo da manchete. Podes usar URL manual ou carregar imagem.</p>
                     </header>
                     {[1, 2, 3].map((order) => {
                       const highlight = matchdayHighlights.find((item) => item.sort_order === order);
                       return (
-                        <fieldset className="manager-highlight-fieldset" key={order}>
+                        <fieldset className={`manager-highlight-fieldset manager-highlight-card-${order}`} key={order}>
                           <legend>Destaque {order}</legend>
-                          <input type="hidden" name={`highlight_${order}_id`} value={highlight?.id ?? ""} />
-                          <input type="hidden" name={`highlight_${order}_sort_order`} value={order} />
-                          <div className="manager-field">
-                            <label htmlFor={`highlight-${order}-label`}>Etiqueta</label>
-                            <input
-                              id={`highlight-${order}-label`}
-                              name={`highlight_${order}_label`}
-                              defaultValue={highlight?.label ?? ""}
-                              placeholder={order === 1 ? "ANTEVISAO" : order === 2 ? "AMBIENTE" : "CONTEXTO"}
-                            />
-                          </div>
-                          <div className="manager-field">
-                            <label htmlFor={`highlight-${order}-title`}>Titulo</label>
-                            <input
-                              id={`highlight-${order}-title`}
-                              name={`highlight_${order}_title`}
-                              defaultValue={highlight?.title ?? ""}
-                              placeholder={
-                                order === 1
-                                  ? "Os pontos de atencao antes da bola rolar"
-                                  : order === 2
-                                    ? "A jornada vista pelas bancadas e pelos protagonistas"
-                                    : "O que pode mudar na tabela depois dos resultados"
-                              }
-                            />
-                          </div>
-                          <div className="manager-field">
-                            <label htmlFor={`highlight-${order}-image-url`}>Imagem URL</label>
-                            <input
-                              id={`highlight-${order}-image-url`}
-                              name={`highlight_${order}_image_url`}
-                              defaultValue={highlight?.image_url ?? ""}
-                              placeholder="https://exemplo.com/imagem.jpg"
-                            />
-                          </div>
-                          <div className="manager-field">
-                            <label htmlFor={`highlight-${order}-status`}>Estado</label>
-                            <select id={`highlight-${order}-status`} name={`highlight_${order}_status`} defaultValue={highlight?.status ?? "draft"}>
-                              <option value="draft">Rascunho</option>
-                              <option value="published">Publicado</option>
-                            </select>
-                          </div>
+                          <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                            <input type="hidden" name="action_type" value="save_matchday_highlights" />
+                            <input type="hidden" name="return_to" value={editorialReturnTo} />
+                            <input type="hidden" name="matchday_id" value={selectedMatchday.id} />
+                            <input type="hidden" name={`highlight_${order}_id`} value={highlight?.id ?? ""} />
+                            <input type="hidden" name={`highlight_${order}_sort_order`} value={order} />
+                            <div className="manager-field">
+                              <label htmlFor={`highlight-${order}-label`}>Etiqueta</label>
+                              <input
+                                id={`highlight-${order}-label`}
+                                name={`highlight_${order}_label`}
+                                defaultValue={highlight?.label ?? ""}
+                                placeholder={order === 1 ? "ANTEVISAO" : order === 2 ? "AMBIENTE" : "CONTEXTO"}
+                              />
+                            </div>
+                            <div className="manager-field">
+                              <label htmlFor={`highlight-${order}-title`}>Titulo</label>
+                              <input
+                                id={`highlight-${order}-title`}
+                                name={`highlight_${order}_title`}
+                                defaultValue={highlight?.title ?? ""}
+                                placeholder={
+                                  order === 1
+                                    ? "Os pontos de atencao antes da bola rolar"
+                                    : order === 2
+                                      ? "A jornada vista pelas bancadas e pelos protagonistas"
+                                      : "O que pode mudar na tabela depois dos resultados"
+                                }
+                              />
+                            </div>
+                            <div className="manager-field">
+                              <label htmlFor={`highlight-${order}-image-url`}>Imagem URL</label>
+                              <input
+                                id={`highlight-${order}-image-url`}
+                                name={`highlight_${order}_image_url`}
+                                defaultValue={highlight?.image_url ?? ""}
+                                placeholder="https://exemplo.com/imagem.jpg"
+                              />
+                            </div>
+                            {highlight?.image_url ? (
+                              <div className="manager-field manager-editorial-image-preview">
+                                <label>Pre-visualizacao da imagem do destaque</label>
+                                <img alt="" src={highlight.image_url} />
+                              </div>
+                            ) : null}
+                            <div className="manager-field">
+                              <label htmlFor={`highlight-${order}-status`}>Estado</label>
+                              <select id={`highlight-${order}-status`} name={`highlight_${order}_status`} defaultValue={highlight?.status ?? "draft"}>
+                                <option value="draft">Rascunho</option>
+                                <option value="published">Publicado</option>
+                              </select>
+                            </div>
+                            <button className="manager-button" type="submit">
+                              Guardar destaque {order}
+                            </button>
+                          </form>
+                          <form
+                            className="manager-create-form"
+                            action="/api/admin/gestor/editorial-image"
+                            encType="multipart/form-data"
+                            method="post"
+                          >
+                            <input type="hidden" name="return_to" value={editorialReturnTo} />
+                            <input type="hidden" name="matchday_id" value={selectedMatchday.id} />
+                            <input type="hidden" name="target" value="highlight" />
+                            <input type="hidden" name="sort_order" value={order} />
+                            <div className="manager-field">
+                              <label htmlFor={`highlight-${order}-image-upload`}>Carregar imagem do destaque</label>
+                              <input
+                                accept="image/jpeg,image/png,image/webp"
+                                id={`highlight-${order}-image-upload`}
+                                name="image"
+                                type="file"
+                              />
+                            </div>
+                            <button className="manager-button secondary" type="submit">
+                              Carregar imagem do destaque {order}
+                            </button>
+                          </form>
                         </fieldset>
                       );
                     })}
-                    <button className="manager-button" type="submit">
-                      Guardar destaques da jornada
-                    </button>
-                  </form>
+                  </div>
                 </article>
               </div>
             )}

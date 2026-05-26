@@ -103,10 +103,40 @@ async function saveImageUrl(matchdayId: string, imageUrl: string) {
   });
 }
 
+async function saveHighlightImageUrl(matchdayId: string, sortOrder: number, imageUrl: string) {
+  const existingRows = await fetchSupabaseAdminTable<{ id: string }>(
+    `matchday_highlights?select=id&matchday_id=eq.${encodeURIComponent(matchdayId)}&sort_order=eq.${sortOrder}&limit=1`
+  );
+
+  if (existingRows[0]) {
+    await writeSupabaseAdmin(`matchday_highlights?id=eq.${encodeURIComponent(existingRows[0].id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        image_url: imageUrl,
+        updated_at: new Date().toISOString()
+      })
+    });
+    return;
+  }
+
+  await writeSupabaseAdmin("matchday_highlights", {
+    method: "POST",
+    body: JSON.stringify({
+      matchday_id: matchdayId,
+      image_url: imageUrl,
+      sort_order: sortOrder,
+      status: "draft",
+      updated_at: new Date().toISOString()
+    })
+  });
+}
+
 export async function POST(request: Request) {
   const formData = await request.formData();
   const returnTo = cleanText(formData.get("return_to"));
   const matchdayId = cleanText(formData.get("matchday_id"));
+  const target = cleanText(formData.get("target")) ?? "editorial";
+  const sortOrder = Number.parseInt(cleanText(formData.get("sort_order")) ?? "", 10);
   const file = formData.get("image");
 
   try {
@@ -131,11 +161,22 @@ export async function POST(request: Request) {
       throw new Error("matchday-invalid");
     }
 
-    const storagePath = `${matchdayId}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
-    const imageUrl = await uploadToStorage(file, storagePath);
-    await saveImageUrl(matchdayId, imageUrl);
+    if (target === "highlight" && (![1, 2, 3].includes(sortOrder))) {
+      throw new Error("missing-fields");
+    }
 
-    return redirectTo(request, returnTo, "created", "upload_matchday_editorial_image");
+    const storagePath =
+      target === "highlight"
+        ? `highlights/${matchdayId}/highlight-${sortOrder}-${Date.now()}-${crypto.randomUUID()}.${extension}`
+        : `${matchdayId}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+    const imageUrl = await uploadToStorage(file, storagePath);
+    if (target === "highlight") {
+      await saveHighlightImageUrl(matchdayId, sortOrder, imageUrl);
+    } else {
+      await saveImageUrl(matchdayId, imageUrl);
+    }
+
+    return redirectTo(request, returnTo, "created", target === "highlight" ? "upload_matchday_highlight_image" : "upload_matchday_editorial_image");
   } catch (error) {
     const message = error instanceof Error ? error.message : "editorial-image-upload";
     const knownErrors = new Set([
