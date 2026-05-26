@@ -190,6 +190,40 @@ async function deleteRows(path: string) {
   });
 }
 
+function isMissingOptionalRelationError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+
+  return (
+    message.includes('"code":"42p01"') ||
+    message.includes('"code":"42703"') ||
+    message.includes('"code":"pgrst205"') ||
+    message.includes("could not find the table") ||
+    (message.includes("column") && message.includes("does not exist")) ||
+    (message.includes("relation") && message.includes("does not exist"))
+  );
+}
+
+function isForeignKeyError(error: unknown) {
+  return error instanceof Error && error.message.toLowerCase().includes('"code":"23503"');
+}
+
+async function deleteOptionalRows(path: string, label: string) {
+  try {
+    await deleteRows(path);
+  } catch (error) {
+    if (isMissingOptionalRelationError(error)) {
+      console.warn(`[admin/gestor] clear_season_calendar skipped optional dependency ${label}:`, error);
+      return;
+    }
+
+    throw error;
+  }
+}
+
 async function createCountry(formData: FormData) {
   const name = cleanText(formData.get("name"));
   const slug = cleanText(formData.get("slug")) ?? (name ? slugify(name) : null);
@@ -1188,31 +1222,41 @@ async function clearSeasonCalendar(formData: FormData) {
     throw new Error("missing-fields");
   }
 
-  const encodedSeasonId = encodeURIComponent(seasonId);
-  let matches = await fetchSupabaseAdminTable<MatchIdRow>(
-    `matches?select=id&season_id=eq.${encodedSeasonId}&limit=500`
-  );
-
-  while (matches.length > 0) {
-    for (const matchChunk of chunkRows(matches, 100)) {
-      const matchIds = matchChunk.map((match) => match.id);
-      const matchList = encodedInList(matchIds);
-      const matchFilter = `match_id=in.(${matchList})`;
-
-      await deleteRows(`headlines?${matchFilter}`);
-      await deleteRows(`articles?${matchFilter}`);
-      await deleteRows(`live_updates?${matchFilter}`);
-      await deleteRows(`match_events?${matchFilter}`);
-      await deleteRows(`goals?${matchFilter}`);
-      await deleteRows(`matches?id=in.(${matchList})&season_id=eq.${encodedSeasonId}`);
-    }
-
-    matches = await fetchSupabaseAdminTable<MatchIdRow>(
+  try {
+    const encodedSeasonId = encodeURIComponent(seasonId);
+    let matches = await fetchSupabaseAdminTable<MatchIdRow>(
       `matches?select=id&season_id=eq.${encodedSeasonId}&limit=500`
     );
-  }
 
-  await deleteRows(`matchdays?season_id=eq.${encodedSeasonId}`);
+    while (matches.length > 0) {
+      for (const matchChunk of chunkRows(matches, 100)) {
+        const matchIds = matchChunk.map((match) => match.id);
+        const matchList = encodedInList(matchIds);
+        const matchFilter = `match_id=in.(${matchList})`;
+
+        await deleteOptionalRows(`headlines?${matchFilter}`, "headlines.match_id");
+        await deleteOptionalRows(`articles?${matchFilter}`, "articles.match_id");
+        await deleteOptionalRows(`live_updates?${matchFilter}`, "live_updates.match_id");
+        await deleteOptionalRows(`match_events?${matchFilter}`, "match_events.match_id");
+        await deleteOptionalRows(`goals?${matchFilter}`, "goals.match_id");
+        await deleteRows(`matches?id=in.(${matchList})&season_id=eq.${encodedSeasonId}`);
+      }
+
+      matches = await fetchSupabaseAdminTable<MatchIdRow>(
+        `matches?select=id&season_id=eq.${encodedSeasonId}&limit=500`
+      );
+    }
+
+    await deleteRows(`matchdays?season_id=eq.${encodedSeasonId}`);
+  } catch (error) {
+    console.error(`[admin/gestor] clear_season_calendar failed for season ${seasonId}:`, error);
+
+    if (isForeignKeyError(error)) {
+      throw new Error("clear-season-calendar-fk");
+    }
+
+    throw new Error("clear-season-calendar-failed");
+  }
 }
 
 async function finishMatch(formData: FormData) {

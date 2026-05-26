@@ -1955,6 +1955,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "match-has-result-remove": "Este jogo ja tem resultado e nao pode ser removido.",
     "match-not-simple": "Este jogo ja tem dados competitivos associados e nao pode ser alterado nesta area.",
     "match-has-dependencies": "Este jogo ja tem eventos, noticias ou atualizacoes associadas e nao pode ser removido nesta area.",
+    "clear-season-calendar-fk": "Nao foi possivel limpar o calendario porque ainda existe uma dependencia ligada aos jogos ou jornadas. O detalhe ficou registado no log do servidor.",
+    "clear-season-calendar-failed": "Nao foi possivel limpar o calendario da epoca. O detalhe ficou registado no log do servidor.",
     "match-score-invalid": "O resultado tem de ter golos da casa e do fora, com numeros inteiros iguais ou superiores a zero.",
     "editorial-title-required": "Para publicar, indica uma manchete da jornada.",
     save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
