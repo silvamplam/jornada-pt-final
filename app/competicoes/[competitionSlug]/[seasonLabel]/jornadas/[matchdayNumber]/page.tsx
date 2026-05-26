@@ -228,6 +228,7 @@ const publicMatchdayStyles = `
 
   .public-matchday-scoreboard-panel {
     margin-top: 10px;
+    background: #f8fafc;
   }
 
   .public-matchday-scoreboard-panel + .public-matchday-panel {
@@ -264,11 +265,11 @@ const publicMatchdayStyles = `
 
   .public-matchday-strip {
     display: flex;
-    gap: 16px;
+    gap: 24px;
     overflow-x: auto;
     scroll-behavior: smooth;
     scroll-padding: 14px;
-    padding: 10px 4px;
+    padding: 10px 6px;
   }
 
   .public-matchday-strip-shell {
@@ -311,11 +312,12 @@ const publicMatchdayStyles = `
   .public-matchday-mini-card + .public-matchday-mini-card::before {
     content: "";
     position: absolute;
-    top: 12px;
-    bottom: 12px;
-    left: -9px;
-    width: 1px;
-    background: #e5e7eb;
+    top: -2px;
+    bottom: -2px;
+    left: -14px;
+    width: 4px;
+    border-radius: 999px;
+    background: #e2e8f0;
   }
 
   .public-matchday-mini-card-live {
