@@ -228,7 +228,9 @@ const publicMatchdayStyles = `
 
   .public-matchday-scoreboard-panel {
     margin-top: 10px;
-    background: #eef2f6;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
   .public-matchday-scoreboard-panel + .public-matchday-panel {
@@ -270,7 +272,7 @@ const publicMatchdayStyles = `
     scroll-behavior: smooth;
     scroll-padding: 14px;
     padding: 10px 8px;
-    background: #eef2f6;
+    background: transparent;
   }
 
   .public-matchday-strip-shell {
@@ -279,7 +281,7 @@ const publicMatchdayStyles = `
     gap: 6px;
     align-items: stretch;
     padding: 0 10px;
-    background: #eef2f6;
+    background: transparent;
   }
 
   .public-matchday-strip-button {
@@ -314,11 +316,11 @@ const publicMatchdayStyles = `
   .public-matchday-mini-card + .public-matchday-mini-card::before {
     content: "";
     position: absolute;
-    top: 0;
-    bottom: 0;
-    left: -14px;
-    width: 14px;
-    background: #eef2f6;
+    top: 10px;
+    bottom: 10px;
+    left: -7px;
+    width: 1px;
+    background: #dfe5ec;
   }
 
   .public-matchday-mini-card-live {
