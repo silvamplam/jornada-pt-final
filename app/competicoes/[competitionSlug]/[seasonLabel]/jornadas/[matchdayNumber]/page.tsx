@@ -511,7 +511,7 @@ const publicMatchdayStyles = `
     align-content: start;
     height: auto;
     padding: 14px;
-    border: 1px solid #dde4ec;
+    border: 1px solid #eef2f6;
     background: #ffffff;
   }
 
@@ -538,26 +538,26 @@ const publicMatchdayStyles = `
 
   .public-cover-channel-list li {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px 10px;
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    align-items: start;
     min-width: 0;
-    padding: 8px 0;
-    border-top: 1px solid #e6ebf1;
+    padding: 9px 0;
+    border-top: 1px solid #eef2f6;
     font-size: 13px;
     font-weight: 900;
   }
 
   .public-cover-tv-game {
     display: grid;
-    gap: 3px;
+    gap: 6px;
     min-width: 0;
   }
 
   .public-cover-tv-game strong {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    color: #10151b;
+    line-height: 1.18;
+    white-space: normal;
   }
 
   .public-cover-tv-game time {
@@ -566,15 +566,23 @@ const publicMatchdayStyles = `
     font-weight: 800;
   }
 
+  .public-cover-tv-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+  }
+
   .public-cover-tv-channel,
   .public-cover-tv-empty {
     display: inline-flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 6px;
+    gap: 5px;
     min-width: 0;
     color: #263241;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 900;
     text-align: right;
   }
@@ -588,14 +596,14 @@ const publicMatchdayStyles = `
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 54px;
-    min-height: 30px;
-    padding: 4px 7px;
-    border: 1px solid #d8dee6;
+    min-width: 46px;
+    min-height: 24px;
+    padding: 3px 6px;
+    border: 1px solid #eef2f6;
     border-radius: 4px;
-    background: #f8fafc;
+    background: #eef2f6;
     color: #10151b;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 900;
     line-height: 1;
     text-align: center;
@@ -603,8 +611,8 @@ const publicMatchdayStyles = `
   }
 
   .public-cover-channel-list img {
-    width: 54px;
-    height: 30px;
+    width: 46px;
+    height: 24px;
     object-fit: contain;
   }
 
@@ -1609,11 +1617,13 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                   <li key={item.id}>
                     <span className="public-cover-tv-game">
                       <strong>{item.game}</strong>
-                      <time dateTime={item.kickoffDateTime ?? undefined}>{item.kickoffLabel}</time>
-                    </span>
-                    <span className="public-cover-tv-channel">
-                      {item.channelLogoUrl ? <img alt="" src={item.channelLogoUrl} /> : <span className="public-cover-tv-channel-logo">{item.channelName}</span>}
-                      {item.channelLogoUrl ? <span>{item.channelName}</span> : null}
+                      <span className="public-cover-tv-meta">
+                        <time dateTime={item.kickoffDateTime ?? undefined}>{item.kickoffLabel}</time>
+                        <span className="public-cover-tv-channel">
+                          {item.channelLogoUrl ? <img alt="" src={item.channelLogoUrl} /> : <span className="public-cover-tv-channel-logo">{item.channelName}</span>}
+                          {item.channelLogoUrl ? <span>{item.channelName}</span> : null}
+                        </span>
+                      </span>
                     </span>
                   </li>
                 ))}
