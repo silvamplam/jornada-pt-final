@@ -397,7 +397,7 @@ const publicMatchdayStyles = `
 
   .public-matchday-editorial {
     align-content: space-between;
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
     min-height: 100%;
   }
 
@@ -418,10 +418,11 @@ const publicMatchdayStyles = `
   .public-cover-headline {
     position: relative;
     display: grid;
+    gap: 14px;
     align-content: start;
-    min-height: 220px;
+    min-height: 0;
     overflow: visible;
-    padding: 18px 0 20px;
+    padding: 0 0 18px;
     border-bottom: 1px solid #dfe5ec;
     background: #ffffff;
     color: #10151b;
@@ -434,6 +435,13 @@ const publicMatchdayStyles = `
   .public-cover-headline > div {
     position: relative;
     z-index: 1;
+  }
+
+  .public-cover-headline-photo {
+    display: block;
+    width: 100%;
+    height: clamp(170px, 22vw, 260px);
+    object-fit: cover;
   }
 
   .public-cover-headline p {
@@ -463,7 +471,7 @@ const publicMatchdayStyles = `
     height: 100%;
     padding: 14px;
     border: 1px solid #dde4ec;
-    background: #f8fafc;
+    background: #ffffff;
   }
 
   .public-cover-support h4 {
@@ -517,10 +525,11 @@ const publicMatchdayStyles = `
   }
 
   .public-cover-story-photo {
-    min-height: 74px;
-    background:
-      linear-gradient(135deg, rgba(16, 21, 27, 0.12), rgba(196, 0, 18, 0.08)),
-      #eef2f6;
+    display: block;
+    width: 100%;
+    height: clamp(76px, 8vw, 108px);
+    object-fit: cover;
+    background: #ffffff;
   }
 
   .public-cover-story span {
@@ -1453,26 +1462,43 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
           </aside>
           <article className="public-matchday-editorial">
             <div className="public-cover-headline">
+              <img
+                className="public-cover-headline-photo"
+                src="https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=1200&q=80"
+                alt=""
+              />
               <div>
-              <h2 style={context.editorial?.title_color ? { color: context.editorial.title_color } : undefined}>
-                {context.editorial?.title || "Manchete da jornada"}
-              </h2>
-              <p>{context.editorial?.summary || "Espaço reservado para a leitura editorial desta jornada."}</p>
-            </div>
+                <h2 style={context.editorial?.title_color ? { color: context.editorial.title_color } : undefined}>
+                  {context.editorial?.title || "Manchete da jornada"}
+                </h2>
+                <p>{context.editorial?.summary || "Espaço reservado para a leitura editorial desta jornada."}</p>
+              </div>
             </div>
             <div className="public-cover-story-strip" aria-label="Notícias de apoio da jornada">
               <article className="public-cover-story">
-                <div className="public-cover-story-photo" aria-hidden="true" />
+                <img
+                  className="public-cover-story-photo"
+                  src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80"
+                  alt=""
+                />
                 <span>Antevisão</span>
                 <strong>Os pontos de atenção antes da bola rolar</strong>
               </article>
               <article className="public-cover-story">
-                <div className="public-cover-story-photo" aria-hidden="true" />
+                <img
+                  className="public-cover-story-photo"
+                  src="https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=700&q=80"
+                  alt=""
+                />
                 <span>Ambiente</span>
                 <strong>A jornada vista pelas bancadas e pelos protagonistas</strong>
               </article>
               <article className="public-cover-story">
-                <div className="public-cover-story-photo" aria-hidden="true" />
+                <img
+                  className="public-cover-story-photo"
+                  src="https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=700&q=80"
+                  alt=""
+                />
                 <span>Contexto</span>
                 <strong>O que pode mudar na tabela depois dos resultados</strong>
               </article>
