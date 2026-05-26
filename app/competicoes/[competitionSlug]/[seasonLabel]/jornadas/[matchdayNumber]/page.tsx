@@ -973,10 +973,10 @@ const publicMatchdayStyles = `
 
   .public-matchday-date-row {
     display: flex;
-    flex: 1 0 100%;
+    flex: 0 0 auto;
     justify-content: flex-end;
     min-width: 0;
-    padding-top: 2px;
+    margin-left: auto;
   }
 
   .public-matchday-date-context {
@@ -984,11 +984,11 @@ const publicMatchdayStyles = `
     align-items: center;
     max-width: 100%;
     color: #66717f;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
-    line-height: 1.25;
+    line-height: 1;
     text-align: right;
-    white-space: normal;
+    white-space: nowrap;
   }
 
   .public-table-wrap {
@@ -1218,7 +1218,7 @@ const publicMatchdayStyles = `
   .public-season-nav-inner {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px 18px;
+    gap: 8px 18px;
     align-items: center;
     max-width: 1540px;
     margin: 0 auto;
@@ -1240,6 +1240,7 @@ const publicMatchdayStyles = `
     }
 
     .public-matchday-date-row {
+      margin-left: 0;
       justify-content: flex-start;
     }
   }
@@ -1636,7 +1637,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
         </nav>
         <div className="public-matchday-date-row" aria-label="Data da jornada selecionada">
           <span className="public-matchday-date-context">
-            Jornada {String(context.matchday.number).padStart(2, "0")} · {selectedMatchdayDateContext}
+            {selectedMatchdayDateContext}
           </span>
         </div>
         </div>
