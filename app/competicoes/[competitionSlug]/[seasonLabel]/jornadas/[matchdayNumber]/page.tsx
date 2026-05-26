@@ -496,19 +496,56 @@ const publicMatchdayStyles = `
   }
 
   .public-cover-channel-list li {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 10px;
     align-items: center;
-    gap: 8px;
     min-width: 0;
-    padding: 8px 0;
+    padding: 10px 0;
     border-top: 1px solid #e6ebf1;
     font-size: 13px;
     font-weight: 900;
   }
 
+  .public-cover-tv-game {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .public-cover-tv-game strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .public-cover-tv-game time {
+    color: #607086;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .public-cover-tv-channel,
+  .public-cover-tv-empty {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    min-width: 0;
+    color: #263241;
+    font-size: 12px;
+    font-weight: 900;
+    text-align: right;
+  }
+
+  .public-cover-tv-empty {
+    color: #8a95a3;
+    font-weight: 800;
+  }
+
   .public-cover-channel-list img {
-    width: 38px;
-    height: 22px;
+    width: 54px;
+    height: 30px;
     object-fit: contain;
   }
 
@@ -1033,6 +1070,16 @@ const publicMatchdayStyles = `
       grid-template-columns: 1fr;
     }
 
+    .public-cover-channel-list li {
+      grid-template-columns: 1fr;
+    }
+
+    .public-cover-tv-channel,
+    .public-cover-tv-empty {
+      justify-content: flex-start;
+      text-align: left;
+    }
+
     .public-matchday-editorial,
     .public-matchday-feature,
     .public-matchday-cover-side,
@@ -1324,14 +1371,9 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   const finishedMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "finished");
   const scheduledMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "scheduled");
   const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
-  const broadcastChannels = Array.from(
-    new Map(
-      context.matchesForMatchday
-        .map((match) => match.broadcastChannel)
-        .filter((channel): channel is NonNullable<PublicSeasonMatch["broadcastChannel"]> => Boolean(channel))
-        .map((channel) => [channel.id, channel])
-    ).values()
-  ).slice(0, 4);
+  const nextScheduledMatches = [...scheduledMatches]
+    .sort((firstMatch, secondMatch) => new Date(firstMatch.kickoff_at).getTime() - new Date(secondMatch.kickoff_at).getTime())
+    .slice(0, 4);
 
   return (
     <main className="public-matchday-shell">
@@ -1446,17 +1488,30 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
             </div>
             <div className="public-cover-support">
               <h4>Onde ver</h4>
-              {broadcastChannels.length > 0 ? (
+              {nextScheduledMatches.length > 0 ? (
                 <ul className="public-cover-channel-list">
-                  {broadcastChannels.map((channel) => (
-                    <li key={channel.id}>
-                      {channel.logo_url ? <img alt="" src={channel.logo_url} /> : null}
-                      <span>{channel.name}</span>
+                  {nextScheduledMatches.map((match) => (
+                    <li key={match.id}>
+                      <span className="public-cover-tv-game">
+                        <strong>
+                          {match.homeTeam?.short_name || match.homeTeam?.name || "Casa"} vs{" "}
+                          {match.awayTeam?.short_name || match.awayTeam?.name || "Fora"}
+                        </strong>
+                        <time dateTime={match.kickoff_at}>{formatKickoff(match.kickoff_at)}</time>
+                      </span>
+                      {match.broadcastChannel ? (
+                        <span className="public-cover-tv-channel">
+                          {match.broadcastChannel.logo_url ? <img alt="" src={match.broadcastChannel.logo_url} /> : null}
+                          <span>{match.broadcastChannel.name}</span>
+                        </span>
+                      ) : (
+                        <span className="public-cover-tv-empty">TV por definir</span>
+                      )}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p>Canais da jornada por definir.</p>
+                <p>Sem jogos agendados por disputar nesta jornada.</p>
               )}
             </div>
           </aside>
