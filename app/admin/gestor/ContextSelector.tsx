@@ -106,8 +106,23 @@ export function ContextSelector(props: ContextSelectorProps) {
     setSeasonId(nextSeasonId);
   }
 
+  function rememberContext() {
+    try {
+      window.localStorage.setItem(
+        "jornada.admin.gestor.context",
+        JSON.stringify({
+          pais: countryId,
+          competicao: competitionId,
+          epoca: seasonId
+        })
+      );
+    } catch {
+      // localStorage can be unavailable in private or restricted browser contexts.
+    }
+  }
+
   return (
-    <form className="manager-form" action="/admin/gestor" method="get" autoComplete="off">
+    <form className="manager-form" action="/admin/gestor" method="get" autoComplete="off" onSubmit={rememberContext}>
       <div className="manager-field">
         <label htmlFor="pais">Pais</label>
         <select id="pais" name="pais" value={countryId} onChange={(event) => handleCountryChange(event.target.value)}>

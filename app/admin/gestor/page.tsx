@@ -2108,6 +2108,13 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
       </li>
     );
   };
+  const hasContextQuery = Boolean(requestedCountryId || requestedCompetitionId || requestedSeasonId || requestedMatchdayId);
+  const contextStoragePayload = {
+    pais: selectedCountry?.id ?? "",
+    competicao: selectedCompetition?.id ?? "",
+    epoca: selectedSeason?.id ?? "",
+    jornada: selectedMatchday?.id ?? ""
+  };
 
   return (
     <main className="manager-shell">
@@ -2115,6 +2122,36 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
       <script
         dangerouslySetInnerHTML={{
           __html: `
+            (function () {
+              var storageKey = "jornada.admin.gestor.context";
+              var hasContextQuery = ${JSON.stringify(hasContextQuery)};
+              var currentContext = ${JSON.stringify(contextStoragePayload)};
+
+              try {
+                if (!hasContextQuery) {
+                  var savedContext = window.localStorage.getItem(storageKey);
+                  if (savedContext) {
+                    var parsed = JSON.parse(savedContext);
+                    var params = new URLSearchParams();
+                    if (parsed.pais) params.set("pais", parsed.pais);
+                    if (parsed.competicao) params.set("competicao", parsed.competicao);
+                    if (parsed.epoca) params.set("epoca", parsed.epoca);
+                    if (parsed.jornada) params.set("jornada", parsed.jornada);
+                    var query = params.toString();
+                    if (query) {
+                      window.location.replace("/admin/gestor?" + query + window.location.hash);
+                      return;
+                    }
+                  }
+                }
+
+                if (currentContext.pais || currentContext.competicao || currentContext.epoca) {
+                  window.localStorage.setItem(storageKey, JSON.stringify(currentContext));
+                }
+              } catch (error) {
+              }
+            })();
+
             document.addEventListener("submit", function (event) {
               var form = event.target;
               if (!(form instanceof HTMLFormElement)) return;
