@@ -539,21 +539,18 @@ export default async function AdminPage() {
           <section className="admin-tools" aria-label="Paginas de apoio tecnico">
             <header>
               <h2>Apoio tecnico</h2>
-              <p>Estas paginas continuam acessiveis para consulta e manutencao, mas nao substituem o fluxo principal do Centro de gestao.</p>
+              <p>O Centro de gestao e o fluxo principal. Estas paginas ficam apenas como apoio tecnico e catalogos.</p>
             </header>
-            <h3>Dados base</h3>
+            <h3>Catalogos</h3>
             <nav className="admin-section-actions secondary" aria-label="Dados base">
-            <a href="/admin/paises">Gerir paises</a>
-            <a href="/admin/competicoes">Gerir competicoes</a>
-            <a href="/admin/epocas">Gerir epocas</a>
-            <a href="/admin/clubes">Gerir clubes</a>
-            <a href="/admin/canais-tv">Gerir canais TV</a>
+              <a href="/admin/paises">Gerir paises</a>
+              <a href="/admin/competicoes">Gerir competicoes</a>
+              <a href="/admin/epocas">Gerir epocas</a>
+              <a href="/admin/clubes">Gerir clubes</a>
+              <a href="/admin/canais-tv">Gerir canais TV</a>
             </nav>
-            <h3>Manutencao tecnica / paginas antigas</h3>
-            <nav className="admin-section-actions secondary" aria-label="Manutencao tecnica">
-              <a href="/admin/participantes">Gerir participantes</a>
-              <a href="/admin/jornadas">Gerir jornadas</a>
-              <a href="/admin/classificacoes">Gerir classificacoes</a>
+            <h3>TV</h3>
+            <nav className="admin-section-actions secondary" aria-label="Apoio tecnico de TV">
               <a href="/admin/jogos-tv">Ligar jogos a TV</a>
             </nav>
           </section>
