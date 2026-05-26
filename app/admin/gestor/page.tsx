@@ -13,6 +13,7 @@ import {
   type SupabaseCompetition,
   type SupabaseCountry,
   type SupabaseMatchdayEditorial,
+  type SupabaseMatchdayHighlight,
   type SupabaseSeason,
   type SupabaseTeam
 } from "@/lib/supabase";
@@ -511,6 +512,22 @@ const managerStyles = `
     border-radius: 6px;
     object-fit: cover;
     background: #eef2f6;
+  }
+
+  .manager-highlight-fieldset {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 12px;
+    border: 1px solid #d8dee6;
+    border-radius: 6px;
+  }
+
+  .manager-highlight-fieldset legend {
+    padding: 0 6px;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
   }
 
   .manager-warning {
@@ -1572,6 +1589,22 @@ async function readMatchdayEditorial(matchdayId?: string): Promise<SupabaseMatch
   }
 }
 
+async function readMatchdayHighlights(matchdayId?: string): Promise<SupabaseMatchdayHighlight[]> {
+  if (!matchdayId) {
+    return [];
+  }
+
+  try {
+    return fetchSupabaseAdminTable<SupabaseMatchdayHighlight>(
+      `matchday_highlights?select=id,matchday_id,label,title,image_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+        matchdayId
+      )}&order=sort_order.asc&limit=3`
+    );
+  } catch {
+    return [];
+  }
+}
+
 async function readBlockingMatchdaysForSeason(seasonId?: string): Promise<SeasonMatchday[]> {
   if (!seasonId) {
     return [];
@@ -1724,6 +1757,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     matchdaysForSeason.find((matchday) => matchday.id === requestedMatchdayId) ?? matchdaysForSeason[0] ?? null;
   const matchesForMatchday = await readMatchesForMatchday(selectedMatchday?.id);
   const matchdayEditorial = await readMatchdayEditorial(selectedMatchday?.id);
+  const matchdayHighlights = await readMatchdayHighlights(selectedMatchday?.id);
   const scheduledMatchesForMatchday = matchesForMatchday.filter((match) => match.status === "scheduled");
   const futureLiveMatchesForMatchday = matchesForMatchday.filter(
     (match) => match.status !== "scheduled" && match.status !== "finished"
@@ -1927,6 +1961,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     clear_season_calendar: "Epoca limpa. Jogos, jornadas e participantes desta epoca foram removidos.",
     finish_match: "Resultado final guardado.",
     save_matchday_editorial: "Linha editorial da jornada guardada.",
+    save_matchday_highlights: "Destaques da jornada guardados.",
     upload_matchday_editorial_image: "Imagem da manchete carregada.",
     remove_country: "Pais removido.",
     remove_competition: "Competicao removida.",
@@ -1977,6 +2012,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "clear-season-calendar-failed": "Nao foi possivel limpar o calendario da epoca. O detalhe ficou registado no log do servidor.",
     "match-score-invalid": "O resultado tem de ter golos da casa e do fora, com numeros inteiros iguais ou superiores a zero.",
     "editorial-title-required": "Para publicar, indica uma manchete da jornada.",
+    "highlight-title-required": "Para publicar um destaque, indica o titulo.",
     "editorial-image-type": "O ficheiro tem de ser uma imagem JPG, PNG ou WebP.",
     "editorial-image-size": "A imagem nao pode ter mais de 5MB.",
     "editorial-image-upload": "Nao foi possivel carregar a imagem. Confirma o bucket de Storage.",
@@ -3742,6 +3778,68 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     </div>
                     <button className="manager-button secondary" type="submit">
                       Carregar imagem da manchete
+                    </button>
+                  </form>
+                  <form className="manager-create-form" action="/api/admin/gestor" method="post">
+                    <input type="hidden" name="action_type" value="save_matchday_highlights" />
+                    <input type="hidden" name="return_to" value={editorialReturnTo} />
+                    <input type="hidden" name="matchday_id" value={selectedMatchday.id} />
+                    <header>
+                      <h3>Destaques da jornada</h3>
+                      <p>Edita ate tres blocos abaixo da manchete. Nesta fase, usa URL manual da imagem.</p>
+                    </header>
+                    {[1, 2, 3].map((order) => {
+                      const highlight = matchdayHighlights.find((item) => item.sort_order === order);
+                      return (
+                        <fieldset className="manager-highlight-fieldset" key={order}>
+                          <legend>Destaque {order}</legend>
+                          <input type="hidden" name={`highlight_${order}_id`} value={highlight?.id ?? ""} />
+                          <input type="hidden" name={`highlight_${order}_sort_order`} value={order} />
+                          <div className="manager-field">
+                            <label htmlFor={`highlight-${order}-label`}>Etiqueta</label>
+                            <input
+                              id={`highlight-${order}-label`}
+                              name={`highlight_${order}_label`}
+                              defaultValue={highlight?.label ?? ""}
+                              placeholder={order === 1 ? "ANTEVISAO" : order === 2 ? "AMBIENTE" : "CONTEXTO"}
+                            />
+                          </div>
+                          <div className="manager-field">
+                            <label htmlFor={`highlight-${order}-title`}>Titulo</label>
+                            <input
+                              id={`highlight-${order}-title`}
+                              name={`highlight_${order}_title`}
+                              defaultValue={highlight?.title ?? ""}
+                              placeholder={
+                                order === 1
+                                  ? "Os pontos de atencao antes da bola rolar"
+                                  : order === 2
+                                    ? "A jornada vista pelas bancadas e pelos protagonistas"
+                                    : "O que pode mudar na tabela depois dos resultados"
+                              }
+                            />
+                          </div>
+                          <div className="manager-field">
+                            <label htmlFor={`highlight-${order}-image-url`}>Imagem URL</label>
+                            <input
+                              id={`highlight-${order}-image-url`}
+                              name={`highlight_${order}_image_url`}
+                              defaultValue={highlight?.image_url ?? ""}
+                              placeholder="https://exemplo.com/imagem.jpg"
+                            />
+                          </div>
+                          <div className="manager-field">
+                            <label htmlFor={`highlight-${order}-status`}>Estado</label>
+                            <select id={`highlight-${order}-status`} name={`highlight_${order}_status`} defaultValue={highlight?.status ?? "draft"}>
+                              <option value="draft">Rascunho</option>
+                              <option value="published">Publicado</option>
+                            </select>
+                          </div>
+                        </fieldset>
+                      );
+                    })}
+                    <button className="manager-button" type="submit">
+                      Guardar destaques da jornada
                     </button>
                   </form>
                 </article>

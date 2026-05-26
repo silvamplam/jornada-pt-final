@@ -804,6 +804,68 @@ async function saveMatchdayEditorial(formData: FormData) {
   });
 }
 
+async function saveMatchdayHighlights(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+
+  if (!matchdayId) {
+    throw new Error("missing-fields");
+  }
+
+  if (!(await hasRows(`matchdays?select=id&id=eq.${encodeURIComponent(matchdayId)}`))) {
+    throw new Error("matchday-invalid");
+  }
+
+  for (const sortOrder of [1, 2, 3]) {
+    const highlightId = cleanText(formData.get(`highlight_${sortOrder}_id`));
+    const label = cleanText(formData.get(`highlight_${sortOrder}_label`));
+    const title = cleanText(formData.get(`highlight_${sortOrder}_title`));
+    const imageUrl = cleanText(formData.get(`highlight_${sortOrder}_image_url`));
+    const statusValue = cleanText(formData.get(`highlight_${sortOrder}_status`)) ?? "draft";
+    const status = statusValue === "published" ? "published" : "draft";
+
+    if (status === "published" && !title) {
+      throw new Error("highlight-title-required");
+    }
+
+    const payload = {
+      matchday_id: matchdayId,
+      label,
+      title,
+      image_url: imageUrl,
+      sort_order: sortOrder,
+      status,
+      updated_at: new Date().toISOString()
+    };
+
+    if (highlightId) {
+      await writeSupabaseAdmin(
+        `matchday_highlights?id=eq.${encodeURIComponent(highlightId)}&matchday_id=eq.${encodeURIComponent(matchdayId)}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload)
+        }
+      );
+      continue;
+    }
+
+    const existingRows = await fetchSupabaseAdminTable<{ id: string }>(
+      `matchday_highlights?select=id&matchday_id=eq.${encodeURIComponent(matchdayId)}&sort_order=eq.${sortOrder}&limit=1`
+    );
+
+    if (existingRows[0]) {
+      await writeSupabaseAdmin(`matchday_highlights?id=eq.${encodeURIComponent(existingRows[0].id)}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      });
+    } else if (label || title || imageUrl || status === "published") {
+      await writeSupabaseAdmin("matchday_highlights", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+    }
+  }
+}
+
 function parseCalendarList(rawList: string): { rows: CalendarListRow[]; invalidLines: number } {
   const rows: CalendarListRow[] = [];
   let invalidLines = 0;
@@ -1500,6 +1562,8 @@ export async function POST(request: Request) {
       await removeMatchday(formData);
     } else if (actionType === "save_matchday_editorial") {
       await saveMatchdayEditorial(formData);
+    } else if (actionType === "save_matchday_highlights") {
+      await saveMatchdayHighlights(formData);
     } else if (actionType === "match") {
       await createMatch(formData);
     } else if (actionType === "update_match") {

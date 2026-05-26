@@ -1643,33 +1643,45 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               </div>
             </div>
             <div className="public-cover-story-strip" aria-label="Notícias de apoio da jornada">
-              <article className="public-cover-story">
-                <img
-                  className="public-cover-story-photo"
-                  src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80"
-                  alt=""
-                />
-                <span>Antevisão</span>
-                <strong>Os pontos de atenção antes da bola rolar</strong>
-              </article>
-              <article className="public-cover-story">
-                <img
-                  className="public-cover-story-photo"
-                  src="https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=700&q=80"
-                  alt=""
-                />
-                <span>Ambiente</span>
-                <strong>A jornada vista pelas bancadas e pelos protagonistas</strong>
-              </article>
-              <article className="public-cover-story">
-                <img
-                  className="public-cover-story-photo"
-                  src="https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=700&q=80"
-                  alt=""
-                />
-                <span>Contexto</span>
-                <strong>O que pode mudar na tabela depois dos resultados</strong>
-              </article>
+              {context.highlights.length > 0 ? (
+                context.highlights.map((highlight) => (
+                  <article className="public-cover-story" key={highlight.id}>
+                    {highlight.image_url ? <img className="public-cover-story-photo" src={highlight.image_url} alt="" /> : null}
+                    {highlight.label ? <span>{highlight.label}</span> : null}
+                    <strong>{highlight.title}</strong>
+                  </article>
+                ))
+              ) : (
+                <>
+                  <article className="public-cover-story">
+                    <img
+                      className="public-cover-story-photo"
+                      src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80"
+                      alt=""
+                    />
+                    <span>Antevisão</span>
+                    <strong>Os pontos de atenção antes da bola rolar</strong>
+                  </article>
+                  <article className="public-cover-story">
+                    <img
+                      className="public-cover-story-photo"
+                      src="https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=700&q=80"
+                      alt=""
+                    />
+                    <span>Ambiente</span>
+                    <strong>A jornada vista pelas bancadas e pelos protagonistas</strong>
+                  </article>
+                  <article className="public-cover-story">
+                    <img
+                      className="public-cover-story-photo"
+                      src="https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=700&q=80"
+                      alt=""
+                    />
+                    <span>Contexto</span>
+                    <strong>O que pode mudar na tabela depois dos resultados</strong>
+                  </article>
+                </>
+              )}
             </div>
           </article>
           <aside className="public-matchday-cover-side" aria-label="Resumo automático da jornada">
