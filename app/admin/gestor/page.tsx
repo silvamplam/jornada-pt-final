@@ -499,6 +499,20 @@ const managerStyles = `
     background: #f8fafc;
   }
 
+  .manager-editorial-image-preview {
+    display: grid;
+    gap: 8px;
+  }
+
+  .manager-editorial-image-preview img {
+    width: min(360px, 100%);
+    aspect-ratio: 16 / 9;
+    border: 1px solid #d8dee6;
+    border-radius: 6px;
+    object-fit: cover;
+    background: #eef2f6;
+  }
+
   .manager-warning {
     padding: 18px 20px;
     border-color: #ffd3a3;
@@ -1913,6 +1927,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     clear_season_calendar: "Epoca limpa. Jogos, jornadas e participantes desta epoca foram removidos.",
     finish_match: "Resultado final guardado.",
     save_matchday_editorial: "Linha editorial da jornada guardada.",
+    upload_matchday_editorial_image: "Imagem da manchete carregada.",
     remove_country: "Pais removido.",
     remove_competition: "Competicao removida.",
     remove_season: "Epoca removida. Jogos, jornadas, participantes e editoriais desta epoca foram limpos."
@@ -1962,6 +1977,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "clear-season-calendar-failed": "Nao foi possivel limpar o calendario da epoca. O detalhe ficou registado no log do servidor.",
     "match-score-invalid": "O resultado tem de ter golos da casa e do fora, com numeros inteiros iguais ou superiores a zero.",
     "editorial-title-required": "Para publicar, indica uma manchete da jornada.",
+    "editorial-image-type": "O ficheiro tem de ser uma imagem JPG, PNG ou WebP.",
+    "editorial-image-size": "A imagem nao pode ter mais de 5MB.",
+    "editorial-image-upload": "Nao foi possivel carregar a imagem. Confirma o bucket de Storage.",
     save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
   };
   const sectionMessage = (section: string) => {
@@ -3688,6 +3706,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                         placeholder="https://exemplo.com/imagem.jpg"
                       />
                     </div>
+                    {matchdayEditorial?.image_url ? (
+                      <div className="manager-field manager-editorial-image-preview">
+                        <label>Pre-visualizacao da imagem atual</label>
+                        <img alt="" src={matchdayEditorial.image_url} />
+                      </div>
+                    ) : null}
                     <div className="manager-field">
                       <label htmlFor="matchday-editorial-status">Estado</label>
                       <select id="matchday-editorial-status" name="status" defaultValue={matchdayEditorial?.status ?? "draft"}>
@@ -3697,6 +3721,27 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     </div>
                     <button className="manager-button" type="submit">
                       Guardar linha editorial
+                    </button>
+                  </form>
+                  <form
+                    className="manager-create-form"
+                    action="/api/admin/gestor/editorial-image"
+                    encType="multipart/form-data"
+                    method="post"
+                  >
+                    <input type="hidden" name="return_to" value={editorialReturnTo} />
+                    <input type="hidden" name="matchday_id" value={selectedMatchday.id} />
+                    <div className="manager-field">
+                      <label htmlFor="matchday-editorial-image-upload">Carregar imagem da manchete</label>
+                      <input
+                        accept="image/jpeg,image/png,image/webp"
+                        id="matchday-editorial-image-upload"
+                        name="image"
+                        type="file"
+                      />
+                    </div>
+                    <button className="manager-button secondary" type="submit">
+                      Carregar imagem da manchete
                     </button>
                   </form>
                 </article>
