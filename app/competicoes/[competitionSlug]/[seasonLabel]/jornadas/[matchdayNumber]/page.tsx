@@ -264,11 +264,11 @@ const publicMatchdayStyles = `
 
   .public-matchday-strip {
     display: flex;
-    gap: 10px;
+    gap: 16px;
     overflow-x: auto;
     scroll-behavior: smooth;
     scroll-padding: 14px;
-    padding: 12px 4px;
+    padding: 10px 4px;
   }
 
   .public-matchday-strip-shell {
@@ -282,7 +282,7 @@ const publicMatchdayStyles = `
   .public-matchday-strip-button {
     align-self: center;
     width: 30px;
-    height: 48px;
+    height: 52px;
     border: 1px solid #d8dee6;
     border-radius: 999px;
     background: #ffffff;
@@ -293,16 +293,29 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-card {
+    position: relative;
     display: grid;
-    flex: 0 0 252px;
+    flex: 0 0 236px;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    gap: 6px;
+    gap: 7px 8px;
     align-items: center;
-    padding: 9px 10px;
-    border: 1px solid #e3e9f0;
-    border-radius: 8px;
+    min-height: 76px;
+    padding: 10px 12px 9px;
+    border: 1px solid #eef2f6;
+    border-radius: 6px;
     background: #ffffff;
+    box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
     font-size: 13px;
+  }
+
+  .public-matchday-mini-card + .public-matchday-mini-card::before {
+    content: "";
+    position: absolute;
+    top: 12px;
+    bottom: 12px;
+    left: -9px;
+    width: 1px;
+    background: #e5e7eb;
   }
 
   .public-matchday-mini-card-live {
@@ -320,7 +333,14 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-card strong {
-    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    color: #10151b;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 18px;
+    line-height: 1;
     text-align: center;
     white-space: nowrap;
   }
@@ -331,6 +351,7 @@ const publicMatchdayStyles = `
     gap: 6px;
     overflow: hidden;
     font-weight: 900;
+    text-transform: uppercase;
   }
 
   .public-matchday-mini-team:first-child {
@@ -347,30 +368,45 @@ const publicMatchdayStyles = `
     white-space: nowrap;
   }
 
-  .public-matchday-mini-status {
+  .public-matchday-mini-card .public-team-badge {
+    width: 30px;
+    height: 30px;
+    background: #ffffff;
+  }
+
+  .public-matchday-mini-card .public-matchday-mini-status {
     grid-column: 1 / -1;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 5px 8px;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
     color: #607086;
     font-size: 11px;
     font-weight: 900;
     text-transform: uppercase;
   }
 
+  .public-matchday-mini-time {
+    color: #263241;
+  }
+
   .public-matchday-mini-tv {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     color: #263241;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 900;
+    text-transform: none;
   }
 
   .public-matchday-mini-tv img {
-    width: 24px;
-    height: 15px;
+    width: 34px;
+    height: 20px;
     object-fit: contain;
   }
 
@@ -1147,6 +1183,14 @@ function formatKickoff(value: string) {
   }).format(new Date(value));
 }
 
+function formatKickoffTime(value: string) {
+  return new Intl.DateTimeFormat("pt-PT", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Lisbon"
+  }).format(new Date(value));
+}
+
 function statusLabel(status: string) {
   const normalized = status.trim().toLowerCase();
   if (normalized === "finished") return "Finalizado";
@@ -1271,6 +1315,7 @@ function MiniBroadcastBadge({ match }: { match: PublicSeasonMatch }) {
 function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: boolean }) {
   const kind = statusKind(match.status);
   const statusText = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} - ${match.minute}'` : statusLabel(match.status);
+  const showKickoffTime = kind === "scheduled";
 
   return (
     <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>
@@ -1285,6 +1330,7 @@ function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: 
       </span>
       <span className={`public-matchday-mini-status public-matchday-status-${statusKind(match.status)}`}>
         <span>{statusText}</span>
+        {showKickoffTime ? <time className="public-matchday-mini-time" dateTime={match.kickoff_at}>{formatKickoffTime(match.kickoff_at)}</time> : null}
         <MiniBroadcastBadge match={match} />
       </span>
     </article>
