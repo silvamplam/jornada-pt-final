@@ -32,15 +32,15 @@ const publicMatchdayStyles = `
 
   .public-matchday-shell {
     min-height: 100vh;
-    padding: 0 28px 28px;
+    padding: 0 24px 28px;
   }
 
   .public-top-stack {
     position: sticky;
     top: 0;
     z-index: 20;
-    margin: 0 -28px;
-    padding: 0 28px;
+    margin: 0 -24px;
+    padding: 0 24px;
     border-bottom: 1px solid #d8dee6;
     background: rgba(255, 255, 255, 0.98);
     box-shadow: 0 10px 24px rgba(12, 22, 34, 0.08);
@@ -51,9 +51,10 @@ const publicMatchdayStyles = `
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 22px;
     align-items: center;
-    max-width: 1540px;
+    min-height: 72px;
+    max-width: 1512px;
     margin: 0 auto;
-    padding: 12px 0 11px;
+    padding: 0;
     border-bottom: 1px solid #dfe5ec;
   }
 
@@ -219,7 +220,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-panel {
-    max-width: 1540px;
+    max-width: 1512px;
     margin-left: auto;
     margin-right: auto;
     margin-top: 12px;
@@ -231,6 +232,7 @@ const publicMatchdayStyles = `
     border: 0;
     background: transparent;
     box-shadow: none;
+    min-height: 84px;
   }
 
   .public-matchday-scoreboard-panel + .public-matchday-panel {
@@ -271,7 +273,7 @@ const publicMatchdayStyles = `
     overflow-x: auto;
     scroll-behavior: smooth;
     scroll-padding: 14px;
-    padding: 10px 8px;
+    padding: 4px 8px;
     background: transparent;
   }
 
@@ -279,7 +281,8 @@ const publicMatchdayStyles = `
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 6px;
-    align-items: stretch;
+    align-items: center;
+    min-height: 84px;
     padding: 0 10px;
     background: transparent;
   }
@@ -304,8 +307,8 @@ const publicMatchdayStyles = `
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     gap: 7px 8px;
     align-items: center;
-    min-height: 76px;
-    padding: 10px 12px 9px;
+    min-height: 72px;
+    padding: 9px 12px 8px;
     border: 1px solid #eef2f6;
     border-radius: 6px;
     background: #ffffff;
@@ -417,9 +420,9 @@ const publicMatchdayStyles = `
 
   .public-matchday-cover {
     display: grid;
-    grid-template-columns: minmax(220px, 0.68fr) minmax(500px, 1.7fr) minmax(220px, 0.62fr) minmax(260px, 0.78fr);
-    gap: 20px;
-    padding: 22px 20px;
+    grid-template-columns: 240px minmax(0, 728px) minmax(260px, 364px) 280px;
+    gap: 24px;
+    padding: 20px 0;
     align-items: start;
     min-height: 420px;
   }
@@ -1222,9 +1225,10 @@ const publicMatchdayStyles = `
     flex-wrap: wrap;
     gap: 8px 18px;
     align-items: center;
-    max-width: 1540px;
+    min-height: 56px;
+    max-width: 1512px;
     margin: 0 auto;
-    padding: 9px 28px 10px;
+    padding: 0;
   }
 
   @media (max-width: 760px) {
