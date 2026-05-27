@@ -245,6 +245,8 @@ const publicMatchdayStyles = `
     background: transparent;
     box-shadow: none;
     overflow: visible;
+    max-width: none;
+    width: 100%;
   }
 
   .public-matchday-panel header {
@@ -428,10 +430,12 @@ const publicMatchdayStyles = `
 
   .public-matchday-cover {
     display: grid;
-    grid-template-columns: 240px minmax(420px, 1fr) 364px 280px;
+    grid-template-columns: 240px minmax(620px, 728px) 364px 280px;
+    grid-template-areas: "feature editorial side news";
     gap: 24px;
-    width: 100%;
+    width: min(100%, 1684px);
     box-sizing: border-box;
+    margin: 0 auto;
     padding: 20px 0;
     align-items: start;
     min-height: 420px;
@@ -451,9 +455,22 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-editorial {
+    grid-area: editorial;
     align-content: start;
     grid-template-rows: auto auto;
     min-height: 0;
+  }
+
+  .public-matchday-feature {
+    grid-area: feature;
+  }
+
+  .public-matchday-cover-side {
+    grid-area: side;
+  }
+
+  .public-matchday-news {
+    grid-area: news;
   }
 
   .public-matchday-editorial h2,
