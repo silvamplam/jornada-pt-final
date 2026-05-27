@@ -52,7 +52,7 @@ const publicMatchdayStyles = `
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 22px;
     align-items: center;
-    min-height: 72px;
+    min-height: 60px;
     max-width: 1512px;
     margin: 0 auto;
     padding: 0;
@@ -65,7 +65,7 @@ const publicMatchdayStyles = `
     gap: 2px;
     color: #2f343b;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: 34px;
+    font-size: 31px;
     font-weight: 900;
     line-height: 1;
     text-decoration: none;
@@ -230,8 +230,12 @@ const publicMatchdayStyles = `
 
   .public-matchday-scoreboard-panel {
     margin-top: 10px;
-    border: 0;
-    background: transparent;
+    border-top: 1px solid #10151b;
+    border-bottom: 1px solid #10151b;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    background: #ffffff;
     box-shadow: none;
     min-height: 84px;
   }
@@ -284,8 +288,8 @@ const publicMatchdayStyles = `
     overflow-x: auto;
     scroll-behavior: smooth;
     scroll-padding: 14px;
-    padding: 4px 8px;
-    background: transparent;
+    padding: 8px;
+    background: #ffffff;
   }
 
   .public-matchday-strip-shell {
@@ -295,7 +299,7 @@ const publicMatchdayStyles = `
     align-items: center;
     min-height: 84px;
     padding: 0 10px;
-    background: transparent;
+    background: #ffffff;
   }
 
   .public-matchday-strip-button {
