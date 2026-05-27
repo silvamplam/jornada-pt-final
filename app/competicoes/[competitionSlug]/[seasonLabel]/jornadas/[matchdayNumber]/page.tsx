@@ -239,6 +239,14 @@ const publicMatchdayStyles = `
     margin-top: 12px;
   }
 
+  .public-matchday-panel[aria-label="Capa da jornada"] {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+
   .public-matchday-panel header {
     padding: 18px 20px;
     border-bottom: 1px solid #e6ebf1;
@@ -420,8 +428,10 @@ const publicMatchdayStyles = `
 
   .public-matchday-cover {
     display: grid;
-    grid-template-columns: 240px minmax(0, 728px) minmax(260px, 364px) 280px;
+    grid-template-columns: 240px minmax(420px, 1fr) 364px 280px;
     gap: 24px;
+    width: 100%;
+    box-sizing: border-box;
     padding: 20px 0;
     align-items: start;
     min-height: 420px;
@@ -434,8 +444,9 @@ const publicMatchdayStyles = `
     display: grid;
     gap: 10px;
     align-content: start;
-    padding: 0 18px 0 0;
-    border-right: 1px solid #dfe5ec;
+    min-width: 0;
+    padding: 0;
+    border-right: 0;
     background: #ffffff;
   }
 
@@ -455,7 +466,7 @@ const publicMatchdayStyles = `
   .public-matchday-editorial h2 {
     color: #c40012;
     font-family: Georgia, "Times New Roman", serif;
-    max-width: 680px;
+    max-width: 100%;
     font-size: 28px;
     line-height: 1.04;
     letter-spacing: 0;
@@ -501,7 +512,7 @@ const publicMatchdayStyles = `
   }
 
   .public-cover-headline p {
-    max-width: 660px;
+    max-width: 100%;
     color: #526174;
     font-size: 14px;
     line-height: 1.35;
