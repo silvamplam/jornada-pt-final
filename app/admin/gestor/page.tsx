@@ -500,6 +500,80 @@ const managerStyles = `
     background: #f8fafc;
   }
 
+  .manager-editorial-page {
+    display: grid;
+    gap: 14px;
+  }
+
+  .manager-editorial-page > header {
+    display: grid;
+    gap: 4px;
+    padding: 14px;
+    border: 1px solid #d8dee6;
+    border-radius: 6px;
+    background: #ffffff;
+  }
+
+  .manager-editorial-page > header h3,
+  .manager-editorial-page > header p,
+  .manager-editorial-block h4,
+  .manager-editorial-block p,
+  .manager-editorial-note-list {
+    margin: 0;
+  }
+
+  .manager-editorial-block {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid #d8dee6;
+    border-radius: 6px;
+    background: #ffffff;
+  }
+
+  .manager-editorial-block > header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+  }
+
+  .manager-editorial-block-number {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    background: #10151b;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .manager-editorial-block h4 {
+    font-size: 15px;
+    text-transform: uppercase;
+  }
+
+  .manager-editorial-block p,
+  .manager-editorial-page > header p,
+  .manager-editorial-note-list {
+    color: #607086;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .manager-editorial-placeholder {
+    border-style: dashed;
+    background: #f8fafc;
+  }
+
+  .manager-editorial-note-list {
+    display: grid;
+    gap: 8px;
+    padding-left: 18px;
+  }
+
   .manager-editorial-image-preview {
     display: grid;
     gap: 8px;
@@ -3698,7 +3772,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             <header>
               <h2>Linha editorial da jornada</h2>
               <p>
-                Primeira camada editorial da jornada: manchete, resumo curto e estado de publicacao.
+                Organiza os espacos editaveis da primeira pagina publica da jornada.
               </p>
             </header>
             {sectionMessage("linha-editorial")}
@@ -3708,13 +3782,28 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               <div className="manager-create-grid">
                 <article className="manager-create-card manager-wide-card">
                   <header>
-                    <h3>{selectedMatchday.label}</h3>
+                    <h3>1.ª página da jornada</h3>
                     <p>
-                      {matchdayEditorial?.status === "published"
-                        ? "Editorial publicado na pagina publica desta jornada."
-                        : "Editorial guardado como rascunho ou ainda por criar."}
+                      {selectedMatchday.label}. Cada bloco abaixo corresponde a uma zona da primeira pagina publica.
                     </p>
                   </header>
+                  <div className="manager-editorial-page">
+                    <header>
+                      <h3>Visão editorial da página</h3>
+                      <p>Reutiliza os campos existentes e mostra que area da pagina cada conjunto alimenta.</p>
+                    </header>
+                    <section className="manager-editorial-block">
+                      <header>
+                        <span className="manager-editorial-block-number">1</span>
+                        <div>
+                          <h4>Manchete principal</h4>
+                          <p>
+                            {matchdayEditorial?.status === "published"
+                              ? "Editorial publicado na pagina publica desta jornada."
+                              : "Editorial guardado como rascunho ou ainda por criar."}
+                          </p>
+                        </div>
+                      </header>
                   <form className="manager-create-form" action="/api/admin/gestor" method="post">
                     <input type="hidden" name="action_type" value="save_matchday_editorial" />
                     <input type="hidden" name="return_to" value={editorialReturnTo} />
@@ -3793,6 +3882,15 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                       Carregar imagem da manchete
                     </button>
                   </form>
+                    </section>
+                    <section className="manager-editorial-block">
+                      <header>
+                        <span className="manager-editorial-block-number">2</span>
+                        <div>
+                          <h4>Destaques abaixo da manchete</h4>
+                          <p>Reutiliza os tres registos de matchday_highlights ja existentes.</p>
+                        </div>
+                      </header>
                   <div className="manager-create-form">
                     <header>
                       <h3>Destaques da jornada</h3>
@@ -3885,6 +3983,53 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                         </fieldset>
                       );
                     })}
+                  </div>
+                    </section>
+                    <section className="manager-editorial-block manager-editorial-placeholder">
+                      <header>
+                        <span className="manager-editorial-block-number">3</span>
+                        <div>
+                          <h4>Resumo da Jornada</h4>
+                          <p>Bloco preparado para programação editorial posterior.</p>
+                        </div>
+                      </header>
+                      <p>Este espaco vai poder receber videos, golos, resumos dos jogos ou links para pecas da jornada.</p>
+                    </section>
+                    <section className="manager-editorial-block manager-editorial-placeholder">
+                      <header>
+                        <span className="manager-editorial-block-number">4</span>
+                        <div>
+                          <h4>Bloco complementar</h4>
+                          <p>Bloco preparado para programação editorial posterior.</p>
+                        </div>
+                      </header>
+                      <p>Este espaco vai poder receber imagem + texto, video + texto, noticia ou analise curta.</p>
+                    </section>
+                    <section className="manager-editorial-block manager-editorial-placeholder">
+                      <header>
+                        <span className="manager-editorial-block-number">5</span>
+                        <div>
+                          <h4>Últimas notícias</h4>
+                          <p>Bloco preparado para programação editorial posterior.</p>
+                        </div>
+                      </header>
+                      <p>Futura lista de noticias ligada a esta jornada, com hora, titulo, estado e publicacao.</p>
+                    </section>
+                    <section className="manager-editorial-block">
+                      <header>
+                        <span className="manager-editorial-block-number">A</span>
+                        <div>
+                          <h4>Blocos automáticos desta página</h4>
+                          <p>Estes espacos nao sao editados aqui porque ja vêm dos dados operacionais.</p>
+                        </div>
+                      </header>
+                      <ul className="manager-editorial-note-list">
+                        <li>Onde ver: vem dos jogos agendados e canais TV.</li>
+                        <li>Placard dos jogos: vem dos jogos da jornada.</li>
+                        <li>Classificação: calculada automaticamente.</li>
+                        <li>Data da jornada: vem de matches.kickoff_at.</li>
+                      </ul>
+                    </section>
                   </div>
                 </article>
               </div>
