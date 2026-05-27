@@ -163,7 +163,10 @@ function slugify(value: string): string {
 
 function returnUrl(request: Request, formData: FormData, key: "created" | "error", value: string, extraParams?: Record<string, string>) {
   const rawReturnTo = cleanText(formData.get("return_to"));
-  const safeReturnTo = rawReturnTo?.startsWith("/admin/gestor") ? rawReturnTo : "/admin/gestor";
+  const safeReturnTo =
+    rawReturnTo?.startsWith("/admin/gestor") || rawReturnTo?.startsWith("/admin/editorial/jornada/")
+      ? rawReturnTo
+      : "/admin/gestor";
   const url = new URL(safeReturnTo, request.url);
 
   url.searchParams.delete("created");

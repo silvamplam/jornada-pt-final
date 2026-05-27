@@ -1,0 +1,631 @@
+import {
+  fetchSupabaseAdminTable,
+  type SupabaseCompetition,
+  type SupabaseCountry,
+  type SupabaseMatchday,
+  type SupabaseMatchdayEditorial,
+  type SupabaseMatchdayHighlight,
+  type SupabaseSeason
+} from "@/lib/supabase";
+
+export const dynamic = "force-dynamic";
+
+type EditorialPageProps = {
+  params: Promise<{
+    matchdayId: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+type MatchdayContext = {
+  matchday: SupabaseMatchday;
+  season: SupabaseSeason;
+  competition: SupabaseCompetition;
+  country: SupabaseCountry | null;
+};
+
+const editorialPageStyles = `
+  body {
+    margin: 0;
+    background: #eef2f6;
+  }
+
+  .editorial-admin-shell {
+    min-height: 100vh;
+    padding: 28px;
+    background: #eef2f6;
+    color: #10151b;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .editorial-admin-hero,
+  .editorial-admin-panel {
+    overflow: hidden;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
+  }
+
+  .editorial-admin-hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 24px;
+    background: linear-gradient(135deg, #10151b, #25303c);
+    color: #ffffff;
+  }
+
+  .editorial-admin-hero h1,
+  .editorial-admin-hero p,
+  .editorial-admin-hero small {
+    margin: 0;
+  }
+
+  .editorial-admin-hero h1 {
+    margin-top: 8px;
+    font-size: 34px;
+    line-height: 1.05;
+  }
+
+  .editorial-admin-hero p {
+    color: #e5252a;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .editorial-admin-hero small {
+    display: block;
+    margin-top: 10px;
+    color: #cdd5df;
+    font-size: 15px;
+  }
+
+  .editorial-admin-button {
+    display: inline-block;
+    width: fit-content;
+    padding: 12px 16px;
+    border: 0;
+    border-radius: 6px;
+    background: #e5252a;
+    color: #ffffff;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1;
+    text-decoration: none;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .editorial-admin-button.secondary {
+    border: 1px solid #dce3eb;
+    background: #ffffff;
+    color: #10151b;
+  }
+
+  .editorial-admin-hero .editorial-admin-button.secondary {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: transparent;
+    color: #ffffff;
+  }
+
+  .editorial-admin-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+    gap: 18px;
+    margin-top: 18px;
+  }
+
+  .editorial-admin-panel {
+    padding: 20px;
+  }
+
+  .editorial-admin-panel h2,
+  .editorial-admin-panel h3,
+  .editorial-admin-panel h4,
+  .editorial-admin-panel p {
+    margin: 0;
+  }
+
+  .editorial-admin-panel > header {
+    margin-bottom: 16px;
+  }
+
+  .editorial-admin-panel > header p,
+  .editorial-admin-muted {
+    margin-top: 6px;
+    color: #687380;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .editorial-admin-form,
+  .editorial-admin-stack {
+    display: grid;
+    gap: 14px;
+  }
+
+  .editorial-admin-field {
+    display: grid;
+    gap: 6px;
+  }
+
+  .editorial-admin-field label,
+  .editorial-admin-fieldset legend {
+    color: #425061;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .editorial-admin-field input,
+  .editorial-admin-field textarea,
+  .editorial-admin-field select {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #c8d2dd;
+    border-radius: 6px;
+    padding: 11px 12px;
+    background: #ffffff;
+    color: #10151b;
+    font: inherit;
+  }
+
+  .editorial-admin-field textarea {
+    min-height: 110px;
+    resize: vertical;
+  }
+
+  .editorial-admin-preview {
+    overflow: hidden;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #f8fafc;
+  }
+
+  .editorial-admin-preview img {
+    display: block;
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+  }
+
+  .editorial-admin-fieldset {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 16px;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+  }
+
+  .editorial-admin-highlight-1 {
+    background: #f9fafb;
+  }
+
+  .editorial-admin-highlight-2 {
+    background: #f4f6f8;
+  }
+
+  .editorial-admin-highlight-3 {
+    background: #eef2f6;
+  }
+
+  .editorial-admin-message {
+    margin-top: 18px;
+    padding: 12px 14px;
+    border: 1px solid #b7e1c0;
+    border-radius: 8px;
+    background: #effaf1;
+    color: #1f6d31;
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  .editorial-admin-message.warning {
+    border-color: #ffd0d0;
+    background: #fff3f3;
+    color: #9d1c1f;
+  }
+
+  .editorial-admin-note-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding-left: 18px;
+    color: #5d6875;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 980px) {
+    .editorial-admin-shell {
+      padding: 16px;
+    }
+
+    .editorial-admin-hero,
+    .editorial-admin-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .editorial-admin-hero {
+      display: grid;
+    }
+  }
+`;
+
+function oneParam(params: Record<string, string | string[] | undefined>, key: string) {
+  const value = params[key];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+async function readFirst<T>(path: string): Promise<T | null> {
+  const rows = await fetchSupabaseAdminTable<T>(`${path}&limit=1`);
+  return rows[0] ?? null;
+}
+
+async function readMatchdayContext(matchdayId: string): Promise<MatchdayContext | null> {
+  const matchday = await readFirst<SupabaseMatchday>(
+    `matchdays?select=id,season_id,number,label,starts_on,ends_on,status,context_summary&id=eq.${encodeURIComponent(matchdayId)}`
+  ).catch(() => null);
+
+  if (!matchday) {
+    return null;
+  }
+
+  const season = await readFirst<SupabaseSeason>(
+    `seasons?select=id,competition_id,label,starts_on,ends_on,is_current&id=eq.${encodeURIComponent(matchday.season_id)}`
+  ).catch(() => null);
+
+  if (!season) {
+    return null;
+  }
+
+  const competition = await readFirst<SupabaseCompetition>(
+    `competitions?select=id,name,slug,country_id,country,logo_url,accent_color,is_active&id=eq.${encodeURIComponent(
+      season.competition_id
+    )}`
+  ).catch(() => null);
+
+  if (!competition) {
+    return null;
+  }
+
+  const country = competition.country_id
+    ? await readFirst<SupabaseCountry>(
+        `countries?select=id,name,slug,iso2,flag_emoji,is_active&id=eq.${encodeURIComponent(competition.country_id)}`
+      ).catch(() => null)
+    : null;
+
+  return { matchday, season, competition, country };
+}
+
+async function readMatchdayEditorial(matchdayId: string): Promise<SupabaseMatchdayEditorial | null> {
+  return readFirst<SupabaseMatchdayEditorial>(
+    `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}`
+  ).catch(() => null);
+}
+
+async function readMatchdayHighlights(matchdayId: string): Promise<SupabaseMatchdayHighlight[]> {
+  return fetchSupabaseAdminTable<SupabaseMatchdayHighlight>(
+    `matchday_highlights?select=id,matchday_id,label,title,image_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&order=sort_order.asc&limit=3`
+  ).catch(() => []);
+}
+
+function messageFor(created?: string, error?: string) {
+  const createdLabels: Record<string, string> = {
+    save_matchday_editorial: "Manchete editorial guardada.",
+    save_matchday_highlights: "Destaques da jornada guardados.",
+    upload_matchday_editorial_image: "Imagem da manchete carregada.",
+    upload_matchday_highlight_image: "Imagem do destaque carregada."
+  };
+  const errorLabels: Record<string, string> = {
+    "missing-service": "Liga primeiro a Supabase na Vercel.",
+    "missing-fields": "Preenche os campos obrigatorios antes de guardar.",
+    "matchday-invalid": "A jornada escolhida ja nao existe.",
+    "editorial-title-required": "Para publicar, indica uma manchete da jornada.",
+    "highlight-title-required": "Para publicar um destaque, indica o titulo.",
+    "editorial-image-type": "O ficheiro tem de ser uma imagem JPG, PNG ou WebP.",
+    "editorial-image-size": "A imagem nao pode ter mais de 5MB.",
+    "editorial-image-upload": "Nao foi possivel carregar a imagem. Confirma o bucket de Storage.",
+    save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
+  };
+
+  if (created && createdLabels[created]) {
+    return <div className="editorial-admin-message">{createdLabels[created]}</div>;
+  }
+
+  if (error) {
+    return <div className="editorial-admin-message warning">{errorLabels[error] ?? errorLabels.save}</div>;
+  }
+
+  return null;
+}
+
+function gestorReturnUrl(context: MatchdayContext) {
+  const params = new URLSearchParams({
+    competicao: context.competition.id,
+    epoca: context.season.id,
+    jornada: context.matchday.id,
+    section: "linha-editorial"
+  });
+
+  if (context.country) {
+    params.set("pais", context.country.id);
+  }
+
+  return `/admin/gestor?${params.toString()}#linha-editorial`;
+}
+
+export default async function AdminMatchdayEditorialPage({ params, searchParams }: EditorialPageProps) {
+  const { matchdayId } = await params;
+  const query = (await searchParams) ?? {};
+  const created = oneParam(query, "created");
+  const error = oneParam(query, "error");
+  const context = await readMatchdayContext(matchdayId);
+
+  if (!context) {
+    return (
+      <main className="editorial-admin-shell">
+        <style>{editorialPageStyles}</style>
+        <section className="editorial-admin-panel">
+          <header>
+            <h1>Jornada nao encontrada</h1>
+            <p className="editorial-admin-muted">A pagina editorial so pode abrir a partir de uma jornada existente.</p>
+          </header>
+          <a className="editorial-admin-button secondary" href="/admin/gestor">
+            Voltar ao gestor
+          </a>
+        </section>
+      </main>
+    );
+  }
+
+  const { matchday, season, competition, country } = context;
+  const editorial = await readMatchdayEditorial(matchday.id);
+  const highlights = await readMatchdayHighlights(matchday.id);
+  const returnTo = `/admin/editorial/jornada/${matchday.id}`;
+  const backToGestor = gestorReturnUrl(context);
+  const contextLabel = `${country?.name ?? "Pais"} · ${competition.name} · ${season.label} · ${matchday.label}`;
+
+  return (
+    <main className="editorial-admin-shell">
+      <style>{editorialPageStyles}</style>
+
+      <section className="editorial-admin-hero">
+        <div>
+          <p>1.ª página da jornada</p>
+          <h1>Editar editorial</h1>
+          <small>{contextLabel}</small>
+        </div>
+        <a className="editorial-admin-button secondary" href={backToGestor}>
+          Voltar ao gestor
+        </a>
+      </section>
+
+      {messageFor(created, error)}
+
+      <div className="editorial-admin-grid">
+        <section className="editorial-admin-panel">
+          <header>
+            <h2>Manchete principal</h2>
+            <p>Campos existentes de matchday_editorials ligados a esta jornada.</p>
+          </header>
+          <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
+            <input type="hidden" name="action_type" value="save_matchday_editorial" />
+            <input type="hidden" name="return_to" value={returnTo} />
+            <input type="hidden" name="matchday_id" value={matchday.id} />
+            <div className="editorial-admin-field">
+              <label htmlFor="matchday-editorial-title">Manchete</label>
+              <input
+                id="matchday-editorial-title"
+                name="title"
+                defaultValue={editorial?.title ?? ""}
+                placeholder="Ex: Girona abre a jornada com autoridade"
+              />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="matchday-editorial-summary">Resumo curto</label>
+              <textarea
+                id="matchday-editorial-summary"
+                name="summary"
+                defaultValue={editorial?.summary ?? ""}
+                placeholder="Resumo editorial curto da jornada."
+              />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="matchday-editorial-title-color">Cor do titulo</label>
+              <input
+                id="matchday-editorial-title-color"
+                name="title_color"
+                defaultValue={editorial?.title_color ?? ""}
+                placeholder="#e5252a"
+              />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="matchday-editorial-image-url">Imagem da manchete URL</label>
+              <input
+                id="matchday-editorial-image-url"
+                name="image_url"
+                defaultValue={editorial?.image_url ?? ""}
+                placeholder="https://exemplo.com/imagem.jpg"
+              />
+            </div>
+            {editorial?.image_url ? (
+              <div className="editorial-admin-preview">
+                <img alt="" src={editorial.image_url} />
+              </div>
+            ) : null}
+            <div className="editorial-admin-field">
+              <label htmlFor="matchday-editorial-status">Estado</label>
+              <select id="matchday-editorial-status" name="status" defaultValue={editorial?.status ?? "draft"}>
+                <option value="draft">Rascunho</option>
+                <option value="published">Publicado</option>
+              </select>
+            </div>
+            <button className="editorial-admin-button" type="submit">
+              Guardar manchete
+            </button>
+          </form>
+          <form
+            className="editorial-admin-form"
+            action="/api/admin/gestor/editorial-image"
+            encType="multipart/form-data"
+            method="post"
+            style={{ marginTop: 16 }}
+          >
+            <input type="hidden" name="return_to" value={returnTo} />
+            <input type="hidden" name="matchday_id" value={matchday.id} />
+            <div className="editorial-admin-field">
+              <label htmlFor="matchday-editorial-image-upload">Carregar imagem da manchete</label>
+              <input accept="image/jpeg,image/png,image/webp" id="matchday-editorial-image-upload" name="image" type="file" />
+            </div>
+            <button className="editorial-admin-button secondary" type="submit">
+              Carregar imagem da manchete
+            </button>
+          </form>
+        </section>
+
+        <aside className="editorial-admin-panel">
+          <header>
+            <h2>Blocos automaticos</h2>
+            <p>Visiveis na pagina publica, mas nao editados aqui.</p>
+          </header>
+          <ul className="editorial-admin-note-list">
+            <li>Onde ver: jogos agendados e canais TV.</li>
+            <li>Placard dos jogos: jogos desta jornada.</li>
+            <li>Classificacao: calculada automaticamente.</li>
+            <li>Data da jornada: matches.kickoff_at.</li>
+          </ul>
+        </aside>
+      </div>
+
+      <section className="editorial-admin-panel" style={{ marginTop: 18 }}>
+        <header>
+          <h2>Destaques abaixo da manchete</h2>
+          <p>Reutiliza matchday_highlights. A pagina publica mostra apenas os destaques publicados.</p>
+        </header>
+        <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
+          <input type="hidden" name="action_type" value="save_matchday_highlights" />
+          <input type="hidden" name="return_to" value={returnTo} />
+          <input type="hidden" name="matchday_id" value={matchday.id} />
+          {[1, 2, 3].map((order) => {
+            const highlight = highlights.find((item) => item.sort_order === order);
+            return (
+              <fieldset className={`editorial-admin-fieldset editorial-admin-highlight-${order}`} key={order}>
+                <legend>Destaque {order}</legend>
+                <input type="hidden" name={`highlight_${order}_id`} value={highlight?.id ?? ""} />
+                <input type="hidden" name={`highlight_${order}_sort_order`} value={order} />
+                <div className="editorial-admin-field">
+                  <label htmlFor={`highlight-${order}-label`}>Etiqueta</label>
+                  <input
+                    id={`highlight-${order}-label`}
+                    name={`highlight_${order}_label`}
+                    defaultValue={highlight?.label ?? ""}
+                    placeholder={order === 1 ? "ANTEVISAO" : order === 2 ? "AMBIENTE" : "CONTEXTO"}
+                  />
+                </div>
+                <div className="editorial-admin-field">
+                  <label htmlFor={`highlight-${order}-title`}>Titulo</label>
+                  <input
+                    id={`highlight-${order}-title`}
+                    name={`highlight_${order}_title`}
+                    defaultValue={highlight?.title ?? ""}
+                    placeholder={
+                      order === 1
+                        ? "Os pontos de atencao antes da bola rolar"
+                        : order === 2
+                          ? "A jornada vista pelas bancadas e pelos protagonistas"
+                          : "O que pode mudar na tabela depois dos resultados"
+                    }
+                  />
+                </div>
+                <div className="editorial-admin-field">
+                  <label htmlFor={`highlight-${order}-image-url`}>Imagem URL</label>
+                  <input
+                    id={`highlight-${order}-image-url`}
+                    name={`highlight_${order}_image_url`}
+                    defaultValue={highlight?.image_url ?? ""}
+                    placeholder="https://exemplo.com/imagem.jpg"
+                  />
+                </div>
+                {highlight?.image_url ? (
+                  <div className="editorial-admin-preview">
+                    <img alt="" src={highlight.image_url} />
+                  </div>
+                ) : null}
+                <div className="editorial-admin-field">
+                  <label htmlFor={`highlight-${order}-status`}>Estado</label>
+                  <select id={`highlight-${order}-status`} name={`highlight_${order}_status`} defaultValue={highlight?.status ?? "draft"}>
+                    <option value="draft">Rascunho</option>
+                    <option value="published">Publicado</option>
+                  </select>
+                </div>
+              </fieldset>
+            );
+          })}
+          <button className="editorial-admin-button" type="submit">
+            Guardar destaques
+          </button>
+        </form>
+        <div className="editorial-admin-stack" style={{ marginTop: 16 }}>
+          {[1, 2, 3].map((order) => (
+            <form
+              action="/api/admin/gestor/editorial-image"
+              className={`editorial-admin-fieldset editorial-admin-highlight-${order}`}
+              encType="multipart/form-data"
+              key={order}
+              method="post"
+            >
+              <input type="hidden" name="return_to" value={returnTo} />
+              <input type="hidden" name="matchday_id" value={matchday.id} />
+              <input type="hidden" name="target" value="highlight" />
+              <input type="hidden" name="sort_order" value={order} />
+              <div className="editorial-admin-field">
+                <label htmlFor={`highlight-${order}-image-upload`}>Carregar imagem do destaque {order}</label>
+                <input accept="image/jpeg,image/png,image/webp" id={`highlight-${order}-image-upload`} name="image" type="file" />
+              </div>
+              <button className="editorial-admin-button secondary" type="submit">
+                Carregar imagem do destaque {order}
+              </button>
+            </form>
+          ))}
+        </div>
+      </section>
+
+      <div className="editorial-admin-grid">
+        <section className="editorial-admin-panel">
+          <header>
+            <h2>Resumo da Jornada</h2>
+            <p>Bloco preparado para programacao editorial posterior.</p>
+          </header>
+          <p className="editorial-admin-muted">
+            Este espaco podera receber videos, golos, resumos dos jogos ou links para pecas da jornada.
+          </p>
+        </section>
+        <section className="editorial-admin-panel">
+          <header>
+            <h2>Bloco complementar</h2>
+            <p>Bloco preparado para imagem, texto ou video.</p>
+          </header>
+          <p className="editorial-admin-muted">
+            Este espaco podera receber imagem + texto, video + texto, noticia ou analise curta.
+          </p>
+        </section>
+        <section className="editorial-admin-panel">
+          <header>
+            <h2>Ultimas noticias</h2>
+            <p>Bloco preparado para fase posterior.</p>
+          </header>
+          <p className="editorial-admin-muted">Futura lista de noticias ligada a esta jornada, com hora, titulo e estado.</p>
+        </section>
+      </div>
+    </main>
+  );
+}

@@ -1,4 +1,4 @@
-import {
+﻿import {
   buildAccumulatedClassification,
   STAT_COLUMNS,
   totalClassificationStats,
@@ -12,8 +12,6 @@ import {
   type SupabaseAdminSeasonTeam,
   type SupabaseCompetition,
   type SupabaseCountry,
-  type SupabaseMatchdayEditorial,
-  type SupabaseMatchdayHighlight,
   type SupabaseSeason,
   type SupabaseTeam
 } from "@/lib/supabase";
@@ -572,48 +570,6 @@ const managerStyles = `
     display: grid;
     gap: 8px;
     padding-left: 18px;
-  }
-
-  .manager-editorial-image-preview {
-    display: grid;
-    gap: 8px;
-  }
-
-  .manager-editorial-image-preview img {
-    width: min(360px, 100%);
-    aspect-ratio: 16 / 9;
-    border: 1px solid #d8dee6;
-    border-radius: 6px;
-    object-fit: cover;
-    background: #eef2f6;
-  }
-
-  .manager-highlight-fieldset {
-    display: grid;
-    gap: 10px;
-    margin: 0;
-    padding: 12px;
-    border: 1px solid #d8dee6;
-    border-radius: 6px;
-  }
-
-  .manager-highlight-card-1 {
-    background: #fbfcfe;
-  }
-
-  .manager-highlight-card-2 {
-    background: #f7f9fc;
-  }
-
-  .manager-highlight-card-3 {
-    background: #f2f5f8;
-  }
-
-  .manager-highlight-fieldset legend {
-    padding: 0 6px;
-    font-size: 12px;
-    font-weight: 900;
-    text-transform: uppercase;
   }
 
   .manager-warning {
@@ -1657,40 +1613,6 @@ async function readMatchesForSeason(seasonId?: string): Promise<SeasonAgendaMatc
   }
 }
 
-async function readMatchdayEditorial(matchdayId?: string): Promise<SupabaseMatchdayEditorial | null> {
-  if (!matchdayId) {
-    return null;
-  }
-
-  try {
-    const rows = await fetchSupabaseAdminTable<SupabaseMatchdayEditorial>(
-      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
-        matchdayId
-      )}&limit=1`
-    );
-
-    return rows[0] ?? null;
-  } catch {
-    return null;
-  }
-}
-
-async function readMatchdayHighlights(matchdayId?: string): Promise<SupabaseMatchdayHighlight[]> {
-  if (!matchdayId) {
-    return [];
-  }
-
-  try {
-    return fetchSupabaseAdminTable<SupabaseMatchdayHighlight>(
-      `matchday_highlights?select=id,matchday_id,label,title,image_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
-        matchdayId
-      )}&order=sort_order.asc&limit=3`
-    );
-  } catch {
-    return [];
-  }
-}
-
 async function readBlockingMatchdaysForSeason(seasonId?: string): Promise<SeasonMatchday[]> {
   if (!seasonId) {
     return [];
@@ -1842,8 +1764,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const selectedMatchday =
     matchdaysForSeason.find((matchday) => matchday.id === requestedMatchdayId) ?? matchdaysForSeason[0] ?? null;
   const matchesForMatchday = await readMatchesForMatchday(selectedMatchday?.id);
-  const matchdayEditorial = await readMatchdayEditorial(selectedMatchday?.id);
-  const matchdayHighlights = await readMatchdayHighlights(selectedMatchday?.id);
   const scheduledMatchesForMatchday = matchesForMatchday.filter((match) => match.status === "scheduled");
   const futureLiveMatchesForMatchday = matchesForMatchday.filter(
     (match) => match.status !== "scheduled" && match.status !== "finished"
@@ -1958,7 +1878,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
         ? `${currentReturnTo}?jornada=${selectedMatchday.id}`
         : currentReturnTo;
   const matchesReturnTo = withSection(matchdayReturnTo, "jogos");
-  const editorialReturnTo = withSection(matchdayReturnTo, "linha-editorial");
   const calendarInvolvedMatchdays = calendarPreviewMatchdayNumbers.map((number) => {
     const matchday = matchdaysForSeason.find((item) => item.number === number);
     return {
@@ -3772,261 +3691,54 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             <header>
               <h2>Linha editorial da jornada</h2>
               <p>
-                Organiza os espacos editaveis da primeira pagina publica da jornada.
+                A edicao editorial foi separada do gestor, mas continua ligada a jornada selecionada.
               </p>
             </header>
             {sectionMessage("linha-editorial")}
             {!selectedMatchday ? (
-              <div className="manager-empty">Escolhe uma jornada para editar a linha editorial.</div>
+              <div className="manager-empty">Escolhe uma jornada para abrir a edicao editorial.</div>
             ) : (
               <div className="manager-create-grid">
                 <article className="manager-create-card manager-wide-card">
                   <header>
-                    <h3>1.ª página da jornada</h3>
+                    <h3>1.ª página editorial desta jornada</h3>
                     <p>
-                      {selectedMatchday.label}. Cada bloco abaixo corresponde a uma zona da primeira pagina publica.
+                      {selectedCountry?.name ?? "Pais"} / {selectedCompetition?.name ?? "Competicao"} / {selectedSeason?.label ?? "Epoca"} /{" "}
+                      {selectedMatchday.label}
                     </p>
                   </header>
                   <div className="manager-editorial-page">
                     <header>
-                      <h3>Visão editorial da página</h3>
-                      <p>Reutiliza os campos existentes e mostra que area da pagina cada conjunto alimenta.</p>
+                      <h3>Editar camada editorial</h3>
+                      <p>
+                        A jornada continua a ser criada e gerida aqui. A primeira pagina editorial desta jornada passa
+                        a ser editada numa pagina propria, sempre ligada ao mesmo matchday_id.
+                      </p>
                     </header>
-                    <section className="manager-editorial-block">
-                      <header>
-                        <span className="manager-editorial-block-number">1</span>
-                        <div>
-                          <h4>Manchete principal</h4>
-                          <p>
-                            {matchdayEditorial?.status === "published"
-                              ? "Editorial publicado na pagina publica desta jornada."
-                              : "Editorial guardado como rascunho ou ainda por criar."}
-                          </p>
-                        </div>
-                      </header>
-                  <form className="manager-create-form" action="/api/admin/gestor" method="post">
-                    <input type="hidden" name="action_type" value="save_matchday_editorial" />
-                    <input type="hidden" name="return_to" value={editorialReturnTo} />
-                    <input type="hidden" name="matchday_id" value={selectedMatchday.id} />
-                    <div className="manager-field">
-                      <label htmlFor="matchday-editorial-title">Manchete da jornada</label>
-                      <input
-                        id="matchday-editorial-title"
-                        name="title"
-                        defaultValue={matchdayEditorial?.title ?? ""}
-                        placeholder="Ex: Girona abre a jornada com autoridade"
-                      />
-                    </div>
-                    <div className="manager-field">
-                      <label htmlFor="matchday-editorial-summary">Resumo curto</label>
-                      <textarea
-                        id="matchday-editorial-summary"
-                        name="summary"
-                        defaultValue={matchdayEditorial?.summary ?? ""}
-                        placeholder="Resumo editorial curto da jornada."
-                      />
-                    </div>
-                    <div className="manager-field">
-                      <label htmlFor="matchday-editorial-title-color">Cor do titulo da manchete</label>
-                      <input
-                        id="matchday-editorial-title-color"
-                        name="title_color"
-                        defaultValue={matchdayEditorial?.title_color ?? ""}
-                        placeholder="#e5252a"
-                      />
-                    </div>
-                    <div className="manager-field">
-                      <label htmlFor="matchday-editorial-image-url">Imagem da manchete URL</label>
-                      <input
-                        id="matchday-editorial-image-url"
-                        name="image_url"
-                        defaultValue={matchdayEditorial?.image_url ?? ""}
-                        placeholder="https://exemplo.com/imagem.jpg"
-                      />
-                    </div>
-                    {matchdayEditorial?.image_url ? (
-                      <div className="manager-field manager-editorial-image-preview">
-                        <label>Pre-visualizacao da imagem atual</label>
-                        <img alt="" src={matchdayEditorial.image_url} />
-                      </div>
-                    ) : null}
-                    <div className="manager-field">
-                      <label htmlFor="matchday-editorial-status">Estado</label>
-                      <select id="matchday-editorial-status" name="status" defaultValue={matchdayEditorial?.status ?? "draft"}>
-                        <option value="draft">Rascunho</option>
-                        <option value="published">Publicado</option>
-                      </select>
-                    </div>
-                    <button className="manager-button" type="submit">
-                      Guardar linha editorial
-                    </button>
-                  </form>
-                  <form
-                    className="manager-create-form"
-                    action="/api/admin/gestor/editorial-image"
-                    encType="multipart/form-data"
-                    method="post"
-                  >
-                    <input type="hidden" name="return_to" value={editorialReturnTo} />
-                    <input type="hidden" name="matchday_id" value={selectedMatchday.id} />
-                    <div className="manager-field">
-                      <label htmlFor="matchday-editorial-image-upload">Carregar imagem da manchete</label>
-                      <input
-                        accept="image/jpeg,image/png,image/webp"
-                        id="matchday-editorial-image-upload"
-                        name="image"
-                        type="file"
-                      />
-                    </div>
-                    <button className="manager-button secondary" type="submit">
-                      Carregar imagem da manchete
-                    </button>
-                  </form>
-                    </section>
-                    <section className="manager-editorial-block">
-                      <header>
-                        <span className="manager-editorial-block-number">2</span>
-                        <div>
-                          <h4>Destaques abaixo da manchete</h4>
-                          <p>Reutiliza os tres registos de matchday_highlights ja existentes.</p>
-                        </div>
-                      </header>
-                  <div className="manager-create-form">
-                    <header>
-                      <h3>Destaques da jornada</h3>
-                      <p>Edita ate tres blocos abaixo da manchete. Podes usar URL manual ou carregar imagem.</p>
-                    </header>
-                    {[1, 2, 3].map((order) => {
-                      const highlight = matchdayHighlights.find((item) => item.sort_order === order);
-                      return (
-                        <fieldset className={`manager-highlight-fieldset manager-highlight-card-${order}`} key={order}>
-                          <legend>Destaque {order}</legend>
-                          <form className="manager-create-form" action="/api/admin/gestor" method="post">
-                            <input type="hidden" name="action_type" value="save_matchday_highlights" />
-                            <input type="hidden" name="return_to" value={editorialReturnTo} />
-                            <input type="hidden" name="matchday_id" value={selectedMatchday.id} />
-                            <input type="hidden" name={`highlight_${order}_id`} value={highlight?.id ?? ""} />
-                            <input type="hidden" name={`highlight_${order}_sort_order`} value={order} />
-                            <div className="manager-field">
-                              <label htmlFor={`highlight-${order}-label`}>Etiqueta</label>
-                              <input
-                                id={`highlight-${order}-label`}
-                                name={`highlight_${order}_label`}
-                                defaultValue={highlight?.label ?? ""}
-                                placeholder={order === 1 ? "ANTEVISAO" : order === 2 ? "AMBIENTE" : "CONTEXTO"}
-                              />
-                            </div>
-                            <div className="manager-field">
-                              <label htmlFor={`highlight-${order}-title`}>Titulo</label>
-                              <input
-                                id={`highlight-${order}-title`}
-                                name={`highlight_${order}_title`}
-                                defaultValue={highlight?.title ?? ""}
-                                placeholder={
-                                  order === 1
-                                    ? "Os pontos de atencao antes da bola rolar"
-                                    : order === 2
-                                      ? "A jornada vista pelas bancadas e pelos protagonistas"
-                                      : "O que pode mudar na tabela depois dos resultados"
-                                }
-                              />
-                            </div>
-                            <div className="manager-field">
-                              <label htmlFor={`highlight-${order}-image-url`}>Imagem URL</label>
-                              <input
-                                id={`highlight-${order}-image-url`}
-                                name={`highlight_${order}_image_url`}
-                                defaultValue={highlight?.image_url ?? ""}
-                                placeholder="https://exemplo.com/imagem.jpg"
-                              />
-                            </div>
-                            {highlight?.image_url ? (
-                              <div className="manager-field manager-editorial-image-preview">
-                                <label>Pre-visualizacao da imagem do destaque</label>
-                                <img alt="" src={highlight.image_url} />
-                              </div>
-                            ) : null}
-                            <div className="manager-field">
-                              <label htmlFor={`highlight-${order}-status`}>Estado</label>
-                              <select id={`highlight-${order}-status`} name={`highlight_${order}_status`} defaultValue={highlight?.status ?? "draft"}>
-                                <option value="draft">Rascunho</option>
-                                <option value="published">Publicado</option>
-                              </select>
-                            </div>
-                            <button className="manager-button" type="submit">
-                              Guardar destaque {order}
-                            </button>
-                          </form>
-                          <form
-                            className="manager-create-form"
-                            action="/api/admin/gestor/editorial-image"
-                            encType="multipart/form-data"
-                            method="post"
-                          >
-                            <input type="hidden" name="return_to" value={editorialReturnTo} />
-                            <input type="hidden" name="matchday_id" value={selectedMatchday.id} />
-                            <input type="hidden" name="target" value="highlight" />
-                            <input type="hidden" name="sort_order" value={order} />
-                            <div className="manager-field">
-                              <label htmlFor={`highlight-${order}-image-upload`}>Carregar imagem do destaque</label>
-                              <input
-                                accept="image/jpeg,image/png,image/webp"
-                                id={`highlight-${order}-image-upload`}
-                                name="image"
-                                type="file"
-                              />
-                            </div>
-                            <button className="manager-button secondary" type="submit">
-                              Carregar imagem do destaque {order}
-                            </button>
-                          </form>
-                        </fieldset>
-                      );
-                    })}
-                  </div>
-                    </section>
                     <section className="manager-editorial-block manager-editorial-placeholder">
                       <header>
-                        <span className="manager-editorial-block-number">3</span>
+                        <span className="manager-editorial-block-number">J</span>
                         <div>
-                          <h4>Resumo da Jornada</h4>
-                          <p>Bloco preparado para programação editorial posterior.</p>
+                          <h4>{selectedMatchday.label}</h4>
+                          <p>Esta ligacao abre a edicao da manchete, destaques e espacos editoriais da jornada.</p>
                         </div>
                       </header>
-                      <p>Este espaco vai poder receber videos, golos, resumos dos jogos ou links para pecas da jornada.</p>
-                    </section>
-                    <section className="manager-editorial-block manager-editorial-placeholder">
-                      <header>
-                        <span className="manager-editorial-block-number">4</span>
-                        <div>
-                          <h4>Bloco complementar</h4>
-                          <p>Bloco preparado para programação editorial posterior.</p>
-                        </div>
-                      </header>
-                      <p>Este espaco vai poder receber imagem + texto, video + texto, noticia ou analise curta.</p>
-                    </section>
-                    <section className="manager-editorial-block manager-editorial-placeholder">
-                      <header>
-                        <span className="manager-editorial-block-number">5</span>
-                        <div>
-                          <h4>Últimas notícias</h4>
-                          <p>Bloco preparado para programação editorial posterior.</p>
-                        </div>
-                      </header>
-                      <p>Futura lista de noticias ligada a esta jornada, com hora, titulo, estado e publicacao.</p>
+                      <a className="manager-link-button" href={`/admin/editorial/jornada/${selectedMatchday.id}`}>
+                        Editar 1.ª página editorial desta jornada
+                      </a>
                     </section>
                     <section className="manager-editorial-block">
                       <header>
                         <span className="manager-editorial-block-number">A</span>
                         <div>
-                          <h4>Blocos automáticos desta página</h4>
-                          <p>Estes espacos nao sao editados aqui porque ja vêm dos dados operacionais.</p>
+                          <h4>Blocos automaticos desta pagina</h4>
+                          <p>Continuam a ser alimentados pelos dados competitivos desta mesma jornada.</p>
                         </div>
                       </header>
                       <ul className="manager-editorial-note-list">
                         <li>Onde ver: vem dos jogos agendados e canais TV.</li>
                         <li>Placard dos jogos: vem dos jogos da jornada.</li>
-                        <li>Classificação: calculada automaticamente.</li>
+                        <li>Classificacao: calculada automaticamente.</li>
                         <li>Data da jornada: vem de matches.kickoff_at.</li>
                       </ul>
                     </section>
@@ -4035,7 +3747,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               </div>
             )}
           </section>
-
           <section className="manager-panel manager-section-participants" id="participantes" aria-label="Participantes da epoca">
             <header>
               <h2>Participantes da epoca</h2>
