@@ -446,7 +446,7 @@ const publicMatchdayStyles = `
     box-sizing: border-box;
     margin: 0 auto;
     padding: 20px 0;
-    align-items: start;
+    align-items: stretch;
     min-height: 420px;
   }
 
@@ -460,19 +460,25 @@ const publicMatchdayStyles = `
     gap: 10px;
     align-content: start;
     min-width: 0;
-    padding: 0;
-    border-right: 0;
+    box-sizing: border-box;
+    padding: 16px;
+    border: 1px solid #dfe5ec;
     background: #ffffff;
   }
 
   .public-matchday-main-column {
     grid-area: main;
-    gap: 12px;
+    gap: 24px;
+    padding: 0;
+    border: 0;
+    grid-template-rows: auto 1fr;
   }
 
   .public-matchday-editorial {
     align-content: start;
     min-height: 0;
+    padding: 0;
+    border: 0;
   }
 
   .public-matchday-feature {
@@ -485,6 +491,7 @@ const publicMatchdayStyles = `
 
   .public-matchday-news {
     grid-area: news;
+    min-height: 100%;
   }
 
   .public-matchday-editorial h2,
@@ -553,7 +560,7 @@ const publicMatchdayStyles = `
 
   .public-matchday-main-lower {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+    grid-template-columns: minmax(0, 1.65fr) minmax(280px, 0.95fr);
     gap: 24px;
     align-items: stretch;
     min-width: 0;
@@ -572,6 +579,8 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-feature h3 {
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dfe5ec;
     font-size: 14px;
     text-transform: uppercase;
   }
@@ -585,8 +594,8 @@ const publicMatchdayStyles = `
     gap: 8px;
     align-content: start;
     height: auto;
-    padding: 14px;
-    border: 1px solid #eef2f6;
+    padding: 0;
+    border: 0;
     background: #ffffff;
   }
 
@@ -698,10 +707,34 @@ const publicMatchdayStyles = `
     padding-top: 4px;
   }
 
+  .public-matchday-roundup .public-cover-story-strip {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding-top: 0;
+  }
+
   .public-cover-story {
     display: grid;
     gap: 6px;
     align-content: start;
+  }
+
+  .public-matchday-roundup .public-cover-story {
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 8px 12px;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid #e6ebf1;
+  }
+
+  .public-matchday-roundup .public-highlight-image {
+    grid-row: span 2;
+    aspect-ratio: 1 / 1;
+  }
+
+  .public-matchday-roundup .public-cover-story span,
+  .public-matchday-roundup .public-cover-story strong {
+    min-width: 0;
   }
 
   .public-highlight-image {
@@ -765,7 +798,7 @@ const publicMatchdayStyles = `
   .public-news-list li {
     display: grid;
     gap: 4px;
-    padding: 8px 0;
+    padding: 10px 0;
     border-bottom: 1px solid #e6ebf1;
   }
 
