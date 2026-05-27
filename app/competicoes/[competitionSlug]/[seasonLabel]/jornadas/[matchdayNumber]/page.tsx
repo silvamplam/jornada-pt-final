@@ -776,16 +776,19 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-roundup .public-cover-story span {
-    grid-column: 2 / 3;
+    grid-column: 2 / 5;
+    grid-row: 1 / 2;
   }
 
   .public-matchday-roundup .public-cover-story strong {
     grid-column: 2 / 3;
+    grid-row: 2 / 3;
     font-size: 14px;
   }
 
   .public-matchday-roundup .public-cover-story small {
-    grid-column: 2 / 3;
+    grid-column: 2 / 5;
+    grid-row: 3 / 4;
     color: #607086;
     font-size: 12px;
     font-weight: 800;
@@ -802,6 +805,7 @@ const publicMatchdayStyles = `
   .public-roundup-duration {
     grid-column: 3 / 4;
     grid-row: 2 / 3;
+    justify-self: end;
   }
 
   .public-roundup-arrow {
