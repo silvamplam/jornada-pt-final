@@ -570,11 +570,28 @@ const publicMatchdayStyles = `
     position: relative;
   }
 
-  .public-matchday-roundup h3 {
+  .public-editorial-block-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     padding-top: 8px;
     border-top: 4px solid #10151b;
+  }
+
+  .public-editorial-block-head h3,
+  .public-matchday-roundup h3 {
     font-size: 14px;
     font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .public-editorial-block-head a,
+  .public-editorial-more-link {
+    color: #003f8f;
+    font-size: 11px;
+    font-weight: 900;
+    text-decoration: none;
     text-transform: uppercase;
   }
 
@@ -724,21 +741,108 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-roundup .public-cover-story {
-    grid-template-columns: 56px minmax(0, 1fr);
-    gap: 8px 12px;
+    grid-template-columns: 56px minmax(0, 1fr) auto auto;
+    gap: 4px 10px;
     align-items: center;
     padding: 9px 0;
     border-bottom: 1px solid #e6ebf1;
   }
 
   .public-matchday-roundup .public-highlight-image {
-    grid-row: span 2;
+    position: relative;
+    grid-row: span 3;
     aspect-ratio: 1 / 1;
   }
 
+  .public-media-play {
+    position: absolute;
+    inset: 50% auto auto 50%;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #10151b;
+    font-size: 11px;
+    font-weight: 900;
+    transform: translate(-50%, -50%);
+  }
+
   .public-matchday-roundup .public-cover-story span,
-  .public-matchday-roundup .public-cover-story strong {
+  .public-matchday-roundup .public-cover-story strong,
+  .public-matchday-roundup .public-cover-story small {
     min-width: 0;
+  }
+
+  .public-matchday-roundup .public-cover-story span {
+    grid-column: 2 / 3;
+  }
+
+  .public-matchday-roundup .public-cover-story strong {
+    grid-column: 2 / 3;
+    font-size: 14px;
+  }
+
+  .public-matchday-roundup .public-cover-story small {
+    grid-column: 2 / 3;
+    color: #607086;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .public-roundup-duration,
+  .public-roundup-arrow {
+    color: #263241;
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .public-roundup-duration {
+    grid-column: 3 / 4;
+    grid-row: 2 / 3;
+  }
+
+  .public-roundup-arrow {
+    grid-column: 4 / 5;
+    grid-row: 2 / 3;
+  }
+
+  .public-editorial-more-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .public-complement-media {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 6px;
+    background:
+      linear-gradient(rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.62)),
+      url("https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=700&q=80") center / cover;
+  }
+
+  .public-complement-body {
+    display: grid;
+    gap: 6px;
+  }
+
+  .public-complement-body strong {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.15;
+  }
+
+  .public-complement-body p {
+    margin: 0;
+    color: #607086;
+    font-size: 13px;
+    line-height: 1.35;
   }
 
   .public-highlight-image {
@@ -1849,7 +1953,10 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
             </article>
             <div className="public-matchday-main-lower">
               <section className="public-matchday-roundup public-editorial-flex-block" data-editorial-slot="videos-ou-noticias" aria-label="Resumo da jornada">
-                <h3>Resumo da Jornada</h3>
+                <div className="public-editorial-block-head">
+                  <h3>Resumo da Jornada</h3>
+                  <a href="#jogos">Ver todos</a>
+                </div>
                 <div className="public-cover-story-strip" aria-label="Resumos e destaques da jornada">
               {context.highlights.length > 0 ? (
                 context.highlights.map((highlight) => (
@@ -1857,10 +1964,18 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                     {highlight.image_url ? (
                       <div className="public-highlight-image">
                         <img src={highlight.image_url} alt="" />
+                        <span className="public-media-play" aria-hidden="true">▶</span>
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="public-highlight-image">
+                        <span className="public-media-play" aria-hidden="true">▶</span>
+                      </div>
+                    )}
                     {highlight.label ? <span>{highlight.label}</span> : null}
                     <strong>{highlight.title}</strong>
+                    <small>Resumo, notícia ou melhores momentos</small>
+                    <span className="public-roundup-duration">5:42</span>
+                    <span className="public-roundup-arrow" aria-hidden="true">›</span>
                   </article>
                 ))
               ) : (
@@ -1871,9 +1986,13 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                         src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80"
                         alt=""
                       />
+                      <span className="public-media-play" aria-hidden="true">▶</span>
                     </div>
                     <span>Antevisão</span>
                     <strong>Os pontos de atenção antes da bola rolar</strong>
+                    <small>Resumo completo</small>
+                    <span className="public-roundup-duration">5:42</span>
+                    <span className="public-roundup-arrow" aria-hidden="true">›</span>
                   </article>
                   <article className="public-cover-story">
                     <div className="public-highlight-image">
@@ -1881,9 +2000,13 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                         src="https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=700&q=80"
                         alt=""
                       />
+                      <span className="public-media-play" aria-hidden="true">▶</span>
                     </div>
                     <span>Ambiente</span>
                     <strong>A jornada vista pelas bancadas e pelos protagonistas</strong>
+                    <small>Golos e melhores momentos</small>
+                    <span className="public-roundup-duration">4:18</span>
+                    <span className="public-roundup-arrow" aria-hidden="true">›</span>
                   </article>
                   <article className="public-cover-story">
                     <div className="public-highlight-image">
@@ -1891,21 +2014,29 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                         src="https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=700&q=80"
                         alt=""
                       />
+                      <span className="public-media-play" aria-hidden="true">▶</span>
                     </div>
                     <span>Contexto</span>
                     <strong>O que pode mudar na tabela depois dos resultados</strong>
+                    <small>Notícia de contexto</small>
+                    <span className="public-roundup-duration">6:21</span>
+                    <span className="public-roundup-arrow" aria-hidden="true">›</span>
                   </article>
                 </>
               )}
                 </div>
+                <a className="public-editorial-more-link" href="#jogos">
+                  Ver mais vídeos e golos <span aria-hidden="true">›</span>
+                </a>
               </section>
               <aside className="public-matchday-cover-side public-editorial-flex-block" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar da jornada">
                 <h3>Bloco complementar</h3>
-                <div className="public-matchday-summary">
-                  <span>Caso de arbitragem a acompanhar durante a jornada.</span>
-                  <span>Intriga dominante: pressão sobre as equipas da frente.</span>
-                  <span>Ponto de tensão: calendário curto e decisões no detalhe.</span>
-                  <span>Contexto competitivo ainda aberto na parte alta da tabela.</span>
+                <div className="public-complement-media">
+                  <span className="public-media-play" aria-hidden="true">▶</span>
+                </div>
+                <div className="public-complement-body">
+                  <strong>Área preparada para vídeo, imagem ou notícia</strong>
+                  <p>Espaço editorial flexível para destacar uma história, análise curta ou conteúdo visual da jornada.</p>
                 </div>
               </aside>
             </div>
