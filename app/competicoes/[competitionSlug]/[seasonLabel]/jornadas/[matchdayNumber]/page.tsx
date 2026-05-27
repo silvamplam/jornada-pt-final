@@ -811,6 +811,7 @@ const publicMatchdayStyles = `
   .public-roundup-arrow {
     grid-column: 4 / 5;
     grid-row: 2 / 3;
+    text-decoration: none;
   }
 
   .public-editorial-more-link {
@@ -1962,26 +1963,29 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                   <a href="#jogos">Ver todos</a>
                 </div>
                 <div className="public-cover-story-strip" aria-label="Resumos e destaques da jornada">
-              {context.highlights.length > 0 ? (
-                context.highlights.map((highlight) => (
-                  <article className="public-cover-story" key={highlight.id}>
-                    {highlight.image_url ? (
+              {context.roundupItems.length > 0 ? (
+                context.roundupItems.map((item) => {
+                  const showPlay = Boolean(item.video_url) || item.type === "video" || item.type === "golos" || item.type === "resumo";
+                  return (
+                    <article className="public-cover-story" key={item.id}>
                       <div className="public-highlight-image">
-                        <img src={highlight.image_url} alt="" />
-                        <span className="public-media-play" aria-hidden="true">▶</span>
+                        {item.image_url ? <img src={item.image_url} alt="" /> : null}
+                        {showPlay ? <span className="public-media-play" aria-hidden="true">▶</span> : null}
                       </div>
-                    ) : (
-                      <div className="public-highlight-image">
-                        <span className="public-media-play" aria-hidden="true">▶</span>
-                      </div>
-                    )}
-                    {highlight.label ? <span>{highlight.label}</span> : null}
-                    <strong>{highlight.title}</strong>
-                    <small>Resumo, notícia ou melhores momentos</small>
-                    <span className="public-roundup-duration">5:42</span>
-                    <span className="public-roundup-arrow" aria-hidden="true">›</span>
-                  </article>
-                ))
+                      {item.label ? <span>{item.label}</span> : null}
+                      <strong>{item.title}</strong>
+                      {item.subtitle ? <small>{item.subtitle}</small> : null}
+                      {item.duration ? <span className="public-roundup-duration">{item.duration}</span> : null}
+                      {item.video_url ? (
+                        <a className="public-roundup-arrow" href={item.video_url} aria-label="Abrir conteudo do resumo">
+                          ›
+                        </a>
+                      ) : (
+                        <span className="public-roundup-arrow" aria-hidden="true">›</span>
+                      )}
+                    </article>
+                  );
+                })
               ) : (
                 <>
                   <article className="public-cover-story">

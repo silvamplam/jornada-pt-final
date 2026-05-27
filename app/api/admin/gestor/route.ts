@@ -869,6 +869,78 @@ async function saveMatchdayHighlights(formData: FormData) {
   }
 }
 
+async function saveMatchdayRoundupItems(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const allowedTypes = new Set(["video", "golos", "resumo", "noticia"]);
+
+  if (!matchdayId) {
+    throw new Error("missing-fields");
+  }
+
+  if (!(await hasRows(`matchdays?select=id&id=eq.${encodeURIComponent(matchdayId)}`))) {
+    throw new Error("matchday-invalid");
+  }
+
+  for (const sortOrder of [1, 2, 3]) {
+    const itemId = cleanText(formData.get(`roundup_${sortOrder}_id`));
+    const label = cleanText(formData.get(`roundup_${sortOrder}_label`));
+    const title = cleanText(formData.get(`roundup_${sortOrder}_title`));
+    const subtitle = cleanText(formData.get(`roundup_${sortOrder}_subtitle`));
+    const imageUrl = cleanText(formData.get(`roundup_${sortOrder}_image_url`));
+    const videoUrl = cleanText(formData.get(`roundup_${sortOrder}_video_url`));
+    const duration = cleanText(formData.get(`roundup_${sortOrder}_duration`));
+    const typeValue = cleanText(formData.get(`roundup_${sortOrder}_type`)) ?? "resumo";
+    const statusValue = cleanText(formData.get(`roundup_${sortOrder}_status`)) ?? "draft";
+    const type = allowedTypes.has(typeValue) ? typeValue : "resumo";
+    const status = statusValue === "published" ? "published" : "draft";
+
+    if (status === "published" && !title) {
+      throw new Error("roundup-title-required");
+    }
+
+    const payload = {
+      matchday_id: matchdayId,
+      label,
+      title,
+      subtitle,
+      image_url: imageUrl,
+      video_url: videoUrl,
+      duration,
+      type,
+      sort_order: sortOrder,
+      status,
+      updated_at: new Date().toISOString()
+    };
+
+    if (itemId) {
+      await writeSupabaseAdmin(
+        `matchday_roundup_items?id=eq.${encodeURIComponent(itemId)}&matchday_id=eq.${encodeURIComponent(matchdayId)}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload)
+        }
+      );
+      continue;
+    }
+
+    const existingRows = await fetchSupabaseAdminTable<{ id: string }>(
+      `matchday_roundup_items?select=id&matchday_id=eq.${encodeURIComponent(matchdayId)}&sort_order=eq.${sortOrder}&limit=1`
+    );
+
+    if (existingRows[0]) {
+      await writeSupabaseAdmin(`matchday_roundup_items?id=eq.${encodeURIComponent(existingRows[0].id)}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      });
+    } else if (label || title || subtitle || imageUrl || videoUrl || duration || status === "published") {
+      await writeSupabaseAdmin("matchday_roundup_items", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+    }
+  }
+}
+
 function parseCalendarList(rawList: string): { rows: CalendarListRow[]; invalidLines: number } {
   const rows: CalendarListRow[] = [];
   let invalidLines = 0;
@@ -1567,6 +1639,8 @@ export async function POST(request: Request) {
       await saveMatchdayEditorial(formData);
     } else if (actionType === "save_matchday_highlights") {
       await saveMatchdayHighlights(formData);
+    } else if (actionType === "save_matchday_roundup_items") {
+      await saveMatchdayRoundupItems(formData);
     } else if (actionType === "match") {
       await createMatch(formData);
     } else if (actionType === "update_match") {

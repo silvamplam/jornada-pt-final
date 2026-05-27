@@ -5,6 +5,7 @@ import {
   type SupabaseMatchday,
   type SupabaseMatchdayEditorial,
   type SupabaseMatchdayHighlight,
+  type SupabaseMatchdayRoundupItem,
   type SupabaseSeason
 } from "@/lib/supabase";
 
@@ -318,10 +319,19 @@ async function readMatchdayHighlights(matchdayId: string): Promise<SupabaseMatch
   ).catch(() => []);
 }
 
+async function readMatchdayRoundupItems(matchdayId: string): Promise<SupabaseMatchdayRoundupItem[]> {
+  return fetchSupabaseAdminTable<SupabaseMatchdayRoundupItem>(
+    `matchday_roundup_items?select=id,matchday_id,label,title,subtitle,image_url,video_url,duration,type,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&order=sort_order.asc&limit=3`
+  ).catch(() => []);
+}
+
 function messageFor(created?: string, error?: string) {
   const createdLabels: Record<string, string> = {
     save_matchday_editorial: "Manchete editorial guardada.",
     save_matchday_highlights: "Destaques da jornada guardados.",
+    save_matchday_roundup_items: "Resumo da Jornada guardado.",
     upload_matchday_editorial_image: "Imagem da manchete carregada.",
     upload_matchday_highlight_image: "Imagem do destaque carregada."
   };
@@ -331,6 +341,7 @@ function messageFor(created?: string, error?: string) {
     "matchday-invalid": "A jornada escolhida ja nao existe.",
     "editorial-title-required": "Para publicar, indica uma manchete da jornada.",
     "highlight-title-required": "Para publicar um destaque, indica o titulo.",
+    "roundup-title-required": "Para publicar um item do Resumo da Jornada, indica o titulo.",
     "editorial-image-type": "O ficheiro tem de ser uma imagem JPG, PNG ou WebP.",
     "editorial-image-size": "A imagem nao pode ter mais de 5MB.",
     "editorial-image-upload": "Nao foi possivel carregar a imagem. Confirma o bucket de Storage.",
@@ -390,6 +401,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const { matchday, season, competition, country } = context;
   const editorial = await readMatchdayEditorial(matchday.id);
   const highlights = await readMatchdayHighlights(matchday.id);
+  const roundupItems = await readMatchdayRoundupItems(matchday.id);
   const returnTo = `/admin/editorial/jornada/${matchday.id}`;
   const backToGestor = gestorReturnUrl(context);
   const contextLabel = `${country?.name ?? "Pais"} · ${competition.name} · ${season.label} · ${matchday.label}`;
@@ -603,11 +615,106 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
         <section className="editorial-admin-panel">
           <header>
             <h2>Resumo da Jornada</h2>
-            <p>Bloco preparado para programacao editorial posterior.</p>
+            <p>Edita ate tres entradas para videos, golos, resumos ou noticias da jornada.</p>
           </header>
-          <p className="editorial-admin-muted">
-            Este espaco podera receber videos, golos, resumos dos jogos ou links para pecas da jornada.
-          </p>
+          <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
+            <input type="hidden" name="action_type" value="save_matchday_roundup_items" />
+            <input type="hidden" name="return_to" value={returnTo} />
+            <input type="hidden" name="matchday_id" value={matchday.id} />
+            {[1, 2, 3].map((order) => {
+              const item = roundupItems.find((roundupItem) => roundupItem.sort_order === order);
+              return (
+                <fieldset className={`editorial-admin-fieldset editorial-admin-highlight-${order}`} key={order}>
+                  <legend>Item {order}</legend>
+                  <input type="hidden" name={`roundup_${order}_id`} value={item?.id ?? ""} />
+                  <input type="hidden" name={`roundup_${order}_sort_order`} value={order} />
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`roundup-${order}-sort-order`}>Ordem</label>
+                    <input id={`roundup-${order}-sort-order`} readOnly value={order} />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`roundup-${order}-label`}>Etiqueta</label>
+                    <input
+                      id={`roundup-${order}-label`}
+                      name={`roundup_${order}_label`}
+                      defaultValue={item?.label ?? ""}
+                      placeholder={order === 1 ? "VIDEO" : order === 2 ? "GOLOS" : "NOTICIA"}
+                    />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`roundup-${order}-title`}>Titulo</label>
+                    <input
+                      id={`roundup-${order}-title`}
+                      name={`roundup_${order}_title`}
+                      defaultValue={item?.title ?? ""}
+                      placeholder={
+                        order === 1
+                          ? "Girona 0 - 1 Rayo Vallecano"
+                          : order === 2
+                            ? "Villarreal 2 - 3 Real Oviedo"
+                            : "Mallorca 0 - 1 FC Barcelona"
+                      }
+                    />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`roundup-${order}-subtitle`}>Subtitulo</label>
+                    <input
+                      id={`roundup-${order}-subtitle`}
+                      name={`roundup_${order}_subtitle`}
+                      defaultValue={item?.subtitle ?? ""}
+                      placeholder={order === 1 ? "Resumo completo" : order === 2 ? "Golos e melhores momentos" : "Noticia de contexto"}
+                    />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`roundup-${order}-image-url`}>Imagem URL</label>
+                    <input
+                      id={`roundup-${order}-image-url`}
+                      name={`roundup_${order}_image_url`}
+                      defaultValue={item?.image_url ?? ""}
+                      placeholder="https://exemplo.com/imagem.jpg"
+                    />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`roundup-${order}-video-url`}>Video URL</label>
+                    <input
+                      id={`roundup-${order}-video-url`}
+                      name={`roundup_${order}_video_url`}
+                      defaultValue={item?.video_url ?? ""}
+                      placeholder="https://exemplo.com/video"
+                    />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`roundup-${order}-duration`}>Duracao</label>
+                    <input
+                      id={`roundup-${order}-duration`}
+                      name={`roundup_${order}_duration`}
+                      defaultValue={item?.duration ?? ""}
+                      placeholder="5:42"
+                    />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`roundup-${order}-type`}>Tipo</label>
+                    <select id={`roundup-${order}-type`} name={`roundup_${order}_type`} defaultValue={item?.type ?? "resumo"}>
+                      <option value="video">Video</option>
+                      <option value="golos">Golos</option>
+                      <option value="resumo">Resumo</option>
+                      <option value="noticia">Noticia</option>
+                    </select>
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`roundup-${order}-status`}>Estado</label>
+                    <select id={`roundup-${order}-status`} name={`roundup_${order}_status`} defaultValue={item?.status ?? "draft"}>
+                      <option value="draft">Rascunho</option>
+                      <option value="published">Publicado</option>
+                    </select>
+                  </div>
+                </fieldset>
+              );
+            })}
+            <button className="editorial-admin-button" type="submit">
+              Guardar Resumo da Jornada
+            </button>
+          </form>
         </section>
         <section className="editorial-admin-panel">
           <header>

@@ -121,6 +121,22 @@ export type SupabaseMatchdayHighlight = {
   updated_at: string;
 };
 
+export type SupabaseMatchdayRoundupItem = {
+  id: string;
+  matchday_id: string;
+  label: string | null;
+  title: string | null;
+  subtitle: string | null;
+  image_url: string | null;
+  video_url: string | null;
+  duration: string | null;
+  type: "video" | "golos" | "resumo" | "noticia";
+  sort_order: number;
+  status: "draft" | "published";
+  created_at: string;
+  updated_at: string;
+};
+
 export type SupabaseTeam = {
   id: string;
   name: string;
