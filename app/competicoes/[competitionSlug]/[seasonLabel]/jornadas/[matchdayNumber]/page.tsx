@@ -52,7 +52,7 @@ const publicMatchdayStyles = `
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 22px;
     align-items: center;
-    min-height: 60px;
+    min-height: 56px;
     max-width: 1512px;
     margin: 0 auto;
     padding: 0;
@@ -65,7 +65,7 @@ const publicMatchdayStyles = `
     gap: 2px;
     color: #2f343b;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: 31px;
+    font-size: 29px;
     font-weight: 900;
     line-height: 1;
     text-decoration: none;
@@ -121,7 +121,7 @@ const publicMatchdayStyles = `
     align-items: center;
     gap: 8px;
     min-width: 170px;
-    padding: 8px 12px;
+    padding: 6px 11px;
     border: 1px solid #d8dee6;
     border-radius: 999px;
     background: #ffffff;
@@ -163,7 +163,7 @@ const publicMatchdayStyles = `
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 8px 6px 10px;
+    padding: 5px 8px 5px 10px;
     border: 1px solid #cfd7e1;
     background: #f8fafc;
     color: #263241;
@@ -230,8 +230,8 @@ const publicMatchdayStyles = `
 
   .public-matchday-scoreboard-panel {
     margin-top: 10px;
-    border-top: 1px solid #10151b;
-    border-bottom: 1px solid #10151b;
+    border-top: 0;
+    border-bottom: 0;
     border-left: 0;
     border-right: 0;
     border-radius: 0;
@@ -564,6 +564,10 @@ const publicMatchdayStyles = `
     gap: 24px;
     align-items: stretch;
     min-width: 0;
+  }
+
+  .public-editorial-flex-block {
+    position: relative;
   }
 
   .public-matchday-roundup h3 {
@@ -1051,7 +1055,7 @@ const publicMatchdayStyles = `
   .public-matchday-nav span {
     display: inline-block;
     flex: 0 0 auto;
-    padding: 10px 14px;
+    padding: 8px 13px;
     border: 0;
     border-right: 1px solid #dfe5ec;
     border-radius: 0;
@@ -1323,7 +1327,7 @@ const publicMatchdayStyles = `
     flex-wrap: wrap;
     gap: 8px 18px;
     align-items: center;
-    min-height: 56px;
+    min-height: 52px;
     max-width: 1512px;
     margin: 0 auto;
     padding: 0;
@@ -1844,7 +1848,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               </div>
             </article>
             <div className="public-matchday-main-lower">
-              <section className="public-matchday-roundup" aria-label="Resumo da jornada">
+              <section className="public-matchday-roundup public-editorial-flex-block" data-editorial-slot="videos-ou-noticias" aria-label="Resumo da jornada">
                 <h3>Resumo da Jornada</h3>
                 <div className="public-cover-story-strip" aria-label="Resumos e destaques da jornada">
               {context.highlights.length > 0 ? (
@@ -1895,7 +1899,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               )}
                 </div>
               </section>
-              <aside className="public-matchday-cover-side" aria-label="Bloco complementar da jornada">
+              <aside className="public-matchday-cover-side public-editorial-flex-block" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar da jornada">
                 <h3>Bloco complementar</h3>
                 <div className="public-matchday-summary">
                   <span>Caso de arbitragem a acompanhar durante a jornada.</span>
