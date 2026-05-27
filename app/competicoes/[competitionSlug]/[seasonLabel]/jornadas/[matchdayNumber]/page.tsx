@@ -25,6 +25,7 @@ const PUBLIC_STAT_COLUMNS: Array<{ key: keyof ClassificationSplit; label: string
 const publicMatchdayStyles = `
   body {
     margin: 0;
+    overflow-x: hidden;
     background: #eef2f6;
     color: #10151b;
     font-family: Arial, Helvetica, sans-serif;
@@ -245,7 +246,7 @@ const publicMatchdayStyles = `
     background: transparent;
     box-shadow: none;
     overflow: visible;
-    max-width: none;
+    max-width: 1512px;
     width: 100%;
   }
 
@@ -430,10 +431,15 @@ const publicMatchdayStyles = `
 
   .public-matchday-cover {
     display: grid;
-    grid-template-columns: 240px minmax(620px, 728px) 364px 280px;
+    grid-template-columns:
+      minmax(220px, 240px)
+      minmax(0, 1fr)
+      minmax(280px, 340px)
+      minmax(240px, 280px);
     grid-template-areas: "feature editorial side news";
     gap: 24px;
-    width: min(100%, 1684px);
+    width: 100%;
+    max-width: 100%;
     box-sizing: border-box;
     margin: 0 auto;
     padding: 20px 0;
@@ -1237,7 +1243,7 @@ const publicMatchdayStyles = `
 
   .public-matchday-panel[aria-label="Navegacao de jornadas"] {
     max-width: none;
-    margin: 0 -28px;
+    margin: 0 -24px;
     border: 0;
     border-radius: 0;
     background: rgba(255, 255, 255, 0.98);
