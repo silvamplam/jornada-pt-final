@@ -434,9 +434,8 @@ const publicMatchdayStyles = `
     grid-template-columns:
       minmax(220px, 240px)
       minmax(0, 1fr)
-      minmax(280px, 340px)
       minmax(240px, 280px);
-    grid-template-areas: "feature editorial side news";
+    grid-template-areas: "feature main news";
     gap: 24px;
     width: 100%;
     max-width: 100%;
@@ -449,6 +448,8 @@ const publicMatchdayStyles = `
 
   .public-matchday-editorial,
   .public-matchday-feature,
+  .public-matchday-main-column,
+  .public-matchday-roundup,
   .public-matchday-cover-side,
   .public-matchday-news {
     display: grid;
@@ -460,10 +461,13 @@ const publicMatchdayStyles = `
     background: #ffffff;
   }
 
+  .public-matchday-main-column {
+    grid-area: main;
+    gap: 12px;
+  }
+
   .public-matchday-editorial {
-    grid-area: editorial;
     align-content: start;
-    grid-template-rows: auto auto;
     min-height: 0;
   }
 
@@ -472,7 +476,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-cover-side {
-    grid-area: side;
+    min-height: 100%;
   }
 
   .public-matchday-news {
@@ -481,6 +485,7 @@ const publicMatchdayStyles = `
 
   .public-matchday-editorial h2,
   .public-matchday-feature h3,
+  .public-matchday-roundup h3,
   .public-matchday-cover-side h3,
   .public-matchday-news h3 {
     margin: 0;
@@ -498,11 +503,12 @@ const publicMatchdayStyles = `
   .public-cover-headline {
     position: relative;
     display: grid;
-    gap: 10px;
-    align-content: start;
+    grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.95fr);
+    gap: 18px;
+    align-items: start;
     min-height: 0;
     overflow: visible;
-    padding: 0 0 14px;
+    padding: 0 0 12px;
     border-bottom: 1px solid #dfe5ec;
     background: #ffffff;
     color: #10151b;
@@ -520,7 +526,7 @@ const publicMatchdayStyles = `
   .public-editorial-main-image {
     width: 100%;
     aspect-ratio: 16 / 9;
-    max-height: 260px;
+    max-height: 285px;
     overflow: hidden;
     border-radius: 6px;
     background: #eef2f6;
@@ -539,6 +545,22 @@ const publicMatchdayStyles = `
     color: #526174;
     font-size: 14px;
     line-height: 1.35;
+  }
+
+  .public-matchday-main-lower {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+    gap: 24px;
+    align-items: stretch;
+    min-width: 0;
+  }
+
+  .public-matchday-roundup h3 {
+    padding-top: 8px;
+    border-top: 4px solid #10151b;
+    font-size: 14px;
+    font-weight: 900;
+    text-transform: uppercase;
   }
 
   .public-matchday-feature {
@@ -669,7 +691,7 @@ const publicMatchdayStyles = `
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
-    padding-top: 8px;
+    padding-top: 4px;
   }
 
   .public-cover-story {
@@ -1209,6 +1231,11 @@ const publicMatchdayStyles = `
     }
 
     .public-matchday-cover {
+      grid-template-columns: 1fr;
+    }
+
+    .public-cover-headline,
+    .public-matchday-main-lower {
       grid-template-columns: 1fr;
     }
 
@@ -1763,21 +1790,26 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               </ul>
             </div>
           </aside>
-          <article className="public-matchday-editorial">
-            <div className="public-cover-headline">
-              {context.editorial?.image_url ? (
-                <div className="public-editorial-main-image">
-                  <img src={context.editorial.image_url} alt="" />
+          <div className="public-matchday-main-column">
+            <article className="public-matchday-editorial">
+              <div className="public-cover-headline">
+                {context.editorial?.image_url ? (
+                  <div className="public-editorial-main-image">
+                    <img src={context.editorial.image_url} alt="" />
+                  </div>
+                ) : null}
+                <div>
+                  <h2 style={context.editorial?.title_color ? { color: context.editorial.title_color } : undefined}>
+                    {context.editorial?.title || "Manchete da jornada"}
+                  </h2>
+                  <p>{context.editorial?.summary || "Espaço reservado para a leitura editorial desta jornada."}</p>
                 </div>
-              ) : null}
-              <div>
-                <h2 style={context.editorial?.title_color ? { color: context.editorial.title_color } : undefined}>
-                  {context.editorial?.title || "Manchete da jornada"}
-                </h2>
-                <p>{context.editorial?.summary || "Espaço reservado para a leitura editorial desta jornada."}</p>
               </div>
-            </div>
-            <div className="public-cover-story-strip" aria-label="Notícias de apoio da jornada">
+            </article>
+            <div className="public-matchday-main-lower">
+              <section className="public-matchday-roundup" aria-label="Resumo da jornada">
+                <h3>Resumo da Jornada</h3>
+                <div className="public-cover-story-strip" aria-label="Resumos e destaques da jornada">
               {context.highlights.length > 0 ? (
                 context.highlights.map((highlight) => (
                   <article className="public-cover-story" key={highlight.id}>
@@ -1824,17 +1856,19 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                   </article>
                 </>
               )}
+                </div>
+              </section>
+              <aside className="public-matchday-cover-side" aria-label="Bloco complementar da jornada">
+                <h3>Bloco complementar</h3>
+                <div className="public-matchday-summary">
+                  <span>Caso de arbitragem a acompanhar durante a jornada.</span>
+                  <span>Intriga dominante: pressão sobre as equipas da frente.</span>
+                  <span>Ponto de tensão: calendário curto e decisões no detalhe.</span>
+                  <span>Contexto competitivo ainda aberto na parte alta da tabela.</span>
+                </div>
+              </aside>
             </div>
-          </article>
-          <aside className="public-matchday-cover-side" aria-label="Resumo automático da jornada">
-            <h3>Resumo</h3>
-            <div className="public-matchday-summary">
-              <span>Caso de arbitragem a acompanhar durante a jornada.</span>
-              <span>Intriga dominante: pressão sobre as equipas da frente.</span>
-              <span>Ponto de tensão: calendário curto e decisões no detalhe.</span>
-              <span>Contexto competitivo ainda aberto na parte alta da tabela.</span>
-            </div>
-          </aside>
+          </div>
           <aside className="public-matchday-news" aria-label="Últimas notícias">
             <h3>Últimas notícias</h3>
             <ul className="public-news-list">
