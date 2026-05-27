@@ -229,7 +229,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-scoreboard-panel {
-    margin-top: 10px;
+    margin-top: 2px;
     border-top: 0;
     border-bottom: 0;
     border-left: 0;
