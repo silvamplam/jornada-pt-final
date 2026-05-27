@@ -468,7 +468,7 @@ const publicMatchdayStyles = `
 
   .public-matchday-main-column {
     grid-area: main;
-    gap: 24px;
+    gap: 12px;
     padding: 0;
     border: 0;
     grid-template-rows: auto 1fr;
@@ -519,7 +519,7 @@ const publicMatchdayStyles = `
     align-items: start;
     min-height: 0;
     overflow: visible;
-    padding: 0 0 12px;
+    padding: 0 0 6px;
     border-bottom: 1px solid #dfe5ec;
     background: #ffffff;
     color: #10151b;
