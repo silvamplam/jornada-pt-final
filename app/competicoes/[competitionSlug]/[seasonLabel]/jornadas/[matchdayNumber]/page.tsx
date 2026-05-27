@@ -241,7 +241,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-scoreboard-panel + .public-matchday-panel {
-    margin-top: 12px;
+    margin-top: 6px;
   }
 
   .public-matchday-panel[aria-label="Capa da jornada"] {
