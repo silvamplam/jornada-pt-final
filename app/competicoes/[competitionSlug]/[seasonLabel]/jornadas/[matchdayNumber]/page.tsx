@@ -26,7 +26,7 @@ const publicMatchdayStyles = `
   body {
     margin: 0;
     overflow-x: hidden;
-    background: #eef2f6;
+    background: #ffffff;
     color: #10151b;
     font-family: Arial, Helvetica, sans-serif;
   }
