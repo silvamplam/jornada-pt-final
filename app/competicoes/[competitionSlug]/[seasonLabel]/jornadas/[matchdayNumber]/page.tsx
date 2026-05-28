@@ -1,5 +1,6 @@
 ﻿import { buildAccumulatedClassification, totalClassificationStats, type ClassificationSplit } from "@/lib/classification";
 import { getPublicMatchdayDiagnostic, seasonLabelToUrlSegment, type PublicMatchdayDiagnostic, type PublicSeasonMatch } from "@/lib/public-matchday";
+import RoundupVideoSwitcher from "./RoundupVideoSwitcher";
 
 export const dynamic = "force-dynamic";
 
@@ -854,6 +855,22 @@ const publicMatchdayStyles = `
     text-decoration: none;
   }
 
+  .public-roundup-switch-item {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .public-roundup-switch-item[aria-pressed="true"] {
+    background: #f8fafc;
+    outline: 1px solid #dce3eb;
+    outline-offset: -1px;
+  }
+
   .public-below-headline-highlights .public-cover-story span,
   .public-below-headline-highlights .public-cover-story strong,
   .public-below-headline-highlights .public-cover-story small {
@@ -1621,36 +1638,6 @@ function formatMatchdayDateContext(matches: PublicSeasonMatch[]) {
   return `${firstLabel} – ${lastLabel}`;
 }
 
-function videoEmbedUrl(value?: string | null) {
-  if (!value) {
-    return null;
-  }
-
-  try {
-    const url = new URL(value);
-    const host = url.hostname.replace(/^www\./, "");
-
-    if (host === "youtu.be") {
-      const videoId = url.pathname.split("/").filter(Boolean)[0];
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
-    }
-
-    if (host.endsWith("youtube.com")) {
-      const videoId = url.searchParams.get("v") || url.pathname.split("/").filter(Boolean).at(-1);
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
-    }
-
-    if (host.endsWith("vimeo.com")) {
-      const videoId = url.pathname.split("/").filter(Boolean).at(-1);
-      return videoId ? `https://player.vimeo.com/video/${videoId}` : null;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
 function statusLabel(status: string) {
   const normalized = status.trim().toLowerCase();
   if (normalized === "finished") return "Finalizado";
@@ -1879,11 +1866,6 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   const selectedMatchdayDateContext = formatMatchdayDateContext(context.matchesForMatchday);
   const belowHeadlineMode = context.editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = context.editorial?.complementary_mode ?? "none";
-  const complementaryRoundupItem =
-    complementaryMode === "roundup_video"
-      ? context.roundupItems.find((item) => item.id === context.editorial?.complementary_roundup_item_id) ?? null
-      : null;
-  const complementaryEmbedUrl = videoEmbedUrl(complementaryRoundupItem?.video_url);
   const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
   const nextScheduledMatches = [...scheduledMatches]
     .sort((firstMatch, secondMatch) => new Date(firstMatch.kickoff_at).getTime() - new Date(secondMatch.kickoff_at).getTime())
@@ -2078,6 +2060,13 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               </div>
             </article>
             <div className="public-matchday-main-lower">
+              {complementaryMode === "roundup_video" ? (
+                <RoundupVideoSwitcher
+                  items={context.roundupItems}
+                  initialItemId={context.editorial?.complementary_roundup_item_id ?? null}
+                />
+              ) : (
+                <>
               <section
                 className={`public-matchday-roundup public-below-headline-${belowHeadlineMode} public-editorial-flex-block`}
                 data-editorial-slot="videos-ou-noticias"
@@ -2211,42 +2200,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                 </a>
               </section>
               <aside className="public-matchday-cover-side public-editorial-flex-block" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar da jornada">
-                {complementaryMode === "roundup_video" ? (
-                  complementaryRoundupItem ? (
-                    <>
-                      <div className="public-complement-media">
-                        {complementaryEmbedUrl ? (
-                          <iframe
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowFullScreen
-                            src={complementaryEmbedUrl}
-                            title={complementaryRoundupItem.title ?? "Video da jornada"}
-                          />
-                        ) : complementaryRoundupItem.image_url ? (
-                          <img src={complementaryRoundupItem.image_url} alt="" />
-                        ) : (
-                          <span className="public-media-play" aria-hidden="true">▶</span>
-                        )}
-                      </div>
-                      <div className="public-complement-body">
-                        {complementaryRoundupItem.label ? <span className="public-complement-label">{complementaryRoundupItem.label}</span> : null}
-                        <strong>{complementaryRoundupItem.title ?? "Video da jornada"}</strong>
-                        {complementaryRoundupItem.duration ? <p>{complementaryRoundupItem.duration}</p> : null}
-                        {!complementaryEmbedUrl && complementaryRoundupItem.video_url ? (
-                          <a className="public-editorial-more-link" href={complementaryRoundupItem.video_url}>
-                            Ver video <span aria-hidden="true">›</span>
-                          </a>
-                        ) : null}
-                        {!complementaryRoundupItem.video_url ? <p>Video por definir.</p> : null}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="public-complement-body">
-                      <strong>Video por escolher</strong>
-                      <p>Escolhe no backoffice um item publicado do Resumo da Jornada.</p>
-                    </div>
-                  )
-                ) : complementaryMode === "complementary_story" && context.editorial?.complementary_status === "published" ? (
+                {complementaryMode === "complementary_story" && context.editorial?.complementary_status === "published" ? (
                   <>
                     {context.editorial.complementary_image_url ? (
                       <div className="public-complement-media">
@@ -2281,6 +2235,8 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                   </div>
                 )}
               </aside>
+                </>
+              )}
             </div>
           </div>
           <aside className="public-matchday-news" aria-label="Últimas notícias">

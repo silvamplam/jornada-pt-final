@@ -769,16 +769,16 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             </div>
             <div className="editorial-complement-mode-section" data-complementary-section="roundup_video" hidden={complementaryMode !== "roundup_video"}>
               <div className="editorial-admin-field">
-                <label htmlFor="complementary-roundup-item">Item do Resumo da Jornada</label>
+                <label htmlFor="complementary-roundup-item">Video inicial opcional</label>
                 <select id="complementary-roundup-item" name="complementary_roundup_item_id" defaultValue={editorial?.complementary_roundup_item_id ?? ""}>
-                  <option value="">Escolher item preparado no Resumo da Jornada</option>
+                  <option value="">Usar primeiro item publicado</option>
                   {roundupItems.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.sort_order}. {item.title || item.label || "Item sem titulo"}
                     </option>
                   ))}
                 </select>
-                <p className="editorial-admin-muted">Este modo apenas mostra o item escolhido. O video continua a ser editado no Resumo da Jornada.</p>
+                <p className="editorial-admin-muted">Este modo usa a lista publicada do Resumo da Jornada. O visitante escolhe o video na pagina publica; este campo apenas define o primeiro item, se precisares.</p>
               </div>
             </div>
             <div className="editorial-complement-mode-section" data-complementary-section="complementary_story" hidden={complementaryMode !== "complementary_story"}>
