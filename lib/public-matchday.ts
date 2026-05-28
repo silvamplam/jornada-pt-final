@@ -103,7 +103,7 @@ async function readBroadcastChannels(ids: string[]) {
 async function readPublishedMatchdayEditorial(matchdayId: string) {
   try {
     const rows = await fetchSupabaseAdminTable<SupabaseMatchdayEditorial>(
-      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}&status=eq.published&limit=1`
     );

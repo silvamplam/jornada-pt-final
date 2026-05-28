@@ -305,7 +305,7 @@ async function readMatchdayContext(matchdayId: string): Promise<MatchdayContext 
 
 async function readMatchdayEditorial(matchdayId: string): Promise<SupabaseMatchdayEditorial | null> {
   return readFirst<SupabaseMatchdayEditorial>(
-    `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+    `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
       matchdayId
     )}`
   ).catch(() => null);
@@ -468,6 +468,17 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 defaultValue={editorial?.image_url ?? ""}
                 placeholder="https://exemplo.com/imagem.jpg"
               />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="matchday-editorial-below-headline-mode">Zona abaixo da manchete</label>
+              <select
+                id="matchday-editorial-below-headline-mode"
+                name="below_headline_mode"
+                defaultValue={editorial?.below_headline_mode ?? "highlights"}
+              >
+                <option value="highlights">Destaques editoriais</option>
+                <option value="roundup">Resumo da Jornada / videos e golos</option>
+              </select>
             </div>
             {editorial?.image_url ? (
               <div className="editorial-admin-preview">

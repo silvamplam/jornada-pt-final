@@ -777,6 +777,8 @@ async function saveMatchdayEditorial(formData: FormData) {
   const summary = cleanText(formData.get("summary"));
   const titleColor = cleanText(formData.get("title_color"));
   const imageUrl = cleanText(formData.get("image_url"));
+  const belowHeadlineModeValue = cleanText(formData.get("below_headline_mode")) ?? "highlights";
+  const belowHeadlineMode = belowHeadlineModeValue === "roundup" ? "roundup" : "highlights";
 
   if (!matchdayId || !["draft", "published"].includes(status)) {
     throw new Error("missing-fields");
@@ -801,6 +803,7 @@ async function saveMatchdayEditorial(formData: FormData) {
       summary,
       title_color: titleColor,
       image_url: imageUrl,
+      below_headline_mode: belowHeadlineMode,
       status,
       updated_at: new Date().toISOString()
     })

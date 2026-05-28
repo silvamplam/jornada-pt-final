@@ -1779,6 +1779,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   const finishedMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "finished");
   const scheduledMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "scheduled");
   const selectedMatchdayDateContext = formatMatchdayDateContext(context.matchesForMatchday);
+  const belowHeadlineMode = context.editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
   const nextScheduledMatches = [...scheduledMatches]
     .sort((firstMatch, secondMatch) => new Date(firstMatch.kickoff_at).getTime() - new Date(secondMatch.kickoff_at).getTime())
@@ -1978,7 +1979,63 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                   <a href="#jogos">Ver todos</a>
                 </div>
                 <div className="public-cover-story-strip" aria-label="Resumos e destaques da jornada">
-              {context.roundupItems.length > 0 ? (
+              {belowHeadlineMode === "highlights" ? (
+                context.highlights.length > 0 ? (
+                  context.highlights.map((highlight) => {
+                    const imageUrl = highlight.image_url?.trim();
+                    return (
+                      <article className="public-cover-story" key={highlight.id}>
+                        <div className="public-highlight-image">
+                          {imageUrl ? <img src={imageUrl} alt="" /> : null}
+                        </div>
+                        {highlight.label ? <span>{highlight.label}</span> : null}
+                        <strong>{highlight.title}</strong>
+                        <small>Destaque editorial</small>
+                        <span className="public-roundup-arrow" aria-hidden="true">›</span>
+                      </article>
+                    );
+                  })
+                ) : (
+                  <>
+                    <article className="public-cover-story">
+                      <div className="public-highlight-image">
+                        <img
+                          src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80"
+                          alt=""
+                        />
+                      </div>
+                      <span>Antevisão</span>
+                      <strong>Os pontos de atenção antes da bola rolar</strong>
+                      <small>Destaque editorial</small>
+                      <span className="public-roundup-arrow" aria-hidden="true">›</span>
+                    </article>
+                    <article className="public-cover-story">
+                      <div className="public-highlight-image">
+                        <img
+                          src="https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=700&q=80"
+                          alt=""
+                        />
+                      </div>
+                      <span>Ambiente</span>
+                      <strong>A jornada vista pelas bancadas e pelos protagonistas</strong>
+                      <small>Destaque editorial</small>
+                      <span className="public-roundup-arrow" aria-hidden="true">›</span>
+                    </article>
+                    <article className="public-cover-story">
+                      <div className="public-highlight-image">
+                        <img
+                          src="https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=700&q=80"
+                          alt=""
+                        />
+                      </div>
+                      <span>Contexto</span>
+                      <strong>O que pode mudar na tabela depois dos resultados</strong>
+                      <small>Destaque editorial</small>
+                      <span className="public-roundup-arrow" aria-hidden="true">›</span>
+                    </article>
+                  </>
+                )
+              ) : context.roundupItems.length > 0 ? (
                 context.roundupItems.map((item) => {
                   const showPlay = Boolean(item.video_url) || item.type === "video" || item.type === "golos" || item.type === "resumo";
                   const imageUrl = item.image_url?.trim();
@@ -2050,7 +2107,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               )}
                 </div>
                 <a className="public-editorial-more-link" href="#jogos">
-                  Ver mais vídeos e golos <span aria-hidden="true">›</span>
+                  {belowHeadlineMode === "roundup" ? "Ver mais vídeos e golos" : "Ver mais destaques"} <span aria-hidden="true">›</span>
                 </a>
               </section>
               <aside className="public-matchday-cover-side public-editorial-flex-block" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar da jornada">
