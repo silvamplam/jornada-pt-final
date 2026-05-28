@@ -916,6 +916,17 @@ const publicMatchdayStyles = `
     line-height: 1.15;
   }
 
+  .public-complement-title-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .public-complement-title-link:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+
   .public-complement-body p {
     margin: 0;
     color: #607086;
@@ -1873,9 +1884,6 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
       ? context.roundupItems.find((item) => item.id === context.editorial?.complementary_roundup_item_id) ?? null
       : null;
   const complementaryEmbedUrl = videoEmbedUrl(complementaryRoundupItem?.video_url);
-  const complementaryTextStyle = context.editorial?.complementary_text_color
-    ? { color: context.editorial.complementary_text_color }
-    : undefined;
   const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
   const nextScheduledMatches = [...scheduledMatches]
     .sort((firstMatch, secondMatch) => new Date(firstMatch.kickoff_at).getTime() - new Date(secondMatch.kickoff_at).getTime())
@@ -2250,9 +2258,15 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                         <span className="public-complement-label">{context.editorial.complementary_label}</span>
                       ) : null}
                       {context.editorial.complementary_title ? (
-                        <strong style={complementaryTextStyle}>{context.editorial.complementary_title}</strong>
+                        context.editorial.complementary_link_url ? (
+                          <a className="public-complement-title-link" href={context.editorial.complementary_link_url}>
+                            <strong>{context.editorial.complementary_title}</strong>
+                          </a>
+                        ) : (
+                          <strong>{context.editorial.complementary_title}</strong>
+                        )
                       ) : null}
-                      {context.editorial.complementary_text ? <p style={complementaryTextStyle}>{context.editorial.complementary_text}</p> : null}
+                      {context.editorial.complementary_text ? <p>{context.editorial.complementary_text}</p> : null}
                       {context.editorial.complementary_link_url ? (
                         <a className="public-editorial-more-link" href={context.editorial.complementary_link_url}>
                           Ver mais <span aria-hidden="true">›</span>
