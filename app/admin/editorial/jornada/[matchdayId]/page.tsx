@@ -127,6 +127,7 @@ const editorialPageStyles = `
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 16px;
+    align-items: start;
   }
 
   .editorial-admin-composition-card {
@@ -155,62 +156,6 @@ const editorialPageStyles = `
     padding: 20px;
   }
 
-  .editorial-admin-mode-panel {
-    margin-top: 18px;
-  }
-
-  .editorial-admin-mode-panel summary {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    align-items: center;
-    margin: -20px;
-    padding: 18px 20px;
-    list-style: none;
-    cursor: pointer;
-  }
-
-  .editorial-admin-mode-panel summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .editorial-admin-mode-panel summary::after {
-    content: "Recolhido";
-    padding: 6px 9px;
-    border: 1px solid #dce3eb;
-    border-radius: 999px;
-    background: #f8fafc;
-    color: #687380;
-    font-size: 11px;
-    font-weight: 900;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
-  .editorial-admin-mode-panel[open] summary {
-    margin-bottom: 16px;
-    border-bottom: 1px solid #e6ebf1;
-  }
-
-  .editorial-admin-mode-panel[open] summary::after {
-    content: "Ativo";
-    border-color: #ffd6d8;
-    background: #fff5f5;
-    color: #c40012;
-  }
-
-  .editorial-admin-mode-panel summary h2,
-  .editorial-admin-mode-panel summary p {
-    margin: 0;
-  }
-
-  .editorial-admin-mode-panel summary p {
-    margin-top: 6px;
-    color: #687380;
-    font-size: 14px;
-    line-height: 1.45;
-  }
-
   .editorial-admin-panel h2,
   .editorial-admin-panel h3,
   .editorial-admin-panel h4,
@@ -234,6 +179,11 @@ const editorialPageStyles = `
   .editorial-admin-stack {
     display: grid;
     gap: 14px;
+  }
+
+  .editorial-admin-compact-stack {
+    display: grid;
+    gap: 10px;
   }
 
   .editorial-admin-field {
@@ -263,6 +213,15 @@ const editorialPageStyles = `
     font: inherit;
   }
 
+  .editorial-admin-compact-stack .editorial-admin-field {
+    gap: 4px;
+  }
+
+  .editorial-admin-compact-stack .editorial-admin-field input,
+  .editorial-admin-compact-stack .editorial-admin-field select {
+    padding: 9px 10px;
+  }
+
   .editorial-admin-field textarea {
     min-height: 110px;
     resize: vertical;
@@ -289,6 +248,34 @@ const editorialPageStyles = `
     padding: 16px;
     border: 1px solid #dce3eb;
     border-radius: 8px;
+  }
+
+  .editorial-admin-compact-card {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .editorial-admin-compact-card legend {
+    padding: 0 4px;
+  }
+
+  .editorial-admin-compact-card .editorial-admin-preview img {
+    max-height: 120px;
+  }
+
+  .editorial-admin-upload-inline {
+    display: grid;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #dce3eb;
+  }
+
+  .editorial-admin-upload-inline .editorial-admin-button {
+    padding: 10px 12px;
+  }
+
+  .editorial-admin-hidden-form {
+    display: none;
   }
 
   .editorial-admin-highlight-1 {
@@ -332,6 +319,14 @@ const editorialPageStyles = `
   .editorial-complement-mode-section[hidden],
   .editorial-below-mode-section[hidden] {
     display: none;
+  }
+
+  .editorial-admin-news-placeholder {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border: 1px dashed #dce3eb;
+    border-radius: 8px;
+    background: #ffffff;
   }
 
   @media (max-width: 980px) {
@@ -502,27 +497,31 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const returnTo = `/admin/editorial/jornada/${matchday.id}`;
   const backToGestor = gestorReturnUrl(context);
   const contextLabel = `${country?.name ?? "Pais"} · ${competition.name} · ${season.label} · ${matchday.label}`;
+  const highlightsFormId = "matchday-highlights-form";
 
   const highlightsEditor = (
     <>
-      <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
+      <form className="editorial-admin-hidden-form" action="/api/admin/gestor" id={highlightsFormId} method="post">
         <input type="hidden" name="action_type" value="save_matchday_highlights" />
         <input type="hidden" name="return_to" value={returnTo} />
         <input type="hidden" name="matchday_id" value={matchday.id} />
+      </form>
+      <div className="editorial-admin-compact-stack">
         {[1, 2, 3].map((order) => {
           const highlight = highlights.find((item) => item.sort_order === order);
           return (
-            <fieldset className={`editorial-admin-fieldset editorial-admin-highlight-${order}`} key={order}>
+            <fieldset className={`editorial-admin-fieldset editorial-admin-compact-card editorial-admin-highlight-${order}`} key={order}>
               <legend>Destaque {order}</legend>
-              <input type="hidden" name={`highlight_${order}_id`} value={highlight?.id ?? ""} />
-              <input type="hidden" name={`highlight_${order}_sort_order`} value={order} />
+              <input form={highlightsFormId} type="hidden" name={`highlight_${order}_id`} value={highlight?.id ?? ""} />
+              <input form={highlightsFormId} type="hidden" name={`highlight_${order}_sort_order`} value={order} />
               <div className="editorial-admin-field">
                 <label htmlFor={`highlight-${order}-label`}>Etiqueta</label>
-                <input id={`highlight-${order}-label`} name={`highlight_${order}_label`} defaultValue={highlight?.label ?? ""} placeholder={order === 1 ? "ANTEVISAO" : order === 2 ? "AMBIENTE" : "CONTEXTO"} />
+                <input form={highlightsFormId} id={`highlight-${order}-label`} name={`highlight_${order}_label`} defaultValue={highlight?.label ?? ""} placeholder={order === 1 ? "ANTEVISAO" : order === 2 ? "AMBIENTE" : "CONTEXTO"} />
               </div>
               <div className="editorial-admin-field">
                 <label htmlFor={`highlight-${order}-title`}>Titulo</label>
                 <input
+                  form={highlightsFormId}
                   id={`highlight-${order}-title`}
                   name={`highlight_${order}_title`}
                   defaultValue={highlight?.title ?? ""}
@@ -531,7 +530,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               </div>
               <div className="editorial-admin-field">
                 <label htmlFor={`highlight-${order}-image-url`}>Imagem URL</label>
-                <input id={`highlight-${order}-image-url`} name={`highlight_${order}_image_url`} defaultValue={highlight?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
+                <input form={highlightsFormId} id={`highlight-${order}-image-url`} name={`highlight_${order}_image_url`} defaultValue={highlight?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
               </div>
               {highlight?.image_url ? (
                 <div className="editorial-admin-preview">
@@ -540,34 +539,30 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               ) : null}
               <div className="editorial-admin-field">
                 <label htmlFor={`highlight-${order}-status`}>Estado</label>
-                <select id={`highlight-${order}-status`} name={`highlight_${order}_status`} defaultValue={highlight?.status ?? "draft"}>
+                <select form={highlightsFormId} id={`highlight-${order}-status`} name={`highlight_${order}_status`} defaultValue={highlight?.status ?? "draft"}>
                   <option value="draft">Rascunho</option>
                   <option value="published">Publicado</option>
                 </select>
               </div>
+              <form action="/api/admin/gestor/editorial-image" className="editorial-admin-upload-inline" encType="multipart/form-data" method="post">
+                <input type="hidden" name="return_to" value={returnTo} />
+                <input type="hidden" name="matchday_id" value={matchday.id} />
+                <input type="hidden" name="target" value="highlight" />
+                <input type="hidden" name="sort_order" value={order} />
+                <div className="editorial-admin-field">
+                  <label htmlFor={`highlight-${order}-image-upload`}>Carregar imagem do destaque {order}</label>
+                  <input accept="image/jpeg,image/png,image/webp" id={`highlight-${order}-image-upload`} name="image" type="file" />
+                </div>
+                <button className="editorial-admin-button secondary" type="submit">
+                  Carregar imagem
+                </button>
+              </form>
             </fieldset>
           );
         })}
-        <button className="editorial-admin-button" type="submit">
+        <button className="editorial-admin-button" form={highlightsFormId} type="submit">
           Guardar destaques
         </button>
-      </form>
-      <div className="editorial-admin-stack" style={{ marginTop: 16 }}>
-        {[1, 2, 3].map((order) => (
-          <form action="/api/admin/gestor/editorial-image" className={`editorial-admin-fieldset editorial-admin-highlight-${order}`} encType="multipart/form-data" key={order} method="post">
-            <input type="hidden" name="return_to" value={returnTo} />
-            <input type="hidden" name="matchday_id" value={matchday.id} />
-            <input type="hidden" name="target" value="highlight" />
-            <input type="hidden" name="sort_order" value={order} />
-            <div className="editorial-admin-field">
-              <label htmlFor={`highlight-${order}-image-upload`}>Carregar imagem do destaque {order}</label>
-              <input accept="image/jpeg,image/png,image/webp" id={`highlight-${order}-image-upload`} name="image" type="file" />
-            </div>
-            <button className="editorial-admin-button secondary" type="submit">
-              Carregar imagem do destaque {order}
-            </button>
-          </form>
-        ))}
       </div>
     </>
   );
@@ -929,17 +924,10 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
         />
       </section>
 
-      <div className="editorial-admin-stack" style={{ marginTop: 18 }}>
-        <details className="editorial-admin-panel editorial-admin-mode-panel">
-          <summary>
-            <div>
-              <h2>Ultimas noticias</h2>
-              <p>Bloco preparado para fase posterior.</p>
-            </div>
-          </summary>
-          <p className="editorial-admin-muted">Futura lista de noticias ligada a esta jornada, com hora, titulo e estado.</p>
-        </details>
-      </div>
+      <section className="editorial-admin-news-placeholder">
+        <h2>Ultimas noticias</h2>
+        <p className="editorial-admin-muted">Bloco preparado para fase posterior: futura lista de noticias ligada a esta jornada, com hora, titulo e estado.</p>
+      </section>
     </main>
   );
 }
