@@ -885,9 +885,29 @@ const publicMatchdayStyles = `
       url("https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=700&q=80") center / cover;
   }
 
+  .public-complement-media img,
+  .public-complement-media iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  .public-complement-media img {
+    object-fit: cover;
+    object-position: center;
+  }
+
   .public-complement-body {
     display: grid;
     gap: 6px;
+  }
+
+  .public-complement-label {
+    color: #c40012;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
   }
 
   .public-complement-body strong {
@@ -1590,6 +1610,36 @@ function formatMatchdayDateContext(matches: PublicSeasonMatch[]) {
   return `${firstLabel} – ${lastLabel}`;
 }
 
+function videoEmbedUrl(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./, "");
+
+    if (host === "youtu.be") {
+      const videoId = url.pathname.split("/").filter(Boolean)[0];
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+
+    if (host.endsWith("youtube.com")) {
+      const videoId = url.searchParams.get("v") || url.pathname.split("/").filter(Boolean).at(-1);
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+
+    if (host.endsWith("vimeo.com")) {
+      const videoId = url.pathname.split("/").filter(Boolean).at(-1);
+      return videoId ? `https://player.vimeo.com/video/${videoId}` : null;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 function statusLabel(status: string) {
   const normalized = status.trim().toLowerCase();
   if (normalized === "finished") return "Finalizado";
@@ -1817,6 +1867,15 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   const scheduledMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "scheduled");
   const selectedMatchdayDateContext = formatMatchdayDateContext(context.matchesForMatchday);
   const belowHeadlineMode = context.editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
+  const complementaryMode = context.editorial?.complementary_mode ?? "none";
+  const complementaryRoundupItem =
+    complementaryMode === "roundup_video"
+      ? context.roundupItems.find((item) => item.id === context.editorial?.complementary_roundup_item_id) ?? null
+      : null;
+  const complementaryEmbedUrl = videoEmbedUrl(complementaryRoundupItem?.video_url);
+  const complementaryTextStyle = context.editorial?.complementary_text_color
+    ? { color: context.editorial.complementary_text_color }
+    : undefined;
   const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
   const nextScheduledMatches = [...scheduledMatches]
     .sort((firstMatch, secondMatch) => new Date(firstMatch.kickoff_at).getTime() - new Date(secondMatch.kickoff_at).getTime())
@@ -2144,14 +2203,69 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                 </a>
               </section>
               <aside className="public-matchday-cover-side public-editorial-flex-block" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar da jornada">
-                <h3>Bloco complementar</h3>
-                <div className="public-complement-media">
-                  <span className="public-media-play" aria-hidden="true">▶</span>
-                </div>
-                <div className="public-complement-body">
-                  <strong>Área preparada para vídeo, imagem ou notícia</strong>
-                  <p>Espaço editorial flexível para destacar uma história, análise curta ou conteúdo visual da jornada.</p>
-                </div>
+                {complementaryMode === "roundup_video" ? (
+                  complementaryRoundupItem ? (
+                    <>
+                      <div className="public-complement-media">
+                        {complementaryEmbedUrl ? (
+                          <iframe
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                            src={complementaryEmbedUrl}
+                            title={complementaryRoundupItem.title ?? "Video da jornada"}
+                          />
+                        ) : complementaryRoundupItem.image_url ? (
+                          <img src={complementaryRoundupItem.image_url} alt="" />
+                        ) : (
+                          <span className="public-media-play" aria-hidden="true">▶</span>
+                        )}
+                      </div>
+                      <div className="public-complement-body">
+                        {complementaryRoundupItem.label ? <span className="public-complement-label">{complementaryRoundupItem.label}</span> : null}
+                        <strong>{complementaryRoundupItem.title ?? "Video da jornada"}</strong>
+                        {complementaryRoundupItem.duration ? <p>{complementaryRoundupItem.duration}</p> : null}
+                        {!complementaryEmbedUrl && complementaryRoundupItem.video_url ? (
+                          <a className="public-editorial-more-link" href={complementaryRoundupItem.video_url}>
+                            Ver video <span aria-hidden="true">›</span>
+                          </a>
+                        ) : null}
+                        {!complementaryRoundupItem.video_url ? <p>Video por definir.</p> : null}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="public-complement-body">
+                      <strong>Video por escolher</strong>
+                      <p>Escolhe no backoffice um item publicado do Resumo da Jornada.</p>
+                    </div>
+                  )
+                ) : complementaryMode === "complementary_story" && context.editorial?.complementary_status === "published" ? (
+                  <>
+                    {context.editorial.complementary_image_url ? (
+                      <div className="public-complement-media">
+                        <img src={context.editorial.complementary_image_url} alt="" />
+                      </div>
+                    ) : null}
+                    <div className="public-complement-body">
+                      {context.editorial.complementary_label ? (
+                        <span className="public-complement-label">{context.editorial.complementary_label}</span>
+                      ) : null}
+                      {context.editorial.complementary_title ? (
+                        <strong style={complementaryTextStyle}>{context.editorial.complementary_title}</strong>
+                      ) : null}
+                      {context.editorial.complementary_text ? <p style={complementaryTextStyle}>{context.editorial.complementary_text}</p> : null}
+                      {context.editorial.complementary_link_url ? (
+                        <a className="public-editorial-more-link" href={context.editorial.complementary_link_url}>
+                          Ver mais <span aria-hidden="true">›</span>
+                        </a>
+                      ) : null}
+                    </div>
+                  </>
+                ) : (
+                  <div className="public-complement-body">
+                    <strong>Espaço editorial preparado</strong>
+                    <p>Bloco complementar por definir.</p>
+                  </div>
+                )}
               </aside>
             </div>
           </div>

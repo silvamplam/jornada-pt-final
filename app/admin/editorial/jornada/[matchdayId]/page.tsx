@@ -305,7 +305,7 @@ async function readMatchdayContext(matchdayId: string): Promise<MatchdayContext 
 
 async function readMatchdayEditorial(matchdayId: string): Promise<SupabaseMatchdayEditorial | null> {
   return readFirst<SupabaseMatchdayEditorial>(
-    `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+    `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_text_color,complementary_status,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
       matchdayId
     )}`
   ).catch(() => null);
@@ -329,7 +329,7 @@ async function readMatchdayRoundupItems(matchdayId: string): Promise<SupabaseMat
 
 function messageFor(created?: string, error?: string) {
   const createdLabels: Record<string, string> = {
-    save_matchday_editorial: "Manchete editorial guardada.",
+    save_matchday_editorial: "Linha editorial da jornada guardada.",
     save_matchday_highlights: "Destaques guardados e definidos como zona ativa abaixo da manchete.",
     save_matchday_roundup_items: "Resumo da Jornada guardado e definido como zona ativa abaixo da manchete.",
     upload_matchday_editorial_image: "Imagem da manchete carregada.",
@@ -339,6 +339,7 @@ function messageFor(created?: string, error?: string) {
     "missing-service": "Liga primeiro a Supabase na Vercel.",
     "missing-fields": "Preenche os campos obrigatorios antes de guardar.",
     "matchday-invalid": "A jornada escolhida ja nao existe.",
+    "roundup-item-invalid": "O item escolhido do Resumo da Jornada nao pertence a esta jornada.",
     "editorial-title-required": "Para publicar, indica uma manchete da jornada.",
     "highlight-title-required": "Para publicar um destaque, indica o titulo.",
     "roundup-title-required": "Para publicar um item do Resumo da Jornada, indica o titulo.",
@@ -433,6 +434,15 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             <input type="hidden" name="action_type" value="save_matchday_editorial" />
             <input type="hidden" name="return_to" value={returnTo} />
             <input type="hidden" name="matchday_id" value={matchday.id} />
+            <input type="hidden" name="complementary_mode" value={editorial?.complementary_mode ?? "none"} />
+            <input type="hidden" name="complementary_roundup_item_id" value={editorial?.complementary_roundup_item_id ?? ""} />
+            <input type="hidden" name="complementary_label" value={editorial?.complementary_label ?? ""} />
+            <input type="hidden" name="complementary_title" value={editorial?.complementary_title ?? ""} />
+            <input type="hidden" name="complementary_text" value={editorial?.complementary_text ?? ""} />
+            <input type="hidden" name="complementary_image_url" value={editorial?.complementary_image_url ?? ""} />
+            <input type="hidden" name="complementary_link_url" value={editorial?.complementary_link_url ?? ""} />
+            <input type="hidden" name="complementary_text_color" value={editorial?.complementary_text_color ?? ""} />
+            <input type="hidden" name="complementary_status" value={editorial?.complementary_status ?? "draft"} />
             <div className="editorial-admin-field">
               <label htmlFor="matchday-editorial-title">Manchete</label>
               <input
@@ -730,11 +740,103 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
         <section className="editorial-admin-panel">
           <header>
             <h2>Bloco complementar</h2>
-            <p>Bloco preparado para imagem, texto ou video.</p>
+            <p>Escolhe um unico modo para o espaco complementar da primeira pagina.</p>
           </header>
-          <p className="editorial-admin-muted">
-            Este espaco podera receber imagem + texto, video + texto, noticia ou analise curta.
-          </p>
+          <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
+            <input type="hidden" name="action_type" value="save_matchday_editorial" />
+            <input type="hidden" name="return_to" value={returnTo} />
+            <input type="hidden" name="matchday_id" value={matchday.id} />
+            <input type="hidden" name="title" value={editorial?.title ?? ""} />
+            <input type="hidden" name="summary" value={editorial?.summary ?? ""} />
+            <input type="hidden" name="title_color" value={editorial?.title_color ?? ""} />
+            <input type="hidden" name="image_url" value={editorial?.image_url ?? ""} />
+            <input type="hidden" name="below_headline_mode" value={editorial?.below_headline_mode ?? "highlights"} />
+            <input type="hidden" name="status" value={editorial?.status ?? "draft"} />
+            <div className="editorial-admin-field">
+              <label htmlFor="complementary-mode">Tipo de bloco complementar</label>
+              <select id="complementary-mode" name="complementary_mode" defaultValue={editorial?.complementary_mode ?? "none"}>
+                <option value="none">Nenhum</option>
+                <option value="roundup_video">Video do Resumo da Jornada</option>
+                <option value="complementary_story">Complemento da manchete</option>
+              </select>
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="complementary-roundup-item">Item do Resumo da Jornada</label>
+              <select id="complementary-roundup-item" name="complementary_roundup_item_id" defaultValue={editorial?.complementary_roundup_item_id ?? ""}>
+                <option value="">Escolher item preparado no Resumo da Jornada</option>
+                {roundupItems.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.sort_order}. {item.title || item.label || "Item sem titulo"}
+                  </option>
+                ))}
+              </select>
+              <p className="editorial-admin-muted">Usado apenas no modo video. O video continua a vir de matchday_roundup_items.</p>
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="complementary-label">Etiqueta</label>
+              <input
+                id="complementary-label"
+                name="complementary_label"
+                defaultValue={editorial?.complementary_label ?? ""}
+                placeholder="DESTAQUE"
+              />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="complementary-title">Titulo</label>
+              <input
+                id="complementary-title"
+                name="complementary_title"
+                defaultValue={editorial?.complementary_title ?? ""}
+                placeholder="Um detalhe editorial para acompanhar a manchete"
+              />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="complementary-text">Texto curto</label>
+              <textarea
+                id="complementary-text"
+                name="complementary_text"
+                defaultValue={editorial?.complementary_text ?? ""}
+                placeholder="Texto curto do complemento da manchete."
+              />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="complementary-image-url">Imagem URL</label>
+              <input
+                id="complementary-image-url"
+                name="complementary_image_url"
+                defaultValue={editorial?.complementary_image_url ?? ""}
+                placeholder="https://exemplo.com/imagem.jpg"
+              />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="complementary-link-url">Link URL</label>
+              <input
+                id="complementary-link-url"
+                name="complementary_link_url"
+                defaultValue={editorial?.complementary_link_url ?? ""}
+                placeholder="https://exemplo.com"
+              />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="complementary-text-color">Cor do texto</label>
+              <input
+                id="complementary-text-color"
+                name="complementary_text_color"
+                defaultValue={editorial?.complementary_text_color ?? ""}
+                placeholder="#10151b"
+              />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="complementary-status">Estado</label>
+              <select id="complementary-status" name="complementary_status" defaultValue={editorial?.complementary_status ?? "draft"}>
+                <option value="draft">Rascunho</option>
+                <option value="published">Publicado</option>
+              </select>
+            </div>
+            <button className="editorial-admin-button" type="submit">
+              Guardar bloco complementar
+            </button>
+          </form>
         </section>
         <section className="editorial-admin-panel">
           <header>

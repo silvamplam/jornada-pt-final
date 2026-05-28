@@ -2005,6 +2005,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "calendar-no-matches": "Nao ha jogos novos validos para criar nesta lista.",
     "match-missing-context": "Escolhe uma competicao, epoca e jornada antes de criar o jogo.",
     "matchday-invalid": "A jornada escolhida nao pertence a epoca selecionada.",
+    "roundup-item-invalid": "O item escolhido do Resumo da Jornada nao pertence a esta jornada.",
     "match-team-same": "A equipa da casa e a equipa visitante nao podem ser o mesmo clube.",
     "match-team-not-participant": "As equipas do jogo tem de ser participantes manuais desta epoca.",
     "match-team-already-in-matchday": "Esta equipa ja tem jogo nesta jornada.",

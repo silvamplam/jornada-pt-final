@@ -105,6 +105,15 @@ export type SupabaseMatchdayEditorial = {
   title_color: string | null;
   image_url: string | null;
   below_headline_mode?: "highlights" | "roundup";
+  complementary_mode?: "none" | "roundup_video" | "complementary_story";
+  complementary_roundup_item_id?: string | null;
+  complementary_label?: string | null;
+  complementary_title?: string | null;
+  complementary_text?: string | null;
+  complementary_image_url?: string | null;
+  complementary_link_url?: string | null;
+  complementary_text_color?: string | null;
+  complementary_status?: "draft" | "published";
   status: "draft" | "published";
   created_at: string;
   updated_at: string;

@@ -779,6 +779,20 @@ async function saveMatchdayEditorial(formData: FormData) {
   const imageUrl = cleanText(formData.get("image_url"));
   const belowHeadlineModeValue = cleanText(formData.get("below_headline_mode")) ?? "highlights";
   const belowHeadlineMode = belowHeadlineModeValue === "roundup" ? "roundup" : "highlights";
+  const complementaryModeValue = cleanText(formData.get("complementary_mode")) ?? "none";
+  const complementaryMode =
+    complementaryModeValue === "roundup_video" || complementaryModeValue === "complementary_story"
+      ? complementaryModeValue
+      : "none";
+  const complementaryStatusValue = cleanText(formData.get("complementary_status")) ?? "draft";
+  const complementaryStatus = complementaryStatusValue === "published" ? "published" : "draft";
+  const complementaryRoundupItemId = cleanText(formData.get("complementary_roundup_item_id"));
+  const complementaryLabel = cleanText(formData.get("complementary_label"));
+  const complementaryTitle = cleanText(formData.get("complementary_title"));
+  const complementaryText = cleanText(formData.get("complementary_text"));
+  const complementaryImageUrl = cleanText(formData.get("complementary_image_url"));
+  const complementaryLinkUrl = cleanText(formData.get("complementary_link_url"));
+  const complementaryTextColor = cleanText(formData.get("complementary_text_color"));
 
   if (!matchdayId || !["draft", "published"].includes(status)) {
     throw new Error("missing-fields");
@@ -790,6 +804,15 @@ async function saveMatchdayEditorial(formData: FormData) {
 
   if (!(await hasRows(`matchdays?select=id&id=eq.${encodeURIComponent(matchdayId)}`))) {
     throw new Error("matchday-invalid");
+  }
+
+  if (
+    complementaryRoundupItemId &&
+    !(await hasRows(
+      `matchday_roundup_items?select=id&id=eq.${encodeURIComponent(complementaryRoundupItemId)}&matchday_id=eq.${encodeURIComponent(matchdayId)}`
+    ))
+  ) {
+    throw new Error("roundup-item-invalid");
   }
 
   await writeSupabaseAdmin("matchday_editorials?on_conflict=matchday_id", {
@@ -804,6 +827,15 @@ async function saveMatchdayEditorial(formData: FormData) {
       title_color: titleColor,
       image_url: imageUrl,
       below_headline_mode: belowHeadlineMode,
+      complementary_mode: complementaryMode,
+      complementary_roundup_item_id: complementaryRoundupItemId,
+      complementary_label: complementaryLabel,
+      complementary_title: complementaryTitle,
+      complementary_text: complementaryText,
+      complementary_image_url: complementaryImageUrl,
+      complementary_link_url: complementaryLinkUrl,
+      complementary_text_color: complementaryTextColor,
+      complementary_status: complementaryStatus,
       status,
       updated_at: new Date().toISOString()
     })
