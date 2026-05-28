@@ -579,6 +579,10 @@ const publicMatchdayStyles = `
     border-top: 4px solid #10151b;
   }
 
+  .public-matchday-roundup .public-editorial-block-head {
+    justify-content: flex-end;
+  }
+
   .public-editorial-block-head h3,
   .public-matchday-roundup h3 {
     font-size: 14px;
@@ -750,8 +754,20 @@ const publicMatchdayStyles = `
 
   .public-matchday-roundup .public-highlight-image {
     position: relative;
-    grid-row: span 3;
+    grid-column: 1 / 2;
+    grid-row: 1 / 4;
+    width: 56px;
+    height: 56px;
     aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: #eef2f6;
+  }
+
+  .public-matchday-roundup .public-highlight-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
   }
 
   .public-media-play {
@@ -1959,17 +1975,17 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
             <div className="public-matchday-main-lower">
               <section className="public-matchday-roundup public-editorial-flex-block" data-editorial-slot="videos-ou-noticias" aria-label="Resumo da jornada">
                 <div className="public-editorial-block-head">
-                  <h3>Resumo da Jornada</h3>
                   <a href="#jogos">Ver todos</a>
                 </div>
                 <div className="public-cover-story-strip" aria-label="Resumos e destaques da jornada">
               {context.roundupItems.length > 0 ? (
                 context.roundupItems.map((item) => {
                   const showPlay = Boolean(item.video_url) || item.type === "video" || item.type === "golos" || item.type === "resumo";
+                  const imageUrl = item.image_url?.trim();
                   return (
                     <article className="public-cover-story" key={item.id}>
                       <div className="public-highlight-image">
-                        {item.image_url ? <img src={item.image_url} alt="" /> : null}
+                        {imageUrl ? <img src={imageUrl} alt="" /> : null}
                         {showPlay ? <span className="public-media-play" aria-hidden="true">▶</span> : null}
                       </div>
                       {item.label ? <span>{item.label}</span> : null}
