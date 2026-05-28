@@ -810,6 +810,33 @@ async function saveMatchdayEditorial(formData: FormData) {
   });
 }
 
+async function setMatchdayBelowHeadlineMode(matchdayId: string, mode: "highlights" | "roundup") {
+  const existingRows = await fetchSupabaseAdminTable<{ id: string }>(
+    `matchday_editorials?select=id&matchday_id=eq.${encodeURIComponent(matchdayId)}&limit=1`
+  );
+
+  if (existingRows[0]) {
+    await writeSupabaseAdmin(`matchday_editorials?id=eq.${encodeURIComponent(existingRows[0].id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        below_headline_mode: mode,
+        updated_at: new Date().toISOString()
+      })
+    });
+    return;
+  }
+
+  await writeSupabaseAdmin("matchday_editorials", {
+    method: "POST",
+    body: JSON.stringify({
+      matchday_id: matchdayId,
+      below_headline_mode: mode,
+      status: "draft",
+      updated_at: new Date().toISOString()
+    })
+  });
+}
+
 async function saveMatchdayHighlights(formData: FormData) {
   const matchdayId = cleanText(formData.get("matchday_id"));
 
@@ -870,6 +897,8 @@ async function saveMatchdayHighlights(formData: FormData) {
       });
     }
   }
+
+  await setMatchdayBelowHeadlineMode(matchdayId, "highlights");
 }
 
 async function saveMatchdayRoundupItems(formData: FormData) {
@@ -942,6 +971,8 @@ async function saveMatchdayRoundupItems(formData: FormData) {
       });
     }
   }
+
+  await setMatchdayBelowHeadlineMode(matchdayId, "roundup");
 }
 
 function parseCalendarList(rawList: string): { rows: CalendarListRow[]; invalidLines: number } {

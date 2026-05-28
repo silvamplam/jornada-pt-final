@@ -330,8 +330,8 @@ async function readMatchdayRoundupItems(matchdayId: string): Promise<SupabaseMat
 function messageFor(created?: string, error?: string) {
   const createdLabels: Record<string, string> = {
     save_matchday_editorial: "Manchete editorial guardada.",
-    save_matchday_highlights: "Destaques da jornada guardados.",
-    save_matchday_roundup_items: "Resumo da Jornada guardado.",
+    save_matchday_highlights: "Destaques guardados e definidos como zona ativa abaixo da manchete.",
+    save_matchday_roundup_items: "Resumo da Jornada guardado e definido como zona ativa abaixo da manchete.",
     upload_matchday_editorial_image: "Imagem da manchete carregada.",
     upload_matchday_highlight_image: "Imagem do destaque carregada."
   };
