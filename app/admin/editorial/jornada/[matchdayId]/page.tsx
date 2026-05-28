@@ -475,7 +475,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
     return (
       <main className="editorial-admin-shell">
         <style>{editorialPageStyles}</style>
-        <section className="editorial-admin-panel">
+        <section className="editorial-admin-panel" id="manchete">
           <header>
             <h1>Jornada nao encontrada</h1>
             <p className="editorial-admin-muted">A pagina editorial so pode abrir a partir de uma jornada existente.</p>
@@ -495,6 +495,11 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = editorial?.complementary_mode ?? "none";
   const returnTo = `/admin/editorial/jornada/${matchday.id}`;
+  const returnToManchete = `${returnTo}#manchete`;
+  const returnToComposicao = `${returnTo}#composicao`;
+  const returnToDestaques = `${returnTo}#destaques`;
+  const returnToResumo = `${returnTo}#resumo-jornada`;
+  const returnToComplementar = `${returnTo}#bloco-complementar`;
   const backToGestor = gestorReturnUrl(context);
   const contextLabel = `${country?.name ?? "Pais"} · ${competition.name} · ${season.label} · ${matchday.label}`;
   const highlightsFormId = "matchday-highlights-form";
@@ -503,7 +508,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
     <>
       <form className="editorial-admin-hidden-form" action="/api/admin/gestor" id={highlightsFormId} method="post">
         <input type="hidden" name="action_type" value="save_matchday_highlights" />
-        <input type="hidden" name="return_to" value={returnTo} />
+        <input type="hidden" name="return_to" value={returnToDestaques} />
         <input type="hidden" name="matchday_id" value={matchday.id} />
       </form>
       <div className="editorial-admin-compact-stack">
@@ -545,7 +550,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 </select>
               </div>
               <form action="/api/admin/gestor/editorial-image" className="editorial-admin-upload-inline" encType="multipart/form-data" method="post">
-                <input type="hidden" name="return_to" value={returnTo} />
+                <input type="hidden" name="return_to" value={returnToDestaques} />
                 <input type="hidden" name="matchday_id" value={matchday.id} />
                 <input type="hidden" name="target" value="highlight" />
                 <input type="hidden" name="sort_order" value={order} />
@@ -570,7 +575,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const roundupEditor = (
     <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
       <input type="hidden" name="action_type" value="save_matchday_roundup_items" />
-      <input type="hidden" name="return_to" value={returnTo} />
+      <input type="hidden" name="return_to" value={returnToResumo} />
       <input type="hidden" name="matchday_id" value={matchday.id} />
       {[1, 2, 3].map((order) => {
         const item = roundupItems.find((roundupItem) => roundupItem.sort_order === order);
@@ -662,7 +667,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           </header>
           <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
             <input type="hidden" name="action_type" value="save_matchday_editorial" />
-            <input type="hidden" name="return_to" value={returnTo} />
+            <input type="hidden" name="return_to" value={returnToManchete} />
             <input type="hidden" name="matchday_id" value={matchday.id} />
             <input type="hidden" name="complementary_mode" value={editorial?.complementary_mode ?? "none"} />
             <input type="hidden" name="complementary_roundup_item_id" value={editorial?.complementary_roundup_item_id ?? ""} />
@@ -732,7 +737,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             method="post"
             style={{ marginTop: 16 }}
           >
-            <input type="hidden" name="return_to" value={returnTo} />
+            <input type="hidden" name="return_to" value={returnToManchete} />
             <input type="hidden" name="matchday_id" value={matchday.id} />
             <div className="editorial-admin-field">
               <label htmlFor="matchday-editorial-image-upload">Carregar imagem da manchete</label>
@@ -758,7 +763,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
         </aside>
       </div>
 
-      <section className="editorial-admin-panel editorial-admin-composition">
+      <section className="editorial-admin-panel editorial-admin-composition" id="composicao">
         <header>
           <h2>Composicao abaixo da manchete</h2>
           <p>Controla os dois espacos editoriais que aparecem por baixo da manchete na primeira pagina.</p>
@@ -770,7 +775,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               <p>Escolhe que conjunto ocupa a area inferior esquerda da composicao.</p>
               <form className="editorial-admin-form" action="/api/admin/gestor" data-below-mode-form method="post">
                 <input type="hidden" name="action_type" value="save_matchday_editorial" />
-                <input type="hidden" name="return_to" value={returnTo} />
+                <input type="hidden" name="return_to" value={returnToComposicao} />
                 <input type="hidden" name="matchday_id" value={matchday.id} />
                 <input type="hidden" name="title" value={editorial?.title ?? ""} />
                 <input type="hidden" name="summary" value={editorial?.summary ?? ""} />
@@ -796,12 +801,12 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                   Guardar escolha
                 </button>
               </form>
-              <div className="editorial-below-mode-section" data-below-section="highlights" hidden={belowHeadlineMode !== "highlights"}>
+              <div className="editorial-below-mode-section" data-below-section="highlights" hidden={belowHeadlineMode !== "highlights"} id="destaques">
                 <h4>Destaques abaixo da manchete</h4>
                 <p className="editorial-admin-muted">Edita os tres destaques editoriais desta zona.</p>
                 {highlightsEditor}
               </div>
-              <div className="editorial-below-mode-section" data-below-section="roundup" hidden={belowHeadlineMode !== "roundup"}>
+              <div className="editorial-below-mode-section" data-below-section="roundup" hidden={belowHeadlineMode !== "roundup"} id="resumo-jornada">
                 <h4>Resumo da Jornada</h4>
                 <p className="editorial-admin-muted">Edita ate tres entradas para videos, golos, resumos ou noticias da jornada.</p>
                 {roundupEditor}
@@ -811,9 +816,9 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             <div className="editorial-admin-composition-card">
               <h3>Bloco complementar</h3>
               <p>Escolhe o conteudo do espaco editorial da direita.</p>
-              <form className="editorial-admin-form" action="/api/admin/gestor" data-complementary-form method="post">
+              <form className="editorial-admin-form" action="/api/admin/gestor" data-complementary-form method="post" id="bloco-complementar">
                 <input type="hidden" name="action_type" value="save_matchday_editorial" />
-                <input type="hidden" name="return_to" value={returnTo} />
+                <input type="hidden" name="return_to" value={returnToComplementar} />
                 <input type="hidden" name="matchday_id" value={matchday.id} />
                 <input type="hidden" name="title" value={editorial?.title ?? ""} />
                 <input type="hidden" name="summary" value={editorial?.summary ?? ""} />
@@ -924,7 +929,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
         />
       </section>
 
-      <section className="editorial-admin-news-placeholder">
+      <section className="editorial-admin-news-placeholder" id="ultimas-noticias">
         <h2>Ultimas noticias</h2>
         <p className="editorial-admin-muted">Bloco preparado para fase posterior: futura lista de noticias ligada a esta jornada, com hora, titulo e estado.</p>
       </section>
