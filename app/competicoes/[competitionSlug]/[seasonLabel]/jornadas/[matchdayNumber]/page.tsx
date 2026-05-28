@@ -770,6 +770,30 @@ const publicMatchdayStyles = `
     object-position: center;
   }
 
+  .public-below-headline-highlights .public-cover-story-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    padding-top: 12px;
+  }
+
+  .public-below-headline-highlights .public-cover-story {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    align-items: start;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .public-below-headline-highlights .public-highlight-image {
+    grid-column: auto;
+    grid-row: auto;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    border-radius: 4px;
+  }
+
   .public-media-play {
     position: absolute;
     inset: 50% auto auto 50%;
@@ -828,6 +852,19 @@ const publicMatchdayStyles = `
     grid-column: 4 / 5;
     grid-row: 2 / 3;
     text-decoration: none;
+  }
+
+  .public-below-headline-highlights .public-cover-story span,
+  .public-below-headline-highlights .public-cover-story strong,
+  .public-below-headline-highlights .public-cover-story small {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .public-below-headline-highlights .public-cover-story strong {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 16px;
+    line-height: 1.15;
   }
 
   .public-editorial-more-link {
@@ -1974,7 +2011,11 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               </div>
             </article>
             <div className="public-matchday-main-lower">
-              <section className="public-matchday-roundup public-editorial-flex-block" data-editorial-slot="videos-ou-noticias" aria-label="Resumo da jornada">
+              <section
+                className={`public-matchday-roundup public-below-headline-${belowHeadlineMode} public-editorial-flex-block`}
+                data-editorial-slot="videos-ou-noticias"
+                aria-label="Zona editorial abaixo da manchete"
+              >
                 <div className="public-editorial-block-head">
                   <a href="#jogos">Ver todos</a>
                 </div>
@@ -1990,8 +2031,6 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                         </div>
                         {highlight.label ? <span>{highlight.label}</span> : null}
                         <strong>{highlight.title}</strong>
-                        <small>Destaque editorial</small>
-                        <span className="public-roundup-arrow" aria-hidden="true">›</span>
                       </article>
                     );
                   })
@@ -2006,8 +2045,6 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                       </div>
                       <span>Antevisão</span>
                       <strong>Os pontos de atenção antes da bola rolar</strong>
-                      <small>Destaque editorial</small>
-                      <span className="public-roundup-arrow" aria-hidden="true">›</span>
                     </article>
                     <article className="public-cover-story">
                       <div className="public-highlight-image">
@@ -2018,8 +2055,6 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                       </div>
                       <span>Ambiente</span>
                       <strong>A jornada vista pelas bancadas e pelos protagonistas</strong>
-                      <small>Destaque editorial</small>
-                      <span className="public-roundup-arrow" aria-hidden="true">›</span>
                     </article>
                     <article className="public-cover-story">
                       <div className="public-highlight-image">
@@ -2030,8 +2065,6 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                       </div>
                       <span>Contexto</span>
                       <strong>O que pode mudar na tabela depois dos resultados</strong>
-                      <small>Destaque editorial</small>
-                      <span className="public-roundup-arrow" aria-hidden="true">›</span>
                     </article>
                   </>
                 )
