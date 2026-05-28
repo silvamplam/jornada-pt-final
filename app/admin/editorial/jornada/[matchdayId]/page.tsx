@@ -329,7 +329,8 @@ const editorialPageStyles = `
     line-height: 1.45;
   }
 
-  .editorial-complement-mode-section[hidden] {
+  .editorial-complement-mode-section[hidden],
+  .editorial-below-mode-section[hidden] {
     display: none;
   }
 
@@ -502,6 +503,145 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const backToGestor = gestorReturnUrl(context);
   const contextLabel = `${country?.name ?? "Pais"} · ${competition.name} · ${season.label} · ${matchday.label}`;
 
+  const highlightsEditor = (
+    <>
+      <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
+        <input type="hidden" name="action_type" value="save_matchday_highlights" />
+        <input type="hidden" name="return_to" value={returnTo} />
+        <input type="hidden" name="matchday_id" value={matchday.id} />
+        {[1, 2, 3].map((order) => {
+          const highlight = highlights.find((item) => item.sort_order === order);
+          return (
+            <fieldset className={`editorial-admin-fieldset editorial-admin-highlight-${order}`} key={order}>
+              <legend>Destaque {order}</legend>
+              <input type="hidden" name={`highlight_${order}_id`} value={highlight?.id ?? ""} />
+              <input type="hidden" name={`highlight_${order}_sort_order`} value={order} />
+              <div className="editorial-admin-field">
+                <label htmlFor={`highlight-${order}-label`}>Etiqueta</label>
+                <input id={`highlight-${order}-label`} name={`highlight_${order}_label`} defaultValue={highlight?.label ?? ""} placeholder={order === 1 ? "ANTEVISAO" : order === 2 ? "AMBIENTE" : "CONTEXTO"} />
+              </div>
+              <div className="editorial-admin-field">
+                <label htmlFor={`highlight-${order}-title`}>Titulo</label>
+                <input
+                  id={`highlight-${order}-title`}
+                  name={`highlight_${order}_title`}
+                  defaultValue={highlight?.title ?? ""}
+                  placeholder={order === 1 ? "Os pontos de atencao antes da bola rolar" : order === 2 ? "A jornada vista pelas bancadas e pelos protagonistas" : "O que pode mudar na tabela depois dos resultados"}
+                />
+              </div>
+              <div className="editorial-admin-field">
+                <label htmlFor={`highlight-${order}-image-url`}>Imagem URL</label>
+                <input id={`highlight-${order}-image-url`} name={`highlight_${order}_image_url`} defaultValue={highlight?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
+              </div>
+              {highlight?.image_url ? (
+                <div className="editorial-admin-preview">
+                  <img alt="" src={highlight.image_url} />
+                </div>
+              ) : null}
+              <div className="editorial-admin-field">
+                <label htmlFor={`highlight-${order}-status`}>Estado</label>
+                <select id={`highlight-${order}-status`} name={`highlight_${order}_status`} defaultValue={highlight?.status ?? "draft"}>
+                  <option value="draft">Rascunho</option>
+                  <option value="published">Publicado</option>
+                </select>
+              </div>
+            </fieldset>
+          );
+        })}
+        <button className="editorial-admin-button" type="submit">
+          Guardar destaques
+        </button>
+      </form>
+      <div className="editorial-admin-stack" style={{ marginTop: 16 }}>
+        {[1, 2, 3].map((order) => (
+          <form action="/api/admin/gestor/editorial-image" className={`editorial-admin-fieldset editorial-admin-highlight-${order}`} encType="multipart/form-data" key={order} method="post">
+            <input type="hidden" name="return_to" value={returnTo} />
+            <input type="hidden" name="matchday_id" value={matchday.id} />
+            <input type="hidden" name="target" value="highlight" />
+            <input type="hidden" name="sort_order" value={order} />
+            <div className="editorial-admin-field">
+              <label htmlFor={`highlight-${order}-image-upload`}>Carregar imagem do destaque {order}</label>
+              <input accept="image/jpeg,image/png,image/webp" id={`highlight-${order}-image-upload`} name="image" type="file" />
+            </div>
+            <button className="editorial-admin-button secondary" type="submit">
+              Carregar imagem do destaque {order}
+            </button>
+          </form>
+        ))}
+      </div>
+    </>
+  );
+
+  const roundupEditor = (
+    <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
+      <input type="hidden" name="action_type" value="save_matchday_roundup_items" />
+      <input type="hidden" name="return_to" value={returnTo} />
+      <input type="hidden" name="matchday_id" value={matchday.id} />
+      {[1, 2, 3].map((order) => {
+        const item = roundupItems.find((roundupItem) => roundupItem.sort_order === order);
+        return (
+          <fieldset className={`editorial-admin-fieldset editorial-admin-highlight-${order}`} key={order}>
+            <legend>Item {order}</legend>
+            <input type="hidden" name={`roundup_${order}_id`} value={item?.id ?? ""} />
+            <input type="hidden" name={`roundup_${order}_sort_order`} value={order} />
+            <div className="editorial-admin-field">
+              <label htmlFor={`roundup-${order}-sort-order`}>Ordem</label>
+              <input id={`roundup-${order}-sort-order`} readOnly value={order} />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor={`roundup-${order}-label`}>Etiqueta</label>
+              <input id={`roundup-${order}-label`} name={`roundup_${order}_label`} defaultValue={item?.label ?? ""} placeholder={order === 1 ? "VIDEO" : order === 2 ? "GOLOS" : "NOTICIA"} />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor={`roundup-${order}-title`}>Titulo</label>
+              <input
+                id={`roundup-${order}-title`}
+                name={`roundup_${order}_title`}
+                defaultValue={item?.title ?? ""}
+                placeholder={order === 1 ? "Girona 0 - 1 Rayo Vallecano" : order === 2 ? "Villarreal 2 - 3 Real Oviedo" : "Mallorca 0 - 1 FC Barcelona"}
+              />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor={`roundup-${order}-subtitle`}>Subtitulo</label>
+              <input id={`roundup-${order}-subtitle`} name={`roundup_${order}_subtitle`} defaultValue={item?.subtitle ?? ""} placeholder={order === 1 ? "Resumo completo" : order === 2 ? "Golos e melhores momentos" : "Noticia de contexto"} />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor={`roundup-${order}-image-url`}>Imagem URL</label>
+              <input id={`roundup-${order}-image-url`} name={`roundup_${order}_image_url`} defaultValue={item?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor={`roundup-${order}-video-url`}>Video URL</label>
+              <input id={`roundup-${order}-video-url`} name={`roundup_${order}_video_url`} defaultValue={item?.video_url ?? ""} placeholder="https://exemplo.com/video" />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor={`roundup-${order}-duration`}>Duracao</label>
+              <input id={`roundup-${order}-duration`} name={`roundup_${order}_duration`} defaultValue={item?.duration ?? ""} placeholder="5:42" />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor={`roundup-${order}-type`}>Tipo</label>
+              <select id={`roundup-${order}-type`} name={`roundup_${order}_type`} defaultValue={item?.type ?? "resumo"}>
+                <option value="video">Video</option>
+                <option value="golos">Golos</option>
+                <option value="resumo">Resumo</option>
+                <option value="noticia">Noticia</option>
+              </select>
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor={`roundup-${order}-status`}>Estado</label>
+              <select id={`roundup-${order}-status`} name={`roundup_${order}_status`} defaultValue={item?.status ?? "draft"}>
+                <option value="draft">Rascunho</option>
+                <option value="published">Publicado</option>
+              </select>
+            </div>
+          </fieldset>
+        );
+      })}
+      <button className="editorial-admin-button" type="submit">
+        Guardar Resumo da Jornada
+      </button>
+    </form>
+  );
+
   return (
     <main className="editorial-admin-shell">
       <style>{editorialPageStyles}</style>
@@ -628,122 +768,126 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           <h2>Composicao abaixo da manchete</h2>
           <p>Controla os dois espacos editoriais que aparecem por baixo da manchete na primeira pagina.</p>
         </header>
-        <form className="editorial-admin-form" action="/api/admin/gestor" data-composition-form method="post">
-          <input type="hidden" name="action_type" value="save_matchday_editorial" />
-          <input type="hidden" name="return_to" value={returnTo} />
-          <input type="hidden" name="matchday_id" value={matchday.id} />
-          <input type="hidden" name="title" value={editorial?.title ?? ""} />
-          <input type="hidden" name="summary" value={editorial?.summary ?? ""} />
-          <input type="hidden" name="title_color" value={editorial?.title_color ?? ""} />
-          <input type="hidden" name="image_url" value={editorial?.image_url ?? ""} />
-          <input type="hidden" name="status" value={editorial?.status ?? "draft"} />
+        <div data-composition-form>
           <div className="editorial-admin-composition-grid">
             <div className="editorial-admin-composition-card">
               <h3>Zona abaixo da manchete</h3>
               <p>Escolhe que conjunto ocupa a area inferior esquerda da composicao.</p>
-              <div className="editorial-admin-field">
-                <label htmlFor="composition-below-headline-mode">Tipo de conteudo abaixo da manchete</label>
-                <select
-                  id="composition-below-headline-mode"
-                  name="below_headline_mode"
-                  defaultValue={belowHeadlineMode}
-                >
-                  <option value="highlights">Destaques abaixo da manchete</option>
-                  <option value="roundup">Resumo da Jornada</option>
-                </select>
+              <form className="editorial-admin-form" action="/api/admin/gestor" data-below-mode-form method="post">
+                <input type="hidden" name="action_type" value="save_matchday_editorial" />
+                <input type="hidden" name="return_to" value={returnTo} />
+                <input type="hidden" name="matchday_id" value={matchday.id} />
+                <input type="hidden" name="title" value={editorial?.title ?? ""} />
+                <input type="hidden" name="summary" value={editorial?.summary ?? ""} />
+                <input type="hidden" name="title_color" value={editorial?.title_color ?? ""} />
+                <input type="hidden" name="image_url" value={editorial?.image_url ?? ""} />
+                <input type="hidden" name="status" value={editorial?.status ?? "draft"} />
+                <input type="hidden" name="complementary_mode" value={complementaryMode} data-suggested-complement />
+                <input type="hidden" name="complementary_roundup_item_id" value={editorial?.complementary_roundup_item_id ?? ""} />
+                <input type="hidden" name="complementary_label" value={editorial?.complementary_label ?? ""} />
+                <input type="hidden" name="complementary_title" value={editorial?.complementary_title ?? ""} />
+                <input type="hidden" name="complementary_text" value={editorial?.complementary_text ?? ""} />
+                <input type="hidden" name="complementary_image_url" value={editorial?.complementary_image_url ?? ""} />
+                <input type="hidden" name="complementary_link_url" value={editorial?.complementary_link_url ?? ""} />
+                <input type="hidden" name="complementary_status" value={editorial?.complementary_status ?? "draft"} />
+                <div className="editorial-admin-field">
+                  <label htmlFor="composition-below-headline-mode">Tipo de conteudo abaixo da manchete</label>
+                  <select id="composition-below-headline-mode" name="below_headline_mode" defaultValue={belowHeadlineMode}>
+                    <option value="highlights">Destaques abaixo da manchete</option>
+                    <option value="roundup">Resumo da Jornada</option>
+                  </select>
+                </div>
+                <button className="editorial-admin-button secondary" type="submit">
+                  Guardar escolha
+                </button>
+              </form>
+              <div className="editorial-below-mode-section" data-below-section="highlights" hidden={belowHeadlineMode !== "highlights"}>
+                <h4>Destaques abaixo da manchete</h4>
+                <p className="editorial-admin-muted">Edita os tres destaques editoriais desta zona.</p>
+                {highlightsEditor}
               </div>
-              <p className="editorial-admin-muted">Os formularios completos de Destaques e Resumo continuam abaixo para preparares os conteudos.</p>
+              <div className="editorial-below-mode-section" data-below-section="roundup" hidden={belowHeadlineMode !== "roundup"}>
+                <h4>Resumo da Jornada</h4>
+                <p className="editorial-admin-muted">Edita ate tres entradas para videos, golos, resumos ou noticias da jornada.</p>
+                {roundupEditor}
+              </div>
             </div>
 
             <div className="editorial-admin-composition-card">
               <h3>Bloco complementar</h3>
               <p>Escolhe o conteudo do espaco editorial da direita.</p>
-              <div className="editorial-admin-field">
-                <label htmlFor="complementary-mode">Tipo de bloco complementar</label>
-                <select id="complementary-mode" name="complementary_mode" defaultValue={complementaryMode}>
-                  <option value="none">Nenhum</option>
-                  <option value="complementary_story">Complemento da manchete</option>
-                  <option value="roundup_video">Video do Resumo da Jornada</option>
-                </select>
-              </div>
-              <div className="editorial-complement-mode-section" data-complementary-section="none" hidden={complementaryMode !== "none"}>
-                <p className="editorial-admin-muted">O Bloco complementar fica desativado na pagina publica.</p>
-              </div>
-              <div className="editorial-complement-mode-section" data-complementary-section="roundup_video" hidden={complementaryMode !== "roundup_video"}>
+              <form className="editorial-admin-form" action="/api/admin/gestor" data-complementary-form method="post">
+                <input type="hidden" name="action_type" value="save_matchday_editorial" />
+                <input type="hidden" name="return_to" value={returnTo} />
+                <input type="hidden" name="matchday_id" value={matchday.id} />
+                <input type="hidden" name="title" value={editorial?.title ?? ""} />
+                <input type="hidden" name="summary" value={editorial?.summary ?? ""} />
+                <input type="hidden" name="title_color" value={editorial?.title_color ?? ""} />
+                <input type="hidden" name="image_url" value={editorial?.image_url ?? ""} />
+                <input type="hidden" name="below_headline_mode" value={belowHeadlineMode} />
+                <input type="hidden" name="status" value={editorial?.status ?? "draft"} />
                 <div className="editorial-admin-field">
-                  <label htmlFor="complementary-roundup-item">Video inicial opcional</label>
-                  <select id="complementary-roundup-item" name="complementary_roundup_item_id" defaultValue={editorial?.complementary_roundup_item_id ?? ""}>
-                    <option value="">Usar primeiro item publicado</option>
-                    {roundupItems.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.sort_order}. {item.title || item.label || "Item sem titulo"}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="editorial-admin-muted">Este modo usa a lista publicada do Resumo da Jornada. O visitante escolhe o video na pagina publica; este campo apenas define o primeiro item, se precisares.</p>
-                </div>
-              </div>
-              <div className="editorial-complement-mode-section" data-complementary-section="complementary_story" hidden={complementaryMode !== "complementary_story"}>
-                <input type="hidden" name="complementary_roundup_item_id" value={editorial?.complementary_roundup_item_id ?? ""} />
-                <div className="editorial-admin-field">
-                  <label htmlFor="complementary-label">Antetitulo / etiqueta</label>
-                  <input
-                    id="complementary-label"
-                    name="complementary_label"
-                    defaultValue={editorial?.complementary_label ?? ""}
-                    placeholder="DESTAQUE"
-                  />
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor="complementary-title">Titulo</label>
-                  <input
-                    id="complementary-title"
-                    name="complementary_title"
-                    defaultValue={editorial?.complementary_title ?? ""}
-                    placeholder="Um detalhe editorial para acompanhar a manchete"
-                  />
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor="complementary-text">Texto curto / conteudo breve</label>
-                  <textarea
-                    id="complementary-text"
-                    name="complementary_text"
-                    defaultValue={editorial?.complementary_text ?? ""}
-                    placeholder="Texto curto do complemento da manchete."
-                  />
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor="complementary-image-url">Imagem URL</label>
-                  <input
-                    id="complementary-image-url"
-                    name="complementary_image_url"
-                    defaultValue={editorial?.complementary_image_url ?? ""}
-                    placeholder="https://exemplo.com/imagem.jpg"
-                  />
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor="complementary-link-url">Link da noticia completa</label>
-                  <input
-                    id="complementary-link-url"
-                    name="complementary_link_url"
-                    defaultValue={editorial?.complementary_link_url ?? ""}
-                    placeholder="/competicoes/liga/2026-27/jornadas/1/noticias/slug"
-                  />
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor="complementary-status">Estado</label>
-                  <select id="complementary-status" name="complementary_status" defaultValue={editorial?.complementary_status ?? "draft"}>
-                    <option value="draft">Rascunho</option>
-                    <option value="published">Publicado</option>
+                  <label htmlFor="complementary-mode">Tipo de bloco complementar</label>
+                  <select id="complementary-mode" name="complementary_mode" defaultValue={complementaryMode}>
+                    <option value="none">Nenhum</option>
+                    <option value="complementary_story">Complemento da manchete</option>
+                    <option value="roundup_video">Video do Resumo da Jornada</option>
                   </select>
                 </div>
-              </div>
+                <div className="editorial-complement-mode-section" data-complementary-section="none" hidden={complementaryMode !== "none"}>
+                  <p className="editorial-admin-muted">O Bloco complementar fica desativado na pagina publica.</p>
+                </div>
+                <div className="editorial-complement-mode-section" data-complementary-section="roundup_video" hidden={complementaryMode !== "roundup_video"}>
+                  <div className="editorial-admin-field">
+                    <label htmlFor="complementary-roundup-item">Video inicial opcional</label>
+                    <select id="complementary-roundup-item" name="complementary_roundup_item_id" defaultValue={editorial?.complementary_roundup_item_id ?? ""}>
+                      <option value="">Usar primeiro item publicado</option>
+                      {roundupItems.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.sort_order}. {item.title || item.label || "Item sem titulo"}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="editorial-admin-muted">Este modo usa a lista publicada do Resumo da Jornada. O visitante escolhe o video na pagina publica; este campo apenas define o primeiro item, se precisares.</p>
+                  </div>
+                </div>
+                <div className="editorial-complement-mode-section" data-complementary-section="complementary_story" hidden={complementaryMode !== "complementary_story"}>
+                  <input type="hidden" name="complementary_roundup_item_id" value={editorial?.complementary_roundup_item_id ?? ""} />
+                  <div className="editorial-admin-field">
+                    <label htmlFor="complementary-label">Antetitulo / etiqueta</label>
+                    <input id="complementary-label" name="complementary_label" defaultValue={editorial?.complementary_label ?? ""} placeholder="DESTAQUE" />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor="complementary-title">Titulo</label>
+                    <input id="complementary-title" name="complementary_title" defaultValue={editorial?.complementary_title ?? ""} placeholder="Um detalhe editorial para acompanhar a manchete" />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor="complementary-text">Texto curto / conteudo breve</label>
+                    <textarea id="complementary-text" name="complementary_text" defaultValue={editorial?.complementary_text ?? ""} placeholder="Texto curto do complemento da manchete." />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor="complementary-image-url">Imagem URL</label>
+                    <input id="complementary-image-url" name="complementary_image_url" defaultValue={editorial?.complementary_image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor="complementary-link-url">Link da noticia completa</label>
+                    <input id="complementary-link-url" name="complementary_link_url" defaultValue={editorial?.complementary_link_url ?? ""} placeholder="/competicoes/liga/2026-27/jornadas/1/noticias/slug" />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor="complementary-status">Estado</label>
+                    <select id="complementary-status" name="complementary_status" defaultValue={editorial?.complementary_status ?? "draft"}>
+                      <option value="draft">Rascunho</option>
+                      <option value="published">Publicado</option>
+                    </select>
+                  </div>
+                </div>
+                <button className="editorial-admin-button" type="submit">
+                  Guardar bloco complementar
+                </button>
+              </form>
             </div>
           </div>
-          <button className="editorial-admin-button" type="submit">
-            Guardar composicao
-          </button>
-        </form>
+        </div>
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -751,10 +895,19 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 var form = document.querySelector('[data-composition-form]');
                 if (!form) return;
                 var belowSelect = form.querySelector('[name="below_headline_mode"]');
-                var complementSelect = form.querySelector('[name="complementary_mode"]');
+                var complementSelect = form.querySelector('[data-complementary-form] [name="complementary_mode"]');
+                var suggestedComplement = form.querySelector('[data-suggested-complement]');
+                var belowSections = Array.prototype.slice.call(form.querySelectorAll('[data-below-section]'));
                 var sections = Array.prototype.slice.call(form.querySelectorAll('[data-complementary-section]'));
+                function syncBelowSections() {
+                  var mode = belowSelect ? belowSelect.value : 'highlights';
+                  belowSections.forEach(function (section) {
+                    section.hidden = section.getAttribute('data-below-section') !== mode;
+                  });
+                }
                 function syncComplementSections() {
                   var mode = complementSelect ? complementSelect.value : 'none';
+                  if (suggestedComplement) suggestedComplement.value = mode;
                   sections.forEach(function (section) {
                     section.hidden = section.getAttribute('data-complementary-section') !== mode;
                   });
@@ -762,10 +915,13 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 function suggestComplement() {
                   if (!belowSelect || !complementSelect) return;
                   complementSelect.value = belowSelect.value === 'roundup' ? 'roundup_video' : 'complementary_story';
+                  if (suggestedComplement) suggestedComplement.value = complementSelect.value;
+                  syncBelowSections();
                   syncComplementSections();
                 }
                 if (belowSelect) belowSelect.addEventListener('change', suggestComplement);
                 if (complementSelect) complementSelect.addEventListener('change', syncComplementSections);
+                syncBelowSections();
                 syncComplementSections();
               })();
             `
@@ -773,208 +929,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
         />
       </section>
 
-      <details className="editorial-admin-panel editorial-admin-mode-panel" open={belowHeadlineMode === "highlights"}>
-        <summary>
-          <div>
-            <h2>Destaques abaixo da manchete</h2>
-            <p>Reutiliza matchday_highlights. A pagina publica mostra apenas os destaques publicados.</p>
-          </div>
-        </summary>
-        <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
-          <input type="hidden" name="action_type" value="save_matchday_highlights" />
-          <input type="hidden" name="return_to" value={returnTo} />
-          <input type="hidden" name="matchday_id" value={matchday.id} />
-          {[1, 2, 3].map((order) => {
-            const highlight = highlights.find((item) => item.sort_order === order);
-            return (
-              <fieldset className={`editorial-admin-fieldset editorial-admin-highlight-${order}`} key={order}>
-                <legend>Destaque {order}</legend>
-                <input type="hidden" name={`highlight_${order}_id`} value={highlight?.id ?? ""} />
-                <input type="hidden" name={`highlight_${order}_sort_order`} value={order} />
-                <div className="editorial-admin-field">
-                  <label htmlFor={`highlight-${order}-label`}>Etiqueta</label>
-                  <input
-                    id={`highlight-${order}-label`}
-                    name={`highlight_${order}_label`}
-                    defaultValue={highlight?.label ?? ""}
-                    placeholder={order === 1 ? "ANTEVISAO" : order === 2 ? "AMBIENTE" : "CONTEXTO"}
-                  />
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor={`highlight-${order}-title`}>Titulo</label>
-                  <input
-                    id={`highlight-${order}-title`}
-                    name={`highlight_${order}_title`}
-                    defaultValue={highlight?.title ?? ""}
-                    placeholder={
-                      order === 1
-                        ? "Os pontos de atencao antes da bola rolar"
-                        : order === 2
-                          ? "A jornada vista pelas bancadas e pelos protagonistas"
-                          : "O que pode mudar na tabela depois dos resultados"
-                    }
-                  />
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor={`highlight-${order}-image-url`}>Imagem URL</label>
-                  <input
-                    id={`highlight-${order}-image-url`}
-                    name={`highlight_${order}_image_url`}
-                    defaultValue={highlight?.image_url ?? ""}
-                    placeholder="https://exemplo.com/imagem.jpg"
-                  />
-                </div>
-                {highlight?.image_url ? (
-                  <div className="editorial-admin-preview">
-                    <img alt="" src={highlight.image_url} />
-                  </div>
-                ) : null}
-                <div className="editorial-admin-field">
-                  <label htmlFor={`highlight-${order}-status`}>Estado</label>
-                  <select id={`highlight-${order}-status`} name={`highlight_${order}_status`} defaultValue={highlight?.status ?? "draft"}>
-                    <option value="draft">Rascunho</option>
-                    <option value="published">Publicado</option>
-                  </select>
-                </div>
-              </fieldset>
-            );
-          })}
-          <button className="editorial-admin-button" type="submit">
-            Guardar destaques
-          </button>
-        </form>
-        <div className="editorial-admin-stack" style={{ marginTop: 16 }}>
-          {[1, 2, 3].map((order) => (
-            <form
-              action="/api/admin/gestor/editorial-image"
-              className={`editorial-admin-fieldset editorial-admin-highlight-${order}`}
-              encType="multipart/form-data"
-              key={order}
-              method="post"
-            >
-              <input type="hidden" name="return_to" value={returnTo} />
-              <input type="hidden" name="matchday_id" value={matchday.id} />
-              <input type="hidden" name="target" value="highlight" />
-              <input type="hidden" name="sort_order" value={order} />
-              <div className="editorial-admin-field">
-                <label htmlFor={`highlight-${order}-image-upload`}>Carregar imagem do destaque {order}</label>
-                <input accept="image/jpeg,image/png,image/webp" id={`highlight-${order}-image-upload`} name="image" type="file" />
-              </div>
-              <button className="editorial-admin-button secondary" type="submit">
-                Carregar imagem do destaque {order}
-              </button>
-            </form>
-          ))}
-        </div>
-      </details>
-
       <div className="editorial-admin-stack" style={{ marginTop: 18 }}>
-        <details className="editorial-admin-panel editorial-admin-mode-panel" open={belowHeadlineMode === "roundup"}>
-          <summary>
-            <div>
-              <h2>Resumo da Jornada</h2>
-              <p>Edita ate tres entradas para videos, golos, resumos ou noticias da jornada.</p>
-            </div>
-          </summary>
-          <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
-            <input type="hidden" name="action_type" value="save_matchday_roundup_items" />
-            <input type="hidden" name="return_to" value={returnTo} />
-            <input type="hidden" name="matchday_id" value={matchday.id} />
-            {[1, 2, 3].map((order) => {
-              const item = roundupItems.find((roundupItem) => roundupItem.sort_order === order);
-              return (
-                <fieldset className={`editorial-admin-fieldset editorial-admin-highlight-${order}`} key={order}>
-                  <legend>Item {order}</legend>
-                  <input type="hidden" name={`roundup_${order}_id`} value={item?.id ?? ""} />
-                  <input type="hidden" name={`roundup_${order}_sort_order`} value={order} />
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`roundup-${order}-sort-order`}>Ordem</label>
-                    <input id={`roundup-${order}-sort-order`} readOnly value={order} />
-                  </div>
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`roundup-${order}-label`}>Etiqueta</label>
-                    <input
-                      id={`roundup-${order}-label`}
-                      name={`roundup_${order}_label`}
-                      defaultValue={item?.label ?? ""}
-                      placeholder={order === 1 ? "VIDEO" : order === 2 ? "GOLOS" : "NOTICIA"}
-                    />
-                  </div>
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`roundup-${order}-title`}>Titulo</label>
-                    <input
-                      id={`roundup-${order}-title`}
-                      name={`roundup_${order}_title`}
-                      defaultValue={item?.title ?? ""}
-                      placeholder={
-                        order === 1
-                          ? "Girona 0 - 1 Rayo Vallecano"
-                          : order === 2
-                            ? "Villarreal 2 - 3 Real Oviedo"
-                            : "Mallorca 0 - 1 FC Barcelona"
-                      }
-                    />
-                  </div>
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`roundup-${order}-subtitle`}>Subtitulo</label>
-                    <input
-                      id={`roundup-${order}-subtitle`}
-                      name={`roundup_${order}_subtitle`}
-                      defaultValue={item?.subtitle ?? ""}
-                      placeholder={order === 1 ? "Resumo completo" : order === 2 ? "Golos e melhores momentos" : "Noticia de contexto"}
-                    />
-                  </div>
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`roundup-${order}-image-url`}>Imagem URL</label>
-                    <input
-                      id={`roundup-${order}-image-url`}
-                      name={`roundup_${order}_image_url`}
-                      defaultValue={item?.image_url ?? ""}
-                      placeholder="https://exemplo.com/imagem.jpg"
-                    />
-                  </div>
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`roundup-${order}-video-url`}>Video URL</label>
-                    <input
-                      id={`roundup-${order}-video-url`}
-                      name={`roundup_${order}_video_url`}
-                      defaultValue={item?.video_url ?? ""}
-                      placeholder="https://exemplo.com/video"
-                    />
-                  </div>
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`roundup-${order}-duration`}>Duracao</label>
-                    <input
-                      id={`roundup-${order}-duration`}
-                      name={`roundup_${order}_duration`}
-                      defaultValue={item?.duration ?? ""}
-                      placeholder="5:42"
-                    />
-                  </div>
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`roundup-${order}-type`}>Tipo</label>
-                    <select id={`roundup-${order}-type`} name={`roundup_${order}_type`} defaultValue={item?.type ?? "resumo"}>
-                      <option value="video">Video</option>
-                      <option value="golos">Golos</option>
-                      <option value="resumo">Resumo</option>
-                      <option value="noticia">Noticia</option>
-                    </select>
-                  </div>
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`roundup-${order}-status`}>Estado</label>
-                    <select id={`roundup-${order}-status`} name={`roundup_${order}_status`} defaultValue={item?.status ?? "draft"}>
-                      <option value="draft">Rascunho</option>
-                      <option value="published">Publicado</option>
-                    </select>
-                  </div>
-                </fieldset>
-              );
-            })}
-            <button className="editorial-admin-button" type="submit">
-              Guardar Resumo da Jornada
-            </button>
-          </form>
-        </details>
         <details className="editorial-admin-panel editorial-admin-mode-panel">
           <summary>
             <div>
