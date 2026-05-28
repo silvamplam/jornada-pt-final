@@ -155,6 +155,62 @@ const editorialPageStyles = `
     padding: 20px;
   }
 
+  .editorial-admin-mode-panel {
+    margin-top: 18px;
+  }
+
+  .editorial-admin-mode-panel summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    margin: -20px;
+    padding: 18px 20px;
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .editorial-admin-mode-panel summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .editorial-admin-mode-panel summary::after {
+    content: "Recolhido";
+    padding: 6px 9px;
+    border: 1px solid #dce3eb;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #687380;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .editorial-admin-mode-panel[open] summary {
+    margin-bottom: 16px;
+    border-bottom: 1px solid #e6ebf1;
+  }
+
+  .editorial-admin-mode-panel[open] summary::after {
+    content: "Ativo";
+    border-color: #ffd6d8;
+    background: #fff5f5;
+    color: #c40012;
+  }
+
+  .editorial-admin-mode-panel summary h2,
+  .editorial-admin-mode-panel summary p {
+    margin: 0;
+  }
+
+  .editorial-admin-mode-panel summary p {
+    margin-top: 6px;
+    color: #687380;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
   .editorial-admin-panel h2,
   .editorial-admin-panel h3,
   .editorial-admin-panel h4,
@@ -440,6 +496,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const editorial = await readMatchdayEditorial(matchday.id);
   const highlights = await readMatchdayHighlights(matchday.id);
   const roundupItems = await readMatchdayRoundupItems(matchday.id);
+  const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = editorial?.complementary_mode ?? "none";
   const returnTo = `/admin/editorial/jornada/${matchday.id}`;
   const backToGestor = gestorReturnUrl(context);
@@ -516,7 +573,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 placeholder="https://exemplo.com/imagem.jpg"
               />
             </div>
-            <input type="hidden" name="below_headline_mode" value={editorial?.below_headline_mode ?? "highlights"} />
+            <input type="hidden" name="below_headline_mode" value={belowHeadlineMode} />
             {editorial?.image_url ? (
               <div className="editorial-admin-preview">
                 <img alt="" src={editorial.image_url} />
@@ -589,7 +646,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 <select
                   id="composition-below-headline-mode"
                   name="below_headline_mode"
-                  defaultValue={editorial?.below_headline_mode ?? "highlights"}
+                  defaultValue={belowHeadlineMode}
                 >
                   <option value="highlights">Destaques abaixo da manchete</option>
                   <option value="roundup">Resumo da Jornada</option>
@@ -716,11 +773,13 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
         />
       </section>
 
-      <section className="editorial-admin-panel" style={{ marginTop: 18 }}>
-        <header>
-          <h2>Destaques abaixo da manchete</h2>
-          <p>Reutiliza matchday_highlights. A pagina publica mostra apenas os destaques publicados.</p>
-        </header>
+      <details className="editorial-admin-panel editorial-admin-mode-panel" open={belowHeadlineMode === "highlights"}>
+        <summary>
+          <div>
+            <h2>Destaques abaixo da manchete</h2>
+            <p>Reutiliza matchday_highlights. A pagina publica mostra apenas os destaques publicados.</p>
+          </div>
+        </summary>
         <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
           <input type="hidden" name="action_type" value="save_matchday_highlights" />
           <input type="hidden" name="return_to" value={returnTo} />
@@ -807,14 +866,16 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             </form>
           ))}
         </div>
-      </section>
+      </details>
 
-      <div className="editorial-admin-grid">
-        <section className="editorial-admin-panel">
-          <header>
-            <h2>Resumo da Jornada</h2>
-            <p>Edita ate tres entradas para videos, golos, resumos ou noticias da jornada.</p>
-          </header>
+      <div className="editorial-admin-stack" style={{ marginTop: 18 }}>
+        <details className="editorial-admin-panel editorial-admin-mode-panel" open={belowHeadlineMode === "roundup"}>
+          <summary>
+            <div>
+              <h2>Resumo da Jornada</h2>
+              <p>Edita ate tres entradas para videos, golos, resumos ou noticias da jornada.</p>
+            </div>
+          </summary>
           <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
             <input type="hidden" name="action_type" value="save_matchday_roundup_items" />
             <input type="hidden" name="return_to" value={returnTo} />
@@ -913,14 +974,16 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               Guardar Resumo da Jornada
             </button>
           </form>
-        </section>
-        <section className="editorial-admin-panel">
-          <header>
-            <h2>Ultimas noticias</h2>
-            <p>Bloco preparado para fase posterior.</p>
-          </header>
+        </details>
+        <details className="editorial-admin-panel editorial-admin-mode-panel">
+          <summary>
+            <div>
+              <h2>Ultimas noticias</h2>
+              <p>Bloco preparado para fase posterior.</p>
+            </div>
+          </summary>
           <p className="editorial-admin-muted">Futura lista de noticias ligada a esta jornada, com hora, titulo e estado.</p>
-        </section>
+        </details>
       </div>
     </main>
   );
