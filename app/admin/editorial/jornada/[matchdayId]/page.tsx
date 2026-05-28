@@ -307,6 +307,15 @@ const editorialPageStyles = `
     color: #9d1c1f;
   }
 
+  #manchete,
+  #composicao,
+  #destaques,
+  #resumo-jornada,
+  #bloco-complementar,
+  #ultimas-noticias {
+    scroll-margin-top: 18px;
+  }
+
   .editorial-admin-note-list {
     display: grid;
     gap: 8px;
@@ -416,13 +425,34 @@ async function readMatchdayRoundupItems(matchdayId: string): Promise<SupabaseMat
   ).catch(() => []);
 }
 
-function messageFor(created?: string, error?: string) {
+type FeedbackScope = "manchete" | "composicao" | "destaques" | "resumo-jornada" | "bloco-complementar" | "ultimas-noticias";
+
+function messageFor(created?: string, error?: string, scope?: FeedbackScope) {
   const createdLabels: Record<string, string> = {
     save_matchday_editorial: "Linha editorial da jornada guardada.",
     save_matchday_highlights: "Destaques guardados e definidos como zona ativa abaixo da manchete.",
     save_matchday_roundup_items: "Resumo da Jornada guardado e definido como zona ativa abaixo da manchete.",
     upload_matchday_editorial_image: "Imagem da manchete carregada.",
     upload_matchday_highlight_image: "Imagem do destaque carregada."
+  };
+  const scopedCreatedLabels: Partial<Record<FeedbackScope, Record<string, string>>> = {
+    manchete: {
+      save_matchday_editorial: "Manchete guardada.",
+      upload_matchday_editorial_image: "Imagem da manchete carregada."
+    },
+    composicao: {
+      save_matchday_editorial: "Composicao guardada."
+    },
+    destaques: {
+      save_matchday_highlights: "Destaques guardados.",
+      upload_matchday_highlight_image: "Imagem do destaque carregada."
+    },
+    "resumo-jornada": {
+      save_matchday_roundup_items: "Resumo da Jornada guardado."
+    },
+    "bloco-complementar": {
+      save_matchday_editorial: "Bloco complementar guardado."
+    }
   };
   const errorLabels: Record<string, string> = {
     "missing-service": "Liga primeiro a Supabase na Vercel.",
@@ -439,7 +469,7 @@ function messageFor(created?: string, error?: string) {
   };
 
   if (created && createdLabels[created]) {
-    return <div className="editorial-admin-message">{createdLabels[created]}</div>;
+    return <div className="editorial-admin-message">{(scope ? scopedCreatedLabels[scope]?.[created] : undefined) ?? createdLabels[created]}</div>;
   }
 
   if (error) {
@@ -447,6 +477,14 @@ function messageFor(created?: string, error?: string) {
   }
 
   return null;
+}
+
+function scopedMessageFor(created: string | undefined, error: string | undefined, currentScope: string | undefined, scope: FeedbackScope) {
+  if (currentScope !== scope) {
+    return null;
+  }
+
+  return messageFor(created, error, scope);
 }
 
 function gestorReturnUrl(context: MatchdayContext) {
@@ -469,6 +507,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const query = (await searchParams) ?? {};
   const created = oneParam(query, "created");
   const error = oneParam(query, "error");
+  const feedbackScope = oneParam(query, "feedback_scope");
   const context = await readMatchdayContext(matchdayId);
 
   if (!context) {
@@ -495,11 +534,12 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = editorial?.complementary_mode ?? "none";
   const returnTo = `/admin/editorial/jornada/${matchday.id}`;
-  const returnToManchete = `${returnTo}#manchete`;
-  const returnToComposicao = `${returnTo}#composicao`;
-  const returnToDestaques = `${returnTo}#destaques`;
-  const returnToResumo = `${returnTo}#resumo-jornada`;
-  const returnToComplementar = `${returnTo}#bloco-complementar`;
+  const scopedReturnTo = (scope: FeedbackScope, anchor = scope) => `${returnTo}?feedback_scope=${scope}#${anchor}`;
+  const returnToManchete = scopedReturnTo("manchete");
+  const returnToComposicao = scopedReturnTo("composicao");
+  const returnToDestaques = scopedReturnTo("destaques");
+  const returnToResumo = scopedReturnTo("resumo-jornada");
+  const returnToComplementar = scopedReturnTo("bloco-complementar");
   const backToGestor = gestorReturnUrl(context);
   const contextLabel = `${country?.name ?? "Pais"} · ${competition.name} · ${season.label} · ${matchday.label}`;
   const highlightsFormId = "matchday-highlights-form";
@@ -657,14 +697,15 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
         </a>
       </section>
 
-      {messageFor(created, error)}
+      {feedbackScope ? null : messageFor(created, error)}
 
       <div className="editorial-admin-grid">
-        <section className="editorial-admin-panel">
+        <section className="editorial-admin-panel" id="manchete">
           <header>
             <h2>Manchete principal</h2>
             <p>Campos existentes de matchday_editorials ligados a esta jornada.</p>
           </header>
+          {scopedMessageFor(created, error, feedbackScope, "manchete")}
           <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
             <input type="hidden" name="action_type" value="save_matchday_editorial" />
             <input type="hidden" name="return_to" value={returnToManchete} />
@@ -768,6 +809,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           <h2>Composicao abaixo da manchete</h2>
           <p>Controla os dois espacos editoriais que aparecem por baixo da manchete na primeira pagina.</p>
         </header>
+        {scopedMessageFor(created, error, feedbackScope, "composicao")}
         <div data-composition-form>
           <div className="editorial-admin-composition-grid">
             <div className="editorial-admin-composition-card">
@@ -804,11 +846,13 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               <div className="editorial-below-mode-section" data-below-section="highlights" hidden={belowHeadlineMode !== "highlights"} id="destaques">
                 <h4>Destaques abaixo da manchete</h4>
                 <p className="editorial-admin-muted">Edita os tres destaques editoriais desta zona.</p>
+                {scopedMessageFor(created, error, feedbackScope, "destaques")}
                 {highlightsEditor}
               </div>
               <div className="editorial-below-mode-section" data-below-section="roundup" hidden={belowHeadlineMode !== "roundup"} id="resumo-jornada">
                 <h4>Resumo da Jornada</h4>
                 <p className="editorial-admin-muted">Edita ate tres entradas para videos, golos, resumos ou noticias da jornada.</p>
+                {scopedMessageFor(created, error, feedbackScope, "resumo-jornada")}
                 {roundupEditor}
               </div>
             </div>
@@ -817,6 +861,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               <h3>Bloco complementar</h3>
               <p>Escolhe o conteudo do espaco editorial da direita.</p>
               <form className="editorial-admin-form" action="/api/admin/gestor" data-complementary-form method="post" id="bloco-complementar">
+                {scopedMessageFor(created, error, feedbackScope, "bloco-complementar")}
                 <input type="hidden" name="action_type" value="save_matchday_editorial" />
                 <input type="hidden" name="return_to" value={returnToComplementar} />
                 <input type="hidden" name="matchday_id" value={matchday.id} />
