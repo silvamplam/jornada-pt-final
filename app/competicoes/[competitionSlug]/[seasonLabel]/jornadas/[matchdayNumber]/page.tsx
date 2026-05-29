@@ -571,6 +571,20 @@ const publicMatchdayStyles = `
     grid-template-columns: minmax(260px, 1.35fr) minmax(340px, 1.05fr);
   }
 
+  .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup,
+  .public-matchday-main-lower:has(.public-roundup-video-panel) .public-roundup-video-panel {
+    height: 100%;
+  }
+
+  .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup {
+    grid-template-rows: 1fr;
+    align-content: stretch;
+  }
+
+  .public-matchday-main-lower:has(.public-roundup-video-panel) .public-roundup-scroll-window {
+    max-height: none;
+  }
+
   .public-editorial-flex-block {
     position: relative;
   }
@@ -745,6 +759,8 @@ const publicMatchdayStyles = `
 
   .public-roundup-scroll-frame {
     position: relative;
+    height: 100%;
+    min-height: 0;
     overflow: hidden;
     border-top: 1px solid #eef2f6;
     border-bottom: 1px solid #eef2f6;
@@ -772,6 +788,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-roundup .public-roundup-scroll-window {
+    height: 100%;
     max-height: 224px;
     overflow-y: auto;
     scroll-behavior: smooth;
@@ -833,6 +850,11 @@ const publicMatchdayStyles = `
     min-height: 56px;
     padding: 5px 0;
     border-bottom: 1px solid #e6ebf1;
+  }
+
+  .public-roundup-has-scroll .public-cover-story {
+    min-height: 25%;
+    box-sizing: border-box;
   }
 
   .public-matchday-roundup .public-highlight-image {
@@ -1017,7 +1039,7 @@ const publicMatchdayStyles = `
   }
 
   .public-roundup-video-panel {
-    align-self: start;
+    align-self: stretch;
     padding: 10px;
   }
 
