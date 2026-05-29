@@ -567,6 +567,10 @@ const publicMatchdayStyles = `
     min-width: 0;
   }
 
+  .public-matchday-main-lower:has(.public-roundup-video-panel) {
+    grid-template-columns: minmax(240px, 0.85fr) minmax(420px, 1.45fr);
+  }
+
   .public-editorial-flex-block {
     position: relative;
   }
@@ -737,53 +741,6 @@ const publicMatchdayStyles = `
     grid-template-columns: 1fr;
     gap: 0;
     padding-top: 0;
-  }
-
-  .public-roundup-scroll-window {
-    max-height: 224px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: none;
-  }
-
-  .public-below-headline-roundup > .public-cover-story-strip {
-    max-height: 224px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: none;
-  }
-
-  .public-roundup-scroll-window::-webkit-scrollbar,
-  .public-below-headline-roundup > .public-cover-story-strip::-webkit-scrollbar {
-    display: none;
-  }
-
-  .public-roundup-scroll-button {
-    position: absolute;
-    right: 0;
-    z-index: 2;
-    width: 28px;
-    height: 28px;
-    border: 1px solid #dce3eb;
-    border-radius: 4px;
-    background: #f8fafc;
-    color: #263241;
-    font-size: 12px;
-    font-weight: 900;
-    line-height: 1;
-    cursor: pointer;
-  }
-
-  .public-roundup-scroll-button:first-of-type {
-    top: 8px;
-  }
-
-  .public-roundup-scroll-button:last-of-type {
-    bottom: 28px;
-  }
-
-  .public-roundup-scroll-button:hover {
-    background: #eef2f6;
   }
 
   .public-cover-story {
@@ -960,6 +917,15 @@ const publicMatchdayStyles = `
   .public-complement-media img {
     object-fit: cover;
     object-position: center;
+  }
+
+  .public-roundup-video-panel {
+    align-self: start;
+    padding: 10px;
+  }
+
+  .public-roundup-video-panel .public-complement-media {
+    width: 100%;
   }
 
   .public-complement-body {
@@ -1534,6 +1500,10 @@ const publicMatchdayStyles = `
 
     .public-cover-headline,
     .public-matchday-main-lower {
+      grid-template-columns: 1fr;
+    }
+
+    .public-matchday-main-lower:has(.public-roundup-video-panel) {
       grid-template-columns: 1fr;
     }
 
