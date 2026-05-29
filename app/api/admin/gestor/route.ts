@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { fetchSupabaseAdminTable, getSupabaseServiceConfig, writeSupabaseAdmin, writeSupabaseAdminReturning } from "@/lib/supabase";
 
+const ROUNDUP_EDITOR_SORT_ORDERS = Array.from({ length: 10 }, (_, index) => index + 1);
+
 function cleanText(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") {
     return null;
@@ -944,7 +946,7 @@ async function saveMatchdayRoundupItems(formData: FormData) {
     throw new Error("matchday-invalid");
   }
 
-  for (const sortOrder of [1, 2, 3]) {
+  for (const sortOrder of ROUNDUP_EDITOR_SORT_ORDERS) {
     const itemId = cleanText(formData.get(`roundup_${sortOrder}_id`));
     const label = cleanText(formData.get(`roundup_${sortOrder}_label`));
     const title = cleanText(formData.get(`roundup_${sortOrder}_title`));
@@ -956,10 +958,7 @@ async function saveMatchdayRoundupItems(formData: FormData) {
     const statusValue = cleanText(formData.get(`roundup_${sortOrder}_status`)) ?? "draft";
     const type = allowedTypes.has(typeValue) ? typeValue : "resumo";
     const status = statusValue === "published" ? "published" : "draft";
-
-    if (status === "published" && !title) {
-      throw new Error("roundup-title-required");
-    }
+    const hasContent = Boolean(label || title || subtitle || imageUrl || videoUrl || duration);
 
     const payload = {
       matchday_id: matchdayId,
@@ -974,6 +973,10 @@ async function saveMatchdayRoundupItems(formData: FormData) {
       status,
       updated_at: new Date().toISOString()
     };
+
+    if (!hasContent && status !== "published") {
+      continue;
+    }
 
     if (itemId) {
       await writeSupabaseAdmin(
@@ -995,7 +998,7 @@ async function saveMatchdayRoundupItems(formData: FormData) {
         method: "PATCH",
         body: JSON.stringify(payload)
       });
-    } else if (label || title || subtitle || imageUrl || videoUrl || duration || status === "published") {
+    } else if (hasContent || status === "published") {
       await writeSupabaseAdmin("matchday_roundup_items", {
         method: "POST",
         body: JSON.stringify(payload)

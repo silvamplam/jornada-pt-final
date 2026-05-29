@@ -25,6 +25,8 @@ type MatchdayContext = {
   country: SupabaseCountry | null;
 };
 
+const ROUNDUP_EDITOR_SORT_ORDERS = Array.from({ length: 10 }, (_, index) => index + 1);
+
 const editorialPageStyles = `
   body {
     margin: 0;
@@ -461,7 +463,6 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope) {
     "roundup-item-invalid": "O item escolhido do Resumo da Jornada nao pertence a esta jornada.",
     "editorial-title-required": "Para publicar, indica uma manchete da jornada.",
     "highlight-title-required": "Para publicar um destaque, indica o titulo.",
-    "roundup-title-required": "Para publicar um item do Resumo da Jornada, indica o titulo.",
     "editorial-image-type": "O ficheiro tem de ser uma imagem JPG, PNG ou WebP.",
     "editorial-image-size": "A imagem nao pode ter mais de 5MB.",
     "editorial-image-upload": "Nao foi possivel carregar a imagem. Confirma o bucket de Storage.",
@@ -617,7 +618,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
       <input type="hidden" name="action_type" value="save_matchday_roundup_items" />
       <input type="hidden" name="return_to" value={returnToResumo} />
       <input type="hidden" name="matchday_id" value={matchday.id} />
-      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((order) => {
+      {ROUNDUP_EDITOR_SORT_ORDERS.map((order) => {
         const item = roundupItems.find((roundupItem) => roundupItem.sort_order === order);
         return (
           <fieldset className={`editorial-admin-fieldset editorial-admin-highlight-${order}`} key={order}>
