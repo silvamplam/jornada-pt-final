@@ -1864,6 +1864,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   const finishedMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "finished");
   const scheduledMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "scheduled");
   const selectedMatchdayDateContext = formatMatchdayDateContext(context.matchesForMatchday);
+  const publishedHeadline = context.editorial?.status === "published" ? context.editorial : null;
   const belowHeadlineMode = context.editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = context.editorial?.complementary_mode ?? "none";
   const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
@@ -2046,16 +2047,16 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
           <div className="public-matchday-main-column">
             <article className="public-matchday-editorial">
               <div className="public-cover-headline">
-                {context.editorial?.image_url ? (
+                {publishedHeadline?.image_url ? (
                   <div className="public-editorial-main-image">
-                    <img src={context.editorial.image_url} alt="" />
+                    <img src={publishedHeadline.image_url} alt="" />
                   </div>
                 ) : null}
                 <div>
-                  <h2 style={context.editorial?.title_color ? { color: context.editorial.title_color } : undefined}>
-                    {context.editorial?.title || "Manchete da jornada"}
+                  <h2 style={publishedHeadline?.title_color ? { color: publishedHeadline.title_color } : undefined}>
+                    {publishedHeadline?.title || "Manchete da jornada"}
                   </h2>
-                  <p>{context.editorial?.summary || "Espaço reservado para a leitura editorial desta jornada."}</p>
+                  <p>{publishedHeadline?.summary || "Espaço reservado para a leitura editorial desta jornada."}</p>
                 </div>
               </div>
             </article>
