@@ -926,13 +926,6 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             </div>
 
             <div className="editorial-admin-composition-side-stack">
-              <section className="editorial-admin-composition-card" id="ultimas-noticias">
-                <h3>Ultimas noticias</h3>
-                <p>Edita a coluna direita da primeira pagina. A imagem e opcional: se ficar vazia, a noticia aparece apenas com hora e titulo.</p>
-                {scopedMessageFor(created, error, feedbackScope, "ultimas-noticias")}
-                {latestNewsEditor}
-              </section>
-
               <div className="editorial-admin-composition-card">
                 <h3>Bloco complementar</h3>
                 <p>Escolhe o conteudo do espaco editorial da direita.</p>
@@ -1007,6 +1000,13 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                   </button>
                 </form>
               </div>
+
+              <section className="editorial-admin-composition-card" id="ultimas-noticias">
+                <h3>Ultimas noticias</h3>
+                <p>Edita a coluna direita da primeira pagina. A imagem e opcional: se ficar vazia, a noticia aparece apenas com hora e titulo.</p>
+                {scopedMessageFor(created, error, feedbackScope, "ultimas-noticias")}
+                {latestNewsEditor}
+              </section>
             </div>
           </div>
         </div>
