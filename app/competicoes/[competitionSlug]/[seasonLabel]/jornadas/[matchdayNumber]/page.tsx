@@ -577,7 +577,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup {
-    grid-template-rows: 1fr;
+    grid-template-rows: auto 1fr;
     align-content: stretch;
   }
 
@@ -610,6 +610,7 @@ const publicMatchdayStyles = `
   }
 
   .public-editorial-block-head a,
+  .public-editorial-block-head .public-roundup-matchday-label,
   .public-editorial-more-link {
     color: #003f8f;
     font-size: 11px;
@@ -2227,6 +2228,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                 <RoundupVideoSwitcher
                   items={context.roundupItems}
                   initialItemId={editorial?.complementary_roundup_item_id ?? null}
+                  matchdayNumber={context.matchday.number}
                 />
               ) : (
                 <>
@@ -2236,7 +2238,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                 aria-label="Zona editorial abaixo da manchete"
               >
                 <div className="public-editorial-block-head">
-                  <a href="#jogos">Ver todos</a>
+                  <span className="public-roundup-matchday-label">Jornada {String(context.matchday.number).padStart(2, "0")}</span>
                 </div>
                 <div className="public-cover-story-strip" aria-label="Resumos e destaques da jornada">
               {belowHeadlineMode === "highlights" ? (
