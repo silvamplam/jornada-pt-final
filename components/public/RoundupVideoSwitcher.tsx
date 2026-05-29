@@ -6,7 +6,7 @@ import type { SupabaseMatchdayRoundupItem } from "@/lib/supabase";
 type RoundupVideoSwitcherProps = {
   items: SupabaseMatchdayRoundupItem[];
   initialItemId?: string | null;
-  matchdayNumber: number;
+  matchdayNumber?: number | null;
 };
 
 function videoEmbedUrl(value?: string | null) {
@@ -49,7 +49,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
   const activeItem = items.find((item) => item.id === activeItemId) ?? initialItem;
   const embedUrl = videoEmbedUrl(activeItem?.video_url);
   const hasScrollControls = items.length > 3;
-  const matchdayLabel = `Jornada ${String(matchdayNumber).padStart(2, "0")}`;
+  const matchdayLabel = matchdayNumber ? `Jornada ${String(matchdayNumber).padStart(2, "0")}` : "Jornada";
 
   function scrollRoundupList(direction: -1 | 1) {
     const list = listRef.current;
