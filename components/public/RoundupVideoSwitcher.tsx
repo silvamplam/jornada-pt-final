@@ -6,6 +6,7 @@ import type { SupabaseMatchdayRoundupItem } from "@/lib/supabase";
 type RoundupVideoSwitcherProps = {
   items: SupabaseMatchdayRoundupItem[];
   initialItemId?: string | null;
+  matchdayNumber: number;
 };
 
 function videoEmbedUrl(value?: string | null) {
@@ -38,7 +39,7 @@ function videoEmbedUrl(value?: string | null) {
   return null;
 }
 
-export default function RoundupVideoSwitcher({ items, initialItemId }: RoundupVideoSwitcherProps) {
+export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNumber }: RoundupVideoSwitcherProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const initialItem = useMemo(
     () => items.find((item) => item.id === initialItemId) ?? items[0] ?? null,
@@ -48,6 +49,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId }: RoundupVi
   const activeItem = items.find((item) => item.id === activeItemId) ?? initialItem;
   const embedUrl = videoEmbedUrl(activeItem?.video_url);
   const hasScrollControls = items.length > 3;
+  const matchdayLabel = `Jornada ${String(matchdayNumber).padStart(2, "0")}`;
 
   function scrollRoundupList(direction: -1 | 1) {
     const list = listRef.current;
@@ -68,6 +70,9 @@ export default function RoundupVideoSwitcher({ items, initialItemId }: RoundupVi
         className={`public-matchday-roundup public-below-headline-roundup public-editorial-flex-block${hasScrollControls ? " public-roundup-has-scroll" : ""}`}
         data-editorial-slot="resumo-ou-noticias"
       >
+        <div className="public-editorial-block-head">
+          <span className="public-roundup-matchday-label">{matchdayLabel}</span>
+        </div>
         <div className="public-roundup-scroll-frame">
           {hasScrollControls ? (
             <button className="public-roundup-scroll-button public-roundup-scroll-button-top" onClick={() => scrollRoundupList(-1)} type="button" aria-label="Ver itens anteriores">
