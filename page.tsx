@@ -1,6 +1,6 @@
 ﻿import { buildAccumulatedClassification, totalClassificationStats, type ClassificationSplit } from "@/lib/classification";
 import { getPublicMatchdayDiagnostic, seasonLabelToUrlSegment, type PublicMatchdayDiagnostic, type PublicSeasonMatch } from "@/lib/public-matchday";
-import RoundupVideoSwitcher from "./RoundupVideoSwitcher";
+import RoundupVideoSwitcher from "@/components/public/RoundupVideoSwitcher";
 
 export const dynamic = "force-dynamic";
 
