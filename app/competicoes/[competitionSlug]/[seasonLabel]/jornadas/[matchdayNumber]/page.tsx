@@ -743,25 +743,81 @@ const publicMatchdayStyles = `
     padding-top: 0;
   }
 
+  .public-roundup-scroll-frame {
+    position: relative;
+    overflow: hidden;
+    border-top: 1px solid #eef2f6;
+    border-bottom: 1px solid #eef2f6;
+  }
+
+  .public-roundup-has-scroll .public-roundup-scroll-frame::before,
+  .public-roundup-has-scroll .public-roundup-scroll-frame::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    left: 0;
+    z-index: 1;
+    height: 30px;
+    pointer-events: none;
+  }
+
+  .public-roundup-has-scroll .public-roundup-scroll-frame::before {
+    top: 0;
+    background: linear-gradient(#ffffff, rgba(255, 255, 255, 0));
+  }
+
+  .public-roundup-has-scroll .public-roundup-scroll-frame::after {
+    bottom: 0;
+    background: linear-gradient(rgba(255, 255, 255, 0), #ffffff);
+  }
+
   .public-matchday-roundup .public-roundup-scroll-window {
     max-height: 224px;
     overflow-y: auto;
     scroll-behavior: smooth;
+    scrollbar-color: rgba(96, 112, 134, 0.32) transparent;
     scrollbar-width: thin;
   }
 
+  .public-matchday-roundup .public-roundup-scroll-window::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .public-matchday-roundup .public-roundup-scroll-window::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .public-matchday-roundup .public-roundup-scroll-window::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(96, 112, 134, 0.28);
+  }
+
   .public-roundup-scroll-button {
+    position: absolute;
+    left: 50%;
+    z-index: 2;
     display: grid;
     place-items: center;
-    width: 100%;
-    height: 24px;
-    border: 1px solid #dfe5ec;
-    background: #ffffff;
+    width: 24px;
+    height: 18px;
+    border: 1px solid rgba(197, 207, 218, 0.82);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
     color: #263241;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 900;
     line-height: 1;
     cursor: pointer;
+    transform: translateX(-50%);
+    box-shadow: 0 1px 4px rgba(16, 21, 27, 0.08);
+  }
+
+  .public-roundup-scroll-button-top {
+    top: 5px;
+  }
+
+  .public-roundup-scroll-button-bottom {
+    bottom: 5px;
   }
 
   .public-cover-story {
@@ -2276,9 +2332,11 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                 </>
               )}
                 </div>
-                <a className="public-editorial-more-link" href="#jogos">
-                  {belowHeadlineMode === "roundup" ? "Ver mais vídeos e golos" : "Ver mais destaques"} <span aria-hidden="true">›</span>
-                </a>
+                {belowHeadlineMode === "highlights" ? (
+                  <a className="public-editorial-more-link" href="#jogos">
+                    Ver mais destaques <span aria-hidden="true">›</span>
+                  </a>
+                ) : null}
               </section>
               <aside className="public-matchday-cover-side public-editorial-flex-block" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar da jornada">
                 {hasPublishedComplementaryStory && editorial ? (

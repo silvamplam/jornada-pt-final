@@ -65,64 +65,63 @@ export default function RoundupVideoSwitcher({ items, initialItemId }: RoundupVi
   return (
     <>
       <section
-        className="public-matchday-roundup public-below-headline-roundup public-editorial-flex-block"
+        className={`public-matchday-roundup public-below-headline-roundup public-editorial-flex-block${hasScrollControls ? " public-roundup-has-scroll" : ""}`}
         data-editorial-slot="resumo-ou-noticias"
       >
-        {hasScrollControls ? (
-          <button className="public-roundup-scroll-button" onClick={() => scrollRoundupList(-1)} type="button" aria-label="Ver itens anteriores">
-            &uarr;
-          </button>
-        ) : null}
-        <div className="public-cover-story-strip public-roundup-scroll-window" ref={listRef} aria-label="Resumos e videos da jornada">
-          {items.length > 0 ? (
-            items.map((item) => {
-              const showPlay = Boolean(item.video_url) || item.type === "video" || item.type === "golos" || item.type === "resumo";
-              const imageUrl = item.image_url?.trim();
-              const isActive = item.id === activeItem?.id;
+        <div className="public-roundup-scroll-frame">
+          {hasScrollControls ? (
+            <button className="public-roundup-scroll-button public-roundup-scroll-button-top" onClick={() => scrollRoundupList(-1)} type="button" aria-label="Ver itens anteriores">
+              &uarr;
+            </button>
+          ) : null}
+          <div className="public-cover-story-strip public-roundup-scroll-window" ref={listRef} aria-label="Resumos e videos da jornada">
+            {items.length > 0 ? (
+              items.map((item) => {
+                const showPlay = Boolean(item.video_url) || item.type === "video" || item.type === "golos" || item.type === "resumo";
+                const imageUrl = item.image_url?.trim();
+                const isActive = item.id === activeItem?.id;
 
-              return (
-                <button
-                  aria-pressed={isActive}
-                  className="public-cover-story public-roundup-switch-item"
-                  key={item.id}
-                  onClick={() => setActiveItemId(item.id)}
-                  type="button"
-                >
-                  <div className="public-highlight-image">
-                    {imageUrl ? <img alt="" src={imageUrl} /> : null}
-                    {showPlay ? (
-                      <span aria-hidden="true" className="public-media-play">
-                        play
-                      </span>
-                    ) : null}
-                  </div>
-                  <span className="public-roundup-meta">
-                    {item.label ? <span>{item.label}</span> : <span aria-hidden="true" />}
-                    {item.duration ? <span className="public-roundup-duration">{item.duration}</span> : null}
-                  </span>
-                  <strong>{item.title ?? "Video da jornada"}</strong>
-                  {item.subtitle ? <small>{item.subtitle}</small> : null}
-                  <span aria-hidden="true" className="public-roundup-arrow">
-                    &rsaquo;
-                  </span>
-                </button>
-              );
-            })
-          ) : (
-            <div className="public-complement-body">
-              <strong>Resumo da Jornada por definir</strong>
-              <p>Prepara itens publicados no backoffice editorial desta jornada.</p>
-            </div>
-          )}
+                return (
+                  <button
+                    aria-pressed={isActive}
+                    className="public-cover-story public-roundup-switch-item"
+                    key={item.id}
+                    onClick={() => setActiveItemId(item.id)}
+                    type="button"
+                  >
+                    <div className="public-highlight-image">
+                      {imageUrl ? <img alt="" src={imageUrl} /> : null}
+                      {showPlay ? (
+                        <span aria-hidden="true" className="public-media-play">
+                          play
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className="public-roundup-meta">
+                      {item.label ? <span>{item.label}</span> : <span aria-hidden="true" />}
+                      {item.duration ? <span className="public-roundup-duration">{item.duration}</span> : null}
+                    </span>
+                    <strong>{item.title ?? "Video da jornada"}</strong>
+                    {item.subtitle ? <small>{item.subtitle}</small> : null}
+                    <span aria-hidden="true" className="public-roundup-arrow">
+                      &rsaquo;
+                    </span>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="public-complement-body">
+                <strong>Resumo da Jornada por definir</strong>
+                <p>Prepara itens publicados no backoffice editorial desta jornada.</p>
+              </div>
+            )}
+          </div>
+          {hasScrollControls ? (
+            <button className="public-roundup-scroll-button public-roundup-scroll-button-bottom" onClick={() => scrollRoundupList(1)} type="button" aria-label="Ver itens seguintes">
+              &darr;
+            </button>
+          ) : null}
         </div>
-        {hasScrollControls ? (
-          <button className="public-roundup-scroll-button" onClick={() => scrollRoundupList(1)} type="button" aria-label="Ver itens seguintes">
-            &darr;
-          </button>
-        ) : null}
-        <a className="public-editorial-more-link" href="#jogos">
-          Ver mais videos e golos <span aria-hidden="true">&rsaquo;</span>
-        </a>
       </section>
 
       <aside
