@@ -568,7 +568,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-main-lower:has(.public-roundup-video-panel) {
-    grid-template-columns: minmax(240px, 0.85fr) minmax(420px, 1.45fr);
+    grid-template-columns: minmax(260px, 1.35fr) minmax(340px, 1.05fr);
   }
 
   .public-editorial-flex-block {
