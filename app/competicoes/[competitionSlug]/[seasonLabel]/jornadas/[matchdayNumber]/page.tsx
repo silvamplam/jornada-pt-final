@@ -1066,7 +1066,7 @@ const publicMatchdayStyles = `
 
   .public-roundup-video-panel {
     align-self: stretch;
-    padding: var(--public-roundup-top-align) 10px 10px;
+    padding: var(--public-roundup-top-align) 2px 10px;
   }
 
   .public-roundup-video-panel .public-complement-media {
