@@ -484,6 +484,7 @@ const publicMatchdayStyles = `
 
   .public-matchday-feature {
     grid-area: feature;
+    padding-top: 0;
   }
 
   .public-matchday-cover-side {
@@ -493,10 +494,11 @@ const publicMatchdayStyles = `
   .public-matchday-news {
     grid-area: news;
     min-height: 100%;
+    padding-top: 0;
   }
 
   .public-matchday-editorial h2,
-  .public-matchday-feature h3,
+  .public-cover-support h4,
   .public-matchday-roundup h3,
   .public-matchday-cover-side h3,
   .public-matchday-news h3 {
@@ -619,13 +621,6 @@ const publicMatchdayStyles = `
     color: #263241;
   }
 
-  .public-matchday-feature h3 {
-    padding-bottom: 10px;
-    border-bottom: 1px solid #dfe5ec;
-    font-size: 14px;
-    text-transform: uppercase;
-  }
-
   .public-matchday-feature p {
     font-size: 13px;
   }
@@ -642,7 +637,10 @@ const publicMatchdayStyles = `
 
   .public-cover-support h4 {
     margin: 0;
-    font-size: 13px;
+    padding-top: 8px;
+    border-top: 4px solid #10151b;
+    font-size: 14px;
+    font-weight: 900;
     text-transform: uppercase;
   }
 
@@ -2271,10 +2269,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
 
       <section className="public-matchday-panel" aria-label="Capa da jornada">
         <div className="public-matchday-cover">
-          <aside className="public-matchday-feature" aria-label="Informação em destaque">
-            <div>
-              <h3>Informação em destaque</h3>
-            </div>
+          <aside className="public-matchday-feature" aria-label="Onde ver">
             <div className="public-cover-support">
               <h4>Onde ver</h4>
               <ul className="public-cover-channel-list">
