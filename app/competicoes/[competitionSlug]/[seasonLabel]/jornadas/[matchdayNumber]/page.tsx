@@ -1196,20 +1196,18 @@ const publicMatchdayStyles = `
 
   .public-news-item {
     display: grid;
-    gap: 4px;
-    padding: 10px 0;
+    gap: 7px;
+    padding: 0 0 14px;
     border-bottom: 1px solid #e6ebf1;
   }
 
-  .public-news-item-with-image {
-    grid-template-columns: 54px minmax(0, 1fr);
-    gap: 10px;
-    align-items: start;
+  .public-news-item + .public-news-item {
+    padding-top: 14px;
   }
 
   .public-news-thumb {
-    width: 54px;
-    aspect-ratio: 4 / 3;
+    width: 100%;
+    aspect-ratio: 16 / 9;
     overflow: hidden;
     border-radius: 4px;
     background: #eef2f6;
@@ -1225,17 +1223,20 @@ const publicMatchdayStyles = `
 
   .public-news-copy {
     display: grid;
-    gap: 4px;
+    gap: 5px;
     min-width: 0;
   }
 
   .public-news-list time {
+    display: block;
     color: #c40012;
     font-size: 12px;
     font-weight: 900;
+    line-height: 1;
   }
 
   .public-news-title {
+    display: block;
     font-family: Georgia, "Times New Roman", serif;
     font-size: 16px;
     line-height: 1.15;
@@ -2498,7 +2499,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
             <h3>Últimas notícias</h3>
             <ul className="public-news-list">
               {latestNewsItems.map((item) => (
-                <li className={item.imageUrl ? "public-news-item public-news-item-with-image" : "public-news-item"} key={item.id}>
+                <li className="public-news-item" key={item.id}>
                   {item.imageUrl ? (
                     <div className="public-news-thumb">
                       <img alt="" src={item.imageUrl} />
