@@ -5,6 +5,7 @@ import {
   type SupabaseMatchday,
   type SupabaseMatchdayEditorial,
   type SupabaseMatchdayHighlight,
+  type SupabaseMatchdayLatestNews,
   type SupabaseMatchdayRoundupItem,
   type SupabaseSeason
 } from "@/lib/supabase";
@@ -26,6 +27,7 @@ type MatchdayContext = {
 };
 
 const ROUNDUP_EDITOR_SORT_ORDERS = Array.from({ length: 10 }, (_, index) => index + 1);
+const LATEST_NEWS_EDITOR_SORT_ORDERS = Array.from({ length: 8 }, (_, index) => index + 1);
 
 const editorialPageStyles = `
   body {
@@ -427,6 +429,14 @@ async function readMatchdayRoundupItems(matchdayId: string): Promise<SupabaseMat
   ).catch(() => []);
 }
 
+async function readMatchdayLatestNews(matchdayId: string): Promise<SupabaseMatchdayLatestNews[]> {
+  return fetchSupabaseAdminTable<SupabaseMatchdayLatestNews>(
+    `matchday_latest_news?select=id,matchday_id,time_label,title,image_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&order=sort_order.asc&limit=8`
+  ).catch(() => []);
+}
+
 type FeedbackScope = "manchete" | "composicao" | "destaques" | "resumo-jornada" | "bloco-complementar" | "ultimas-noticias";
 
 function messageFor(created?: string, error?: string, scope?: FeedbackScope) {
@@ -434,6 +444,7 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope) {
     save_matchday_editorial: "Linha editorial da jornada guardada.",
     save_matchday_highlights: "Destaques guardados e definidos como zona ativa abaixo da manchete.",
     save_matchday_roundup_items: "Resumo da Jornada guardado e definido como zona ativa abaixo da manchete.",
+    save_matchday_latest_news: "Ultimas noticias guardadas.",
     upload_matchday_editorial_image: "Imagem da manchete carregada.",
     upload_matchday_highlight_image: "Imagem do destaque carregada."
   };
@@ -454,6 +465,9 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope) {
     },
     "bloco-complementar": {
       save_matchday_editorial: "Bloco complementar guardado."
+    },
+    "ultimas-noticias": {
+      save_matchday_latest_news: "Ultimas noticias guardadas."
     }
   };
   const errorLabels: Record<string, string> = {
@@ -463,6 +477,7 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope) {
     "roundup-item-invalid": "O item escolhido do Resumo da Jornada nao pertence a esta jornada.",
     "editorial-title-required": "Para publicar, indica uma manchete da jornada.",
     "highlight-title-required": "Para publicar um destaque, indica o titulo.",
+    "latest-news-title-required": "Para publicar uma noticia, indica o titulo.",
     "editorial-image-type": "O ficheiro tem de ser uma imagem JPG, PNG ou WebP.",
     "editorial-image-size": "A imagem nao pode ter mais de 5MB.",
     "editorial-image-upload": "Nao foi possivel carregar a imagem. Confirma o bucket de Storage.",
@@ -532,6 +547,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const editorial = await readMatchdayEditorial(matchday.id);
   const highlights = await readMatchdayHighlights(matchday.id);
   const roundupItems = await readMatchdayRoundupItems(matchday.id);
+  const latestNews = await readMatchdayLatestNews(matchday.id);
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = editorial?.complementary_mode ?? "none";
   const returnTo = `/admin/editorial/jornada/${matchday.id}`;
@@ -541,6 +557,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const returnToDestaques = scopedReturnTo("destaques");
   const returnToResumo = scopedReturnTo("resumo-jornada");
   const returnToComplementar = scopedReturnTo("bloco-complementar");
+  const returnToUltimasNoticias = scopedReturnTo("ultimas-noticias");
   const backToGestor = gestorReturnUrl(context);
   const contextLabel = `${country?.name ?? "Pais"} · ${competition.name} · ${season.label} · ${matchday.label}`;
   const highlightsFormId = "matchday-highlights-form";
@@ -679,6 +696,57 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
       })}
       <button className="editorial-admin-button" type="submit">
         Guardar Resumo da Jornada
+      </button>
+    </form>
+  );
+
+  const latestNewsEditor = (
+    <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
+      <input type="hidden" name="action_type" value="save_matchday_latest_news" />
+      <input type="hidden" name="return_to" value={returnToUltimasNoticias} />
+      <input type="hidden" name="matchday_id" value={matchday.id} />
+      <div className="editorial-admin-compact-stack">
+        {LATEST_NEWS_EDITOR_SORT_ORDERS.map((order) => {
+          const item = latestNews.find((newsItem) => newsItem.sort_order === order);
+          return (
+            <fieldset className="editorial-admin-fieldset editorial-admin-compact-card" key={order}>
+              <legend>Noticia {order}</legend>
+              <input type="hidden" name={`latest_news_${order}_id`} value={item?.id ?? ""} />
+              <input type="hidden" name={`latest_news_${order}_sort_order`} value={order} />
+              <div className="editorial-admin-field">
+                <label htmlFor={`latest-news-${order}-sort-order`}>Ordem</label>
+                <input id={`latest-news-${order}-sort-order`} readOnly value={order} />
+              </div>
+              <div className="editorial-admin-field">
+                <label htmlFor={`latest-news-${order}-time-label`}>Hora</label>
+                <input id={`latest-news-${order}-time-label`} name={`latest_news_${order}_time_label`} defaultValue={item?.time_label ?? ""} placeholder="12:30" />
+              </div>
+              <div className="editorial-admin-field">
+                <label htmlFor={`latest-news-${order}-title`}>Titulo</label>
+                <input id={`latest-news-${order}-title`} name={`latest_news_${order}_title`} defaultValue={item?.title ?? ""} placeholder="Titulo curto da noticia" />
+              </div>
+              <div className="editorial-admin-field">
+                <label htmlFor={`latest-news-${order}-image-url`}>Imagem URL opcional</label>
+                <input id={`latest-news-${order}-image-url`} name={`latest_news_${order}_image_url`} defaultValue={item?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
+              </div>
+              {item?.image_url ? (
+                <div className="editorial-admin-preview">
+                  <img alt="" src={item.image_url} />
+                </div>
+              ) : null}
+              <div className="editorial-admin-field">
+                <label htmlFor={`latest-news-${order}-status`}>Estado</label>
+                <select id={`latest-news-${order}-status`} name={`latest_news_${order}_status`} defaultValue={item?.status ?? "draft"}>
+                  <option value="draft">Rascunho</option>
+                  <option value="published">Publicado</option>
+                </select>
+              </div>
+            </fieldset>
+          );
+        })}
+      </div>
+      <button className="editorial-admin-button" type="submit">
+        Guardar ultimas noticias
       </button>
     </form>
   );
@@ -977,7 +1045,9 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
 
       <section className="editorial-admin-news-placeholder" id="ultimas-noticias">
         <h2>Ultimas noticias</h2>
-        <p className="editorial-admin-muted">Bloco preparado para fase posterior: futura lista de noticias ligada a esta jornada, com hora, titulo e estado.</p>
+        <p className="editorial-admin-muted">Edita a coluna direita da primeira pagina. A imagem e opcional: se ficar vazia, a noticia aparece apenas com hora e titulo.</p>
+        {scopedMessageFor(created, error, feedbackScope, "ultimas-noticias")}
+        {latestNewsEditor}
       </section>
     </main>
   );

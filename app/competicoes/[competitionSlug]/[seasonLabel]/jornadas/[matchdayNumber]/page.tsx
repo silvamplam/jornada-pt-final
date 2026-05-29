@@ -1150,6 +1150,10 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-news {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 10px;
+    min-height: 100%;
     padding-right: 0;
     border-right: 0;
   }
@@ -1157,16 +1161,62 @@ const publicMatchdayStyles = `
   .public-news-list {
     display: grid;
     gap: 0;
+    align-content: start;
+    min-height: 0;
     margin: 0;
     padding: 0;
+    overflow-y: auto;
     list-style: none;
+    scrollbar-color: rgba(96, 112, 134, 0.3) transparent;
+    scrollbar-width: thin;
   }
 
-  .public-news-list li {
+  .public-news-list::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .public-news-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .public-news-list::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(96, 112, 134, 0.28);
+  }
+
+  .public-news-item {
     display: grid;
     gap: 4px;
     padding: 10px 0;
     border-bottom: 1px solid #e6ebf1;
+  }
+
+  .public-news-item-with-image {
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+  }
+
+  .public-news-thumb {
+    width: 54px;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #eef2f6;
+  }
+
+  .public-news-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .public-news-copy {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
   }
 
   .public-news-list time {
@@ -1175,9 +1225,9 @@ const publicMatchdayStyles = `
     font-weight: 900;
   }
 
-  .public-news-list span {
+  .public-news-title {
     font-family: Georgia, "Times New Roman", serif;
-    font-size: 17px;
+    font-size: 16px;
     line-height: 1.15;
   }
 
@@ -2070,6 +2120,34 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
             channelLogoUrl: null
           }
         ];
+  const latestNewsItems =
+    context.latestNews.length > 0
+      ? context.latestNews.map((item) => ({
+          id: item.id,
+          timeLabel: item.time_label || "",
+          title: item.title || "Noticia da jornada",
+          imageUrl: item.image_url?.trim() || null
+        }))
+      : [
+          {
+            id: "placeholder-news-market",
+            timeLabel: "12:30",
+            title: "Mercado aquece antes da jornada europeia",
+            imageUrl: null
+          },
+          {
+            id: "placeholder-news-lineup",
+            timeLabel: "12:45",
+            title: "Treinador confirma alterações no onze",
+            imageUrl: null
+          },
+          {
+            id: "placeholder-news-tickets",
+            timeLabel: "13:10",
+            title: "Adeptos esgotam bilhetes para o clássico",
+            imageUrl: null
+          }
+        ];
 
   return (
     <main className="public-matchday-shell">
@@ -2409,18 +2487,19 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
           <aside className="public-matchday-news" aria-label="Últimas notícias">
             <h3>Últimas notícias</h3>
             <ul className="public-news-list">
-              <li>
-                <time dateTime="12:30">12:30</time>
-                <span>Mercado aquece antes da jornada europeia</span>
-              </li>
-              <li>
-                <time dateTime="12:45">12:45</time>
-                <span>Treinador confirma alterações no onze</span>
-              </li>
-              <li>
-                <time dateTime="13:10">13:10</time>
-                <span>Adeptos esgotam bilhetes para o clássico</span>
-              </li>
+              {latestNewsItems.map((item) => (
+                <li className={item.imageUrl ? "public-news-item public-news-item-with-image" : "public-news-item"} key={item.id}>
+                  {item.imageUrl ? (
+                    <div className="public-news-thumb">
+                      <img alt="" src={item.imageUrl} />
+                    </div>
+                  ) : null}
+                  <div className="public-news-copy">
+                    {item.timeLabel ? <time dateTime={item.timeLabel}>{item.timeLabel}</time> : null}
+                    <span className="public-news-title">{item.title}</span>
+                  </div>
+                </li>
+              ))}
             </ul>
           </aside>
         </div>

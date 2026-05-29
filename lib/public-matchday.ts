@@ -1,4 +1,4 @@
-import { fetchSupabaseAdminTable, type SupabaseBroadcastChannel, type SupabaseCompetition, type SupabaseMatch, type SupabaseMatchday, type SupabaseMatchdayEditorial, type SupabaseMatchdayHighlight, type SupabaseMatchdayRoundupItem, type SupabaseSeason, type SupabaseSeasonTeam, type SupabaseTeam } from "@/lib/supabase";
+import { fetchSupabaseAdminTable, type SupabaseBroadcastChannel, type SupabaseCompetition, type SupabaseMatch, type SupabaseMatchday, type SupabaseMatchdayEditorial, type SupabaseMatchdayHighlight, type SupabaseMatchdayLatestNews, type SupabaseMatchdayRoundupItem, type SupabaseSeason, type SupabaseSeasonTeam, type SupabaseTeam } from "@/lib/supabase";
 
 export type PublicSeasonParticipant = SupabaseSeasonTeam & {
   team: SupabaseTeam | null;
@@ -23,6 +23,7 @@ export type PublicMatchdayContext = {
   editorial: SupabaseMatchdayEditorial | null;
   highlights: SupabaseMatchdayHighlight[];
   roundupItems: SupabaseMatchdayRoundupItem[];
+  latestNews: SupabaseMatchdayLatestNews[];
 };
 
 export type PublicMatchdayDiagnostic = {
@@ -131,7 +132,19 @@ async function readPublishedMatchdayRoundupItems(matchdayId: string) {
     return fetchSupabaseAdminTable<SupabaseMatchdayRoundupItem>(
       `matchday_roundup_items?select=id,matchday_id,label,title,subtitle,image_url,video_url,duration,type,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
-      )}&status=eq.published&order=sort_order.asc&limit=50`
+      )}&status=eq.published&order=sort_order.asc&limit=3`
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function readPublishedMatchdayLatestNews(matchdayId: string) {
+  try {
+    return fetchSupabaseAdminTable<SupabaseMatchdayLatestNews>(
+      `matchday_latest_news?select=id,matchday_id,time_label,title,image_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+        matchdayId
+      )}&status=eq.published&order=sort_order.asc&limit=20`
     );
   } catch {
     return [];
@@ -325,11 +338,12 @@ export async function getPublicMatchdayDiagnostic({
       ...manualParticipants.map((participant) => participant.team_id),
       ...matches.flatMap((match) => [match.home_team_id, match.away_team_id])
     ]);
-    const [broadcastChannels, editorial, highlights, roundupItems] = await Promise.all([
+    const [broadcastChannels, editorial, highlights, roundupItems, latestNews] = await Promise.all([
       readBroadcastChannels(matches.map((match) => match.broadcast_channel_id ?? "")),
       readMatchdayEditorial(matchday.id),
       readPublishedMatchdayHighlights(matchday.id),
-      readPublishedMatchdayRoundupItems(matchday.id)
+      readPublishedMatchdayRoundupItems(matchday.id),
+      readPublishedMatchdayLatestNews(matchday.id)
     ]);
     const teamsById = byId(teams);
     const broadcastChannelsById = byId(broadcastChannels);
@@ -357,7 +371,8 @@ export async function getPublicMatchdayDiagnostic({
         matchesForMatchday: matchesForSeason.filter((match) => match.matchday_id === matchday.id),
         editorial,
         highlights,
-        roundupItems
+        roundupItems,
+        latestNews
       },
       diagnostic: {
         ...baseDiagnostic,

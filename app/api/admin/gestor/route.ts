@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { fetchSupabaseAdminTable, getSupabaseServiceConfig, writeSupabaseAdmin, writeSupabaseAdminReturning } from "@/lib/supabase";
 
 const ROUNDUP_EDITOR_SORT_ORDERS = Array.from({ length: 10 }, (_, index) => index + 1);
+const LATEST_NEWS_EDITOR_SORT_ORDERS = Array.from({ length: 8 }, (_, index) => index + 1);
 
 function cleanText(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") {
@@ -1009,6 +1010,73 @@ async function saveMatchdayRoundupItems(formData: FormData) {
   await setMatchdayBelowHeadlineMode(matchdayId, "roundup");
 }
 
+async function saveMatchdayLatestNews(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+
+  if (!matchdayId) {
+    throw new Error("missing-fields");
+  }
+
+  if (!(await hasRows(`matchdays?select=id&id=eq.${encodeURIComponent(matchdayId)}`))) {
+    throw new Error("matchday-invalid");
+  }
+
+  for (const sortOrder of LATEST_NEWS_EDITOR_SORT_ORDERS) {
+    const newsId = cleanText(formData.get(`latest_news_${sortOrder}_id`));
+    const timeLabel = cleanText(formData.get(`latest_news_${sortOrder}_time_label`));
+    const title = cleanText(formData.get(`latest_news_${sortOrder}_title`));
+    const imageUrl = cleanText(formData.get(`latest_news_${sortOrder}_image_url`));
+    const statusValue = cleanText(formData.get(`latest_news_${sortOrder}_status`)) ?? "draft";
+    const status = statusValue === "published" ? "published" : "draft";
+    const hasContent = Boolean(timeLabel || title || imageUrl);
+
+    if (status === "published" && !title) {
+      throw new Error("latest-news-title-required");
+    }
+
+    if (!hasContent && status !== "published") {
+      continue;
+    }
+
+    const payload = {
+      matchday_id: matchdayId,
+      time_label: timeLabel,
+      title,
+      image_url: imageUrl,
+      sort_order: sortOrder,
+      status,
+      updated_at: new Date().toISOString()
+    };
+
+    if (newsId) {
+      await writeSupabaseAdmin(
+        `matchday_latest_news?id=eq.${encodeURIComponent(newsId)}&matchday_id=eq.${encodeURIComponent(matchdayId)}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload)
+        }
+      );
+      continue;
+    }
+
+    const existingRows = await fetchSupabaseAdminTable<{ id: string }>(
+      `matchday_latest_news?select=id&matchday_id=eq.${encodeURIComponent(matchdayId)}&sort_order=eq.${sortOrder}&limit=1`
+    );
+
+    if (existingRows[0]) {
+      await writeSupabaseAdmin(`matchday_latest_news?id=eq.${encodeURIComponent(existingRows[0].id)}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      });
+    } else if (hasContent || status === "published") {
+      await writeSupabaseAdmin("matchday_latest_news", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+    }
+  }
+}
+
 function parseCalendarList(rawList: string): { rows: CalendarListRow[]; invalidLines: number } {
   const rows: CalendarListRow[] = [];
   let invalidLines = 0;
@@ -1709,6 +1777,8 @@ export async function POST(request: Request) {
       await saveMatchdayHighlights(formData);
     } else if (actionType === "save_matchday_roundup_items") {
       await saveMatchdayRoundupItems(formData);
+    } else if (actionType === "save_matchday_latest_news") {
+      await saveMatchdayLatestNews(formData);
     } else if (actionType === "match") {
       await createMatch(formData);
     } else if (actionType === "update_match") {

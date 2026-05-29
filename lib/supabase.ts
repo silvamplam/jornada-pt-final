@@ -112,7 +112,6 @@ export type SupabaseMatchdayEditorial = {
   complementary_text?: string | null;
   complementary_image_url?: string | null;
   complementary_link_url?: string | null;
-  complementary_text_color?: string | null;
   complementary_status?: "draft" | "published";
   status: "draft" | "published";
   created_at: string;
@@ -141,6 +140,18 @@ export type SupabaseMatchdayRoundupItem = {
   video_url: string | null;
   duration: string | null;
   type: "video" | "golos" | "resumo" | "noticia";
+  sort_order: number;
+  status: "draft" | "published";
+  created_at: string;
+  updated_at: string;
+};
+
+export type SupabaseMatchdayLatestNews = {
+  id: string;
+  matchday_id: string;
+  time_label: string | null;
+  title: string | null;
+  image_url: string | null;
   sort_order: number;
   status: "draft" | "published";
   created_at: string;
