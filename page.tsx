@@ -1,337 +1,1007 @@
-import {
-  fetchSupabaseAdminTable,
-  getAdminSeasonParticipants,
-  getAdminSeasons,
-  type SupabaseCompetition,
-  type SupabaseCountry,
-  type SupabaseSeason,
-  type SupabaseTeam
-} from "@/lib/supabase";
-import { ContextSelector } from "./ContextSelector";
+﻿import { buildAccumulatedClassification, totalClassificationStats, type ClassificationSplit } from "@/lib/classification";
+import { getPublicMatchdayDiagnostic, seasonLabelToUrlSegment, type PublicMatchdayDiagnostic, type PublicSeasonMatch } from "@/lib/public-matchday";
+import RoundupVideoSwitcher from "./RoundupVideoSwitcher";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Record<string, string | string[] | undefined>;
-type CountryTeam = SupabaseTeam & {
-  country_id: string | null;
-};
-type UnassignedTeam = Pick<CountryTeam, "id" | "name" | "short_name" | "slug" | "country_id">;
-type SeasonMatchday = {
-  id: string;
-  season_id: string;
-  number: number;
-  label: string;
-  starts_on: string | null;
-  ends_on: string | null;
-  status: string;
+type PublicMatchdayPageProps = {
+  params: Promise<{
+    competitionSlug: string;
+    seasonLabel: string;
+    matchdayNumber: string;
+  }>;
 };
 
-const managerStyles = `
+const PUBLIC_STAT_COLUMNS: Array<{ key: keyof ClassificationSplit; label: string }> = [
+  { key: "played", label: "J" },
+  { key: "wins", label: "V" },
+  { key: "draws", label: "E" },
+  { key: "losses", label: "D" },
+  { key: "goalsFor", label: "GM" },
+  { key: "goalsAgainst", label: "GS" },
+  { key: "goalDifference", label: "DG" },
+  { key: "points", label: "PTS" }
+];
+
+const publicMatchdayStyles = `
   body {
     margin: 0;
-    background: #eef2f6;
-  }
-
-  .manager-shell {
-    min-height: 100vh;
-    padding: 28px;
-    background: #eef2f6;
+    overflow-x: hidden;
+    background: #ffffff;
     color: #10151b;
     font-family: Arial, Helvetica, sans-serif;
   }
 
-  .manager-hero {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 28px;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #10151b, #25303c);
-    color: #ffffff;
-    box-shadow: 0 18px 40px rgba(8, 15, 24, 0.16);
+  .public-matchday-shell {
+    min-height: 100vh;
+    padding: 0 24px 28px;
   }
 
-  .manager-hero p,
-  .manager-hero h1,
-  .manager-hero span {
-    margin: 0;
+  .public-top-stack {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    margin: 0 -24px;
+    padding: 0 24px;
+    border-bottom: 1px solid #d8dee6;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.08);
   }
 
-  .manager-hero p {
-    color: #e5252a;
-    font-size: 13px;
-    font-weight: 900;
-    text-transform: uppercase;
+  .public-site-topbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 22px;
+    align-items: center;
+    min-height: 56px;
+    max-width: 1512px;
+    margin: 0 auto;
+    padding: 0;
+    border-bottom: 1px solid #dfe5ec;
   }
 
-  .manager-hero h1 {
-    margin-top: 8px;
-    font-size: 42px;
-    line-height: 1;
-  }
-
-  .manager-hero span {
-    display: block;
-    margin-top: 10px;
-    max-width: 780px;
-    color: #cdd5df;
-    font-size: 16px;
-  }
-
-  .manager-hero a,
-  .manager-button,
-  .manager-link-button {
-    display: inline-block;
-    flex: 0 0 auto;
-    padding: 12px 16px;
-    border: 0;
-    border-radius: 6px;
-    background: #e5252a;
-    color: #ffffff;
-    font: inherit;
-    font-size: 13px;
+  .public-site-brand {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+    color: #2f343b;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 29px;
     font-weight: 900;
     line-height: 1;
     text-decoration: none;
-    text-transform: uppercase;
-    cursor: pointer;
+    letter-spacing: -0.02em;
   }
 
-  .manager-hero a {
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    background: transparent;
+  .public-site-brand span {
+    color: #6b7480;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0;
   }
 
-  .manager-button:disabled,
-  .manager-link-button[aria-disabled="true"] {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
-  .manager-context,
-  .manager-panel,
-  .manager-warning {
-    margin-top: 18px;
-    overflow: hidden;
-    border: 1px solid #dce3eb;
-    border-radius: 8px;
-    background: #ffffff;
-    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
-  }
-
-  .manager-warning {
-    padding: 18px 20px;
-    border-color: #ffd3a3;
-    background: #fff8ee;
-    color: #6a3d00;
-  }
-
-  .manager-warning h2,
-  .manager-warning p,
-  .manager-message p {
-    margin: 0;
-  }
-
-  .manager-warning p {
-    margin-top: 8px;
-    color: #6a3d00;
-  }
-
-  .manager-context header,
-  .manager-panel header {
-    padding: 18px 20px;
-    border-bottom: 1px solid #e6ebf1;
-  }
-
-  .manager-context h2,
-  .manager-panel h2,
-  .manager-context p,
-  .manager-panel p {
-    margin: 0;
-  }
-
-  .manager-context h2,
-  .manager-panel h2 {
-    font-size: 21px;
-    text-transform: uppercase;
-  }
-
-  .manager-context p,
-  .manager-panel p {
-    margin-top: 6px;
-    color: #687380;
-  }
-
-  .manager-form {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr auto;
-    gap: 12px;
-    align-items: end;
-    padding: 18px 20px;
-  }
-
-  .manager-field {
-    display: grid;
-    gap: 6px;
-  }
-
-  .manager-field label {
-    color: #5e6874;
-    font-size: 12px;
+  .public-site-menu {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: center;
+    font-size: 13px;
     font-weight: 900;
     text-transform: uppercase;
   }
 
-  .manager-field select,
-  .manager-field input {
-    width: 100%;
-    min-height: 46px;
-    padding: 0 12px;
-    border: 1px solid #cfd8e3;
-    border-radius: 6px;
-    background: #ffffff;
+  .public-site-menu a[aria-current="page"] {
+    color: #c40012;
+  }
+
+  .public-site-menu a,
+  .public-site-actions a {
     color: #10151b;
-    font: inherit;
-    font-size: 16px;
+    text-decoration: none;
   }
 
-  .manager-field input[type="checkbox"] {
-    width: 18px;
-    min-height: 18px;
-    padding: 0;
+  .public-site-menu a[aria-current="page"] {
+    color: #c40012;
   }
 
-  .manager-message {
-    margin: 18px 0 0;
-    padding: 13px 15px;
-    border-radius: 8px;
-    color: #174a28;
-    background: #e9f8ef;
-    font-weight: 700;
+  .public-site-menu a[aria-current="page"] {
+    color: #c40012;
   }
 
-  .manager-message.warning {
-    color: #6a3d00;
-    background: #fff4df;
-  }
-
-  .manager-path {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .public-site-actions {
+    display: flex;
     gap: 12px;
-    padding: 0 20px 20px;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 900;
   }
 
-  .manager-path article,
-  .manager-stat {
-    padding: 16px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    background: #f8fafc;
-  }
-
-  .manager-path small,
-  .manager-stat small {
-    display: block;
-    color: #687380;
+  .public-site-search {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 170px;
+    padding: 6px 11px;
+    border: 1px solid #d8dee6;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #66717f;
     font-size: 12px;
     font-weight: 900;
-    text-transform: uppercase;
   }
 
-  .manager-path strong {
-    display: block;
-    margin-top: 8px;
-    min-width: 0;
-    overflow: hidden;
-    font-size: 21px;
-    text-overflow: ellipsis;
+  .public-site-search::before {
+    content: "⌕";
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: #ffe04f;
+    color: #10151b;
+    font-size: 13px;
+  }
+
+  .public-season-nav-bar {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+  }
+
+  .public-hidden-heading {
+    display: none;
+  }
+
+  .public-season-label {
+    color: #10151b;
+    font-size: 14px;
+    font-weight: 900;
     white-space: nowrap;
   }
 
-  .manager-create-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    padding: 18px 20px;
-  }
-
-  .manager-create-card {
-    display: grid;
-    gap: 14px;
-    padding: 16px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+  .public-season-select-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px 5px 10px;
+    border: 1px solid #cfd7e1;
     background: #f8fafc;
+    color: #263241;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    white-space: nowrap;
   }
 
-  .manager-create-card header {
-    padding: 0;
+  .public-season-select {
+    min-width: 118px;
     border: 0;
+    background: transparent;
+    color: #10151b;
+    font: inherit;
+    outline: none;
+    cursor: pointer;
   }
 
-  .manager-create-card h3,
-  .manager-create-card p {
+  .public-matchday-hero,
+  .public-matchday-panel {
+    border: 1px solid #dde4ec;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 14px 28px rgba(12, 22, 34, 0.08);
+  }
+
+  .public-matchday-hero {
+    display: none;
+  }
+
+  .public-matchday-hero p,
+  .public-matchday-hero h1 {
     margin: 0;
   }
 
-  .manager-create-card h3 {
-    font-size: 16px;
-    text-transform: uppercase;
-  }
-
-  .manager-create-card p {
-    margin-top: 5px;
-    color: #687380;
-    font-size: 13px;
-    line-height: 1.35;
-  }
-
-  .manager-wide-card {
-    grid-column: 1 / -1;
-  }
-
-  .manager-create-form {
-    display: grid;
-    gap: 10px;
-    align-items: end;
-  }
-
-  .manager-check {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 46px;
-    color: #5e6874;
+  .public-matchday-hero p {
+    color: #e5252a;
     font-size: 13px;
     font-weight: 900;
     text-transform: uppercase;
   }
 
-  .manager-stat-row {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    padding: 18px 20px;
-    border-bottom: 1px solid #e6ebf1;
-  }
-
-  .manager-stat strong {
-    display: block;
-    color: #e5252a;
+  .public-matchday-hero h1 {
+    margin-top: 6px;
     font-size: 34px;
     line-height: 1;
   }
 
-  .manager-summary-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    padding: 18px 20px;
+  .public-matchday-hero span {
+    display: block;
+    margin-top: 8px;
+    color: #526174;
+    font-size: 15px;
   }
 
-  .manager-list {
+  .public-matchday-panel {
+    max-width: 1512px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 12px;
+    overflow: hidden;
+  }
+
+  .public-matchday-scoreboard-panel {
+    margin-top: 1px;
+    border-top: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    background: #ffffff;
+    box-shadow: none;
+    min-height: 84px;
+  }
+
+  .public-matchday-scoreboard-panel + .public-matchday-panel {
+    margin-top: 6px;
+  }
+
+  .public-matchday-panel[aria-label="Capa da jornada"] {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+    max-width: 1512px;
+    width: 100%;
+  }
+
+  .public-matchday-panel header {
+    padding: 18px 20px;
+    border-bottom: 1px solid #e6ebf1;
+    background: #f8fafc;
+  }
+
+  .public-matchday-panel h2,
+  .public-matchday-panel h3,
+  .public-matchday-panel p {
+    margin: 0;
+  }
+
+  .public-matchday-panel h2 {
+    font-size: 24px;
+    text-transform: uppercase;
+  }
+
+  .public-matchday-panel p {
+    margin-top: 6px;
+    color: #607086;
+  }
+
+  .public-matchday-list {
+    display: grid;
+    gap: 18px;
+    padding: 20px;
+  }
+
+  .public-matchday-strip {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scroll-padding: 14px;
+    padding: 8px;
+    background: #ffffff;
+  }
+
+  .public-matchday-strip-shell {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 6px;
+    align-items: center;
+    min-height: 84px;
+    padding: 0 10px;
+    background: #ffffff;
+  }
+
+  .public-matchday-strip-button {
+    align-self: center;
+    width: 30px;
+    height: 52px;
+    border: 1px solid #d8dee6;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #263241;
+    font-size: 22px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .public-matchday-mini-card {
+    position: relative;
+    display: grid;
+    flex: 0 0 236px;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 7px 8px;
+    align-items: center;
+    min-height: 72px;
+    padding: 9px 12px 8px;
+    border: 1px solid #eef2f6;
+    border-radius: 6px;
+    background: #ffffff;
+    box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
+    font-size: 13px;
+  }
+
+  .public-matchday-mini-card + .public-matchday-mini-card::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: -7px;
+    width: 1px;
+    background: #dfe5ec;
+  }
+
+  .public-matchday-mini-card-live {
+    border-color: #f5c2c7;
+    background: #fff8f8;
+  }
+
+  .public-matchday-mini-card-halftime {
+    border-color: #ffd3a3;
+    background: #fffaf2;
+  }
+
+  .public-matchday-mini-card-finished {
+    border-color: #dce8e1;
+  }
+
+  .public-matchday-mini-card strong {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    color: #10151b;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 18px;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .public-matchday-mini-team {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .public-matchday-mini-team:first-child {
+    justify-content: flex-end;
+  }
+
+  .public-matchday-mini-team:last-child {
+    justify-content: flex-start;
+  }
+
+  .public-matchday-mini-team span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .public-matchday-mini-card .public-team-badge {
+    width: 30px;
+    height: 30px;
+    background: #ffffff;
+  }
+
+  .public-matchday-mini-card .public-matchday-mini-status {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 5px 8px;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #607086;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .public-matchday-mini-time {
+    color: #263241;
+  }
+
+  .public-matchday-mini-tv {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #263241;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: none;
+  }
+
+  .public-matchday-mini-tv img {
+    width: 34px;
+    height: 20px;
+    object-fit: contain;
+  }
+
+  .public-matchday-cover {
+    display: grid;
+    grid-template-columns:
+      minmax(220px, 240px)
+      minmax(0, 1fr)
+      minmax(240px, 280px);
+    grid-template-areas: "feature main news";
+    gap: 24px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0 auto;
+    padding: 20px 0;
+    align-items: stretch;
+    min-height: 420px;
+  }
+
+  .public-matchday-editorial,
+  .public-matchday-feature,
+  .public-matchday-main-column,
+  .public-matchday-roundup,
+  .public-matchday-cover-side,
+  .public-matchday-news {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 16px;
+    border: 1px solid #dfe5ec;
+    background: #ffffff;
+  }
+
+  .public-matchday-main-column {
+    grid-area: main;
+    gap: 12px;
+    padding: 0;
+    border: 0;
+    grid-template-rows: auto 1fr;
+  }
+
+  .public-matchday-editorial {
+    align-content: start;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .public-matchday-feature {
+    grid-area: feature;
+  }
+
+  .public-matchday-cover-side {
+    min-height: 100%;
+  }
+
+  .public-matchday-news {
+    grid-area: news;
+    min-height: 100%;
+  }
+
+  .public-matchday-editorial h2,
+  .public-matchday-feature h3,
+  .public-matchday-roundup h3,
+  .public-matchday-cover-side h3,
+  .public-matchday-news h3 {
+    margin: 0;
+  }
+
+  .public-matchday-editorial h2 {
+    color: #c40012;
+    font-family: Georgia, "Times New Roman", serif;
+    max-width: 100%;
+    font-size: 28px;
+    line-height: 1.04;
+    letter-spacing: 0;
+  }
+
+  .public-cover-headline {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.95fr);
+    gap: 18px;
+    align-items: start;
+    min-height: 0;
+    overflow: visible;
+    padding: 0 0 6px;
+    border-bottom: 1px solid #dfe5ec;
+    background: #ffffff;
+    color: #10151b;
+  }
+
+  .public-cover-headline::before {
+    content: none;
+  }
+
+  .public-cover-headline > div {
+    position: relative;
+    z-index: 1;
+  }
+
+  .public-editorial-main-image {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    max-height: 285px;
+    overflow: hidden;
+    border-radius: 6px;
+    background: #eef2f6;
+  }
+
+  .public-editorial-main-image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .public-cover-headline p {
+    max-width: 100%;
+    color: #526174;
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  .public-matchday-main-lower {
+    display: grid;
+    grid-template-columns: minmax(0, 1.65fr) minmax(280px, 0.95fr);
+    gap: 24px;
+    align-items: stretch;
+    min-width: 0;
+  }
+
+  .public-editorial-flex-block {
+    position: relative;
+  }
+
+  .public-editorial-block-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 8px;
+    border-top: 4px solid #10151b;
+  }
+
+  .public-matchday-roundup .public-editorial-block-head {
+    justify-content: flex-end;
+  }
+
+  .public-editorial-block-head h3,
+  .public-matchday-roundup h3 {
+    font-size: 14px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .public-editorial-block-head a,
+  .public-editorial-more-link {
+    color: #003f8f;
+    font-size: 11px;
+    font-weight: 900;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .public-matchday-feature {
+    color: #263241;
+  }
+
+  .public-matchday-feature h3 {
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dfe5ec;
+    font-size: 14px;
+    text-transform: uppercase;
+  }
+
+  .public-matchday-feature p {
+    font-size: 13px;
+  }
+
+  .public-cover-support {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+    height: auto;
+    padding: 0;
+    border: 0;
+    background: #ffffff;
+  }
+
+  .public-cover-support h4 {
+    margin: 0;
+    font-size: 13px;
+    text-transform: uppercase;
+  }
+
+  .public-cover-support p {
+    margin: 0;
+    color: #607086;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .public-cover-channel-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .public-cover-channel-list li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    align-items: start;
+    min-width: 0;
+    padding: 9px 0;
+    border-top: 1px solid #eef2f6;
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .public-cover-tv-game {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .public-cover-tv-game strong {
+    color: #10151b;
+    line-height: 1.18;
+    white-space: normal;
+  }
+
+  .public-cover-tv-game time {
+    color: #607086;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .public-cover-tv-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+  }
+
+  .public-cover-tv-channel,
+  .public-cover-tv-empty {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    min-width: 0;
+    color: #263241;
+    font-size: 11px;
+    font-weight: 900;
+    text-align: right;
+  }
+
+  .public-cover-tv-empty {
+    color: #8a95a3;
+    font-weight: 800;
+  }
+
+  .public-cover-tv-channel-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 46px;
+    min-height: 24px;
+    padding: 3px 6px;
+    border: 1px solid #eef2f6;
+    border-radius: 4px;
+    background: #eef2f6;
+    color: #10151b;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .public-cover-channel-list img {
+    width: 46px;
+    height: 24px;
+    object-fit: contain;
+  }
+
+  .public-cover-story-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    padding-top: 4px;
+  }
+
+  .public-matchday-roundup .public-cover-story-strip {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding-top: 0;
+  }
+
+  .public-cover-story {
+    display: grid;
+    gap: 6px;
+    align-content: start;
+  }
+
+  .public-matchday-roundup .public-cover-story {
+    grid-template-columns: 56px minmax(0, 1fr) auto auto;
+    gap: 4px 10px;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid #e6ebf1;
+  }
+
+  .public-matchday-roundup .public-highlight-image {
+    position: relative;
+    grid-column: 1 / 2;
+    grid-row: 1 / 4;
+    width: 56px;
+    height: 56px;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: #eef2f6;
+  }
+
+  .public-matchday-roundup .public-highlight-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .public-below-headline-highlights .public-cover-story-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    padding-top: 12px;
+  }
+
+  .public-below-headline-highlights .public-cover-story {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    align-items: start;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .public-below-headline-highlights .public-highlight-image {
+    grid-column: auto;
+    grid-row: auto;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    border-radius: 4px;
+  }
+
+  .public-media-play {
+    position: absolute;
+    inset: 50% auto auto 50%;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #10151b;
+    font-size: 11px;
+    font-weight: 900;
+    transform: translate(-50%, -50%);
+  }
+
+  .public-matchday-roundup .public-cover-story span,
+  .public-matchday-roundup .public-cover-story strong,
+  .public-matchday-roundup .public-cover-story small {
+    min-width: 0;
+  }
+
+  .public-matchday-roundup .public-cover-story span {
+    grid-column: 2 / 5;
+    grid-row: 1 / 2;
+  }
+
+  .public-matchday-roundup .public-cover-story strong {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+    font-size: 14px;
+  }
+
+  .public-matchday-roundup .public-cover-story small {
+    grid-column: 2 / 5;
+    grid-row: 3 / 4;
+    color: #607086;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .public-roundup-duration,
+  .public-roundup-arrow {
+    color: #263241;
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .public-roundup-duration {
+    grid-column: 3 / 4;
+    grid-row: 2 / 3;
+    justify-self: end;
+  }
+
+  .public-roundup-arrow {
+    grid-column: 4 / 5;
+    grid-row: 2 / 3;
+    text-decoration: none;
+  }
+
+  .public-roundup-switch-item {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .public-roundup-switch-item[aria-pressed="true"] {
+    background: #f8fafc;
+    outline: 1px solid #dce3eb;
+    outline-offset: -1px;
+  }
+
+  .public-below-headline-highlights .public-cover-story span,
+  .public-below-headline-highlights .public-cover-story strong,
+  .public-below-headline-highlights .public-cover-story small {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .public-below-headline-highlights .public-cover-story strong {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 16px;
+    line-height: 1.15;
+  }
+
+  .public-editorial-more-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .public-complement-media {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 6px;
+    background:
+      linear-gradient(rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.62)),
+      url("https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=700&q=80") center / cover;
+  }
+
+  .public-complement-media img,
+  .public-complement-media iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  .public-complement-media img {
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .public-complement-body {
+    display: grid;
+    gap: 6px;
+  }
+
+  .public-complement-label {
+    color: #c40012;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .public-complement-body strong {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.15;
+  }
+
+  .public-complement-title-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .public-complement-title-link:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+
+  .public-complement-body p {
+    margin: 0;
+    color: #607086;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .public-highlight-image {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #eef2f6;
+  }
+
+  .public-highlight-image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .public-cover-story span {
+    color: #c40012;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .public-cover-story strong {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 16px;
+    line-height: 1.15;
+  }
+
+  .public-matchday-editorial p,
+  .public-matchday-feature p,
+  .public-matchday-cover-side p {
+    margin: 0;
+    color: #607086;
+  }
+
+  .public-matchday-cover-side h3,
+  .public-matchday-news h3 {
+    padding-top: 8px;
+    border-top: 4px solid #10151b;
+    font-size: 14px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .public-matchday-news {
+    padding-right: 0;
+    border-right: 0;
+  }
+
+  .public-news-list {
     display: grid;
     gap: 0;
     margin: 0;
@@ -339,1002 +1009,1318 @@ const managerStyles = `
     list-style: none;
   }
 
-  .manager-list li {
+  .public-news-list li {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px;
-    align-items: center;
-    min-height: 48px;
+    gap: 4px;
     padding: 10px 0;
     border-bottom: 1px solid #e6ebf1;
   }
 
-  .manager-list li:last-child {
-    border-bottom: 0;
-  }
-
-  .manager-list b {
-    display: block;
-    min-width: 0;
-    overflow: hidden;
-    font-size: 14px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .manager-list small,
-  .manager-list em {
-    color: #687380;
-    font-style: normal;
+  .public-news-list time {
+    color: #c40012;
     font-size: 12px;
+    font-weight: 900;
   }
 
-  .manager-empty {
-    padding: 10px 0;
-    color: #687380;
+  .public-news-list span {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.15;
   }
 
-  .manager-actions {
+  .public-matchday-summary {
+    display: grid;
+    gap: 0;
+  }
+
+  .public-matchday-summary span {
+    padding: 8px 0;
+    border-bottom: 1px solid #e6ebf1;
+    border-radius: 0;
+    background: transparent;
+    color: #34404d;
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1.32;
+  }
+
+  .public-matchday-feature-game {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 9px;
+    align-items: center;
+    min-height: 210px;
+    padding: 14px;
+    border: 1px solid #dde4ec;
+    border-radius: 0;
+    background: #f8fafc;
+  }
+
+  .public-matchday-feature-team {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    text-align: center;
+    font-weight: 900;
+  }
+
+  .public-matchday-feature-score {
+    min-width: 74px;
+    text-align: center;
+  }
+
+  .public-matchday-feature-score strong {
+    display: block;
+    font-size: 24px;
+  }
+
+  .public-matchday-future {
+    padding: 20px;
+    color: #607086;
+  }
+
+  .public-matchday-group {
+    display: grid;
+    gap: 10px;
+  }
+
+  .public-matchday-group h3 {
+    color: #263241;
+    font-size: 14px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .public-matchday-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    width: min(820px, 100%);
+    margin: 0 auto;
+    padding: 14px 16px;
+    border: 1px solid #e3e9f0;
+    border-radius: 8px;
+    background: #ffffff;
+  }
+
+  .public-matchday-card-finished {
+    border-color: #cfe5d7;
+    background: #fbfffc;
+  }
+
+  .public-matchday-card-live {
+    border-color: #f5c2c7;
+    background: #fff8f8;
+  }
+
+  .public-matchday-team:first-child {
+    text-align: right;
+  }
+
+  .public-matchday-team:last-of-type {
+    text-align: left;
+  }
+
+  .public-matchday-team {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .public-matchday-team:first-child {
+    justify-content: flex-end;
+  }
+
+  .public-matchday-team:last-of-type {
+    justify-content: flex-start;
+  }
+
+  .public-matchday-team-copy {
+    min-width: 0;
+  }
+
+  .public-matchday-team strong,
+  .public-matchday-score strong {
+    display: block;
+    font-size: 18px;
+  }
+
+  .public-matchday-team small,
+  .public-matchday-score small {
+    display: block;
+    margin-top: 4px;
+    color: #66717f;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .public-matchday-team-winner strong {
+    color: #137a3a;
+  }
+
+  .public-team-badge {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    overflow: hidden;
+    border: 1px solid #d8dee6;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #263241;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .public-team-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .public-matchday-score {
+    min-width: 86px;
+    text-align: center;
+  }
+
+  .public-matchday-score strong {
+    font-size: 24px;
+    letter-spacing: 0;
+  }
+
+  .public-matchday-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #eef2f6;
+  }
+
+  .public-matchday-status-finished {
+    background: #eaf7ef;
+    color: #137a3a;
+  }
+
+  .public-matchday-status-live {
+    background: #fee2e2;
+    color: #b4232b;
+  }
+
+  .public-matchday-status-halftime {
+    background: #fff0d8;
+    color: #8a3a00;
+  }
+
+  .public-matchday-status-scheduled {
+    background: #eef2f6;
+    color: #506075;
+  }
+
+  .public-matchday-meta {
+    grid-column: 1 / -1;
+    justify-content: center;
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    padding: 0 20px 20px;
+    color: #607086;
+    font-size: 13px;
   }
 
-  @media (max-width: 1180px) {
-    .manager-form,
-    .manager-path,
-    .manager-create-grid,
-    .manager-stat-row,
-    .manager-summary-grid {
-      grid-template-columns: 1fr 1fr;
-    }
+  .public-matchday-tv {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 7px;
+    border: 1px solid #dce3eb;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #263241;
+    font-weight: 800;
+  }
+
+  .public-matchday-tv img {
+    width: 28px;
+    height: 18px;
+    object-fit: contain;
+  }
+
+  .public-matchday-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    min-width: 0;
+    padding: 0;
+    overflow-x: auto;
+    border-top: 2px solid #10151b;
+    border-bottom: 0;
+    background: #ffffff;
+  }
+
+  .public-matchday-nav a,
+  .public-matchday-nav span {
+    display: inline-block;
+    flex: 0 0 auto;
+    padding: 8px 13px;
+    border: 0;
+    border-right: 1px solid #dfe5ec;
+    border-radius: 0;
+    background: #ffffff;
+    color: #263241;
+    font-size: 12px;
+    font-weight: 900;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .public-matchday-nav a[aria-current="page"] {
+    border-color: #c40012;
+    background: #c40012;
+    color: #ffffff;
+  }
+
+  .public-matchday-date-row {
+    display: flex;
+    flex: 0 0 auto;
+    justify-content: flex-end;
+    min-width: 0;
+    margin-left: auto;
+  }
+
+  .public-matchday-date-context {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    color: #66717f;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .public-table-wrap {
+    overflow-x: auto;
+    padding: 20px;
+  }
+
+  .public-table {
+    width: 100%;
+    min-width: 1080px;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .public-table th,
+  .public-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #e6ebf1;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .public-table th {
+    color: #506075;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .public-table-club {
+    min-width: 300px;
+    text-align: left;
+  }
+
+  .public-club-cell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .public-club-name {
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 900;
+    text-overflow: ellipsis;
+  }
+
+  .public-club-form {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-left: auto;
+    color: #66717f;
+    font-size: 11px;
+    font-weight: 800;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .public-table-divider {
+    border-left: 2px solid #d8dee6;
+  }
+
+  .public-points {
+    font-weight: 900;
+  }
+
+  .public-gd-positive {
+    color: #137a3a;
+    font-weight: 900;
+  }
+
+  .public-gd-negative {
+    color: #b4232b;
+    font-weight: 900;
+  }
+
+  .public-gd-neutral {
+    color: #607086;
+    font-weight: 900;
+  }
+
+  .public-form-list {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  .public-form-list span {
+    padding: 3px 5px;
+    border-radius: 999px;
+    background: #eef2f6;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .public-form-win {
+    color: #137a3a;
+  }
+
+  .public-form-draw {
+    color: #607086;
+  }
+
+  .public-form-loss {
+    color: #b4232b;
+  }
+
+  .public-diagnostic {
+    margin-top: 18px;
+    padding: 18px 20px;
+    border: 1px solid #ffd3a3;
+    border-radius: 8px;
+    background: #fff8ee;
+    color: #4a2d00;
+  }
+
+  .public-diagnostic h2,
+  .public-diagnostic p {
+    margin: 0;
+  }
+
+  .public-diagnostic p {
+    margin-top: 8px;
+  }
+
+  .public-diagnostic pre {
+    overflow-x: auto;
+    margin: 14px 0 0;
+    padding: 14px;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #10151b;
+    font-size: 13px;
+    white-space: pre-wrap;
   }
 
   @media (max-width: 760px) {
-    .manager-shell {
-      padding: 16px;
+    .public-matchday-shell {
+      padding: 0 16px 16px;
     }
 
-    .manager-hero,
-    .manager-form,
-    .manager-path,
-    .manager-create-grid,
-    .manager-stat-row,
-    .manager-summary-grid {
-      display: grid;
+    .public-top-stack {
+      margin: 0 -16px;
+      padding: 0 16px;
+    }
+
+    .public-matchday-panel[aria-label="Navegacao de jornadas"] {
+      margin: 0 -16px;
+    }
+
+    .public-season-nav-inner {
+      padding: 8px 16px 9px;
+    }
+
+    .public-matchday-hero h1 {
+      font-size: 32px;
+    }
+
+    .public-site-topbar {
       grid-template-columns: 1fr;
     }
 
-    .manager-hero a,
-    .manager-button {
-      width: 100%;
-      text-align: center;
+    .public-site-menu,
+    .public-site-actions {
+      display: none;
+    }
+
+  .public-season-nav-bar {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .public-matchday-card {
+      grid-template-columns: 1fr;
+      text-align: left;
+    }
+
+    .public-matchday-cover {
+      grid-template-columns: 1fr;
+    }
+
+    .public-cover-headline,
+    .public-matchday-main-lower {
+      grid-template-columns: 1fr;
+    }
+
+    .public-cover-story-strip {
+      grid-template-columns: 1fr;
+    }
+
+    .public-cover-channel-list li {
+      grid-template-columns: 1fr;
+    }
+
+    .public-cover-tv-channel,
+    .public-cover-tv-empty {
+      justify-content: flex-start;
+      text-align: left;
+    }
+
+    .public-matchday-editorial,
+    .public-matchday-feature,
+    .public-matchday-cover-side,
+    .public-matchday-news {
+      padding-right: 0;
+      border-right: 0;
+    }
+
+    .public-matchday-team:first-child,
+    .public-matchday-team:last-of-type,
+    .public-matchday-score {
+      text-align: left;
+    }
+  }
+
+  .public-matchday-panel[aria-label="Navegacao de jornadas"] {
+    max-width: none;
+    margin: 0 -24px;
+    border: 0;
+    border-radius: 0;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 10px 18px rgba(12, 22, 34, 0.06);
+  }
+
+  .public-matchday-panel[aria-label="Navegacao de jornadas"] header {
+    display: none;
+  }
+
+  .public-season-nav-inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    align-items: center;
+    min-height: 52px;
+    max-width: 1512px;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  @media (max-width: 760px) {
+    .public-matchday-panel[aria-label="Navegacao de jornadas"] {
+      margin: 0 -16px;
+    }
+
+    .public-season-nav-inner {
+      gap: 8px;
+      padding: 8px 16px 9px;
+    }
+
+    .public-matchday-date-context {
+      text-align: left;
+    }
+
+    .public-matchday-date-row {
+      margin-left: 0;
+      justify-content: flex-start;
     }
   }
 `;
 
-function oneParam(params: SearchParams, key: string) {
-  const value = params[key];
-  return Array.isArray(value) ? value[0] : value;
+function signedNumber(value: number) {
+  return value > 0 ? `+${value}` : `${value}`;
 }
 
-function competitionCountryId(competition: SupabaseCompetition) {
-  return competition.country_id ?? "";
+function goalDifferenceClass(value: number) {
+  return value > 0 ? "public-gd-positive" : value < 0 ? "public-gd-negative" : "public-gd-neutral";
 }
 
-function buildContextQuery(country: SupabaseCountry | null, competition: SupabaseCompetition | null, season: SupabaseSeason | null) {
-  const params = new URLSearchParams();
-
-  if (country) params.set("pais", country.id);
-  if (competition) params.set("competicao", competition.id);
-  if (season) params.set("epoca", season.id);
-
-  return params.toString();
+function formatKickoff(value: string) {
+  return new Intl.DateTimeFormat("pt-PT", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Europe/Lisbon"
+  }).format(new Date(value));
 }
 
-function returnTo(country: SupabaseCountry | null, competition: SupabaseCompetition | null, season: SupabaseSeason | null) {
-  const query = buildContextQuery(country, competition, season);
-  return `/admin/gestor${query ? `?${query}` : ""}`;
+function formatKickoffTime(value: string) {
+  return new Intl.DateTimeFormat("pt-PT", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Lisbon"
+  }).format(new Date(value));
 }
 
-async function readTeamsForCountry(countryId?: string): Promise<CountryTeam[]> {
-  if (!countryId) {
-    return [];
-  }
-
-  try {
-    return await fetchSupabaseAdminTable<CountryTeam>(
-      `teams?select=id,name,short_name,slug,country_id,logo_url,primary_color&country_id=eq.${encodeURIComponent(
-        countryId
-      )}&order=name.asc`
-    );
-  } catch {
-    return [];
-  }
+function formatBroadcastGuideKickoff(value: string) {
+  return new Intl.DateTimeFormat("pt-PT", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Lisbon"
+  }).format(new Date(value));
 }
 
-async function readUnassignedTeams(): Promise<UnassignedTeam[]> {
-  try {
-    return await fetchSupabaseAdminTable<UnassignedTeam>(
-      "teams?select=id,name,short_name,slug,country_id&country_id=is.null&order=name.asc&limit=200"
-    );
-  } catch {
-    return [];
-  }
-}
+function formatMatchdayDateContext(matches: PublicSeasonMatch[]) {
+  const kickoffDates = matches
+    .map((match) => new Date(match.kickoff_at))
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((firstDate, secondDate) => firstDate.getTime() - secondDate.getTime());
 
-async function readMatchdaysForSeason(seasonId?: string): Promise<SeasonMatchday[]> {
-  if (!seasonId) {
-    return [];
-  }
+  if (kickoffDates.length === 0) return "Data por definir";
 
-  try {
-    return await fetchSupabaseAdminTable<SeasonMatchday>(
-      `matchdays?select=id,season_id,number,label,starts_on,ends_on,status&season_id=eq.${encodeURIComponent(
-        seasonId
-      )}&manual_override=is.true&order=number.asc`
-    );
-  } catch {
-    return [];
-  }
-}
-
-function resolveSelectedContext({
-  countries,
-  competitions,
-  seasons,
-  requestedCountryId,
-  requestedCompetitionId,
-  requestedSeasonId
-}: {
-  countries: SupabaseCountry[];
-  competitions: SupabaseCompetition[];
-  seasons: SupabaseSeason[];
-  requestedCountryId?: string;
-  requestedCompetitionId?: string;
-  requestedSeasonId?: string;
-}) {
-  const linkedCompetitions = competitions.filter((competition) => Boolean(competitionCountryId(competition)));
-  const requestedSeason = seasons.find((season) => season.id === requestedSeasonId) ?? null;
-  const requestedCompetition =
-    linkedCompetitions.find((competition) => competition.id === requestedCompetitionId) ??
-    linkedCompetitions.find((competition) => competition.id === requestedSeason?.competition_id) ??
-    null;
-  const firstCountryWithCompetition =
-    countries.find((country) => linkedCompetitions.some((competition) => competitionCountryId(competition) === country.id)) ??
-    countries[0] ??
-    null;
-  const selectedCountry =
-    countries.find((country) => country.id === requestedCountryId) ??
-    (requestedCompetition
-      ? countries.find((country) => country.id === competitionCountryId(requestedCompetition)) ?? null
-      : null) ??
-    firstCountryWithCompetition;
-  const competitionsForCountry = selectedCountry
-    ? linkedCompetitions.filter((competition) => competitionCountryId(competition) === selectedCountry.id)
-    : [];
-  const selectedCompetition =
-    competitionsForCountry.find((competition) => competition.id === requestedCompetition?.id) ??
-    competitionsForCountry[0] ??
-    null;
-  const seasonsForCompetition = selectedCompetition
-    ? seasons.filter((season) => season.competition_id === selectedCompetition.id)
-    : [];
-  const selectedSeason =
-    seasonsForCompetition.find((season) => season.id === requestedSeasonId) ??
-    seasonsForCompetition.find((season) => season.is_current) ??
-    seasonsForCompetition[0] ??
-    null;
-
-  return {
-    linkedCompetitions,
-    selectedCountry,
-    competitionsForCountry,
-    selectedCompetition,
-    seasonsForCompetition,
-    selectedSeason
-  };
-}
-
-export default async function AdminSeasonManagerPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
-  const params = searchParams ? await searchParams : {};
-  const seasonData = await getAdminSeasons();
-  const configured = seasonData.configured;
-  const error = seasonData.error;
-  const countries = seasonData.countries.filter((country) => country.is_active !== false);
-  const competitions = seasonData.competitions.filter((competition) => competition.is_active !== false);
-  const seasons = seasonData.seasons;
-  const requestedCountryId = oneParam(params, "pais");
-  const requestedCompetitionId = oneParam(params, "competicao");
-  const requestedSeasonId = oneParam(params, "epoca");
-  const {
-    linkedCompetitions,
-    selectedCountry,
-    competitionsForCountry,
-    selectedCompetition,
-    seasonsForCompetition,
-    selectedSeason
-  } = resolveSelectedContext({
-    countries,
-    competitions,
-    seasons,
-    requestedCountryId,
-    requestedCompetitionId,
-    requestedSeasonId
+  const firstDate = kickoffDates[0];
+  const lastDate = kickoffDates[kickoffDates.length - 1];
+  const dateFormatter = new Intl.DateTimeFormat("pt-PT", {
+    day: "numeric",
+    month: "long",
+    timeZone: "Europe/Lisbon"
   });
-  const participantData = configured ? await getAdminSeasonParticipants() : null;
-  const participantsForSeason = selectedSeason
-    ? (participantData?.participants ?? []).filter(
-        (participant) =>
-          participant.season_id === selectedSeason.id &&
-          participant.data_source === "manual" &&
-          participant.sync_status === "manual" &&
-          participant.manual_override === true
-      )
-    : [];
-  const teamsForCountry = await readTeamsForCountry(selectedCountry?.id);
-  const unassignedTeams = await readUnassignedTeams();
-  const matchdaysForSeason = await readMatchdaysForSeason(selectedSeason?.id);
-  const participantTeamIds = new Set(participantsForSeason.map((participant) => participant.team_id));
-  const teamsAvailableForSeason = teamsForCountry.filter((team) => !participantTeamIds.has(team.id));
-  const unavailableTeamMessage =
-    teamsForCountry.length === 0
-      ? "Ainda nao ha clubes associados a este pais"
-      : "Todos os clubes disponiveis deste pais ja foram adicionados a esta epoca";
-  const selectorCountries = countries.map((country) => ({
-    id: country.id,
-    name: country.name
-  }));
-  const selectorCompetitions = linkedCompetitions.map((competition) => ({
-    id: competition.id,
-    name: competition.name,
-    countryId: competitionCountryId(competition)
-  }));
-  const selectorSeasons = seasons.map((season) => ({
-    id: season.id,
-    label: season.label,
-    competitionId: season.competition_id,
-    isCurrent: season.is_current
-  }));
-  const currentReturnTo = returnTo(selectedCountry, selectedCompetition, selectedSeason);
-  const unlinkedCompetitions = competitions.filter((competition) => !competitionCountryId(competition));
-  const created = oneParam(params, "created");
-  const actionError = oneParam(params, "error");
-  const canCreateCompetition = Boolean(selectedCountry);
-  const canCreateSeason = Boolean(selectedCompetition);
-  const canCreateTeam = Boolean(selectedCountry && participantData?.writeConfigured);
-  const canAttachTeam = Boolean(selectedCountry && participantData?.writeConfigured && unassignedTeams.length > 0);
-  const canAddParticipant = Boolean(
-    selectedCountry && selectedSeason && participantData?.writeConfigured && !participantData.error && teamsAvailableForSeason.length > 0
+  const dayFormatter = new Intl.DateTimeFormat("pt-PT", {
+    day: "numeric",
+    timeZone: "Europe/Lisbon"
+  });
+  const monthFormatter = new Intl.DateTimeFormat("pt-PT", {
+    month: "long",
+    timeZone: "Europe/Lisbon"
+  });
+  const monthKeyFormatter = new Intl.DateTimeFormat("en-CA", {
+    month: "2-digit",
+    timeZone: "Europe/Lisbon"
+  });
+
+  const firstLabel = dateFormatter.format(firstDate);
+  const lastLabel = dateFormatter.format(lastDate);
+  if (firstLabel === lastLabel) return firstLabel;
+
+  const sameMonth = monthKeyFormatter.format(firstDate) === monthKeyFormatter.format(lastDate);
+  if (sameMonth) {
+    return `${dayFormatter.format(firstDate)}–${dayFormatter.format(lastDate)} ${monthFormatter.format(lastDate)}`;
+  }
+
+  return `${firstLabel} – ${lastLabel}`;
+}
+
+function statusLabel(status: string) {
+  const normalized = status.trim().toLowerCase();
+  if (normalized === "finished") return "Finalizado";
+  if (normalized === "scheduled") return "Agendado";
+  if (normalized === "live") return "Em direto";
+  if (normalized === "halftime") return "Intervalo";
+  if (normalized === "postponed") return "Adiado";
+  if (normalized === "cancelled") return "Cancelado";
+  return status;
+}
+
+function statusKind(status: string) {
+  const normalized = status.trim().toLowerCase();
+  if (normalized === "finished") return "finished";
+  if (normalized === "live") return "live";
+  if (normalized === "halftime") return "halftime";
+  if (normalized === "scheduled") return "scheduled";
+  return "scheduled";
+}
+
+function matchResult(match: PublicSeasonMatch) {
+  const hasScore = match.home_score !== null && match.away_score !== null;
+  const kind = statusKind(match.status);
+  if ((kind !== "finished" && kind !== "live" && kind !== "halftime") || !hasScore) {
+    return "vs";
+  }
+
+  return `${match.home_score} - ${match.away_score}`;
+}
+
+function teamInitials(name?: string | null, shortName?: string | null) {
+  const source = shortName || name || "";
+  const initials = source
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 3)
+    .toUpperCase();
+
+  return initials || "FC";
+}
+
+function shortTeamLabel(name?: string | null, shortName?: string | null) {
+  return shortName || name || "Equipa";
+}
+
+function isWinner(match: PublicSeasonMatch, side: "home" | "away") {
+  if (match.status !== "finished" || match.home_score === null || match.away_score === null || match.home_score === match.away_score) {
+    return false;
+  }
+
+  return side === "home" ? match.home_score > match.away_score : match.away_score > match.home_score;
+}
+
+function renderStatsCells(stats: ClassificationSplit, options: { divider?: boolean; emphasizePoints?: boolean; group?: string } = {}) {
+  return PUBLIC_STAT_COLUMNS.map((column, index) => {
+    const value = stats[column.key];
+    const className = [
+      options.divider && index === 0 ? "public-table-divider" : "",
+      column.key === "goalDifference" ? goalDifferenceClass(value) : ""
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return (
+      <td className={className || undefined} key={`${options.group ?? "stats"}-${column.key}`}>
+        {column.key === "points" ? (
+          <b className={options.emphasizePoints ? "public-points" : undefined}>{value}</b>
+        ) : column.key === "goalDifference" ? (
+          signedNumber(value)
+        ) : (
+          value
+        )}
+      </td>
+    );
+  });
+}
+
+function renderStatHeaders(group: string) {
+  return PUBLIC_STAT_COLUMNS.map((column, index) => (
+    <th className={index === 0 ? "public-table-divider" : undefined} key={`${group}-${column.key}`}>
+      {column.label}
+    </th>
+  ));
+}
+
+function TeamBadge({ logoUrl, name, shortName }: { logoUrl?: string | null; name?: string | null; shortName?: string | null }) {
+  return (
+    <span className="public-team-badge" aria-hidden="true">
+      {logoUrl ? <img alt="" src={logoUrl} /> : teamInitials(name, shortName)}
+    </span>
   );
-  const nextMatchdayNumber = matchdaysForSeason.reduce((max, matchday) => Math.max(max, matchday.number), 0) + 1;
-  const canCreateMatchday = Boolean(selectedSeason && participantData?.writeConfigured && participantsForSeason.length > 0);
-  const createdLabels: Record<string, string> = {
-    country: "Pais criado. Agora podes escolher esse pais no caminho de trabalho.",
-    competition: "Competicao criada e ligada ao pais escolhido.",
-    season: "Epoca criada dentro da competicao escolhida.",
-    team: "Clube criado e associado ao pais selecionado.",
-    attach_team_to_country: "Clube existente associado ao pais selecionado.",
-    participant: "Participante associado a epoca selecionada.",
-    remove_participant: "Participante removido da epoca selecionada.",
-    remove_team: "Clube removido do pais selecionado.",
-    matchday: "Jornada criada dentro da epoca selecionada.",
-    remove_matchday: "Jornada removida da epoca selecionada.",
-    remove_country: "Pais removido.",
-    remove_competition: "Competicao removida.",
-    remove_season: "Epoca removida."
-  };
-  const errorLabels: Record<string, string> = {
-    "missing-service": "Liga primeiro a Supabase na Vercel.",
-    "missing-fields": "Preenche os campos obrigatorios antes de guardar.",
-    "unknown-action": "A acao enviada pelo formulario nao foi reconhecida.",
-    "invalid-team-country": "O clube escolhido nao esta associado ao pais selecionado.",
-    "team-slug-exists": "Este clube ja existe. Associe-o ao pais em vez de criar outro.",
-    "team-not-found": "Nao foi possivel encontrar o clube escolhido.",
-    "team-already-linked": "Este clube ja esta associado a outro pais.",
-    "country-has-competitions": "Nao e possivel remover este pais porque ainda existem competicoes associadas.",
-    "country-has-teams": "Nao e possivel remover este pais porque ainda existem clubes associados.",
-    "competition-has-seasons": "Nao e possivel remover esta competicao porque ainda existem epocas associadas.",
-    "season-has-participants": "Nao e possivel remover esta epoca porque ainda existem participantes associados.",
-    "season-has-matchdays": "Nao e possivel remover esta epoca porque ainda existem jornadas associadas.",
-    "season-has-matches": "Nao e possivel remover esta epoca porque ainda existem jogos associados.",
-    "team-has-participants": "Este clube ainda esta associado a uma epoca. Remove primeiro o participante da epoca.",
-    "matchday-needs-participants": "Antes de criar jornadas, define os participantes desta epoca.",
-    "matchday-duplicate": "Ja existe uma jornada com esse numero nesta epoca.",
-    "matchday-has-matches": "Nao e possivel remover esta jornada porque ainda existem jogos associados.",
-    save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
-  };
+}
+
+function BroadcastBadge({ match }: { match: PublicSeasonMatch }) {
+  if (!match.broadcastChannel) {
+    return null;
+  }
 
   return (
-    <main className="manager-shell">
-      <style>{managerStyles}</style>
+    <span className="public-matchday-tv">
+      {match.broadcastChannel.logo_url ? <img alt="" src={match.broadcastChannel.logo_url} /> : null}
+      <span>{match.broadcastChannel.name}</span>
+    </span>
+  );
+}
+
+function MiniBroadcastBadge({ match }: { match: PublicSeasonMatch }) {
+  if (!match.broadcastChannel) {
+    return null;
+  }
+
+  return (
+    <span className="public-matchday-mini-tv">
+      {match.broadcastChannel.logo_url ? <img alt="" src={match.broadcastChannel.logo_url} /> : null}
+      <span>{match.broadcastChannel.name}</span>
+    </span>
+  );
+}
+
+function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: boolean }) {
+  const kind = statusKind(match.status);
+  const statusText = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} - ${match.minute}'` : statusLabel(match.status);
+  const showKickoffTime = kind === "scheduled";
+
+  return (
+    <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>
+      <span className="public-matchday-mini-team">
+        <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
+        <span>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</span>
+      </span>
+      <strong>{matchResult(match)}</strong>
+      <span className="public-matchday-mini-team">
+        <span>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</span>
+        <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
+      </span>
+      <span className={`public-matchday-mini-status public-matchday-status-${statusKind(match.status)}`}>
+        <span>{statusText}</span>
+        {showKickoffTime ? <time className="public-matchday-mini-time" dateTime={match.kickoff_at}>{formatKickoffTime(match.kickoff_at)}</time> : null}
+        <MiniBroadcastBadge match={match} />
+      </span>
+    </article>
+  );
+}
+
+function MatchCard({ match }: { match: PublicSeasonMatch }) {
+  const kind = statusKind(match.status);
+  const statusText = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} - ${match.minute}'` : statusLabel(match.status);
+  const homeWinner = isWinner(match, "home");
+  const awayWinner = isWinner(match, "away");
+
+  return (
+    <article className={`public-matchday-card public-matchday-card-${kind}`} key={match.id}>
+      <div className={`public-matchday-team ${homeWinner ? "public-matchday-team-winner" : ""}`}>
+        <div className="public-matchday-team-copy">
+          <strong>{match.homeTeam?.name ?? "Equipa da casa"}</strong>
+          <small>Casa</small>
+        </div>
+        <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
+      </div>
+      <div className="public-matchday-score">
+        <strong>{matchResult(match)}</strong>
+        <small className={`public-matchday-status public-matchday-status-${kind}`}>{statusText}</small>
+      </div>
+      <div className={`public-matchday-team ${awayWinner ? "public-matchday-team-winner" : ""}`}>
+        <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
+        <div className="public-matchday-team-copy">
+          <strong>{match.awayTeam?.name ?? "Equipa visitante"}</strong>
+          <small>Fora</small>
+        </div>
+      </div>
+      <div className="public-matchday-meta">
+        <span>{formatKickoff(match.kickoff_at)}</span>
+        {match.venue ? <span>{match.venue}</span> : null}
+        <BroadcastBadge match={match} />
+      </div>
+    </article>
+  );
+}
+
+function DiagnosticPanel({ diagnostic }: { diagnostic: PublicMatchdayDiagnostic }) {
+  return (
+    <main className="public-matchday-shell">
+      <style>{publicMatchdayStyles}</style>
+      <section className="public-diagnostic">
+        <h2>Diagnóstico temporário da página pública</h2>
+        <p>A rota foi carregada, mas os dados necessários não foram encontrados ou ocorreu um erro de leitura.</p>
+        <pre>{JSON.stringify(diagnostic, null, 2)}</pre>
+      </section>
+    </main>
+  );
+}
+
+export default async function PublicMatchdayPage({ params }: PublicMatchdayPageProps) {
+  const { competitionSlug, seasonLabel, matchdayNumber } = await params;
+  const matchdayNumberValue = Number(matchdayNumber);
+  const { context, diagnostic } = await getPublicMatchdayDiagnostic({
+    competitionSlug,
+    seasonLabel,
+    matchdayNumber: matchdayNumberValue
+  });
+
+  if (!context) {
+    return <DiagnosticPanel diagnostic={diagnostic} />;
+  }
+
+  const seasonSegment = seasonLabelToUrlSegment(context.season.label);
+  const seasonOptions = context.seasons.map((season) => ({
+    id: season.id,
+    label: season.label,
+    href: `/competicoes/${context.competition.slug}/${seasonLabelToUrlSegment(season.label)}/jornadas/1`
+  }));
+  const currentSeasonHref = `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/1`;
+  const classificationRows = buildAccumulatedClassification({
+    participants: context.participants,
+    matches: context.matchesForSeason,
+    matchdays: context.matchdays,
+    selectedMatchday: context.matchday
+  });
+  const matchdayHref = (number: number) => `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/${number}`;
+  const liveMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "live");
+  const halftimeMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "halftime");
+  const finishedMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "finished");
+  const scheduledMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "scheduled");
+  const selectedMatchdayDateContext = formatMatchdayDateContext(context.matchesForMatchday);
+  const publishedHeadline = context.editorial?.status === "published" ? context.editorial : null;
+  const belowHeadlineMode = context.editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
+  const complementaryMode = context.editorial?.complementary_mode ?? "none";
+  const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
+  const nextScheduledMatches = [...scheduledMatches]
+    .sort((firstMatch, secondMatch) => new Date(firstMatch.kickoff_at).getTime() - new Date(secondMatch.kickoff_at).getTime())
+    .slice(0, 4);
+  const broadcastGuideItems =
+    nextScheduledMatches.length > 0
+      ? nextScheduledMatches.map((match) => ({
+          id: match.id,
+          game: `${match.homeTeam?.short_name || match.homeTeam?.name || "Casa"} vs ${match.awayTeam?.short_name || match.awayTeam?.name || "Fora"}`,
+          kickoffLabel: formatBroadcastGuideKickoff(match.kickoff_at),
+          kickoffDateTime: match.kickoff_at,
+          channelName: match.broadcastChannel?.name || "TV por definir",
+          channelLogoUrl: match.broadcastChannel?.logo_url || null
+        }))
+      : [
+          {
+            id: "placeholder-mallorca-barcelona",
+            game: "RCD Mallorca vs FC Barcelona",
+            kickoffLabel: "16/08, 19:30",
+            kickoffDateTime: null,
+            channelName: "DAZN 1",
+            channelLogoUrl: null
+          },
+          {
+            id: "placeholder-valencia-real-sociedad",
+            game: "Valencia CF vs Real Sociedad",
+            kickoffLabel: "16/08, 21:30",
+            kickoffDateTime: null,
+            channelName: "Sport TV 2",
+            channelLogoUrl: null
+          },
+          {
+            id: "placeholder-real-madrid-osasuna",
+            game: "Real Madrid vs CA Osasuna",
+            kickoffLabel: "19/08, 21:00",
+            kickoffDateTime: null,
+            channelName: "DAZN 1",
+            channelLogoUrl: null
+          }
+        ];
+
+  return (
+    <main className="public-matchday-shell">
+      <style>{publicMatchdayStyles}</style>
+      <div className="public-top-stack">
+      <header className="public-site-topbar" aria-label="Topo do Jornada.pt">
+        <a className="public-site-brand" href="/">
+          Jornada<span>.pt</span>
+        </a>
+        <nav className="public-site-menu" aria-label="Competições principais">
+          <a aria-current="page" href={`/competicoes/${context.competition.slug}/${seasonSegment}`}>{context.competition.name}</a>
+          <a href="/competicoes/liga-portugal/2025-26">Liga Portugal</a>
+          <a href="/competicoes/liga-espanha/2026-27">La Liga</a>
+          <a href="/competicoes/premier-league/2025-26">Premier League</a>
+          <a href="#jogos">Jogos</a>
+          <a href="#classificacao">Classificação</a>
+        </nav>
+        <div className="public-site-actions" aria-label="Ações">
+          <span className="public-site-search" aria-label="Pesquisar">Pesquisar</span>
+          <a href="/admin/gestor">Entrar</a>
+        </div>
+      </header>
+      <section className="public-season-nav-bar" aria-label="Navegacao de jornadas">
+        <div className="public-hidden-heading">
+          <h2>Jornadas</h2>
+          <p>Navegação principal da época {context.season.label}.</p>
+        </div>
+        <div className="public-season-nav-inner">
+        <label className="public-season-select-wrap">
+          <span>Época</span>
+          <select className="public-season-select" data-season-select defaultValue={currentSeasonHref}>
+            {seasonOptions.map((season) => (
+              <option key={season.id} value={season.href}>
+                {season.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <nav className="public-matchday-nav">
+          {context.matchdays.map((matchday) => (
+            <a
+              aria-current={matchday.id === context.matchday.id ? "page" : undefined}
+              href={matchdayHref(matchday.number)}
+              key={matchday.id}
+            >
+              J{String(matchday.number).padStart(2, "0")}
+            </a>
+          ))}
+        </nav>
+        <div className="public-matchday-date-row" aria-label="Data da jornada selecionada">
+          <span className="public-matchday-date-context">
+            {selectedMatchdayDateContext}
+          </span>
+        </div>
+        </div>
+      </section>
+      </div>
       <script
         dangerouslySetInnerHTML={{
           __html: `
-            document.addEventListener("submit", function (event) {
-              var form = event.target;
-              if (!(form instanceof HTMLFormElement)) return;
-              var message = form.getAttribute("data-confirm");
-              if (message && !window.confirm(message)) {
-                event.preventDefault();
-              }
+            document.addEventListener("DOMContentLoaded", function () {
+              var select = document.querySelector("[data-season-select]");
+              if (!select) return;
+              select.addEventListener("change", function () {
+                if (select.value) window.location.href = select.value;
+              });
             });
           `
         }}
       />
-      <header className="manager-hero">
-        <div>
-          <p>Jornada.pt</p>
-          <h1>Centro de gestao</h1>
-          <span>
-            Fase 1: cria o pais, liga manualmente cada competicao ao pais certo e cria as epocas
-            dentro dessa competicao. O gestor so mostra o que ja foi criado e relacionado por ti.
-          </span>
+
+      <section className="public-matchday-panel public-matchday-scoreboard-panel" aria-label="Visao rapida dos jogos">
+        <div className="public-matchday-strip-shell">
+          <button className="public-matchday-strip-button" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
+            ‹
+          </button>
+          <div className="public-matchday-strip" data-matchday-strip>
+            {context.matchesForMatchday.length > 0 ? (
+              context.matchesForMatchday.map((match) => (
+                <CompactMatchCard focus={focusedStripMatch?.id === match.id} key={match.id} match={match} />
+              ))
+            ) : (
+              <p>Ainda nao ha jogos nesta jornada.</p>
+            )}
+          </div>
+          <button className="public-matchday-strip-button" data-strip-scroll="right" type="button" aria-label="Ver jogos seguintes">
+            ›
+          </button>
         </div>
-        <a href="/admin">Voltar ao backoffice</a>
-      </header>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              document.addEventListener("DOMContentLoaded", function () {
+                var strip = document.querySelector("[data-matchday-strip]");
+                if (!strip) return;
+                var focused = strip.querySelector("[data-live-focus='true']");
+                if (focused && "scrollIntoView" in focused) {
+                  focused.scrollIntoView({ block: "nearest", inline: "center" });
+                }
+                document.querySelectorAll("[data-strip-scroll]").forEach(function (button) {
+                  button.addEventListener("click", function () {
+                    var direction = button.getAttribute("data-strip-scroll") === "left" ? -1 : 1;
+                    strip.scrollBy({ left: direction * Math.max(260, Math.round(strip.clientWidth * 0.85)), behavior: "smooth" });
+                  });
+                });
+              });
+            `
+          }}
+        />
+      </section>
 
-      {created && createdLabels[created] ? <div className="manager-message">{createdLabels[created]}</div> : null}
-      {actionError ? (
-        <div className="manager-message warning">{errorLabels[actionError] ?? errorLabels.save}</div>
-      ) : null}
-
-      {!configured ? (
-        <section className="manager-warning">
-          <h2>Supabase ainda nao ligada</h2>
-          <p>Adiciona as variaveis da Supabase na Vercel antes de testar esta fase.</p>
-        </section>
-      ) : null}
-
-      {configured && error ? (
-        <section className="manager-warning">
-          <h2>Leitura incompleta</h2>
-          <p>{error}</p>
-        </section>
-      ) : null}
-
-      {configured && unlinkedCompetitions.length > 0 ? (
-        <section className="manager-warning">
-          <h2>Competicoes sem pais associado</h2>
-          <p>
-            Ha {unlinkedCompetitions.length} competicoes fora do gestor porque ainda nao foram ligadas
-            manualmente a um pais. Liga-as em /admin/competicoes para aparecerem no caminho certo.
-          </p>
-        </section>
-      ) : null}
-
-      {configured ? (
-        <>
-          <section className="manager-context" aria-label="Caminho de trabalho">
-            <header>
-              <h2>Caminho de trabalho</h2>
-              <p>
-                Primeiro escolhes o pais. Depois so aparecem as competicoes desse pais. Depois so aparecem
-                as epocas dessa competicao.
-              </p>
-            </header>
-            <ContextSelector
-              countries={selectorCountries}
-              competitions={selectorCompetitions}
-              seasons={selectorSeasons}
-              selectedCountryId={selectedCountry?.id ?? ""}
-              selectedCompetitionId={selectedCompetition?.id ?? ""}
-              selectedSeasonId={selectedSeason?.id ?? ""}
-            />
-            <div className="manager-path">
-              <article>
-                <small>Pais</small>
-                <strong>{selectedCountry?.name ?? "Cria um pais"}</strong>
-              </article>
-              <article>
-                <small>Competicao</small>
-                <strong>{selectedCompetition?.name ?? "Cria ou liga uma competicao"}</strong>
-              </article>
-              <article>
-                <small>Epoca</small>
-                <strong>{selectedSeason?.label ?? "Cria uma epoca"}</strong>
-              </article>
+      <section className="public-matchday-panel" aria-label="Capa da jornada">
+        <div className="public-matchday-cover">
+          <aside className="public-matchday-feature" aria-label="Informação em destaque">
+            <div>
+              <h3>Informação em destaque</h3>
             </div>
-          </section>
-
-          <section className="manager-panel" aria-label="Montador da fase 1">
-            <header>
-              <h2>Fase 1 - base principal</h2>
-              <p>
-                Nesta fase fechamos apenas a estrutura Pais / Competicao / Epoca. As fases seguintes
-                ficam fora deste ecra por agora.
-              </p>
-            </header>
-            <div className="manager-create-grid">
-              <article className="manager-create-card">
-                <header>
-                  <h3>1. Pais</h3>
-                  <p>Cria apenas os paises que queres gerir no projeto.</p>
-                </header>
-                <form className="manager-create-form" action="/api/admin/gestor" method="post">
-                  <input type="hidden" name="action_type" value="country" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
-                  <div className="manager-field">
-                    <label htmlFor="new-country-name">Nome</label>
-                    <input id="new-country-name" name="name" placeholder="Ex: Portugal" required />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-country-slug">Slug</label>
-                    <input id="new-country-slug" name="slug" placeholder="portugal" />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-country-iso">ISO2</label>
-                    <input id="new-country-iso" name="iso2" placeholder="PT" maxLength={2} />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-country-flag">Flag</label>
-                    <input id="new-country-flag" name="flag_emoji" placeholder="PT" />
-                  </div>
-                  <button className="manager-button" type="submit">
-                    Criar pais
-                  </button>
-                </form>
-              </article>
-
-              <article className="manager-create-card">
-                <header>
-                  <h3>2. Competicao</h3>
-                  <p>A competicao nasce dentro do pais escolhido no caminho de trabalho.</p>
-                </header>
-                <form className="manager-create-form" action="/api/admin/gestor" method="post">
-                  <input type="hidden" name="action_type" value="competition" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
-                  <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
-                  <div className="manager-field">
-                    <label htmlFor="new-competition-country">Pais</label>
-                    <input
-                      id="new-competition-country"
-                      value={selectedCountry?.name ?? "Cria um pais primeiro"}
-                      readOnly
-                    />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-competition-name">Nome</label>
-                    <input
-                      id="new-competition-name"
-                      name="name"
-                      placeholder="Ex: Liga Portugal"
-                      disabled={!canCreateCompetition}
-                      required={canCreateCompetition}
-                    />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-competition-slug">Slug</label>
-                    <input
-                      id="new-competition-slug"
-                      name="slug"
-                      placeholder="liga-portugal"
-                      disabled={!canCreateCompetition}
-                    />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-competition-color">Cor</label>
-                    <input
-                      id="new-competition-color"
-                      name="accent_color"
-                      placeholder="#e5252a"
-                      disabled={!canCreateCompetition}
-                    />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-competition-logo">Logotipo URL</label>
-                    <input
-                      id="new-competition-logo"
-                      name="logo_url"
-                      placeholder="https://..."
-                      disabled={!canCreateCompetition}
-                    />
-                  </div>
-                  <button className="manager-button" type="submit" disabled={!canCreateCompetition}>
-                    Criar competicao
-                  </button>
-                </form>
-              </article>
-
-              <article className="manager-create-card">
-                <header>
-                  <h3>3. Epoca</h3>
-                  <p>A epoca fica sempre subordinada a competicao escolhida.</p>
-                </header>
-                <form className="manager-create-form" action="/api/admin/gestor" method="post">
-                  <input type="hidden" name="action_type" value="season" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
-                  <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
-                  <div className="manager-field">
-                    <label htmlFor="new-season-competition">Competicao</label>
-                    <input
-                      id="new-season-competition"
-                      value={selectedCompetition?.name ?? "Cria uma competicao primeiro"}
-                      readOnly
-                    />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-season-label">Nome da epoca</label>
-                    <input
-                      id="new-season-label"
-                      name="label"
-                      placeholder="Ex: 2024/25"
-                      disabled={!canCreateSeason}
-                      required={canCreateSeason}
-                    />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-season-start">Inicio</label>
-                    <input id="new-season-start" name="starts_on" type="date" disabled={!canCreateSeason} />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-season-end">Fim</label>
-                    <input id="new-season-end" name="ends_on" type="date" disabled={!canCreateSeason} />
-                  </div>
-                  <label className="manager-check">
-                    <input type="checkbox" name="is_current" value="1" disabled={!canCreateSeason} />
-                    Epoca atual
-                  </label>
-                  <button className="manager-button" type="submit" disabled={!canCreateSeason}>
-                    Criar epoca
-                  </button>
-                </form>
-              </article>
+            <div className="public-cover-support">
+              <h4>Onde ver</h4>
+              <ul className="public-cover-channel-list">
+                {broadcastGuideItems.map((item) => (
+                  <li key={item.id}>
+                    <span className="public-cover-tv-game">
+                      <strong>{item.game}</strong>
+                      <span className="public-cover-tv-meta">
+                        <time dateTime={item.kickoffDateTime ?? undefined}>{item.kickoffLabel}</time>
+                        <span className="public-cover-tv-channel">
+                          {item.channelLogoUrl ? <img alt="" src={item.channelLogoUrl} /> : <span className="public-cover-tv-channel-logo">{item.channelName}</span>}
+                          {item.channelLogoUrl ? <span>{item.channelName}</span> : null}
+                        </span>
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </section>
-
-          <section className="manager-panel" aria-label="Teste da fase 1">
-            <header>
-              <h2>Teste da Fase 1</h2>
-              <p>Usa este bloco para confirmar que nao ha misturas entre pais, competicao e epoca.</p>
-            </header>
-            <div className="manager-stat-row">
-              <article className="manager-stat">
-                <strong>{countries.length}</strong>
-                <small>Paises criados</small>
-              </article>
-              <article className="manager-stat">
-                <strong>{linkedCompetitions.length}</strong>
-                <small>Competicoes ligadas a pais</small>
-              </article>
-              <article className="manager-stat">
-                <strong>{seasons.length}</strong>
-                <small>Epocas criadas</small>
-              </article>
-            </div>
-            <div className="manager-summary-grid">
-              <article className="manager-create-card">
-                <header>
-                  <h3>Competicoes neste pais</h3>
-                  <p>{selectedCountry?.name ?? "Sem pais selecionado"}</p>
-                </header>
-                {competitionsForCountry.length === 0 ? (
-                  <div className="manager-empty">Ainda nao ha competicoes ligadas a este pais.</div>
-                ) : (
-                  <ul className="manager-list">
-                    {competitionsForCountry.map((competition) => (
-                      <li key={competition.id}>
-                        <div>
-                          <b>{competition.name}</b>
-                          <small>{competition.slug}</small>
-                        </div>
-                        <em>{selectedCountry?.name}</em>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </article>
-
-              <article className="manager-create-card">
-                <header>
-                  <h3>Epocas nesta competicao</h3>
-                  <p>{selectedCompetition?.name ?? "Sem competicao selecionada"}</p>
-                </header>
-                {seasonsForCompetition.length === 0 ? (
-                  <div className="manager-empty">Ainda nao ha epocas nesta competicao.</div>
-                ) : (
-                  <ul className="manager-list">
-                    {seasonsForCompetition.map((season) => (
-                      <li key={season.id}>
-                        <div>
-                          <b>{season.label}</b>
-                          <small>{season.is_current ? "Epoca atual" : "Epoca guardada"}</small>
-                        </div>
-                        <em>{selectedCompetition?.name}</em>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </article>
-
-              <article className="manager-create-card">
-                <header>
-                  <h3>Atalhos auxiliares</h3>
-                  <p>As paginas antigas continuam disponiveis para corrigir dados pontuais.</p>
-                </header>
-                <div className="manager-actions">
-                  <a className="manager-link-button" href="/admin/paises">
-                    Paises
-                  </a>
-                  <a className="manager-link-button" href="/admin/competicoes">
-                    Competicoes
-                  </a>
-                  <a className="manager-link-button" href="/admin/epocas">
-                    Epocas
-                  </a>
+          </aside>
+          <div className="public-matchday-main-column">
+            <article className="public-matchday-editorial">
+              <div className="public-cover-headline">
+                {publishedHeadline?.image_url ? (
+                  <div className="public-editorial-main-image">
+                    <img src={publishedHeadline.image_url} alt="" />
+                  </div>
+                ) : null}
+                <div>
+                  <h2 style={publishedHeadline?.title_color ? { color: publishedHeadline.title_color } : undefined}>
+                    {publishedHeadline?.title || "Manchete da jornada"}
+                  </h2>
+                  <p>{publishedHeadline?.summary || "Espaço reservado para a leitura editorial desta jornada."}</p>
                 </div>
-              </article>
-            </div>
-          </section>
-
-          <section className="manager-panel" aria-label="Remocao segura">
-            <header>
-              <h2>Remocao segura</h2>
-              <p>
-                Remove apenas itens sem dados associados. Se existirem dependencias, o gestor bloqueia a acao.
-              </p>
-            </header>
-            <div className="manager-summary-grid">
-              <article className="manager-create-card">
-                <header>
-                  <h3>Pais</h3>
-                  <p>{selectedCountry?.name ?? "Sem pais selecionado"}</p>
-                </header>
-                <form
-                  action="/api/admin/gestor"
-                  data-confirm="Tem a certeza que quer remover este pais? Esta acao so avanca se nao houver competicoes nem clubes associados."
-                  method="post"
-                >
-                  <input type="hidden" name="action_type" value="remove_country" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
-                  <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
-                  <button className="manager-link-button" type="submit" disabled={!selectedCountry}>
-                    Remover pais
-                  </button>
-                </form>
-              </article>
-
-              <article className="manager-create-card">
-                <header>
-                  <h3>Competicao</h3>
-                  <p>{selectedCompetition?.name ?? "Sem competicao selecionada"}</p>
-                </header>
-                <form
-                  action="/api/admin/gestor"
-                  data-confirm="Tem a certeza que quer remover esta competicao? Esta acao so avanca se nao houver epocas associadas."
-                  method="post"
-                >
-                  <input type="hidden" name="action_type" value="remove_competition" />
-                  <input type="hidden" name="return_to" value={selectedCountry ? returnTo(selectedCountry, null, null) : "/admin/gestor"} />
-                  <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
-                  <button className="manager-link-button" type="submit" disabled={!selectedCompetition}>
-                    Remover competicao
-                  </button>
-                </form>
-              </article>
-
-              <article className="manager-create-card">
-                <header>
-                  <h3>Epoca</h3>
-                  <p>{selectedSeason?.label ?? "Sem epoca selecionada"}</p>
-                </header>
-                <form
-                  action="/api/admin/gestor"
-                  data-confirm="Tem a certeza que quer remover esta epoca? Esta acao so avanca se nao houver dados associados."
-                  method="post"
-                >
-                  <input type="hidden" name="action_type" value="remove_season" />
-                  <input type="hidden" name="return_to" value={returnTo(selectedCountry, selectedCompetition, null)} />
-                  <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
-                  <button className="manager-link-button" type="submit" disabled={!selectedSeason}>
-                    Remover epoca
-                  </button>
-                </form>
-              </article>
-            </div>
-          </section>
-
-          <section className="manager-panel" aria-label="Clubes do pais">
-            <header>
-              <h2>Clubes do pais</h2>
-              <p>Cria clubes ligados manualmente ao pais selecionado. So estes clubes entram no seletor da epoca.</p>
-            </header>
-            <div className="manager-create-grid">
-              <article className="manager-create-card">
-                <header>
-                  <h3>Novo clube</h3>
-                  <p>{selectedCountry ? `Associado a ${selectedCountry.name}.` : "Escolhe um pais primeiro."}</p>
-                </header>
-                <form className="manager-create-form" action="/api/admin/gestor" method="post">
-                  <input type="hidden" name="action_type" value="team" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
-                  <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
-                  <div className="manager-field">
-                    <label htmlFor="new-team-name">Nome</label>
-                    <input id="new-team-name" name="name" placeholder="Ex: F91 Dudelange" disabled={!canCreateTeam} required={canCreateTeam} />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-team-short">Sigla</label>
-                    <input id="new-team-short" name="short_name" maxLength={6} placeholder="F91" disabled={!canCreateTeam} required={canCreateTeam} />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-team-slug">Slug</label>
-                    <input id="new-team-slug" name="slug" placeholder="f91-dudelange" disabled={!canCreateTeam} />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-team-logo">Emblema URL</label>
-                    <input id="new-team-logo" name="logo_url" placeholder="https://..." disabled={!canCreateTeam} />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-team-color">Cor</label>
-                    <input id="new-team-color" name="primary_color" placeholder="#e5252a" disabled={!canCreateTeam} />
-                  </div>
-                  <button className="manager-button" type="submit" disabled={!canCreateTeam}>
-                    Criar clube
-                  </button>
-                </form>
-              </article>
-
-              <article className="manager-create-card">
-                <header>
-                  <h3>Associar clube existente</h3>
-                  <p>Liga manualmente ao pais selecionado um clube ja existente que ainda nao tem pais associado.</p>
-                </header>
-                <form className="manager-create-form" action="/api/admin/gestor" method="post">
-                  <input type="hidden" name="action_type" value="attach_team_to_country" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
-                  <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
-                  <div className="manager-field">
-                    <label htmlFor="attach-team-id">Clube existente</label>
-                    <select id="attach-team-id" name="team_id" disabled={!canAttachTeam} required={canAttachTeam}>
-                      {unassignedTeams.length === 0 ? <option value="">Nao ha clubes sem pais associado</option> : null}
-                      {unassignedTeams.map((team) => (
-                        <option key={team.id} value={team.id}>
-                          {team.name} ({team.slug})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <button className="manager-button" type="submit" disabled={!canAttachTeam}>
-                    Associar clube
-                  </button>
-                </form>
-              </article>
-
-              <article className="manager-create-card manager-wide-card">
-                <header>
-                  <h3>{selectedCountry?.name ?? "Sem pais selecionado"}</h3>
-                  <p>{teamsForCountry.length} clubes associados manualmente a este pais.</p>
-                </header>
-                {teamsForCountry.length === 0 ? (
-                  <div className="manager-empty">Ainda nao ha clubes associados a este pais.</div>
-                ) : (
-                  <ul className="manager-list">
-                    {teamsForCountry.map((team) => (
-                      <li key={team.id}>
-                        <div>
-                          <b>{team.name}</b>
-                          <small>{team.short_name ?? team.slug}</small>
+              </div>
+            </article>
+            <div className="public-matchday-main-lower">
+              {complementaryMode === "roundup_video" ? (
+                <RoundupVideoSwitcher
+                  items={context.roundupItems}
+                  initialItemId={context.editorial?.complementary_roundup_item_id ?? null}
+                />
+              ) : (
+                <>
+              <section
+                className={`public-matchday-roundup public-below-headline-${belowHeadlineMode} public-editorial-flex-block`}
+                data-editorial-slot="videos-ou-noticias"
+                aria-label="Zona editorial abaixo da manchete"
+              >
+                <div className="public-editorial-block-head">
+                  <a href="#jogos">Ver todos</a>
+                </div>
+                <div className="public-cover-story-strip" aria-label="Resumos e destaques da jornada">
+              {belowHeadlineMode === "highlights" ? (
+                context.highlights.length > 0 ? (
+                  context.highlights.map((highlight) => {
+                    const imageUrl = highlight.image_url?.trim();
+                    return (
+                      <article className="public-cover-story" key={highlight.id}>
+                        <div className="public-highlight-image">
+                          {imageUrl ? <img src={imageUrl} alt="" /> : null}
                         </div>
-                        <form
-                          action="/api/admin/gestor"
-                          data-confirm="Tem a certeza que quer remover este clube deste pais? Esta acao so avanca se o clube nao estiver associado a nenhuma epoca."
-                          method="post"
-                        >
-                          <input type="hidden" name="action_type" value="remove_team" />
-                          <input type="hidden" name="return_to" value={currentReturnTo} />
-                          <input type="hidden" name="team_id" value={team.id} />
-                          <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
-                          <button className="manager-link-button" type="submit">
-                            Remover
-                          </button>
-                        </form>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </article>
-            </div>
-          </section>
-
-          <section className="manager-panel" aria-label="Calendario da epoca">
-            <header>
-              <h2>Calendario da epoca</h2>
-              <p>Cria e organiza jornadas simples dentro da epoca selecionada.</p>
-            </header>
-            <div className="manager-create-grid">
-              <article className="manager-create-card">
-                <header>
-                  <h3>Nova jornada</h3>
-                  <p>
-                    {!selectedSeason
-                      ? "Escolhe uma epoca primeiro."
-                      : participantsForSeason.length === 0
-                        ? "Antes de criar jornadas, define os participantes desta epoca."
-                        : `Dentro de ${selectedSeason.label}.`}
-                  </p>
-                </header>
-                <form className="manager-create-form" action="/api/admin/gestor" method="post">
-                  <input type="hidden" name="action_type" value="matchday" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
-                  <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
-                  <div className="manager-field">
-                    <label htmlFor="new-matchday-number">Numero</label>
-                    <input
-                      id="new-matchday-number"
-                      name="number"
-                      type="number"
-                      min={1}
-                      defaultValue={nextMatchdayNumber}
-                      disabled={!canCreateMatchday}
-                      required={canCreateMatchday}
-                    />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-matchday-label">Nome</label>
-                    <input
-                      id="new-matchday-label"
-                      name="label"
-                      placeholder="Ex: Jornada 01"
-                      disabled={!canCreateMatchday}
-                      required={canCreateMatchday}
-                    />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-matchday-start">Inicio</label>
-                    <input id="new-matchday-start" name="starts_on" type="date" disabled={!canCreateMatchday} />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-matchday-end">Fim</label>
-                    <input id="new-matchday-end" name="ends_on" type="date" disabled={!canCreateMatchday} />
-                  </div>
-                  <div className="manager-field">
-                    <label htmlFor="new-matchday-status">Estado</label>
-                    <select id="new-matchday-status" name="status" disabled={!canCreateMatchday}>
-                      <option value="scheduled">Planeada</option>
-                      <option value="live">Em curso</option>
-                      <option value="finished">Terminada</option>
-                      <option value="archived">Arquivada</option>
-                    </select>
-                  </div>
-                  <button className="manager-button" type="submit" disabled={!canCreateMatchday}>
-                    Criar jornada
-                  </button>
-                </form>
-              </article>
-
-              <article className="manager-create-card manager-wide-card">
-                <header>
-                  <h3>{selectedSeason?.label ?? "Sem epoca selecionada"}</h3>
-                  <p>{matchdaysForSeason.length} jornadas no calendario desta epoca.</p>
-                </header>
-                {matchdaysForSeason.length === 0 ? (
-                  <div className="manager-empty">Ainda nao ha jornadas nesta epoca.</div>
+                        {highlight.label ? <span>{highlight.label}</span> : null}
+                        <strong>{highlight.title}</strong>
+                      </article>
+                    );
+                  })
                 ) : (
-                  <ul className="manager-list">
-                    {matchdaysForSeason.map((matchday) => (
-                      <li key={matchday.id}>
-                        <div>
-                          <b>
-                            {matchday.number}. {matchday.label}
-                          </b>
-                          <small>
-                            {matchday.starts_on ?? "Sem inicio"} / {matchday.ends_on ?? "Sem fim"} - {matchday.status}
-                          </small>
-                        </div>
-                        <form
-                          action="/api/admin/gestor"
-                          data-confirm="Tem a certeza que quer remover esta jornada? Esta acao so avanca se nao houver jogos associados."
-                          method="post"
-                        >
-                          <input type="hidden" name="action_type" value="remove_matchday" />
-                          <input type="hidden" name="return_to" value={currentReturnTo} />
-                          <input type="hidden" name="matchday_id" value={matchday.id} />
-                          <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
-                          <button className="manager-link-button" type="submit">
-                            Remover
-                          </button>
-                        </form>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </article>
-            </div>
-          </section>
-
-          <section className="manager-panel" aria-label="Participantes da epoca">
-            <header>
-              <h2>Participantes da epoca</h2>
-              <p>Adiciona manualmente clubes a epoca selecionada e confirma a lista desse contexto.</p>
-            </header>
-            <div className="manager-stat-row">
-              <article className="manager-stat">
-                <strong>{participantsForSeason.length}</strong>
-                <small>Participantes nesta epoca</small>
-              </article>
-              <article className="manager-stat">
-                <strong>{selectedCompetition ? 1 : 0}</strong>
-                <small>Competicao selecionada</small>
-              </article>
-              <article className="manager-stat">
-                <strong>{selectedSeason ? 1 : 0}</strong>
-                <small>Epoca selecionada</small>
-              </article>
-            </div>
-            <div className="manager-summary-grid">
-              <article className="manager-create-card manager-wide-card">
-                <header>
-                  <h3>Adicionar participante</h3>
-                  <p>{selectedSeason ? "Escolhe um clube associado ao pais selecionado." : "Escolhe uma epoca primeiro."}</p>
-                </header>
-                <form className="manager-create-form" action="/api/admin/gestor" method="post">
-                  <input type="hidden" name="action_type" value="participant" />
-                  <input type="hidden" name="return_to" value={currentReturnTo} />
-                  <input type="hidden" name="country_id" value={selectedCountry?.id ?? ""} />
-                  <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
-                  <input type="hidden" name="display_order" value={participantsForSeason.length + 1} />
-                  <div className="manager-field">
-                    <label htmlFor="new-participant-team">Clube</label>
-                    <select id="new-participant-team" name="team_id" disabled={!canAddParticipant} required={canAddParticipant}>
-                      {teamsAvailableForSeason.length === 0 ? (
-                        <option value="">{unavailableTeamMessage}</option>
+                  <>
+                    <article className="public-cover-story">
+                      <div className="public-highlight-image">
+                        <img
+                          src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80"
+                          alt=""
+                        />
+                      </div>
+                      <span>Antevisão</span>
+                      <strong>Os pontos de atenção antes da bola rolar</strong>
+                    </article>
+                    <article className="public-cover-story">
+                      <div className="public-highlight-image">
+                        <img
+                          src="https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=700&q=80"
+                          alt=""
+                        />
+                      </div>
+                      <span>Ambiente</span>
+                      <strong>A jornada vista pelas bancadas e pelos protagonistas</strong>
+                    </article>
+                    <article className="public-cover-story">
+                      <div className="public-highlight-image">
+                        <img
+                          src="https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=700&q=80"
+                          alt=""
+                        />
+                      </div>
+                      <span>Contexto</span>
+                      <strong>O que pode mudar na tabela depois dos resultados</strong>
+                    </article>
+                  </>
+                )
+              ) : context.roundupItems.length > 0 ? (
+                context.roundupItems.map((item) => {
+                  const showPlay = Boolean(item.video_url) || item.type === "video" || item.type === "golos" || item.type === "resumo";
+                  const imageUrl = item.image_url?.trim();
+                  return (
+                    <article className="public-cover-story" key={item.id}>
+                      <div className="public-highlight-image">
+                        {imageUrl ? <img src={imageUrl} alt="" /> : null}
+                        {showPlay ? <span className="public-media-play" aria-hidden="true">▶</span> : null}
+                      </div>
+                      {item.label ? <span>{item.label}</span> : null}
+                      <strong>{item.title}</strong>
+                      {item.subtitle ? <small>{item.subtitle}</small> : null}
+                      {item.duration ? <span className="public-roundup-duration">{item.duration}</span> : null}
+                      {item.video_url ? (
+                        <a className="public-roundup-arrow" href={item.video_url} aria-label="Abrir conteudo do resumo">
+                          ›
+                        </a>
+                      ) : (
+                        <span className="public-roundup-arrow" aria-hidden="true">›</span>
+                      )}
+                    </article>
+                  );
+                })
+              ) : (
+                <>
+                  <article className="public-cover-story">
+                    <div className="public-highlight-image">
+                      <img
+                        src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80"
+                        alt=""
+                      />
+                      <span className="public-media-play" aria-hidden="true">▶</span>
+                    </div>
+                    <span>Antevisão</span>
+                    <strong>Os pontos de atenção antes da bola rolar</strong>
+                    <small>Resumo completo</small>
+                    <span className="public-roundup-duration">5:42</span>
+                    <span className="public-roundup-arrow" aria-hidden="true">›</span>
+                  </article>
+                  <article className="public-cover-story">
+                    <div className="public-highlight-image">
+                      <img
+                        src="https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=700&q=80"
+                        alt=""
+                      />
+                      <span className="public-media-play" aria-hidden="true">▶</span>
+                    </div>
+                    <span>Ambiente</span>
+                    <strong>A jornada vista pelas bancadas e pelos protagonistas</strong>
+                    <small>Golos e melhores momentos</small>
+                    <span className="public-roundup-duration">4:18</span>
+                    <span className="public-roundup-arrow" aria-hidden="true">›</span>
+                  </article>
+                  <article className="public-cover-story">
+                    <div className="public-highlight-image">
+                      <img
+                        src="https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=700&q=80"
+                        alt=""
+                      />
+                      <span className="public-media-play" aria-hidden="true">▶</span>
+                    </div>
+                    <span>Contexto</span>
+                    <strong>O que pode mudar na tabela depois dos resultados</strong>
+                    <small>Notícia de contexto</small>
+                    <span className="public-roundup-duration">6:21</span>
+                    <span className="public-roundup-arrow" aria-hidden="true">›</span>
+                  </article>
+                </>
+              )}
+                </div>
+                <a className="public-editorial-more-link" href="#jogos">
+                  {belowHeadlineMode === "roundup" ? "Ver mais vídeos e golos" : "Ver mais destaques"} <span aria-hidden="true">›</span>
+                </a>
+              </section>
+              <aside className="public-matchday-cover-side public-editorial-flex-block" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar da jornada">
+                {complementaryMode === "complementary_story" && context.editorial?.complementary_status === "published" ? (
+                  <>
+                    {context.editorial.complementary_image_url ? (
+                      <div className="public-complement-media">
+                        <img src={context.editorial.complementary_image_url} alt="" />
+                      </div>
+                    ) : null}
+                    <div className="public-complement-body">
+                      {context.editorial.complementary_label ? (
+                        <span className="public-complement-label">{context.editorial.complementary_label}</span>
                       ) : null}
-                      {teamsAvailableForSeason.map((team) => (
-                        <option key={team.id} value={team.id}>
-                          {team.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <button className="manager-button" type="submit" disabled={!canAddParticipant}>
-                    Adicionar participante
-                  </button>
-                </form>
-              </article>
-
-              <article className="manager-create-card manager-wide-card">
-                <header>
-                  <h3>{selectedSeason?.label ?? "Sem epoca selecionada"}</h3>
-                  <p>{selectedCompetition?.name ?? "Escolhe uma competicao e uma epoca"}</p>
-                </header>
-                {participantData?.error ? (
-                  <div className="manager-empty">Nao foi possivel ler os participantes: {participantData.error}</div>
-                ) : !selectedSeason ? (
-                  <div className="manager-empty">Escolhe ou cria uma epoca para ver os participantes.</div>
-                ) : participantsForSeason.length === 0 ? (
-                  <div className="manager-empty">Ainda nao ha participantes associados a esta epoca.</div>
+                      {context.editorial.complementary_title ? (
+                        context.editorial.complementary_link_url ? (
+                          <a className="public-complement-title-link" href={context.editorial.complementary_link_url}>
+                            <strong>{context.editorial.complementary_title}</strong>
+                          </a>
+                        ) : (
+                          <strong>{context.editorial.complementary_title}</strong>
+                        )
+                      ) : null}
+                      {context.editorial.complementary_text ? <p>{context.editorial.complementary_text}</p> : null}
+                      {context.editorial.complementary_link_url ? (
+                        <a className="public-editorial-more-link" href={context.editorial.complementary_link_url}>
+                          Ver mais <span aria-hidden="true">›</span>
+                        </a>
+                      ) : null}
+                    </div>
+                  </>
                 ) : (
-                  <ul className="manager-list">
-                    {participantsForSeason.map((participant) => (
-                      <li key={participant.id}>
-                        <div>
-                          <b>{participant.team?.name ?? "Clube sem nome"}</b>
-                          <small>{participant.team?.short_name ?? participant.team?.slug ?? "Sem sigla"}</small>
-                        </div>
-                        <form
-                          action="/api/admin/gestor"
-                          data-confirm="Tem a certeza que quer remover este participante desta epoca?"
-                          method="post"
-                        >
-                          <input type="hidden" name="action_type" value="remove_participant" />
-                          <input type="hidden" name="return_to" value={currentReturnTo} />
-                          <input type="hidden" name="participant_id" value={participant.id} />
-                          <input type="hidden" name="season_id" value={selectedSeason.id} />
-                          <button className="manager-link-button" type="submit">
-                            Remover
-                          </button>
-                        </form>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="public-complement-body">
+                    <strong>Espaço editorial preparado</strong>
+                    <p>Bloco complementar por definir.</p>
+                  </div>
                 )}
-              </article>
+              </aside>
+                </>
+              )}
             </div>
-          </section>
-        </>
-      ) : null}
+          </div>
+          <aside className="public-matchday-news" aria-label="Últimas notícias">
+            <h3>Últimas notícias</h3>
+            <ul className="public-news-list">
+              <li>
+                <time dateTime="12:30">12:30</time>
+                <span>Mercado aquece antes da jornada europeia</span>
+              </li>
+              <li>
+                <time dateTime="12:45">12:45</time>
+                <span>Treinador confirma alterações no onze</span>
+              </li>
+              <li>
+                <time dateTime="13:10">13:10</time>
+                <span>Adeptos esgotam bilhetes para o clássico</span>
+              </li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section className="public-matchday-panel" id="classificacao" aria-label="Classificacao acumulada">
+        <div className="public-table-wrap">
+          <table className="public-table">
+            <thead>
+              <tr>
+                <th rowSpan={2}>Pos</th>
+                <th className="public-table-club" rowSpan={2}>Clube</th>
+                <th className="public-table-divider" colSpan={PUBLIC_STAT_COLUMNS.length}>Total</th>
+                <th className="public-table-divider" colSpan={PUBLIC_STAT_COLUMNS.length}>Casa</th>
+                <th className="public-table-divider" colSpan={PUBLIC_STAT_COLUMNS.length}>Fora</th>
+              </tr>
+              <tr>
+                {renderStatHeaders("total")}
+                {renderStatHeaders("home")}
+                {renderStatHeaders("away")}
+              </tr>
+            </thead>
+            <tbody>
+              {classificationRows.map((row, index) => (
+                <tr key={row.teamId}>
+                  <td>{index + 1}</td>
+                  <td className="public-table-club">
+                    <span className="public-club-cell">
+                    <span className="public-club-name">{row.name}</span>
+                    <span className="public-club-form">
+                      <span>Últimos:</span>
+                      {row.recentForm.length > 0 ? (
+                        <span className="public-form-list">
+                          {row.recentForm.map((result, resultIndex) => (
+                            <span
+                              className={
+                                result.label.startsWith("V")
+                                  ? "public-form-win"
+                                  : result.label.startsWith("D")
+                                    ? "public-form-loss"
+                                    : "public-form-draw"
+                              }
+                              key={`${row.teamId}-${resultIndex}-${result.label}`}
+                              title={result.title}
+                            >
+                              {result.label}
+                            </span>
+                          ))}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </span>
+                    </span>
+                  </td>
+                  {renderStatsCells(totalClassificationStats(row), { divider: true, emphasizePoints: true, group: "total" })}
+                  {renderStatsCells(row.home, { divider: true, group: "home" })}
+                  {renderStatsCells(row.away, { divider: true, group: "away" })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </main>
   );
 }
+
+
