@@ -48,7 +48,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
   const [activeItemId, setActiveItemId] = useState(initialItem?.id ?? null);
   const activeItem = items.find((item) => item.id === activeItemId) ?? initialItem;
   const embedUrl = videoEmbedUrl(activeItem?.video_url);
-  const hasScrollControls = items.length > 3;
+  const hasScrollControls = items.length > 4;
   const matchdayLabel = matchdayNumber ? `Jornada ${String(matchdayNumber).padStart(2, "0")}` : "Jornada";
 
   function scrollRoundupList(direction: -1 | 1) {
