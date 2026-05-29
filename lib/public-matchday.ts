@@ -131,7 +131,7 @@ async function readPublishedMatchdayRoundupItems(matchdayId: string) {
     return fetchSupabaseAdminTable<SupabaseMatchdayRoundupItem>(
       `matchday_roundup_items?select=id,matchday_id,label,title,subtitle,image_url,video_url,duration,type,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
-      )}&status=eq.published&order=sort_order.asc&limit=3`
+      )}&status=eq.published&order=sort_order.asc&limit=50`
     );
   } catch {
     return [];
