@@ -3,7 +3,7 @@ import { getPublicMatchdayDiagnostic, seasonLabelToUrlSegment, type PublicMatchd
 import RoundupVideoSwitcher from "@/components/public/RoundupVideoSwitcher";
 
 export const dynamic = "force-dynamic";
-// RoundupVideoSwitcher import fixed for Vercel build.
+// Vercel import check.
 type PublicMatchdayPageProps = {
   params: Promise<{
     competitionSlug: string;
