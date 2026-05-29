@@ -421,7 +421,7 @@ async function readMatchdayRoundupItems(matchdayId: string): Promise<SupabaseMat
   return fetchSupabaseAdminTable<SupabaseMatchdayRoundupItem>(
     `matchday_roundup_items?select=id,matchday_id,label,title,subtitle,image_url,video_url,duration,type,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
       matchdayId
-    )}&order=sort_order.asc&limit=3`
+    )}&order=sort_order.asc&limit=10`
   ).catch(() => []);
 }
 
@@ -617,7 +617,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
       <input type="hidden" name="action_type" value="save_matchday_roundup_items" />
       <input type="hidden" name="return_to" value={returnToResumo} />
       <input type="hidden" name="matchday_id" value={matchday.id} />
-      {[1, 2, 3].map((order) => {
+      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((order) => {
         const item = roundupItems.find((roundupItem) => roundupItem.sort_order === order);
         return (
           <fieldset className={`editorial-admin-fieldset editorial-admin-highlight-${order}`} key={order}>
@@ -630,7 +630,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             </div>
             <div className="editorial-admin-field">
               <label htmlFor={`roundup-${order}-label`}>Etiqueta</label>
-              <input id={`roundup-${order}-label`} name={`roundup_${order}_label`} defaultValue={item?.label ?? ""} placeholder={order === 1 ? "VIDEO" : order === 2 ? "GOLOS" : "NOTICIA"} />
+              <input id={`roundup-${order}-label`} name={`roundup_${order}_label`} defaultValue={item?.label ?? ""} placeholder={order === 1 ? "VIDEO" : order === 2 ? "GOLOS" : order === 3 ? "NOTICIA" : "RESUMO"} />
             </div>
             <div className="editorial-admin-field">
               <label htmlFor={`roundup-${order}-title`}>Titulo</label>
@@ -638,12 +638,12 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 id={`roundup-${order}-title`}
                 name={`roundup_${order}_title`}
                 defaultValue={item?.title ?? ""}
-                placeholder={order === 1 ? "Girona 0 - 1 Rayo Vallecano" : order === 2 ? "Villarreal 2 - 3 Real Oviedo" : "Mallorca 0 - 1 FC Barcelona"}
+                placeholder={order === 1 ? "Girona 0 - 1 Rayo Vallecano" : order === 2 ? "Villarreal 2 - 3 Real Oviedo" : order === 3 ? "Mallorca 0 - 1 FC Barcelona" : "Titulo do item da jornada"}
               />
             </div>
             <div className="editorial-admin-field">
               <label htmlFor={`roundup-${order}-subtitle`}>Subtitulo</label>
-              <input id={`roundup-${order}-subtitle`} name={`roundup_${order}_subtitle`} defaultValue={item?.subtitle ?? ""} placeholder={order === 1 ? "Resumo completo" : order === 2 ? "Golos e melhores momentos" : "Noticia de contexto"} />
+              <input id={`roundup-${order}-subtitle`} name={`roundup_${order}_subtitle`} defaultValue={item?.subtitle ?? ""} placeholder={order === 1 ? "Resumo completo" : order === 2 ? "Golos e melhores momentos" : order === 3 ? "Noticia de contexto" : "Descricao curta"} />
             </div>
             <div className="editorial-admin-field">
               <label htmlFor={`roundup-${order}-image-url`}>Imagem URL</label>
@@ -851,7 +851,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               </div>
               <div className="editorial-below-mode-section" data-below-section="roundup" hidden={belowHeadlineMode !== "roundup"} id="resumo-jornada">
                 <h4>Resumo da Jornada</h4>
-                <p className="editorial-admin-muted">Edita ate tres entradas para videos, golos, resumos ou noticias da jornada.</p>
+                <p className="editorial-admin-muted">Edita ate dez entradas para videos, golos, resumos ou noticias da jornada.</p>
                 {scopedMessageFor(created, error, feedbackScope, "resumo-jornada")}
                 {roundupEditor}
               </div>
