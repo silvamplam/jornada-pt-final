@@ -1864,13 +1864,14 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   const finishedMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "finished");
   const scheduledMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "scheduled");
   const selectedMatchdayDateContext = formatMatchdayDateContext(context.matchesForMatchday);
-  const publishedHeadline = context.editorial?.status === "published" ? context.editorial : null;
-  const belowHeadlineMode = context.editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
-  const complementaryMode = context.editorial?.complementary_mode ?? "none";
+  const editorial = context.editorial;
+  const publishedHeadline = editorial?.status === "published" ? editorial : null;
+  const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
+  const complementaryMode = editorial?.complementary_mode ?? "none";
   const hasPublishedComplementaryStory =
     complementaryMode === "complementary_story" &&
-    context.editorial?.complementary_status === "published" &&
-    Boolean(context.editorial.complementary_title?.trim());
+    editorial?.complementary_status === "published" &&
+    Boolean(editorial?.complementary_title?.trim());
   const hasRoundupVideoComplement = complementaryMode === "roundup_video" && context.roundupItems.length > 0;
   const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
   const nextScheduledMatches = [...scheduledMatches]
@@ -2069,7 +2070,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               {hasRoundupVideoComplement ? (
                 <RoundupVideoSwitcher
                   items={context.roundupItems}
-                  initialItemId={context.editorial?.complementary_roundup_item_id ?? null}
+                  initialItemId={editorial?.complementary_roundup_item_id ?? null}
                 />
               ) : (
                 <>
@@ -2206,29 +2207,29 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                 </a>
               </section>
               <aside className="public-matchday-cover-side public-editorial-flex-block" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar da jornada">
-                {hasPublishedComplementaryStory ? (
+                {hasPublishedComplementaryStory && editorial ? (
                   <>
-                    {context.editorial.complementary_image_url ? (
+                    {editorial.complementary_image_url ? (
                       <div className="public-complement-media">
-                        <img src={context.editorial.complementary_image_url} alt="" />
+                        <img src={editorial.complementary_image_url} alt="" />
                       </div>
                     ) : null}
                     <div className="public-complement-body">
-                      {context.editorial.complementary_label ? (
-                        <span className="public-complement-label">{context.editorial.complementary_label}</span>
+                      {editorial.complementary_label ? (
+                        <span className="public-complement-label">{editorial.complementary_label}</span>
                       ) : null}
-                      {context.editorial.complementary_title ? (
-                        context.editorial.complementary_link_url ? (
-                          <a className="public-complement-title-link" href={context.editorial.complementary_link_url}>
-                            <strong>{context.editorial.complementary_title}</strong>
+                      {editorial.complementary_title ? (
+                        editorial.complementary_link_url ? (
+                          <a className="public-complement-title-link" href={editorial.complementary_link_url}>
+                            <strong>{editorial.complementary_title}</strong>
                           </a>
                         ) : (
-                          <strong>{context.editorial.complementary_title}</strong>
+                          <strong>{editorial.complementary_title}</strong>
                         )
                       ) : null}
-                      {context.editorial.complementary_text ? <p>{context.editorial.complementary_text}</p> : null}
-                      {context.editorial.complementary_link_url ? (
-                        <a className="public-editorial-more-link" href={context.editorial.complementary_link_url}>
+                      {editorial.complementary_text ? <p>{editorial.complementary_text}</p> : null}
+                      {editorial.complementary_link_url ? (
+                        <a className="public-editorial-more-link" href={editorial.complementary_link_url}>
                           Ver mais <span aria-hidden="true">›</span>
                         </a>
                       ) : null}
