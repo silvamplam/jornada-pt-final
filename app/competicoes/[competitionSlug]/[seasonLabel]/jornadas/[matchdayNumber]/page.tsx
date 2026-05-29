@@ -3,7 +3,7 @@ import { getPublicMatchdayDiagnostic, seasonLabelToUrlSegment, type PublicMatchd
 import RoundupVideoSwitcher from "@/components/public/RoundupVideoSwitcher";
 
 export const dynamic = "force-dynamic";
-// Vercel import check.
+
 type PublicMatchdayPageProps = {
   params: Promise<{
     competitionSlug: string;
@@ -1867,6 +1867,11 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   const publishedHeadline = context.editorial?.status === "published" ? context.editorial : null;
   const belowHeadlineMode = context.editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = context.editorial?.complementary_mode ?? "none";
+  const hasPublishedComplementaryStory =
+    complementaryMode === "complementary_story" &&
+    context.editorial?.complementary_status === "published" &&
+    Boolean(context.editorial.complementary_title?.trim());
+  const hasRoundupVideoComplement = complementaryMode === "roundup_video" && context.roundupItems.length > 0;
   const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
   const nextScheduledMatches = [...scheduledMatches]
     .sort((firstMatch, secondMatch) => new Date(firstMatch.kickoff_at).getTime() - new Date(secondMatch.kickoff_at).getTime())
@@ -2061,7 +2066,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
               </div>
             </article>
             <div className="public-matchday-main-lower">
-              {complementaryMode === "roundup_video" ? (
+              {hasRoundupVideoComplement ? (
                 <RoundupVideoSwitcher
                   items={context.roundupItems}
                   initialItemId={context.editorial?.complementary_roundup_item_id ?? null}
@@ -2201,7 +2206,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                 </a>
               </section>
               <aside className="public-matchday-cover-side public-editorial-flex-block" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar da jornada">
-                {complementaryMode === "complementary_story" && context.editorial?.complementary_status === "published" ? (
+                {hasPublishedComplementaryStory ? (
                   <>
                     {context.editorial.complementary_image_url ? (
                       <div className="public-complement-media">
