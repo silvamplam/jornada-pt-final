@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { SupabaseMatchdayRoundupItem } from "@/lib/supabase";
 
 type RoundupVideoSwitcherProps = {
@@ -39,6 +39,7 @@ function videoEmbedUrl(value?: string | null) {
 }
 
 export default function RoundupVideoSwitcher({ items, initialItemId }: RoundupVideoSwitcherProps) {
+  const listRef = useRef<HTMLDivElement | null>(null);
   const initialItem = useMemo(
     () => items.find((item) => item.id === initialItemId) ?? items[0] ?? null,
     [initialItemId, items]
@@ -46,6 +47,20 @@ export default function RoundupVideoSwitcher({ items, initialItemId }: RoundupVi
   const [activeItemId, setActiveItemId] = useState(initialItem?.id ?? null);
   const activeItem = items.find((item) => item.id === activeItemId) ?? initialItem;
   const embedUrl = videoEmbedUrl(activeItem?.video_url);
+  const hasScrollControls = items.length > 3;
+
+  function scrollRoundupList(direction: -1 | 1) {
+    const list = listRef.current;
+
+    if (!list) {
+      return;
+    }
+
+    list.scrollBy({
+      top: direction * Math.max(72, Math.round(list.clientHeight * 0.82)),
+      behavior: "smooth"
+    });
+  }
 
   return (
     <>
@@ -53,7 +68,12 @@ export default function RoundupVideoSwitcher({ items, initialItemId }: RoundupVi
         className="public-matchday-roundup public-below-headline-roundup public-editorial-flex-block"
         data-editorial-slot="resumo-ou-noticias"
       >
-        <div className="public-cover-story-strip" aria-label="Resumos e videos da jornada">
+        {hasScrollControls ? (
+          <button className="public-roundup-scroll-button" onClick={() => scrollRoundupList(-1)} type="button" aria-label="Ver itens anteriores">
+            &uarr;
+          </button>
+        ) : null}
+        <div className="public-cover-story-strip public-roundup-scroll-window" ref={listRef} aria-label="Resumos e videos da jornada">
           {items.length > 0 ? (
             items.map((item) => {
               const showPlay = Boolean(item.video_url) || item.type === "video" || item.type === "golos" || item.type === "resumo";
@@ -76,10 +96,12 @@ export default function RoundupVideoSwitcher({ items, initialItemId }: RoundupVi
                       </span>
                     ) : null}
                   </div>
-                  {item.label ? <span>{item.label}</span> : null}
+                  <span className="public-roundup-meta">
+                    {item.label ? <span>{item.label}</span> : <span aria-hidden="true" />}
+                    {item.duration ? <span className="public-roundup-duration">{item.duration}</span> : null}
+                  </span>
                   <strong>{item.title ?? "Video da jornada"}</strong>
                   {item.subtitle ? <small>{item.subtitle}</small> : null}
-                  {item.duration ? <span className="public-roundup-duration">{item.duration}</span> : null}
                   <span aria-hidden="true" className="public-roundup-arrow">
                     &rsaquo;
                   </span>
@@ -93,6 +115,11 @@ export default function RoundupVideoSwitcher({ items, initialItemId }: RoundupVi
             </div>
           )}
         </div>
+        {hasScrollControls ? (
+          <button className="public-roundup-scroll-button" onClick={() => scrollRoundupList(1)} type="button" aria-label="Ver itens seguintes">
+            &darr;
+          </button>
+        ) : null}
         <a className="public-editorial-more-link" href="#jogos">
           Ver mais videos e golos <span aria-hidden="true">&rsaquo;</span>
         </a>
@@ -104,22 +131,32 @@ export default function RoundupVideoSwitcher({ items, initialItemId }: RoundupVi
         data-editorial-slot="video-ou-imagem-noticia"
       >
         {activeItem ? (
-          <div className="public-complement-media">
-            {embedUrl ? (
-              <iframe
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                src={embedUrl}
-                title={activeItem.title ?? "Video da jornada"}
-              />
-            ) : activeItem.image_url ? (
-              <img alt="" src={activeItem.image_url} />
-            ) : (
-              <span aria-hidden="true" className="public-media-play">
-                play
+          <>
+            <div className="public-complement-media">
+              {embedUrl ? (
+                <iframe
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  src={embedUrl}
+                  title={activeItem.title ?? "Video da jornada"}
+                />
+              ) : activeItem.image_url ? (
+                <img alt="" src={activeItem.image_url} />
+              ) : (
+                <span aria-hidden="true" className="public-media-play">
+                  play
+                </span>
+              )}
+            </div>
+            <div className="public-complement-body public-roundup-active-body">
+              <span className="public-roundup-active-meta">
+                {activeItem.label ? <span className="public-complement-label">{activeItem.label}</span> : <span aria-hidden="true" />}
+                {activeItem.duration ? <span>{activeItem.duration}</span> : null}
               </span>
-            )}
-          </div>
+              <strong>{activeItem.title ?? "Video da jornada"}</strong>
+              {activeItem.subtitle ? <p>{activeItem.subtitle}</p> : null}
+            </div>
+          </>
         ) : (
           <div className="public-complement-body">
             <strong>Video por definir</strong>

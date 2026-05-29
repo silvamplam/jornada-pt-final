@@ -743,6 +743,27 @@ const publicMatchdayStyles = `
     padding-top: 0;
   }
 
+  .public-matchday-roundup .public-roundup-scroll-window {
+    max-height: 224px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+  }
+
+  .public-roundup-scroll-button {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 24px;
+    border: 1px solid #dfe5ec;
+    background: #ffffff;
+    color: #263241;
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1;
+    cursor: pointer;
+  }
+
   .public-cover-story {
     display: grid;
     gap: 6px;
@@ -825,6 +846,22 @@ const publicMatchdayStyles = `
     grid-row: 1 / 2;
   }
 
+  .public-matchday-roundup .public-cover-story .public-roundup-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    grid-column: 2 / 5;
+    grid-row: 1 / 2;
+    min-width: 0;
+  }
+
+  .public-matchday-roundup .public-cover-story .public-roundup-meta span {
+    grid-column: auto;
+    grid-row: auto;
+    min-width: 0;
+  }
+
   .public-matchday-roundup .public-cover-story strong {
     grid-column: 2 / 3;
     grid-row: 2 / 3;
@@ -848,8 +885,8 @@ const publicMatchdayStyles = `
   }
 
   .public-roundup-duration {
-    grid-column: 3 / 4;
-    grid-row: 2 / 3;
+    grid-column: auto;
+    grid-row: auto;
     justify-self: end;
   }
 
@@ -926,6 +963,26 @@ const publicMatchdayStyles = `
 
   .public-roundup-video-panel .public-complement-media {
     width: 100%;
+  }
+
+  .public-roundup-video-panel .public-roundup-active-body {
+    padding-top: 8px;
+  }
+
+  .public-roundup-active-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: #263241;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .public-roundup-active-meta span:last-child {
+    color: #607086;
+    white-space: nowrap;
   }
 
   .public-complement-body {
