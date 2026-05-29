@@ -762,7 +762,7 @@ const publicMatchdayStyles = `
     position: relative;
     height: 100%;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
     border-top: 1px solid #eef2f6;
     border-bottom: 1px solid #eef2f6;
   }
@@ -822,12 +822,12 @@ const publicMatchdayStyles = `
 
   .public-roundup-scroll-button {
     position: absolute;
-    left: 50%;
+    left: calc(100% + 8px);
     z-index: 2;
     display: grid;
     place-items: center;
-    width: 24px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
     border: 1px solid rgba(197, 207, 218, 0.82);
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.9);
@@ -836,16 +836,15 @@ const publicMatchdayStyles = `
     font-weight: 900;
     line-height: 1;
     cursor: pointer;
-    transform: translateX(-50%);
     box-shadow: 0 1px 4px rgba(16, 21, 27, 0.08);
   }
 
   .public-roundup-scroll-button-top {
-    top: 5px;
+    top: 12px;
   }
 
   .public-roundup-scroll-button-bottom {
-    bottom: 5px;
+    bottom: 12px;
   }
 
   .public-cover-story {

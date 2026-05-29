@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseMatchdayRoundupItem } from "@/lib/supabase";
 
 type RoundupVideoSwitcherProps = {
@@ -49,7 +49,32 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
   const activeItem = items.find((item) => item.id === activeItemId) ?? initialItem;
   const embedUrl = videoEmbedUrl(activeItem?.video_url);
   const hasScrollControls = items.length > 4;
+  const [scrollState, setScrollState] = useState({
+    canScrollDown: hasScrollControls,
+    canScrollUp: false
+  });
   const matchdayLabel = matchdayNumber ? `Jornada ${String(matchdayNumber).padStart(2, "0")}` : "Jornada";
+
+  const updateScrollState = useCallback(() => {
+    const list = listRef.current;
+
+    if (!list || !hasScrollControls) {
+      setScrollState({ canScrollDown: false, canScrollUp: false });
+      return;
+    }
+
+    const maxScrollTop = list.scrollHeight - list.clientHeight;
+    const nextState = {
+      canScrollDown: list.scrollTop < maxScrollTop - 1,
+      canScrollUp: list.scrollTop > 1
+    };
+
+    setScrollState((currentState) =>
+      currentState.canScrollDown === nextState.canScrollDown && currentState.canScrollUp === nextState.canScrollUp
+        ? currentState
+        : nextState
+    );
+  }, [hasScrollControls]);
 
   function scrollRoundupList(direction: -1 | 1) {
     const list = listRef.current;
@@ -64,6 +89,23 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
     });
   }
 
+  useEffect(() => {
+    updateScrollState();
+    const list = listRef.current;
+
+    if (!list) {
+      return;
+    }
+
+    list.addEventListener("scroll", updateScrollState, { passive: true });
+    window.addEventListener("resize", updateScrollState);
+
+    return () => {
+      list.removeEventListener("scroll", updateScrollState);
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [items.length, updateScrollState]);
+
   return (
     <>
       <section
@@ -74,7 +116,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
           <span className="public-roundup-matchday-label">{matchdayLabel}</span>
         </div>
         <div className="public-roundup-scroll-frame">
-          {hasScrollControls ? (
+          {hasScrollControls && scrollState.canScrollUp ? (
             <button className="public-roundup-scroll-button public-roundup-scroll-button-top" onClick={() => scrollRoundupList(-1)} type="button" aria-label="Ver itens anteriores">
               &uarr;
             </button>
@@ -121,7 +163,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
               </div>
             )}
           </div>
-          {hasScrollControls ? (
+          {hasScrollControls && scrollState.canScrollDown ? (
             <button className="public-roundup-scroll-button public-roundup-scroll-button-bottom" onClick={() => scrollRoundupList(1)} type="button" aria-label="Ver itens seguintes">
               &darr;
             </button>
