@@ -492,14 +492,14 @@ const publicMatchdayStyles = `
 
   .public-side-editorial-inner {
     display: grid;
-    gap: 10px;
+    gap: 12px;
     align-content: start;
     min-width: 0;
   }
 
   .public-side-editorial-image {
     width: 100%;
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 16 / 9;
     overflow: hidden;
     border-radius: 6px;
     background: #eef2f6;
@@ -515,15 +515,16 @@ const publicMatchdayStyles = `
 
   .public-side-editorial-copy {
     display: grid;
-    gap: 7px;
+    gap: 8px;
     min-width: 0;
   }
 
   .public-side-editorial-label {
     color: #c40012;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 900;
     line-height: 1;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
   }
 
@@ -531,8 +532,9 @@ const publicMatchdayStyles = `
     display: block;
     color: #10151b;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: 18px;
-    line-height: 1.12;
+    font-size: 16.5px;
+    font-weight: 700;
+    line-height: 1.18;
   }
 
   .public-side-editorial-copy small {
@@ -546,7 +548,7 @@ const publicMatchdayStyles = `
     margin: 0;
     color: #526174;
     font-size: 13px;
-    line-height: 1.38;
+    line-height: 1.48;
   }
 
   .public-side-editorial-title-link {
@@ -558,6 +560,16 @@ const publicMatchdayStyles = `
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 3px;
+  }
+
+  .public-side-editorial-block .public-editorial-more-link {
+    justify-content: flex-start;
+    gap: 6px;
+    width: fit-content;
+    margin-top: 2px;
+    color: #263241;
+    font-size: 10.5px;
+    letter-spacing: 0.03em;
   }
 
   .public-side-editorial-placeholder {
