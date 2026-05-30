@@ -925,7 +925,7 @@ const publicMatchdayStyles = `
 
   .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup .public-cover-story {
     min-height: calc(var(--public-roundup-visible-list-height) / 4);
-    gap: 3px 10px;
+    gap: 3px 14px;
     padding: 7px 6px;
     border-bottom-color: #edf2f7;
   }
