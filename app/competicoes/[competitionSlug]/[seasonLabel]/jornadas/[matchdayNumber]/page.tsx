@@ -1156,14 +1156,14 @@ const publicMatchdayStyles = `
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-width: 324px;
+    max-width: 372px;
     margin-left: auto;
     overflow: hidden;
   }
 
   .public-roundup-video-panel .public-complement-media {
     width: 100%;
-    max-height: 184px;
+    max-height: 210px;
     aspect-ratio: 16 / 9;
     overflow: hidden;
   }
