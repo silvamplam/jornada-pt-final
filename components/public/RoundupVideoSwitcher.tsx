@@ -7,6 +7,7 @@ type RoundupVideoSwitcherProps = {
   items: SupabaseMatchdayRoundupItem[];
   initialItemId?: string | null;
   matchdayNumber?: number | null;
+  heading?: string | null;
 };
 
 function videoEmbedUrl(value?: string | null) {
@@ -39,7 +40,7 @@ function videoEmbedUrl(value?: string | null) {
   return null;
 }
 
-export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNumber }: RoundupVideoSwitcherProps) {
+export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNumber, heading }: RoundupVideoSwitcherProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const initialItem = useMemo(
     () => items.find((item) => item.id === initialItemId) ?? items[0] ?? null,
@@ -53,9 +54,10 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
     canScrollDown: hasScrollControls,
     canScrollUp: false
   });
-  const matchdayLabel = matchdayNumber
+  const fallbackMatchdayLabel = matchdayNumber
     ? `Jornada ${String(matchdayNumber).padStart(2, "0")} · Jogos Vídeo Resumo`
     : "Jornada · Jogos Vídeo Resumo";
+  const matchdayLabel = heading?.trim() || fallbackMatchdayLabel;
 
   const updateScrollState = useCallback(() => {
     const list = listRef.current;

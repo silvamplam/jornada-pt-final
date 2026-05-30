@@ -795,6 +795,7 @@ async function saveMatchdayEditorial(formData: FormData) {
   const complementaryText = cleanText(formData.get("complementary_text"));
   const complementaryImageUrl = cleanText(formData.get("complementary_image_url"));
   const complementaryLinkUrl = cleanText(formData.get("complementary_link_url"));
+  const roundupVideoHeading = cleanText(formData.get("roundup_video_heading"));
 
   if (!matchdayId || !["draft", "published"].includes(status)) {
     throw new Error("missing-fields");
@@ -838,6 +839,7 @@ async function saveMatchdayEditorial(formData: FormData) {
       complementary_image_url: complementaryImageUrl,
       complementary_link_url: complementaryLinkUrl,
       complementary_status: complementaryStatus,
+      roundup_video_heading: roundupVideoHeading,
       status,
       updated_at: new Date().toISOString()
     })
