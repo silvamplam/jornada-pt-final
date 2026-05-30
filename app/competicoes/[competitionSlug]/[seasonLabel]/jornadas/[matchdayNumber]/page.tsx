@@ -997,6 +997,16 @@ const publicMatchdayStyles = `
     transform: translate(-50%, -50%);
   }
 
+  .public-media-play-icon-only::before {
+    content: "";
+    width: 0;
+    height: 0;
+    margin-left: 2px;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 7px solid currentColor;
+  }
+
   .public-matchday-roundup .public-highlight-image .public-media-play {
     width: 18px;
     height: 18px;
@@ -1006,6 +1016,13 @@ const publicMatchdayStyles = `
     font-weight: 800;
     text-transform: uppercase;
     box-shadow: 0 1px 2px rgba(16, 21, 27, 0.08);
+  }
+
+  .public-matchday-roundup .public-highlight-image .public-media-play-icon-only::before {
+    margin-left: 1px;
+    border-top-width: 4px;
+    border-bottom-width: 4px;
+    border-left-width: 6px;
   }
 
   .public-matchday-roundup .public-cover-story span,

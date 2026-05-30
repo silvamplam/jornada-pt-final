@@ -145,11 +145,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
                   >
                     <div className="public-highlight-image">
                       {imageUrl ? <img alt="" src={imageUrl} /> : null}
-                      {showPlay ? (
-                        <span aria-hidden="true" className="public-media-play">
-                          play
-                        </span>
-                      ) : null}
+                      {showPlay ? <span aria-hidden="true" className="public-media-play public-media-play-icon-only" /> : null}
                     </div>
                     <span className="public-roundup-meta">
                       {item.label ? <span>{item.label}</span> : <span aria-hidden="true" />}
@@ -196,9 +192,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
               ) : activeItem.image_url ? (
                 <img alt="" src={activeItem.image_url} />
               ) : (
-                <span aria-hidden="true" className="public-media-play">
-                  play
-                </span>
+                <span aria-hidden="true" className="public-media-play public-media-play-icon-only" />
               )}
             </div>
             <div className="public-complement-body public-roundup-active-body">
