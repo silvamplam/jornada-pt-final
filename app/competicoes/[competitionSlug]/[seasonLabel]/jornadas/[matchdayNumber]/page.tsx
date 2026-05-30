@@ -487,7 +487,7 @@ const publicMatchdayStyles = `
 
   .public-matchday-feature {
     grid-area: feature;
-    padding-top: 0;
+    padding: 0 14px 14px;
   }
 
   .public-matchday-cover-side {
@@ -689,7 +689,7 @@ const publicMatchdayStyles = `
 
   .public-cover-support {
     display: grid;
-    gap: 8px;
+    gap: 4px;
     align-content: start;
     height: auto;
     padding: 0;
@@ -699,8 +699,11 @@ const publicMatchdayStyles = `
 
   .public-cover-support h4 {
     margin: 0;
-    font-size: 14px;
+    padding-top: 0;
+    border-top: 0;
+    font-size: 13px;
     font-weight: 900;
+    line-height: 1.05;
     text-transform: uppercase;
   }
 
@@ -713,7 +716,7 @@ const publicMatchdayStyles = `
 
   .public-cover-channel-list {
     display: grid;
-    gap: 8px;
+    gap: 0;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -721,31 +724,31 @@ const publicMatchdayStyles = `
 
   .public-cover-channel-list li {
     display: grid;
-    grid-template-columns: 44px minmax(0, 1fr);
+    grid-template-columns: 38px minmax(0, 1fr);
     gap: 10px;
     align-items: center;
     min-width: 0;
-    padding: 9px 0;
-    border-top: 1px solid #eef2f6;
-    font-size: 13px;
+    padding: 6px 0;
+    border-top: 1px solid #f0f3f7;
+    font-size: 12.5px;
     font-weight: 900;
   }
 
   .public-cover-tv-game {
     display: grid;
-    gap: 4px;
+    gap: 2px;
     min-width: 0;
   }
 
   .public-cover-tv-game strong {
     color: #10151b;
-    line-height: 1.18;
+    line-height: 1.14;
     white-space: normal;
   }
 
   .public-cover-tv-game time {
     color: #607086;
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 800;
   }
 
@@ -761,10 +764,10 @@ const publicMatchdayStyles = `
     justify-content: center;
     gap: 5px;
     min-width: 0;
-    width: 44px;
-    min-height: 32px;
+    width: 38px;
+    min-height: 28px;
     color: #263241;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 900;
     text-align: center;
   }
@@ -775,10 +778,10 @@ const publicMatchdayStyles = `
   }
 
   .public-cover-tv-confirmation {
-    padding: 10px 0;
-    border-top: 1px solid #eef2f6;
+    padding: 7px 0;
+    border-top: 1px solid #f0f3f7;
     color: #607086;
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 800;
     line-height: 1.35;
   }
@@ -787,14 +790,14 @@ const publicMatchdayStyles = `
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 38px;
-    min-height: 24px;
-    padding: 3px 6px;
+    min-width: 34px;
+    min-height: 22px;
+    padding: 3px 5px;
     border: 1px solid #eef2f6;
     border-radius: 4px;
     background: #eef2f6;
     color: #10151b;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 900;
     line-height: 1;
     text-align: center;
@@ -802,8 +805,8 @@ const publicMatchdayStyles = `
   }
 
   .public-cover-channel-list img {
-    max-width: 42px;
-    max-height: 34px;
+    max-width: 36px;
+    max-height: 28px;
     width: auto;
     height: auto;
     object-fit: contain;
@@ -1892,7 +1895,7 @@ const publicMatchdayStyles = `
     }
 
     .public-cover-channel-list li {
-      grid-template-columns: 44px minmax(0, 1fr);
+      grid-template-columns: 38px minmax(0, 1fr);
     }
 
     .public-cover-tv-channel,
