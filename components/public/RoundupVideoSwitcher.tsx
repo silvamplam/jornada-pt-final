@@ -53,7 +53,9 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
     canScrollDown: hasScrollControls,
     canScrollUp: false
   });
-  const matchdayLabel = matchdayNumber ? `Jornada ${String(matchdayNumber).padStart(2, "0")}` : "Jornada";
+  const matchdayLabel = matchdayNumber
+    ? `Jornada ${String(matchdayNumber).padStart(2, "0")} · Jogos Vídeo Resumo`
+    : "Jornada · Jogos Vídeo Resumo";
 
   const updateScrollState = useCallback(() => {
     const list = listRef.current;
