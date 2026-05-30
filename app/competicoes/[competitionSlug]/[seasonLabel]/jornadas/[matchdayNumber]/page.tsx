@@ -403,7 +403,7 @@ const publicMatchdayStyles = `
     justify-content: flex-start;
     gap: 4px;
     min-width: 0;
-    padding: 3px 0 0;
+    padding: 3px 0 0 30px;
     border-radius: 0;
     background: transparent;
     color: #607086;
