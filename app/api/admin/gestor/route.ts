@@ -796,6 +796,7 @@ async function saveMatchdayEditorial(formData: FormData) {
   const complementaryImageUrl = cleanText(formData.get("complementary_image_url"));
   const complementaryLinkUrl = cleanText(formData.get("complementary_link_url"));
   const roundupVideoHeading = cleanText(formData.get("roundup_video_heading"));
+  const roundupVideoHeadingColor = cleanText(formData.get("roundup_video_heading_color"));
 
   if (!matchdayId || !["draft", "published"].includes(status)) {
     throw new Error("missing-fields");
@@ -819,30 +820,39 @@ async function saveMatchdayEditorial(formData: FormData) {
     throw new Error("roundup-item-invalid");
   }
 
+  const editorialPayload: Record<string, string | null> = {
+    matchday_id: matchdayId,
+    title,
+    summary,
+    title_color: titleColor,
+    image_url: imageUrl,
+    below_headline_mode: belowHeadlineMode,
+    complementary_mode: complementaryMode,
+    complementary_roundup_item_id: complementaryRoundupItemId,
+    complementary_label: complementaryLabel,
+    complementary_title: complementaryTitle,
+    complementary_text: complementaryText,
+    complementary_image_url: complementaryImageUrl,
+    complementary_link_url: complementaryLinkUrl,
+    complementary_status: complementaryStatus,
+    status,
+    updated_at: new Date().toISOString()
+  };
+
+  if (formData.has("roundup_video_heading")) {
+    editorialPayload.roundup_video_heading = roundupVideoHeading;
+  }
+
+  if (formData.has("roundup_video_heading_color")) {
+    editorialPayload.roundup_video_heading_color = roundupVideoHeadingColor;
+  }
+
   await writeSupabaseAdmin("matchday_editorials?on_conflict=matchday_id", {
     method: "POST",
     headers: {
       Prefer: "resolution=merge-duplicates,return=minimal"
     },
-    body: JSON.stringify({
-      matchday_id: matchdayId,
-      title,
-      summary,
-      title_color: titleColor,
-      image_url: imageUrl,
-      below_headline_mode: belowHeadlineMode,
-      complementary_mode: complementaryMode,
-      complementary_roundup_item_id: complementaryRoundupItemId,
-      complementary_label: complementaryLabel,
-      complementary_title: complementaryTitle,
-      complementary_text: complementaryText,
-      complementary_image_url: complementaryImageUrl,
-      complementary_link_url: complementaryLinkUrl,
-      complementary_status: complementaryStatus,
-      roundup_video_heading: roundupVideoHeading,
-      status,
-      updated_at: new Date().toISOString()
-    })
+    body: JSON.stringify(editorialPayload)
   });
 }
 

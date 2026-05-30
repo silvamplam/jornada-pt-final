@@ -1143,12 +1143,12 @@ const publicMatchdayStyles = `
   }
 
   .public-roundup-video-panel .public-complement-media {
-    width: 100%;
+    width: min(100%, 334px);
   }
 
   .public-roundup-video-panel .public-roundup-active-body {
-    gap: 5px;
-    padding: 10px 2px 0;
+    gap: 4px;
+    padding: 8px 2px 0;
   }
 
   .public-roundup-active-meta {
@@ -1190,12 +1190,13 @@ const publicMatchdayStyles = `
 
   .public-roundup-video-panel .public-complement-body strong {
     margin-top: 2px;
+    font-size: 16.5px;
   }
 
   .public-roundup-video-panel .public-complement-body p {
     max-width: 96%;
     color: #526174;
-    line-height: 1.34;
+    line-height: 1.28;
   }
 
   .public-complement-title-link {
@@ -2428,6 +2429,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                   items={context.roundupItems}
                   initialItemId={editorial?.complementary_roundup_item_id ?? null}
                   heading={editorial?.roundup_video_heading ?? null}
+                  headingColor={editorial?.roundup_video_heading_color ?? null}
                   matchdayNumber={context.matchday.number}
                 />
               ) : (

@@ -406,7 +406,7 @@ async function readMatchdayContext(matchdayId: string): Promise<MatchdayContext 
 
 async function readMatchdayEditorial(matchdayId: string): Promise<SupabaseMatchdayEditorial | null> {
   return readFirst<SupabaseMatchdayEditorial>(
-    `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+    `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
       matchdayId
     )}`
   ).catch(() => null);
@@ -788,6 +788,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             <input type="hidden" name="complementary_link_url" value={editorial?.complementary_link_url ?? ""} />
             <input type="hidden" name="complementary_status" value={editorial?.complementary_status ?? "draft"} />
             <input type="hidden" name="roundup_video_heading" value={editorial?.roundup_video_heading ?? ""} />
+            <input type="hidden" name="roundup_video_heading_color" value={editorial?.roundup_video_heading_color ?? ""} />
             <div className="editorial-admin-field">
               <label htmlFor="matchday-editorial-title">Manchete</label>
               <input
@@ -903,6 +904,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 <input type="hidden" name="complementary_link_url" value={editorial?.complementary_link_url ?? ""} />
                 <input type="hidden" name="complementary_status" value={editorial?.complementary_status ?? "draft"} />
                 <input type="hidden" name="roundup_video_heading" value={editorial?.roundup_video_heading ?? ""} />
+                <input type="hidden" name="roundup_video_heading_color" value={editorial?.roundup_video_heading_color ?? ""} />
                 <div className="editorial-admin-field">
                   <label htmlFor="composition-below-headline-mode">Tipo de conteudo abaixo da manchete</label>
                   <select id="composition-below-headline-mode" name="below_headline_mode" defaultValue={belowHeadlineMode}>
@@ -971,6 +973,11 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                       <label htmlFor="roundup-video-heading">Titulo da lista / Cabecalho do resumo</label>
                       <input id="roundup-video-heading" name="roundup_video_heading" defaultValue={editorial?.roundup_video_heading ?? ""} placeholder={roundupVideoHeadingFallback} />
                       <p className="editorial-admin-muted">Se ficar vazio, a pagina publica usa automaticamente: {roundupVideoHeadingFallback}</p>
+                    </div>
+                    <div className="editorial-admin-field">
+                      <label htmlFor="roundup-video-heading-color">Cor do cabecalho</label>
+                      <input id="roundup-video-heading-color" name="roundup_video_heading_color" defaultValue={editorial?.roundup_video_heading_color ?? ""} placeholder="#003f8f" />
+                      <p className="editorial-admin-muted">Se ficar vazio, mantém a cor atual da pagina publica.</p>
                     </div>
                   </div>
                   <div className="editorial-complement-mode-section" data-complementary-section="complementary_story" hidden={complementaryMode !== "complementary_story"}>

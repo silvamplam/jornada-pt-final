@@ -8,6 +8,7 @@ type RoundupVideoSwitcherProps = {
   initialItemId?: string | null;
   matchdayNumber?: number | null;
   heading?: string | null;
+  headingColor?: string | null;
 };
 
 function videoEmbedUrl(value?: string | null) {
@@ -40,7 +41,7 @@ function videoEmbedUrl(value?: string | null) {
   return null;
 }
 
-export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNumber, heading }: RoundupVideoSwitcherProps) {
+export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNumber, heading, headingColor }: RoundupVideoSwitcherProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const initialItem = useMemo(
     () => items.find((item) => item.id === initialItemId) ?? items[0] ?? null,
@@ -117,7 +118,9 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
         data-editorial-slot="resumo-ou-noticias"
       >
         <div className="public-editorial-block-head">
-          <span className="public-roundup-matchday-label">{matchdayLabel}</span>
+          <span className="public-roundup-matchday-label" style={headingColor?.trim() ? { color: headingColor.trim() } : undefined}>
+            {matchdayLabel}
+          </span>
         </div>
         <div className="public-roundup-scroll-frame">
           {hasScrollControls && scrollState.canScrollUp ? (
