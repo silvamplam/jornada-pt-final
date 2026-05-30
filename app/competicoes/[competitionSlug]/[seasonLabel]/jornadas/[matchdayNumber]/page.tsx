@@ -642,6 +642,12 @@ const publicMatchdayStyles = `
     justify-content: flex-end;
   }
 
+  .public-below-headline-highlights .public-editorial-block-head {
+    justify-content: flex-start;
+    padding: 0 0 8px;
+    border-top: 0;
+  }
+
   .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup .public-editorial-block-head {
     padding-top: 0;
     padding-right: 6px;
@@ -961,7 +967,7 @@ const publicMatchdayStyles = `
   .public-below-headline-highlights .public-cover-story-strip {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
-    padding-top: 12px;
+    padding-top: 0;
   }
 
   .public-below-headline-highlights .public-cover-story {
@@ -1128,6 +1134,10 @@ const publicMatchdayStyles = `
     font-family: Georgia, "Times New Roman", serif;
     font-size: 16px;
     line-height: 1.15;
+  }
+
+  .public-matchday-main-lower:has(.public-below-headline-highlights) .public-below-headline-side {
+    padding-top: 22px;
   }
 
   .public-editorial-more-link {
@@ -2245,6 +2255,11 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   const publishedHeadline = editorial?.status === "published" ? editorial : null;
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = editorial?.complementary_mode ?? "none";
+  const belowHeadlineHeading =
+    editorial?.below_headline_heading?.trim() || `Jornada ${String(context.matchday.number).padStart(2, "0")}`;
+  const belowHeadlineHeadingColor = editorial?.below_headline_heading_color?.trim();
+  const belowHeadlineLabel = belowHeadlineMode === "highlights" ? belowHeadlineHeading : `Jornada ${String(context.matchday.number).padStart(2, "0")}`;
+  const belowHeadlineLabelColor = belowHeadlineMode === "highlights" ? belowHeadlineHeadingColor : null;
   const hasPublishedComplementaryStory =
     complementaryMode === "complementary_story" &&
     editorial?.complementary_status === "published" &&
@@ -2485,7 +2500,9 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                 aria-label="Zona editorial abaixo da manchete"
               >
                 <div className="public-editorial-block-head">
-                  <span className="public-roundup-matchday-label">Jornada {String(context.matchday.number).padStart(2, "0")}</span>
+                  <span className="public-roundup-matchday-label" style={belowHeadlineLabelColor ? { color: belowHeadlineLabelColor } : undefined}>
+                    {belowHeadlineLabel}
+                  </span>
                 </div>
                 <div className="public-cover-story-strip" aria-label="Resumos e destaques da jornada">
               {belowHeadlineMode === "highlights" ? (
@@ -2607,13 +2624,8 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
                 </>
               )}
                 </div>
-                {belowHeadlineMode === "highlights" ? (
-                  <a className="public-editorial-more-link" href="#jogos">
-                    Ver mais destaques <span aria-hidden="true">›</span>
-                  </a>
-                ) : null}
               </section>
-              <aside className="public-matchday-cover-side public-editorial-flex-block" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar da jornada">
+              <aside className="public-matchday-cover-side public-editorial-flex-block public-below-headline-side" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar da jornada">
                 {hasPublishedComplementaryStory && editorial ? (
                   <>
                     {editorial.complementary_image_url ? (

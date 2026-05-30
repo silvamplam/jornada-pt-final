@@ -406,7 +406,7 @@ async function readMatchdayContext(matchdayId: string): Promise<MatchdayContext 
 
 async function readMatchdayEditorial(matchdayId: string): Promise<SupabaseMatchdayEditorial | null> {
   return readFirst<SupabaseMatchdayEditorial>(
-    `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+    `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
       matchdayId
     )}`
   ).catch(() => null);
@@ -549,6 +549,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const latestNews = await readMatchdayLatestNews(matchday.id);
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = editorial?.complementary_mode ?? "none";
+  const belowHeadlineHeadingFallback = `Jornada ${String(matchday.number).padStart(2, "0")}`;
   const roundupVideoHeadingFallback = `Jornada ${String(matchday.number).padStart(2, "0")} · Jogos Vídeo Resumo`;
   const returnTo = `/admin/editorial/jornada/${matchday.id}`;
   const scopedReturnTo = (scope: FeedbackScope, anchor = scope) => `${returnTo}?feedback_scope=${scope}#${anchor}`;
@@ -561,6 +562,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const backToGestor = gestorReturnUrl(context);
   const contextLabel = `${country?.name ?? "Pais"} · ${competition.name} · ${season.label} · ${matchday.label}`;
   const highlightsFormId = "matchday-highlights-form";
+  const belowHeadlineSettingsFormId = "below-headline-settings-form";
 
   const highlightsEditor = (
     <>
@@ -779,6 +781,9 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             <input type="hidden" name="action_type" value="save_matchday_editorial" />
             <input type="hidden" name="return_to" value={returnToManchete} />
             <input type="hidden" name="matchday_id" value={matchday.id} />
+            <input type="hidden" name="below_headline_mode" value={belowHeadlineMode} />
+            <input type="hidden" name="below_headline_heading" value={editorial?.below_headline_heading ?? ""} />
+            <input type="hidden" name="below_headline_heading_color" value={editorial?.below_headline_heading_color ?? ""} />
             <input type="hidden" name="complementary_mode" value={editorial?.complementary_mode ?? "none"} />
             <input type="hidden" name="complementary_roundup_item_id" value={editorial?.complementary_roundup_item_id ?? ""} />
             <input type="hidden" name="complementary_label" value={editorial?.complementary_label ?? ""} />
@@ -886,7 +891,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             <div className="editorial-admin-composition-card">
               <h3>Zona abaixo da manchete</h3>
               <p>Escolhe que conjunto ocupa a area inferior esquerda da composicao.</p>
-              <form className="editorial-admin-form" action="/api/admin/gestor" data-below-mode-form method="post">
+              <form className="editorial-admin-form" action="/api/admin/gestor" data-below-mode-form id={belowHeadlineSettingsFormId} method="post">
                 <input type="hidden" name="action_type" value="save_matchday_editorial" />
                 <input type="hidden" name="return_to" value={returnToComposicao} />
                 <input type="hidden" name="matchday_id" value={matchday.id} />
@@ -918,7 +923,21 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               </form>
               <div className="editorial-below-mode-section" data-below-section="highlights" hidden={belowHeadlineMode !== "highlights"} id="destaques">
                 <h4>Destaques abaixo da manchete</h4>
-                <p className="editorial-admin-muted">Edita os tres destaques editoriais desta zona.</p>
+                <p className="editorial-admin-muted">Edita os tres destaques editoriais desta zona e o texto superior que aparece no publico.</p>
+                <div className="editorial-admin-compact-stack">
+                  <div className="editorial-admin-field">
+                    <label htmlFor="below-headline-heading">Texto do topo</label>
+                    <input form={belowHeadlineSettingsFormId} id="below-headline-heading" name="below_headline_heading" defaultValue={editorial?.below_headline_heading ?? ""} placeholder={belowHeadlineHeadingFallback} />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor="below-headline-heading-color">Cor do texto do topo</label>
+                    <input form={belowHeadlineSettingsFormId} id="below-headline-heading-color" name="below_headline_heading_color" defaultValue={editorial?.below_headline_heading_color ?? ""} placeholder="#0b1f3a" />
+                  </div>
+                  <button className="editorial-admin-button secondary" form={belowHeadlineSettingsFormId} type="submit">
+                    Guardar texto do topo
+                  </button>
+                  <p className="editorial-admin-muted">Se ficarem vazios, a pagina publica usa {belowHeadlineHeadingFallback} e a cor atual.</p>
+                </div>
                 {scopedMessageFor(created, error, feedbackScope, "destaques")}
                 {highlightsEditor}
               </div>
@@ -944,6 +963,8 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                   <input type="hidden" name="title_color" value={editorial?.title_color ?? ""} />
                   <input type="hidden" name="image_url" value={editorial?.image_url ?? ""} />
                   <input type="hidden" name="below_headline_mode" value={belowHeadlineMode} />
+                  <input type="hidden" name="below_headline_heading" value={editorial?.below_headline_heading ?? ""} />
+                  <input type="hidden" name="below_headline_heading_color" value={editorial?.below_headline_heading_color ?? ""} />
                   <input type="hidden" name="status" value={editorial?.status ?? "draft"} />
                   <div className="editorial-admin-field">
                     <label htmlFor="complementary-mode">Tipo de bloco complementar</label>

@@ -782,6 +782,8 @@ async function saveMatchdayEditorial(formData: FormData) {
   const imageUrl = cleanText(formData.get("image_url"));
   const belowHeadlineModeValue = cleanText(formData.get("below_headline_mode")) ?? "highlights";
   const belowHeadlineMode = belowHeadlineModeValue === "roundup" ? "roundup" : "highlights";
+  const belowHeadlineHeading = cleanText(formData.get("below_headline_heading"));
+  const belowHeadlineHeadingColor = cleanText(formData.get("below_headline_heading_color"));
   const complementaryModeValue = cleanText(formData.get("complementary_mode")) ?? "none";
   const complementaryMode =
     complementaryModeValue === "roundup_video" || complementaryModeValue === "complementary_story"
@@ -845,6 +847,14 @@ async function saveMatchdayEditorial(formData: FormData) {
 
   if (formData.has("roundup_video_heading_color")) {
     editorialPayload.roundup_video_heading_color = roundupVideoHeadingColor;
+  }
+
+  if (formData.has("below_headline_heading")) {
+    editorialPayload.below_headline_heading = belowHeadlineHeading;
+  }
+
+  if (formData.has("below_headline_heading_color")) {
+    editorialPayload.below_headline_heading_color = belowHeadlineHeadingColor;
   }
 
   await writeSupabaseAdmin("matchday_editorials?on_conflict=matchday_id", {
