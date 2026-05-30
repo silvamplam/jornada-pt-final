@@ -695,7 +695,7 @@ const publicMatchdayStyles = `
     grid-template-rows: auto 1fr;
     align-content: stretch;
     justify-self: end;
-    width: min(100%, 360px);
+    width: min(100%, 340px);
     padding: var(--public-roundup-top-align) 6px 0 0;
   }
 
