@@ -357,7 +357,8 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-team {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 6px;
     overflow: hidden;
@@ -377,6 +378,16 @@ const publicMatchdayStyles = `
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .public-matchday-mini-score {
+    min-width: 18px;
+    color: #10151b;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1;
+    text-align: right;
   }
 
   .public-matchday-mini-card .public-team-badge {
@@ -2170,25 +2181,38 @@ function BroadcastBadge({ match }: { match: PublicSeasonMatch }) {
 function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: boolean }) {
   const kind = statusKind(match.status);
   const broadcastChannelName = match.broadcastChannel?.name?.trim();
+  const hasScore = match.home_score !== null && match.away_score !== null;
+  const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
+  const liveStatus = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
 
   return (
     <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>
       <span className="public-matchday-mini-team">
         <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
         <span>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</span>
+        {showScore ? <b className="public-matchday-mini-score">{match.home_score}</b> : null}
       </span>
       <span className="public-matchday-mini-team">
         <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
         <span>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</span>
+        {showScore ? <b className="public-matchday-mini-score">{match.away_score}</b> : null}
       </span>
       <span className="public-matchday-mini-status">
-        <time className="public-matchday-mini-time" dateTime={match.kickoff_at}>{formatMiniCardKickoff(match.kickoff_at)}</time>
-        {broadcastChannelName ? (
+        {kind === "finished" ? (
+          <span>Finalizado</span>
+        ) : kind === "live" || kind === "halftime" ? (
+          <span>{liveStatus}</span>
+        ) : (
           <>
-            <span className="public-matchday-mini-separator" aria-hidden="true">·</span>
-            <span className="public-matchday-mini-channel">{broadcastChannelName}</span>
+            <time className="public-matchday-mini-time" dateTime={match.kickoff_at}>{formatMiniCardKickoff(match.kickoff_at)}</time>
+            {broadcastChannelName ? (
+              <>
+                <span className="public-matchday-mini-separator" aria-hidden="true">·</span>
+                <span className="public-matchday-mini-channel">{broadcastChannelName}</span>
+              </>
+            ) : null}
           </>
-        ) : null}
+        )}
       </span>
     </article>
   );
