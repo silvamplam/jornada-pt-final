@@ -184,7 +184,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
         data-editorial-slot="video-ou-imagem-noticia"
       >
         {activeItem ? (
-          <>
+          <div className="public-roundup-video-block">
             <div className="public-complement-media">
               {embedUrl ? (
                 <iframe
@@ -209,11 +209,13 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
               <strong>{activeItem.title ?? "Video da jornada"}</strong>
               {activeItem.subtitle ? <p>{activeItem.subtitle}</p> : null}
             </div>
-          </>
+          </div>
         ) : (
-          <div className="public-complement-body">
-            <strong>Video por definir</strong>
-            <p>Publica itens no Resumo da Jornada para ativar este leitor.</p>
+          <div className="public-roundup-video-block">
+            <div className="public-complement-body">
+              <strong>Video por definir</strong>
+              <p>Publica itens no Resumo da Jornada para ativar este leitor.</p>
+            </div>
           </div>
         )}
       </aside>

@@ -1137,25 +1137,34 @@ const publicMatchdayStyles = `
   .public-roundup-video-panel {
     align-self: stretch;
     display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+    padding: var(--public-roundup-top-align) 0 0;
+  }
+
+  .public-roundup-video-block {
+    display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    padding: var(--public-roundup-top-align) 2px 10px;
+    width: min(100%, 324px);
+    margin-left: auto;
   }
 
   .public-roundup-video-panel .public-complement-media {
-    width: min(100%, 334px);
+    width: 100%;
   }
 
   .public-roundup-video-panel .public-roundup-active-body {
     gap: 4px;
-    padding: 8px 2px 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 0 0;
   }
 
   .public-roundup-active-meta {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     padding-bottom: 5px;
     border-bottom: 1px solid #eef2f6;
     color: #263241;
