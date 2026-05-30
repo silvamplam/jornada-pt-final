@@ -674,8 +674,9 @@ const publicMatchdayStyles = `
   .public-roundup-video-layout {
     display: grid;
     grid-column: 1 / -1;
-    grid-template-columns: minmax(280px, 0.95fr) minmax(340px, 1.05fr);
-    gap: 20px;
+    grid-template-columns: minmax(0, 340px) minmax(0, 372px);
+    justify-content: end;
+    gap: 14px;
     align-items: stretch;
     width: 100%;
     min-width: 0;
