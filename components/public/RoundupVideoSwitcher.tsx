@@ -50,7 +50,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
   const [activeItemId, setActiveItemId] = useState(initialItem?.id ?? null);
   const activeItem = items.find((item) => item.id === activeItemId) ?? initialItem;
   const embedUrl = videoEmbedUrl(activeItem?.video_url);
-  const hasScrollControls = items.length > 4;
+  const hasScrollControls = items.length > 5;
   const [scrollState, setScrollState] = useState({
     canScrollDown: hasScrollControls,
     canScrollUp: false
