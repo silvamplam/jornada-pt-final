@@ -574,7 +574,7 @@ const publicMatchdayStyles = `
 
   .public-matchday-main-lower:has(.public-roundup-video-panel) {
     --public-roundup-top-align: 0px;
-    --public-roundup-video-top-offset: 24px;
+    --public-roundup-video-top-offset: 28px;
     --public-roundup-scroll-control-height: 14px;
     --public-roundup-visible-list-height: 285px;
     grid-template-columns: minmax(0, 1fr);
