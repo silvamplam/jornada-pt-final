@@ -134,6 +134,8 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
                 const showPlay = Boolean(item.video_url) || item.type === "video" || item.type === "golos" || item.type === "resumo";
                 const imageUrl = item.image_url?.trim();
                 const isActive = item.id === activeItem?.id;
+                const itemLabel = item.label?.trim();
+                const itemDuration = item.duration?.trim();
 
                 return (
                   <button
@@ -148,8 +150,8 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
                       {showPlay ? <span aria-hidden="true" className="public-media-play public-media-play-icon-only" /> : null}
                     </div>
                     <span className="public-roundup-meta">
-                      {item.label ? <span>{item.label}</span> : <span aria-hidden="true" />}
-                      {item.duration ? <span className="public-roundup-duration">{item.duration}</span> : null}
+                      {itemLabel ? <span>{itemLabel}</span> : <span aria-hidden="true" />}
+                      {itemDuration ? <span className="public-roundup-duration">{itemLabel ? `· ${itemDuration}` : itemDuration}</span> : null}
                     </span>
                     <strong>{item.title ?? "Video da jornada"}</strong>
                     {item.subtitle ? <small>{item.subtitle}</small> : null}
