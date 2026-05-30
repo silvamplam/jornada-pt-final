@@ -2049,6 +2049,20 @@ function sideBlockTypeLabel(value?: string | null) {
   return value ? labels[value] ?? null : null;
 }
 
+function cleanPublicSideBlockText(value?: string | null) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+
+  const debugLinePattern = /^(estado|status|side_block_status)\s*:\s*(published|draft)$/i;
+  const statusOnlyPattern = /^(published|draft)$/i;
+  const cleanLines = trimmed
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !debugLinePattern.test(line) && !statusOnlyPattern.test(line));
+
+  return cleanLines.join("\n").trim() || null;
+}
+
 function matchResult(match: PublicSeasonMatch) {
   const hasScore = match.home_score !== null && match.away_score !== null;
   const kind = statusKind(match.status);
@@ -2279,12 +2293,12 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
     Boolean(editorial?.complementary_title?.trim());
   const hasRoundupVideoComplement = complementaryMode === "roundup_video" && context.roundupItems.length > 0;
   const sideBlockImageUrl = editorial?.side_block_image_url?.trim() || null;
-  const explicitSideBlockLabel = editorial?.side_block_label?.trim() || null;
+  const explicitSideBlockLabel = cleanPublicSideBlockText(editorial?.side_block_label);
   const sideBlockLabel = explicitSideBlockLabel || sideBlockTypeLabel(editorial?.side_block_type);
-  const sideBlockTitle = editorial?.side_block_title?.trim() || null;
+  const sideBlockTitle = cleanPublicSideBlockText(editorial?.side_block_title);
   const sideBlockTitleColor = editorial?.side_block_title_color?.trim() || null;
-  const sideBlockAuthor = editorial?.side_block_author?.trim() || null;
-  const sideBlockText = editorial?.side_block_text?.trim() || null;
+  const sideBlockAuthor = cleanPublicSideBlockText(editorial?.side_block_author);
+  const sideBlockText = cleanPublicSideBlockText(editorial?.side_block_text);
   const sideBlockLinkUrl = editorial?.side_block_link_url?.trim() || null;
   const hasPublishedSideBlock =
     editorial?.side_block_status === "published" &&
