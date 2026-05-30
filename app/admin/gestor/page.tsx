@@ -1222,6 +1222,14 @@ function withSection(url: string, section: string) {
   return `${pathAndQuery}${separator}section=${section}#${section}`;
 }
 
+function withQueryAndHash(url: string, values: Record<string, string>, hash: string) {
+  const [pathAndQuery] = url.split("#");
+  const separator = pathAndQuery.includes("?") ? "&" : "?";
+  const query = new URLSearchParams(values).toString();
+
+  return `${pathAndQuery}${separator}${query}#${hash}`;
+}
+
 function buildClubPreview({
   rawList,
   selectedCountry,
@@ -2142,8 +2150,11 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               Editar agenda
             </button>
           ) : (
-            <a className="manager-link-button" href={`${matchdayReturnTo}&editar_jogo=${match.id}&section=jogos#jogos`}>
-              Editar
+            <a
+              className="manager-link-button"
+              href={withQueryAndHash(matchdayReturnTo, { editar_jogo: match.id, section: "jogos" }, "editar-jogo")}
+            >
+              Editar agenda
             </a>
           )}
           {hasCompetitiveData ? (
@@ -3445,7 +3456,11 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 </div>
               </article>
 
-              <details className="manager-create-card manager-wide-card manager-fallback-card manager-match-form" open={Boolean(editingMatch)}>
+              <details
+                id="editar-jogo"
+                className="manager-create-card manager-wide-card manager-fallback-card manager-match-form"
+                open={Boolean(editingMatch)}
+              >
                 <summary>
                   <span>
                     <strong>{editingMatch ? "Editar jogo" : "Adicionar jogo manualmente"}</strong>
