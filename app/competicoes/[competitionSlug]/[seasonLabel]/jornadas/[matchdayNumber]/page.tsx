@@ -450,13 +450,6 @@ const publicMatchdayStyles = `
     min-height: 420px;
   }
 
-  .public-matchday-cover-no-side {
-    grid-template-columns:
-      minmax(0, 1fr)
-      minmax(240px, 280px);
-    grid-template-areas: "main news";
-  }
-
   .public-matchday-editorial,
   .public-matchday-feature,
   .public-matchday-main-column,
@@ -565,6 +558,14 @@ const publicMatchdayStyles = `
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 3px;
+  }
+
+  .public-side-editorial-placeholder {
+    padding: 10px 0;
+    color: #7a8796;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.35;
   }
 
   .public-matchday-cover-side {
@@ -790,111 +791,6 @@ const publicMatchdayStyles = `
     color: #607086;
     font-size: 13px;
     line-height: 1.35;
-  }
-
-  .public-cover-channel-list {
-    display: grid;
-    gap: 0;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .public-cover-channel-list li {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 6px;
-    align-items: start;
-    min-width: 0;
-    padding: 10px 0;
-    border-top: 0;
-    font-size: 13px;
-    font-weight: 700;
-  }
-
-  .public-cover-channel-list li + li {
-    border-top: 1px solid #edf2f7;
-  }
-
-  .public-cover-tv-game {
-    display: grid;
-    gap: 4px;
-    min-width: 0;
-  }
-
-  .public-cover-tv-game strong {
-    color: #10151b;
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: 15px;
-    font-weight: 700;
-    line-height: 1.16;
-    white-space: normal;
-  }
-
-  .public-cover-tv-game time {
-    color: #607086;
-    font-size: 12px;
-    font-weight: 800;
-  }
-
-  .public-cover-tv-meta {
-    display: block;
-    min-width: 0;
-  }
-
-  .public-cover-tv-channel,
-  .public-cover-tv-empty {
-    display: inline-flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 5px;
-    min-width: 0;
-    width: 100%;
-    min-height: 24px;
-    color: #263241;
-    font-size: 10.5px;
-    font-weight: 900;
-    text-align: left;
-  }
-
-  .public-cover-tv-empty {
-    color: #8a95a3;
-    font-weight: 800;
-  }
-
-  .public-cover-tv-confirmation {
-    padding: 2px 0 8px;
-    border-top: 0;
-    color: #607086;
-    font-size: 12.5px;
-    font-weight: 800;
-    line-height: 1.35;
-  }
-
-  .public-cover-tv-channel-logo {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 42px;
-    min-height: 22px;
-    padding: 3px 6px;
-    border: 1px solid #eef2f6;
-    border-radius: 4px;
-    background: #eef2f6;
-    color: #10151b;
-    font-size: 9.5px;
-    font-weight: 900;
-    line-height: 1;
-    text-align: center;
-    text-transform: uppercase;
-  }
-
-  .public-cover-channel-list img {
-    max-width: 46px;
-    max-height: 28px;
-    width: auto;
-    height: auto;
-    object-fit: contain;
   }
 
   .public-cover-story-strip {
@@ -1960,12 +1856,6 @@ const publicMatchdayStyles = `
         "news";
     }
 
-    .public-matchday-cover-no-side {
-      grid-template-areas:
-        "main"
-        "news";
-    }
-
     .public-cover-headline,
     .public-matchday-main-lower {
       grid-template-columns: 1fr;
@@ -1987,16 +1877,6 @@ const publicMatchdayStyles = `
 
     .public-cover-story-strip {
       grid-template-columns: 1fr;
-    }
-
-    .public-cover-channel-list li {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .public-cover-tv-channel,
-    .public-cover-tv-empty {
-      justify-content: flex-start;
-      text-align: left;
     }
 
     .public-matchday-editorial,
@@ -2550,37 +2430,41 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
       </section>
 
       <section className="public-matchday-panel" aria-label="Capa da jornada">
-        <div className={`public-matchday-cover${hasPublishedSideBlock ? "" : " public-matchday-cover-no-side"}`}>
-          {hasPublishedSideBlock ? (
-            <aside className="public-matchday-feature public-side-editorial-block" aria-label="Bloco editorial lateral da jornada">
-              <div className="public-side-editorial-inner">
-                {sideBlockImageUrl ? (
-                  <div className="public-side-editorial-image">
-                    <img alt="" src={sideBlockImageUrl} />
-                  </div>
-                ) : null}
-                <div className="public-side-editorial-copy">
-                  {sideBlockLabel ? <span className="public-side-editorial-label">{sideBlockLabel}</span> : null}
-                  {sideBlockTitle ? (
-                    sideBlockLinkUrl ? (
-                      <a className="public-side-editorial-title-link" href={sideBlockLinkUrl}>
+        <div className="public-matchday-cover">
+          <aside className="public-matchday-feature public-side-editorial-block" aria-label="Bloco editorial lateral da jornada">
+            <div className="public-side-editorial-inner">
+              {hasPublishedSideBlock ? (
+                <>
+                  {sideBlockImageUrl ? (
+                    <div className="public-side-editorial-image">
+                      <img alt="" src={sideBlockImageUrl} />
+                    </div>
+                  ) : null}
+                  <div className="public-side-editorial-copy">
+                    {sideBlockLabel ? <span className="public-side-editorial-label">{sideBlockLabel}</span> : null}
+                    {sideBlockTitle ? (
+                      sideBlockLinkUrl ? (
+                        <a className="public-side-editorial-title-link" href={sideBlockLinkUrl}>
+                          <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
+                        </a>
+                      ) : (
                         <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
+                      )
+                    ) : null}
+                    {sideBlockAuthor ? <small>Por {sideBlockAuthor}</small> : null}
+                    {sideBlockText ? <p>{sideBlockText}</p> : null}
+                    {sideBlockLinkUrl ? (
+                      <a className="public-editorial-more-link" href={sideBlockLinkUrl}>
+                        Ler mais <span aria-hidden="true">›</span>
                       </a>
-                    ) : (
-                      <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
-                    )
-                  ) : null}
-                  {sideBlockAuthor ? <small>Por {sideBlockAuthor}</small> : null}
-                  {sideBlockText ? <p>{sideBlockText}</p> : null}
-                  {sideBlockLinkUrl ? (
-                    <a className="public-editorial-more-link" href={sideBlockLinkUrl}>
-                      Ler mais <span aria-hidden="true">›</span>
-                    </a>
-                  ) : null}
-                </div>
-              </div>
-            </aside>
-          ) : null}
+                    ) : null}
+                  </div>
+                </>
+              ) : (
+                <div className="public-side-editorial-placeholder">Espaco editorial por definir</div>
+              )}
+            </div>
+          </aside>
           <div className="public-matchday-main-column">
             <article className="public-matchday-editorial">
               <div className="public-cover-headline">
