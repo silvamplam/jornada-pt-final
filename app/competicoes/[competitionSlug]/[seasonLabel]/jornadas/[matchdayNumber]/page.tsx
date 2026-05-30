@@ -2055,6 +2055,15 @@ function statusKind(status: string) {
   return "scheduled";
 }
 
+function isBroadcastGuideEligibleMatch(match: PublicSeasonMatch) {
+  const normalized = match.status.trim().toLowerCase();
+  return normalized !== "finished";
+}
+
+function hasBroadcastGuideChannel(match: PublicSeasonMatch) {
+  return Boolean(match.broadcastChannel || match.broadcast_channel_id);
+}
+
 function matchResult(match: PublicSeasonMatch) {
   const hasScore = match.home_score !== null && match.away_score !== null;
   const kind = statusKind(match.status);
@@ -2276,8 +2285,11 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
     Boolean(editorial?.complementary_title?.trim());
   const hasRoundupVideoComplement = complementaryMode === "roundup_video" && context.roundupItems.length > 0;
   const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
-  const broadcastGuideItems = [...context.matchesForMatchday]
-    .filter((match) => Boolean(match.broadcastChannel))
+  const broadcastGuideCandidateMatches = [...context.matchesForMatchday]
+    .filter(isBroadcastGuideEligibleMatch)
+    .sort((firstMatch, secondMatch) => new Date(firstMatch.kickoff_at).getTime() - new Date(secondMatch.kickoff_at).getTime());
+  const broadcastGuideItems = broadcastGuideCandidateMatches
+    .filter(hasBroadcastGuideChannel)
     .sort((firstMatch, secondMatch) => new Date(firstMatch.kickoff_at).getTime() - new Date(secondMatch.kickoff_at).getTime())
     .map((match) => ({
       id: match.id,
@@ -2287,6 +2299,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
       channelName: match.broadcastChannel?.name || "TV por definir",
       channelLogoUrl: match.broadcastChannel?.logo_url || null
     }));
+  const shouldShowBroadcastGuide = broadcastGuideCandidateMatches.length > 0;
   const latestNewsItems =
     context.latestNews.length > 0
       ? context.latestNews.map((item) => ({
@@ -2428,30 +2441,32 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
 
       <section className="public-matchday-panel" aria-label="Capa da jornada">
         <div className="public-matchday-cover">
-          <aside className="public-matchday-feature" aria-label="Onde ver">
-            <div className="public-cover-support">
-              <h4>Onde ver</h4>
-              {broadcastGuideItems.length > 0 ? (
-                <ul className="public-cover-channel-list">
-                  {broadcastGuideItems.map((item) => (
-                    <li key={item.id}>
-                      <span className="public-cover-tv-channel" aria-label={item.channelName}>
-                        {item.channelLogoUrl ? <img alt="" src={item.channelLogoUrl} /> : <span className="public-cover-tv-channel-logo">{item.channelName}</span>}
-                      </span>
-                      <span className="public-cover-tv-game">
-                        <strong>{item.game}</strong>
-                        <span className="public-cover-tv-meta">
-                          <time dateTime={item.kickoffDateTime ?? undefined}>{item.kickoffLabel}</time>
+          {shouldShowBroadcastGuide ? (
+            <aside className="public-matchday-feature" aria-label="Onde ver">
+              <div className="public-cover-support">
+                <h4>Onde ver</h4>
+                {broadcastGuideItems.length > 0 ? (
+                  <ul className="public-cover-channel-list">
+                    {broadcastGuideItems.map((item) => (
+                      <li key={item.id}>
+                        <span className="public-cover-tv-channel" aria-label={item.channelName}>
+                          {item.channelLogoUrl ? <img alt="" src={item.channelLogoUrl} /> : <span className="public-cover-tv-channel-logo">{item.channelName}</span>}
                         </span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="public-cover-tv-confirmation">Informação televisiva ainda por confirmar.</p>
-              )}
-            </div>
-          </aside>
+                        <span className="public-cover-tv-game">
+                          <strong>{item.game}</strong>
+                          <span className="public-cover-tv-meta">
+                            <time dateTime={item.kickoffDateTime ?? undefined}>{item.kickoffLabel}</time>
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="public-cover-tv-confirmation">Informação televisiva ainda por confirmar.</p>
+                )}
+              </div>
+            </aside>
+          ) : null}
           <div className="public-matchday-main-column">
             <article className="public-matchday-editorial">
               <div className="public-cover-headline">
