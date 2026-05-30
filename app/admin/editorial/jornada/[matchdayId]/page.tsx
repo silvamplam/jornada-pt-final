@@ -406,7 +406,7 @@ async function readMatchdayContext(matchdayId: string): Promise<MatchdayContext 
 
 async function readMatchdayEditorial(matchdayId: string): Promise<SupabaseMatchdayEditorial | null> {
   return readFirst<SupabaseMatchdayEditorial>(
-    `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+    `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
       matchdayId
     )}`
   ).catch(() => null);
@@ -436,7 +436,7 @@ async function readMatchdayLatestNews(matchdayId: string): Promise<SupabaseMatch
   ).catch(() => []);
 }
 
-type FeedbackScope = "manchete" | "composicao" | "destaques" | "resumo-jornada" | "bloco-complementar" | "ultimas-noticias";
+type FeedbackScope = "manchete" | "bloco-lateral" | "composicao" | "destaques" | "resumo-jornada" | "bloco-complementar" | "ultimas-noticias";
 
 function messageFor(created?: string, error?: string, scope?: FeedbackScope) {
   const createdLabels: Record<string, string> = {
@@ -454,6 +454,9 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope) {
     },
     composicao: {
       save_matchday_editorial: "Composicao guardada."
+    },
+    "bloco-lateral": {
+      save_matchday_editorial: "Bloco lateral da jornada guardado."
     },
     destaques: {
       save_matchday_highlights: "Destaques guardados.",
@@ -554,6 +557,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const returnTo = `/admin/editorial/jornada/${matchday.id}`;
   const scopedReturnTo = (scope: FeedbackScope, anchor = scope) => `${returnTo}?feedback_scope=${scope}#${anchor}`;
   const returnToManchete = scopedReturnTo("manchete");
+  const returnToBlocoLateral = scopedReturnTo("bloco-lateral");
   const returnToComposicao = scopedReturnTo("composicao");
   const returnToDestaques = scopedReturnTo("destaques");
   const returnToResumo = scopedReturnTo("resumo-jornada");
@@ -866,17 +870,81 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           </form>
         </section>
 
-        <aside className="editorial-admin-panel">
+        <aside className="editorial-admin-panel" id="bloco-lateral">
           <header>
-            <h2>Blocos automaticos</h2>
-            <p>Visiveis na pagina publica, mas nao editados aqui.</p>
+            <h2>Bloco lateral da jornada</h2>
+            <p>Controla a chamada editorial curta da coluna lateral da capa.</p>
           </header>
-          <ul className="editorial-admin-note-list">
-            <li>Onde ver: jogos agendados e canais TV.</li>
-            <li>Placard dos jogos: jogos desta jornada.</li>
-            <li>Classificacao: calculada automaticamente.</li>
-            <li>Data da jornada: matches.kickoff_at.</li>
-          </ul>
+          {scopedMessageFor(created, error, feedbackScope, "bloco-lateral")}
+          <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
+            <input type="hidden" name="action_type" value="save_matchday_editorial" />
+            <input type="hidden" name="return_to" value={returnToBlocoLateral} />
+            <input type="hidden" name="matchday_id" value={matchday.id} />
+            <input type="hidden" name="title" value={editorial?.title ?? ""} />
+            <input type="hidden" name="summary" value={editorial?.summary ?? ""} />
+            <input type="hidden" name="title_color" value={editorial?.title_color ?? ""} />
+            <input type="hidden" name="image_url" value={editorial?.image_url ?? ""} />
+            <input type="hidden" name="status" value={editorial?.status ?? "draft"} />
+            <input type="hidden" name="below_headline_mode" value={belowHeadlineMode} />
+            <input type="hidden" name="complementary_mode" value={complementaryMode} />
+            <input type="hidden" name="complementary_roundup_item_id" value={editorial?.complementary_roundup_item_id ?? ""} />
+            <input type="hidden" name="complementary_label" value={editorial?.complementary_label ?? ""} />
+            <input type="hidden" name="complementary_title" value={editorial?.complementary_title ?? ""} />
+            <input type="hidden" name="complementary_text" value={editorial?.complementary_text ?? ""} />
+            <input type="hidden" name="complementary_image_url" value={editorial?.complementary_image_url ?? ""} />
+            <input type="hidden" name="complementary_link_url" value={editorial?.complementary_link_url ?? ""} />
+            <input type="hidden" name="complementary_status" value={editorial?.complementary_status ?? "draft"} />
+            <div className="editorial-admin-field">
+              <label htmlFor="side-block-status">Estado</label>
+              <select id="side-block-status" name="side_block_status" defaultValue={editorial?.side_block_status ?? "draft"}>
+                <option value="draft">Rascunho</option>
+                <option value="published">Publicado</option>
+              </select>
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="side-block-type">Tipo</label>
+              <select id="side-block-type" name="side_block_type" defaultValue={editorial?.side_block_type ?? "opiniao"}>
+                <option value="opiniao">Opiniao</option>
+                <option value="arbitragem">Arbitragem</option>
+                <option value="balanco">Balanco</option>
+                <option value="analise">Analise</option>
+                <option value="cronica">Cronica</option>
+                <option value="figura-da-jornada">Figura da jornada</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="side-block-label">Etiqueta</label>
+              <input id="side-block-label" name="side_block_label" defaultValue={editorial?.side_block_label ?? ""} placeholder="OPINIAO" />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="side-block-title">Titulo</label>
+              <input id="side-block-title" name="side_block_title" defaultValue={editorial?.side_block_title ?? ""} placeholder="A jornada que muda expectativas" />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="side-block-title-color">Cor do titulo</label>
+              <input id="side-block-title-color" name="side_block_title_color" defaultValue={editorial?.side_block_title_color ?? ""} placeholder="#0b1f3a" />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="side-block-author">Autor, opcional</label>
+              <input id="side-block-author" name="side_block_author" defaultValue={editorial?.side_block_author ?? ""} placeholder="Silvestre Chicharo" />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="side-block-text">Texto / excerto</label>
+              <textarea id="side-block-text" name="side_block_text" defaultValue={editorial?.side_block_text ?? ""} placeholder="Texto curto para a chamada editorial lateral." />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="side-block-image-url">Imagem opcional</label>
+              <input id="side-block-image-url" name="side_block_image_url" defaultValue={editorial?.side_block_image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="side-block-link-url">Link opcional</label>
+              <input id="side-block-link-url" name="side_block_link_url" defaultValue={editorial?.side_block_link_url ?? ""} placeholder="/competicoes/liga/2026-27/jornadas/1/noticias/slug" />
+            </div>
+            <button className="editorial-admin-button" type="submit">
+              Guardar bloco lateral
+            </button>
+          </form>
         </aside>
       </div>
 

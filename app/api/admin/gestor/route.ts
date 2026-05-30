@@ -799,6 +799,16 @@ async function saveMatchdayEditorial(formData: FormData) {
   const complementaryLinkUrl = cleanText(formData.get("complementary_link_url"));
   const roundupVideoHeading = cleanText(formData.get("roundup_video_heading"));
   const roundupVideoHeadingColor = cleanText(formData.get("roundup_video_heading_color"));
+  const sideBlockStatusValue = cleanText(formData.get("side_block_status")) ?? "draft";
+  const sideBlockStatus = sideBlockStatusValue === "published" ? "published" : "draft";
+  const sideBlockType = cleanText(formData.get("side_block_type"));
+  const sideBlockLabel = cleanText(formData.get("side_block_label"));
+  const sideBlockTitle = cleanText(formData.get("side_block_title"));
+  const sideBlockTitleColor = cleanText(formData.get("side_block_title_color"));
+  const sideBlockAuthor = cleanText(formData.get("side_block_author"));
+  const sideBlockText = cleanText(formData.get("side_block_text"));
+  const sideBlockImageUrl = cleanText(formData.get("side_block_image_url"));
+  const sideBlockLinkUrl = cleanText(formData.get("side_block_link_url"));
 
   if (!matchdayId || !["draft", "published"].includes(status)) {
     throw new Error("missing-fields");
@@ -855,6 +865,18 @@ async function saveMatchdayEditorial(formData: FormData) {
 
   if (formData.has("below_headline_heading_color")) {
     editorialPayload.below_headline_heading_color = belowHeadlineHeadingColor;
+  }
+
+  if (formData.has("side_block_status")) {
+    editorialPayload.side_block_status = sideBlockStatus;
+    editorialPayload.side_block_type = sideBlockType;
+    editorialPayload.side_block_label = sideBlockLabel;
+    editorialPayload.side_block_title = sideBlockTitle;
+    editorialPayload.side_block_title_color = sideBlockTitleColor;
+    editorialPayload.side_block_author = sideBlockAuthor;
+    editorialPayload.side_block_text = sideBlockText;
+    editorialPayload.side_block_image_url = sideBlockImageUrl;
+    editorialPayload.side_block_link_url = sideBlockLinkUrl;
   }
 
   await writeSupabaseAdmin("matchday_editorials?on_conflict=matchday_id", {

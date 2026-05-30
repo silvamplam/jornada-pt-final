@@ -450,6 +450,13 @@ const publicMatchdayStyles = `
     min-height: 420px;
   }
 
+  .public-matchday-cover-no-side {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(240px, 280px);
+    grid-template-areas: "main news";
+  }
+
   .public-matchday-editorial,
   .public-matchday-feature,
   .public-matchday-main-column,
@@ -484,6 +491,80 @@ const publicMatchdayStyles = `
   .public-matchday-feature {
     grid-area: feature;
     padding: 0 14px 14px;
+  }
+
+  .public-side-editorial-block {
+    color: #263241;
+  }
+
+  .public-side-editorial-inner {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+    min-width: 0;
+  }
+
+  .public-side-editorial-image {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: 6px;
+    background: #eef2f6;
+  }
+
+  .public-side-editorial-image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .public-side-editorial-copy {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .public-side-editorial-label {
+    color: #c40012;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .public-side-editorial-copy strong {
+    display: block;
+    color: #10151b;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 18px;
+    line-height: 1.12;
+  }
+
+  .public-side-editorial-copy small {
+    color: #607086;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+
+  .public-side-editorial-copy p {
+    margin: 0;
+    color: #526174;
+    font-size: 13px;
+    line-height: 1.38;
+  }
+
+  .public-side-editorial-title-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .public-side-editorial-title-link:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
   }
 
   .public-matchday-cover-side {
@@ -1873,6 +1954,16 @@ const publicMatchdayStyles = `
 
     .public-matchday-cover {
       grid-template-columns: 1fr;
+      grid-template-areas:
+        "feature"
+        "main"
+        "news";
+    }
+
+    .public-matchday-cover-no-side {
+      grid-template-areas:
+        "main"
+        "news";
     }
 
     .public-cover-headline,
@@ -2004,16 +2095,6 @@ function formatMiniCardKickoff(value: string) {
   return `${dayMonth} · ${time}`;
 }
 
-function formatBroadcastGuideKickoff(value: string) {
-  return new Intl.DateTimeFormat("pt-PT", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Lisbon"
-  }).format(new Date(value));
-}
-
 function formatMatchdayDateContext(matches: PublicSeasonMatch[]) {
   const kickoffDates = matches
     .map((match) => new Date(match.kickoff_at))
@@ -2074,13 +2155,18 @@ function statusKind(status: string) {
   return "scheduled";
 }
 
-function isBroadcastGuideEligibleMatch(match: PublicSeasonMatch) {
-  const normalized = match.status.trim().toLowerCase();
-  return normalized !== "finished";
-}
+function sideBlockTypeLabel(value?: string | null) {
+  const labels: Record<string, string> = {
+    opiniao: "OPINIÃO",
+    arbitragem: "ARBITRAGEM",
+    balanco: "BALANÇO",
+    analise: "ANÁLISE",
+    cronica: "CRÓNICA",
+    "figura-da-jornada": "FIGURA DA JORNADA",
+    outro: "EDITORIAL"
+  };
 
-function hasBroadcastGuideChannel(match: PublicSeasonMatch) {
-  return Boolean(match.broadcastChannel || match.broadcast_channel_id);
+  return value ? labels[value] ?? null : null;
 }
 
 function matchResult(match: PublicSeasonMatch) {
@@ -2312,22 +2398,18 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
     editorial?.complementary_status === "published" &&
     Boolean(editorial?.complementary_title?.trim());
   const hasRoundupVideoComplement = complementaryMode === "roundup_video" && context.roundupItems.length > 0;
+  const sideBlockImageUrl = editorial?.side_block_image_url?.trim() || null;
+  const explicitSideBlockLabel = editorial?.side_block_label?.trim() || null;
+  const sideBlockLabel = explicitSideBlockLabel || sideBlockTypeLabel(editorial?.side_block_type);
+  const sideBlockTitle = editorial?.side_block_title?.trim() || null;
+  const sideBlockTitleColor = editorial?.side_block_title_color?.trim() || null;
+  const sideBlockAuthor = editorial?.side_block_author?.trim() || null;
+  const sideBlockText = editorial?.side_block_text?.trim() || null;
+  const sideBlockLinkUrl = editorial?.side_block_link_url?.trim() || null;
+  const hasPublishedSideBlock =
+    editorial?.side_block_status === "published" &&
+    Boolean(sideBlockImageUrl || explicitSideBlockLabel || sideBlockTitle || sideBlockText);
   const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
-  const broadcastGuideCandidateMatches = [...context.matchesForMatchday]
-    .filter(isBroadcastGuideEligibleMatch)
-    .sort((firstMatch, secondMatch) => new Date(firstMatch.kickoff_at).getTime() - new Date(secondMatch.kickoff_at).getTime());
-  const broadcastGuideItems = broadcastGuideCandidateMatches
-    .filter(hasBroadcastGuideChannel)
-    .sort((firstMatch, secondMatch) => new Date(firstMatch.kickoff_at).getTime() - new Date(secondMatch.kickoff_at).getTime())
-    .map((match) => ({
-      id: match.id,
-      game: `${match.homeTeam?.name || match.homeTeam?.short_name || "Casa"} vs ${match.awayTeam?.name || match.awayTeam?.short_name || "Fora"}`,
-      kickoffLabel: formatBroadcastGuideKickoff(match.kickoff_at),
-      kickoffDateTime: match.kickoff_at,
-      channelName: match.broadcastChannel?.name || "TV por definir",
-      channelLogoUrl: match.broadcastChannel?.logo_url || null
-    }));
-  const shouldShowBroadcastGuide = broadcastGuideCandidateMatches.length > 0;
   const latestNewsItems =
     context.latestNews.length > 0
       ? context.latestNews.map((item) => ({
@@ -2468,30 +2550,34 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
       </section>
 
       <section className="public-matchday-panel" aria-label="Capa da jornada">
-        <div className="public-matchday-cover">
-          {shouldShowBroadcastGuide ? (
-            <aside className="public-matchday-feature" aria-label="Onde ver">
-              <div className="public-cover-support">
-                <h4>Onde ver</h4>
-                {broadcastGuideItems.length > 0 ? (
-                  <ul className="public-cover-channel-list">
-                    {broadcastGuideItems.map((item) => (
-                      <li key={item.id}>
-                        <span className="public-cover-tv-channel" aria-label={item.channelName}>
-                          {item.channelLogoUrl ? <img alt="" src={item.channelLogoUrl} /> : <span className="public-cover-tv-channel-logo">{item.channelName}</span>}
-                        </span>
-                        <span className="public-cover-tv-game">
-                          <strong>{item.game}</strong>
-                          <span className="public-cover-tv-meta">
-                            <time dateTime={item.kickoffDateTime ?? undefined}>{item.kickoffLabel}</time>
-                          </span>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="public-cover-tv-confirmation">Informação televisiva ainda por confirmar.</p>
-                )}
+        <div className={`public-matchday-cover${hasPublishedSideBlock ? "" : " public-matchday-cover-no-side"}`}>
+          {hasPublishedSideBlock ? (
+            <aside className="public-matchday-feature public-side-editorial-block" aria-label="Bloco editorial lateral da jornada">
+              <div className="public-side-editorial-inner">
+                {sideBlockImageUrl ? (
+                  <div className="public-side-editorial-image">
+                    <img alt="" src={sideBlockImageUrl} />
+                  </div>
+                ) : null}
+                <div className="public-side-editorial-copy">
+                  {sideBlockLabel ? <span className="public-side-editorial-label">{sideBlockLabel}</span> : null}
+                  {sideBlockTitle ? (
+                    sideBlockLinkUrl ? (
+                      <a className="public-side-editorial-title-link" href={sideBlockLinkUrl}>
+                        <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
+                      </a>
+                    ) : (
+                      <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
+                    )
+                  ) : null}
+                  {sideBlockAuthor ? <small>Por {sideBlockAuthor}</small> : null}
+                  {sideBlockText ? <p>{sideBlockText}</p> : null}
+                  {sideBlockLinkUrl ? (
+                    <a className="public-editorial-more-link" href={sideBlockLinkUrl}>
+                      Ler mais <span aria-hidden="true">›</span>
+                    </a>
+                  ) : null}
+                </div>
               </div>
             </aside>
           ) : null}
