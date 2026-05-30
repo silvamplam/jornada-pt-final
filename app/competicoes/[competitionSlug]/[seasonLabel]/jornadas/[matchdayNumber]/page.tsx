@@ -374,8 +374,8 @@ const publicMatchdayStyles = `
     align-items: center;
     gap: 6px;
     overflow: hidden;
-    font-weight: 900;
-    text-transform: uppercase;
+    font-weight: 800;
+    text-transform: none;
   }
 
   .public-matchday-mini-team:first-child {
@@ -2099,7 +2099,14 @@ function teamInitials(name?: string | null, shortName?: string | null) {
 }
 
 function shortTeamLabel(name?: string | null, shortName?: string | null) {
-  return shortName || name || "Equipa";
+  const editorialName = name?.trim();
+  const fallback = shortName?.trim() || editorialName || "Equipa";
+
+  if (!editorialName) {
+    return fallback;
+  }
+
+  return editorialName.length <= 20 ? editorialName : fallback;
 }
 
 function isWinner(match: PublicSeasonMatch, side: "home" | "away") {
