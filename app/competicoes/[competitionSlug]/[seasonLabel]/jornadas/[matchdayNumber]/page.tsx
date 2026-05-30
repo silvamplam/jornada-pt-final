@@ -1332,8 +1332,11 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-news h3 {
+    padding-top: 0;
+    border-top: 0;
     font-size: 14px;
     font-weight: 900;
+    line-height: 1;
     text-transform: uppercase;
   }
 
