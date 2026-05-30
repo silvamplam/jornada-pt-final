@@ -820,13 +820,9 @@ const publicMatchdayStyles = `
   }
 
   .public-roundup-has-scroll .public-roundup-scroll-frame {
-    display: grid;
-    grid-template-rows:
-      var(--public-roundup-scroll-control-height)
-      var(--public-roundup-visible-list-height)
-      var(--public-roundup-scroll-control-height);
-    height: calc(var(--public-roundup-visible-list-height) + (var(--public-roundup-scroll-control-height) * 2));
-    max-height: calc(var(--public-roundup-visible-list-height) + (var(--public-roundup-scroll-control-height) * 2));
+    display: block;
+    height: var(--public-roundup-visible-list-height);
+    max-height: var(--public-roundup-visible-list-height);
   }
 
   .public-roundup-has-scroll .public-roundup-scroll-frame::before,
@@ -860,9 +856,11 @@ const publicMatchdayStyles = `
   }
 
   .public-roundup-has-scroll .public-roundup-scroll-window {
-    grid-row: 2;
     height: var(--public-roundup-visible-list-height);
     max-height: var(--public-roundup-visible-list-height);
+    padding-right: 4px;
+    box-sizing: border-box;
+    scrollbar-gutter: stable;
   }
 
   .public-matchday-roundup .public-roundup-scroll-window::-webkit-scrollbar {
@@ -879,12 +877,13 @@ const publicMatchdayStyles = `
   }
 
   .public-roundup-scroll-button {
-    position: relative;
-    left: auto;
+    position: absolute;
+    right: 4px;
+    left: 0;
     z-index: 2;
     display: grid;
     place-items: center;
-    width: 100%;
+    width: auto;
     height: var(--public-roundup-scroll-control-height);
     border: 0;
     border-radius: 0;
@@ -898,12 +897,12 @@ const publicMatchdayStyles = `
   }
 
   .public-roundup-scroll-button-top {
-    grid-row: 1;
+    top: 0;
     border-bottom: 1px solid #edf2f7;
   }
 
   .public-roundup-scroll-button-bottom {
-    grid-row: 3;
+    bottom: 0;
     border-top: 1px solid #edf2f7;
   }
 
