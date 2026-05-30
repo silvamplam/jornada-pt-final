@@ -632,7 +632,16 @@ const publicMatchdayStyles = `
 
   .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup .public-editorial-block-head {
     padding-top: 0;
+    padding-right: 6px;
+    padding-bottom: 7px;
+    padding-left: 6px;
     border-top: 0;
+    justify-content: flex-start;
+  }
+
+  .public-matchday-main-lower:has(.public-roundup-video-panel) .public-editorial-block-head .public-roundup-matchday-label {
+    color: #263241;
+    font-size: 10.5px;
   }
 
   .public-editorial-block-head h3,
@@ -968,6 +977,17 @@ const publicMatchdayStyles = `
     transform: translate(-50%, -50%);
   }
 
+  .public-matchday-roundup .public-highlight-image .public-media-play {
+    width: 18px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.76);
+    color: rgba(16, 21, 27, 0.62);
+    font-size: 8px;
+    font-weight: 800;
+    text-transform: uppercase;
+    box-shadow: 0 1px 2px rgba(16, 21, 27, 0.08);
+  }
+
   .public-matchday-roundup .public-cover-story span,
   .public-matchday-roundup .public-cover-story strong,
   .public-matchday-roundup .public-cover-story small {
@@ -1044,9 +1064,10 @@ const publicMatchdayStyles = `
 
   .public-roundup-switch-item[aria-pressed="true"] {
     border-radius: 4px;
-    background: #fbfcfe;
-    outline: 1px solid #e1e8ef;
+    background: #f8fafc;
+    outline: 1px solid #dde5ed;
     outline-offset: -1px;
+    box-shadow: inset 2px 0 0 rgba(96, 112, 134, 0.36), 0 1px 4px rgba(16, 21, 27, 0.03);
   }
 
   .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup .public-cover-story strong {
@@ -1113,8 +1134,8 @@ const publicMatchdayStyles = `
   }
 
   .public-roundup-video-panel .public-roundup-active-body {
-    gap: 6px;
-    padding: 9px 2px 0;
+    gap: 5px;
+    padding: 10px 2px 0;
   }
 
   .public-roundup-active-meta {
@@ -1122,6 +1143,8 @@ const publicMatchdayStyles = `
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 12px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eef2f6;
     color: #263241;
     font-size: 11px;
     font-weight: 900;
@@ -1153,12 +1176,13 @@ const publicMatchdayStyles = `
   }
 
   .public-roundup-video-panel .public-complement-body strong {
-    margin-top: 1px;
+    margin-top: 2px;
   }
 
   .public-roundup-video-panel .public-complement-body p {
-    max-width: 92%;
-    line-height: 1.32;
+    max-width: 96%;
+    color: #526174;
+    line-height: 1.34;
   }
 
   .public-complement-title-link {
