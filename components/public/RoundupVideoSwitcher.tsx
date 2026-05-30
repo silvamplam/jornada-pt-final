@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import type { SupabaseMatchdayRoundupItem } from "@/lib/supabase";
 
 type RoundupVideoSwitcherProps = {
@@ -43,6 +44,9 @@ function videoEmbedUrl(value?: string | null) {
 
 export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNumber, heading, headingColor }: RoundupVideoSwitcherProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
+  const leftColumnRef = useRef<HTMLElement | null>(null);
+  const videoColumnRef = useRef<HTMLElement | null>(null);
+  const captionRef = useRef<HTMLDivElement | null>(null);
   const initialItem = useMemo(
     () => items.find((item) => item.id === initialItemId) ?? items[0] ?? null,
     [initialItemId, items]
@@ -59,6 +63,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
     ? `Jornada ${String(matchdayNumber).padStart(2, "0")} · Jogos Vídeo Resumo`
     : "Jornada · Jogos Vídeo Resumo";
   const matchdayLabel = heading?.trim() || fallbackMatchdayLabel;
+  const [videoGeometry, setVideoGeometry] = useState<{ mediaHeight: number; width: number } | null>(null);
 
   const updateScrollState = useCallback(() => {
     const list = listRef.current;
@@ -94,6 +99,35 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
     });
   }
 
+  const updateVideoGeometry = useCallback(() => {
+    const leftColumn = leftColumnRef.current;
+    const videoColumn = videoColumnRef.current;
+    const caption = captionRef.current;
+
+    if (!leftColumn || !videoColumn) {
+      return;
+    }
+
+    const leftHeight = leftColumn.getBoundingClientRect().height;
+    const availableWidth = videoColumn.getBoundingClientRect().width;
+    const captionHeight = caption?.getBoundingClientRect().height ?? 0;
+
+    if (leftHeight <= 0 || availableWidth <= 0) {
+      return;
+    }
+
+    const availableMediaHeight = Math.max(140, leftHeight - captionHeight);
+    const widthFromHeight = Math.round(availableMediaHeight * (16 / 9));
+    const nextWidth = Math.min(Math.floor(availableWidth), Math.max(240, widthFromHeight));
+    const nextMediaHeight = Math.round(availableMediaHeight);
+
+    setVideoGeometry((currentGeometry) =>
+      currentGeometry?.width === nextWidth && currentGeometry.mediaHeight === nextMediaHeight
+        ? currentGeometry
+        : { mediaHeight: nextMediaHeight, width: nextWidth }
+    );
+  }, []);
+
   useEffect(() => {
     updateScrollState();
     const list = listRef.current;
@@ -111,9 +145,36 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
     };
   }, [items.length, updateScrollState]);
 
+  useEffect(() => {
+    updateVideoGeometry();
+    const observedElements = [leftColumnRef.current, videoColumnRef.current, captionRef.current].filter(Boolean) as HTMLElement[];
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateVideoGeometry);
+      return () => window.removeEventListener("resize", updateVideoGeometry);
+    }
+
+    const observer = new ResizeObserver(() => updateVideoGeometry());
+    observedElements.forEach((element) => observer.observe(element));
+    window.addEventListener("resize", updateVideoGeometry);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateVideoGeometry);
+    };
+  }, [activeItem?.id, items.length, matchdayLabel, updateVideoGeometry]);
+
+  const videoBlockStyle = videoGeometry
+    ? ({
+        "--public-roundup-video-media-height": `${videoGeometry.mediaHeight}px`,
+        width: `${videoGeometry.width}px`
+      } as CSSProperties)
+    : undefined;
+
   return (
-    <>
+    <div className="public-roundup-video-layout">
       <section
+        ref={leftColumnRef}
         className={`public-matchday-roundup public-below-headline-roundup public-editorial-flex-block${hasScrollControls ? " public-roundup-has-scroll" : ""}`}
         data-editorial-slot="resumo-ou-noticias"
       >
@@ -179,12 +240,13 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
       </section>
 
       <aside
+        ref={videoColumnRef}
         aria-label="Video do Resumo da Jornada"
         className="public-matchday-cover-side public-editorial-flex-block public-roundup-video-panel"
         data-editorial-slot="video-ou-imagem-noticia"
       >
         {activeItem ? (
-          <div className="public-roundup-video-block">
+          <div className="public-roundup-video-block" style={videoBlockStyle}>
             <div className="public-complement-media">
               {embedUrl ? (
                 <iframe
@@ -201,7 +263,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
                 </span>
               )}
             </div>
-            <div className="public-complement-body public-roundup-active-body">
+            <div className="public-complement-body public-roundup-active-body" ref={captionRef}>
               <span className="public-roundup-active-meta">
                 {activeItem.label ? <span className="public-complement-label">{activeItem.label}</span> : <span aria-hidden="true" />}
                 {activeItem.duration ? <span>{activeItem.duration}</span> : null}
@@ -211,14 +273,14 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
             </div>
           </div>
         ) : (
-          <div className="public-roundup-video-block">
-            <div className="public-complement-body">
+          <div className="public-roundup-video-block" style={videoBlockStyle}>
+            <div className="public-complement-body" ref={captionRef}>
               <strong>Video por definir</strong>
               <p>Publica itens no Resumo da Jornada para ativar este leitor.</p>
             </div>
           </div>
         )}
       </aside>
-    </>
+    </div>
   );
 }
