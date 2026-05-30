@@ -319,12 +319,12 @@ const publicMatchdayStyles = `
   .public-matchday-mini-card {
     position: relative;
     display: grid;
-    flex: 0 0 254px;
+    flex: 0 0 226px;
     grid-template-columns: minmax(0, 1fr);
-    gap: 5px;
+    gap: 4px;
     align-items: start;
     min-height: 88px;
-    padding: 8px 11px 9px;
+    padding: 8px 9px 9px;
     border: 1px solid #eef2f6;
     border-radius: 6px;
     background: #ffffff;
@@ -359,7 +359,7 @@ const publicMatchdayStyles = `
   .public-matchday-mini-team {
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
     overflow: hidden;
     font-weight: 800;
     text-transform: none;
