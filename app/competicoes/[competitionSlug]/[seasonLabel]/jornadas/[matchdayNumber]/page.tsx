@@ -644,7 +644,7 @@ const publicMatchdayStyles = `
   .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup .public-editorial-block-head {
     padding-top: 0;
     padding-right: 6px;
-    padding-bottom: 7px;
+    padding-bottom: 2px;
     padding-left: 6px;
     border-top: 0;
     justify-content: flex-start;
