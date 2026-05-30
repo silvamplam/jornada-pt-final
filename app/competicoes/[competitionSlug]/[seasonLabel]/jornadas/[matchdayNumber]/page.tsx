@@ -721,9 +721,9 @@ const publicMatchdayStyles = `
 
   .public-cover-channel-list li {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 6px;
-    align-items: start;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
     min-width: 0;
     padding: 9px 0;
     border-top: 1px solid #eef2f6;
@@ -733,7 +733,7 @@ const publicMatchdayStyles = `
 
   .public-cover-tv-game {
     display: grid;
-    gap: 6px;
+    gap: 4px;
     min-width: 0;
   }
 
@@ -750,10 +750,7 @@ const publicMatchdayStyles = `
   }
 
   .public-cover-tv-meta {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    justify-content: space-between;
+    display: block;
     min-width: 0;
   }
 
@@ -761,13 +758,15 @@ const publicMatchdayStyles = `
   .public-cover-tv-empty {
     display: inline-flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
     gap: 5px;
     min-width: 0;
+    width: 44px;
+    min-height: 32px;
     color: #263241;
     font-size: 11px;
     font-weight: 900;
-    text-align: right;
+    text-align: center;
   }
 
   .public-cover-tv-empty {
@@ -775,11 +774,20 @@ const publicMatchdayStyles = `
     font-weight: 800;
   }
 
+  .public-cover-tv-confirmation {
+    padding: 10px 0;
+    border-top: 1px solid #eef2f6;
+    color: #607086;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+
   .public-cover-tv-channel-logo {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 46px;
+    min-width: 38px;
     min-height: 24px;
     padding: 3px 6px;
     border: 1px solid #eef2f6;
@@ -794,8 +802,10 @@ const publicMatchdayStyles = `
   }
 
   .public-cover-channel-list img {
-    width: 46px;
-    height: 24px;
+    max-width: 42px;
+    max-height: 34px;
+    width: auto;
+    height: auto;
     object-fit: contain;
   }
 
@@ -1882,7 +1892,7 @@ const publicMatchdayStyles = `
     }
 
     .public-cover-channel-list li {
-      grid-template-columns: 1fr;
+      grid-template-columns: 44px minmax(0, 1fr);
     }
 
     .public-cover-tv-channel,
@@ -2266,45 +2276,17 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
     Boolean(editorial?.complementary_title?.trim());
   const hasRoundupVideoComplement = complementaryMode === "roundup_video" && context.roundupItems.length > 0;
   const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
-  const nextScheduledMatches = [...scheduledMatches]
+  const broadcastGuideItems = [...context.matchesForMatchday]
+    .filter((match) => Boolean(match.broadcastChannel))
     .sort((firstMatch, secondMatch) => new Date(firstMatch.kickoff_at).getTime() - new Date(secondMatch.kickoff_at).getTime())
-    .slice(0, 4);
-  const broadcastGuideItems =
-    nextScheduledMatches.length > 0
-      ? nextScheduledMatches.map((match) => ({
-          id: match.id,
-          game: `${match.homeTeam?.short_name || match.homeTeam?.name || "Casa"} vs ${match.awayTeam?.short_name || match.awayTeam?.name || "Fora"}`,
-          kickoffLabel: formatBroadcastGuideKickoff(match.kickoff_at),
-          kickoffDateTime: match.kickoff_at,
-          channelName: match.broadcastChannel?.name || "TV por definir",
-          channelLogoUrl: match.broadcastChannel?.logo_url || null
-        }))
-      : [
-          {
-            id: "placeholder-mallorca-barcelona",
-            game: "RCD Mallorca vs FC Barcelona",
-            kickoffLabel: "16/08, 19:30",
-            kickoffDateTime: null,
-            channelName: "DAZN 1",
-            channelLogoUrl: null
-          },
-          {
-            id: "placeholder-valencia-real-sociedad",
-            game: "Valencia CF vs Real Sociedad",
-            kickoffLabel: "16/08, 21:30",
-            kickoffDateTime: null,
-            channelName: "Sport TV 2",
-            channelLogoUrl: null
-          },
-          {
-            id: "placeholder-real-madrid-osasuna",
-            game: "Real Madrid vs CA Osasuna",
-            kickoffLabel: "19/08, 21:00",
-            kickoffDateTime: null,
-            channelName: "DAZN 1",
-            channelLogoUrl: null
-          }
-        ];
+    .map((match) => ({
+      id: match.id,
+      game: `${match.homeTeam?.short_name || match.homeTeam?.name || "Casa"} vs ${match.awayTeam?.short_name || match.awayTeam?.name || "Fora"}`,
+      kickoffLabel: formatBroadcastGuideKickoff(match.kickoff_at),
+      kickoffDateTime: match.kickoff_at,
+      channelName: match.broadcastChannel?.name || "TV por definir",
+      channelLogoUrl: match.broadcastChannel?.logo_url || null
+    }));
   const latestNewsItems =
     context.latestNews.length > 0
       ? context.latestNews.map((item) => ({
@@ -2449,22 +2431,25 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
           <aside className="public-matchday-feature" aria-label="Onde ver">
             <div className="public-cover-support">
               <h4>Onde ver</h4>
-              <ul className="public-cover-channel-list">
-                {broadcastGuideItems.map((item) => (
-                  <li key={item.id}>
-                    <span className="public-cover-tv-game">
-                      <strong>{item.game}</strong>
-                      <span className="public-cover-tv-meta">
-                        <time dateTime={item.kickoffDateTime ?? undefined}>{item.kickoffLabel}</time>
-                        <span className="public-cover-tv-channel">
-                          {item.channelLogoUrl ? <img alt="" src={item.channelLogoUrl} /> : <span className="public-cover-tv-channel-logo">{item.channelName}</span>}
-                          {item.channelLogoUrl ? <span>{item.channelName}</span> : null}
+              {broadcastGuideItems.length > 0 ? (
+                <ul className="public-cover-channel-list">
+                  {broadcastGuideItems.map((item) => (
+                    <li key={item.id}>
+                      <span className="public-cover-tv-channel" aria-label={item.channelName}>
+                        {item.channelLogoUrl ? <img alt="" src={item.channelLogoUrl} /> : <span className="public-cover-tv-channel-logo">{item.channelName}</span>}
+                      </span>
+                      <span className="public-cover-tv-game">
+                        <strong>{item.game}</strong>
+                        <span className="public-cover-tv-meta">
+                          <time dateTime={item.kickoffDateTime ?? undefined}>{item.kickoffLabel}</time>
                         </span>
                       </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="public-cover-tv-confirmation">Informação televisiva ainda por confirmar.</p>
+              )}
             </div>
           </aside>
           <div className="public-matchday-main-column">
