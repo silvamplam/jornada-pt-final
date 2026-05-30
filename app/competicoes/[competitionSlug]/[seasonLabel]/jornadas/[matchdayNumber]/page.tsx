@@ -630,6 +630,11 @@ const publicMatchdayStyles = `
     justify-content: flex-end;
   }
 
+  .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup .public-editorial-block-head {
+    padding-top: 0;
+    border-top: 0;
+  }
+
   .public-editorial-block-head h3,
   .public-matchday-roundup h3 {
     font-size: 14px;
