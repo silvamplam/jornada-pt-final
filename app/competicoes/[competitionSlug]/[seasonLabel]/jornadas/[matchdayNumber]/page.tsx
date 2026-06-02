@@ -2300,6 +2300,24 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
     href: `/competicoes/${context.competition.slug}/${seasonLabelToUrlSegment(season.label)}/jornadas/1`
   }));
   const currentSeasonHref = `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/1`;
+  const currentCompetitionMenuItem = {
+    label: context.competition.name,
+    slug: context.competition.slug,
+    href: `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/${context.matchday.number}`
+  };
+  const publicCompetitionMenuBase = [
+    { label: "Liga Portugal", slug: "liga-portugal", href: "/competicoes/liga-portugal/2025-26/jornadas/1" },
+    { label: "La Liga", slug: "la-liga", href: "/competicoes/la-liga/2026-27/jornadas/1" },
+    { label: "Premier League", slug: "premier-league", href: "/competicoes/premier-league/2025-26/jornadas/1" }
+  ];
+  const publicCompetitionMenu = publicCompetitionMenuBase.map((item) =>
+    item.slug === currentCompetitionMenuItem.slug ? currentCompetitionMenuItem : item
+  );
+
+  if (!publicCompetitionMenu.some((item) => item.slug === currentCompetitionMenuItem.slug)) {
+    publicCompetitionMenu.unshift(currentCompetitionMenuItem);
+  }
+
   const classificationRows = buildAccumulatedClassification({
     participants: context.participants,
     matches: context.matchesForSeason,
@@ -2376,10 +2394,15 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
           Jornada<span>.pt</span>
         </a>
         <nav className="public-site-menu" aria-label="Competições principais">
-          <a aria-current="page" href={`/competicoes/${context.competition.slug}/${seasonSegment}`}>{context.competition.name}</a>
-          <a href="/competicoes/liga-portugal/2025-26">Liga Portugal</a>
-          <a href="/competicoes/liga-espanha/2026-27">La Liga</a>
-          <a href="/competicoes/premier-league/2025-26">Premier League</a>
+          {publicCompetitionMenu.map((item) => (
+            <a
+              aria-current={item.slug === context.competition.slug ? "page" : undefined}
+              href={item.href}
+              key={item.slug}
+            >
+              {item.label}
+            </a>
+          ))}
           <a href="#jogos">Jogos</a>
           <a href="#classificacao">Classificação</a>
         </nav>
