@@ -37,9 +37,10 @@ const roundupVideoListPolishStyles = `
   }
 
   .public-roundup-video-layout .public-roundup-switch-item[aria-pressed="true"] {
-    background: #ffffff;
-    outline: 0;
-    box-shadow: inset 2px 0 0 rgba(196, 0, 18, 0.5);
+    background: #fbfcfd;
+    outline: 1px solid #eef2f6;
+    outline-offset: -1px;
+    box-shadow: none;
   }
 
   .public-roundup-video-layout .public-roundup-scroll-button {
