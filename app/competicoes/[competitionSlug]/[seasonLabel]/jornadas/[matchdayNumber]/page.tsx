@@ -1,6 +1,7 @@
 ﻿import { buildAccumulatedClassification, totalClassificationStats, type ClassificationSplit } from "@/lib/classification";
 import { getPublicMatchdayDiagnostic, seasonLabelToUrlSegment, type PublicMatchdayDiagnostic, type PublicSeasonMatch } from "@/lib/public-matchday";
 import RoundupVideoSwitcher from "@/components/public/RoundupVideoSwitcher";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -2172,9 +2173,11 @@ function renderStatHeaders(group: string) {
 }
 
 function TeamBadge({ logoUrl, name, shortName }: { logoUrl?: string | null; name?: string | null; shortName?: string | null }) {
+  const validLogoUrl = typeof logoUrl === "string" && /^https?:\/\//i.test(logoUrl.trim()) ? logoUrl.trim() : null;
+
   return (
     <span className="public-team-badge" aria-hidden="true">
-      {logoUrl ? <img alt="" src={logoUrl} /> : teamInitials(name, shortName)}
+      {validLogoUrl ? <img alt="" src={validLogoUrl} /> : teamInitials(name, shortName)}
     </span>
   );
 }
@@ -2282,6 +2285,11 @@ function DiagnosticPanel({ diagnostic }: { diagnostic: PublicMatchdayDiagnostic 
 
 export default async function PublicMatchdayPage({ params }: PublicMatchdayPageProps) {
   const { competitionSlug, seasonLabel, matchdayNumber } = await params;
+
+  if (competitionSlug === "liga-espanha") {
+    redirect(`/competicoes/la-liga/${seasonLabel}/jornadas/${matchdayNumber}`);
+  }
+
   const matchdayNumberValue = Number(matchdayNumber);
   const { context, diagnostic } = await getPublicMatchdayDiagnostic({
     competitionSlug,

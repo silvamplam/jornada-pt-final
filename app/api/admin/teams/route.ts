@@ -36,6 +36,10 @@ type ExistingTeam = {
   primary_color: string | null;
 };
 
+function isValidLogoUrl(value: string | null | undefined): value is string {
+  return typeof value === "string" && /^https?:\/\//i.test(value.trim());
+}
+
 function parseTeamAssetRows(raw: string | null) {
   const rows: TeamAssetRow[] = [];
   const seenSlugs = new Set<string>();
@@ -53,7 +57,7 @@ function parseTeamAssetRows(raw: string | null) {
     const logoUrl = logoValue?.trim() || null;
     const primaryColor = colorValue?.trim() || null;
 
-    if (!slug || (!logoUrl && !primaryColor) || seenSlugs.has(slug)) {
+    if (!slug || (!logoUrl && !primaryColor) || (logoUrl && !isValidLogoUrl(logoUrl)) || seenSlugs.has(slug)) {
       invalid += 1;
       continue;
     }
@@ -89,13 +93,13 @@ async function updateTeamAssets(request: Request, formData: FormData) {
       continue;
     }
 
-    if (team.logo_url) {
+    if (isValidLogoUrl(team.logo_url)) {
       alreadyHadLogo += 1;
     }
 
     const payload: Record<string, string> = {};
 
-    if (row.logoUrl && row.logoUrl !== team.logo_url) {
+    if (isValidLogoUrl(row.logoUrl) && row.logoUrl !== team.logo_url) {
       payload.logo_url = row.logoUrl;
     }
 
