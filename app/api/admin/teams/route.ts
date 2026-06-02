@@ -40,6 +40,18 @@ function isValidLogoUrl(value: string | null | undefined): value is string {
   return typeof value === "string" && /^https?:\/\//i.test(value.trim());
 }
 
+function isTruthyFormValue(value: FormDataEntryValue | null) {
+  return typeof value === "string" && ["1", "true", "on", "yes"].includes(value.trim().toLowerCase());
+}
+
+function shouldReplaceExistingLogos(formData: FormData) {
+  return (
+    isTruthyFormValue(formData.get("replace_existing_logos")) ||
+    isTruthyFormValue(formData.get("replaceExistingLogos")) ||
+    isTruthyFormValue(formData.get("overwrite_logos"))
+  );
+}
+
 function parseTeamAssetRows(raw: string | null) {
   const rows: TeamAssetRow[] = [];
   const seenSlugs = new Set<string>();
@@ -71,7 +83,7 @@ function parseTeamAssetRows(raw: string | null) {
 
 async function updateTeamAssets(request: Request, formData: FormData) {
   const { rows, invalid } = parseTeamAssetRows(cleanText(formData.get("team_assets")));
-  const replaceExistingLogos = cleanText(formData.get("replace_existing_logos")) === "1";
+  const replaceExistingLogos = shouldReplaceExistingLogos(formData);
 
   if (rows.length === 0) {
     return redirectTo(request, `/admin/clubes?assets_updated=0&assets_existing=0&assets_replaced=0&assets_missing=0&assets_invalid=${invalid}`);
@@ -99,11 +111,12 @@ async function updateTeamAssets(request: Request, formData: FormData) {
 
     if (hasValidExistingLogo && !replaceExistingLogos) {
       alreadyHadLogo += 1;
+      continue;
     }
 
     const payload: Record<string, string> = {};
 
-    if (isValidLogoUrl(row.logoUrl) && row.logoUrl !== team.logo_url && (!hasValidExistingLogo || replaceExistingLogos)) {
+    if (isValidLogoUrl(row.logoUrl) && row.logoUrl !== team.logo_url) {
       payload.logo_url = row.logoUrl;
     }
 
