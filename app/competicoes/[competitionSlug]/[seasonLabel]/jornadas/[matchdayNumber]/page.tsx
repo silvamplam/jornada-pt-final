@@ -2450,7 +2450,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
     href: `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/${context.matchday.number}`
   };
   const publicCompetitionMenuBase = [
-    { label: "Liga Portugal", slug: "liga-portugal", href: "/competicoes/liga-portugal/2025-26/jornadas/1" },
+    { label: "Liga Portugal", slug: "liga-portugal", href: "/competicoes/liga-portugal/2026-27/jornadas/1" },
     { label: "La Liga", slug: "la-liga", href: "/competicoes/la-liga/2026-27/jornadas/1" },
     { label: "Premier League", slug: "premier-league", href: "/competicoes/premier-league/2025-26/jornadas/1" }
   ];
