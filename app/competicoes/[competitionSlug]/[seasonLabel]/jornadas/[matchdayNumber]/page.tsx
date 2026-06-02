@@ -1,5 +1,5 @@
 ﻿import { buildAccumulatedClassification, totalClassificationStats, type ClassificationSplit } from "@/lib/classification";
-import { getPublicMatchdayDiagnostic, seasonLabelToUrlSegment, type PublicMatchdayDiagnostic, type PublicSeasonMatch } from "@/lib/public-matchday";
+import { getPublicMatchdayDiagnostic, seasonLabelToUrlSegment, type PublicMatchdayContext, type PublicMatchdayDiagnostic, type PublicSeasonMatch } from "@/lib/public-matchday";
 import PublicTeamBadge from "@/components/public/PublicTeamBadge";
 import RoundupVideoSwitcher from "@/components/public/RoundupVideoSwitcher";
 import { redirect } from "next/navigation";
@@ -11,6 +11,9 @@ type PublicMatchdayPageProps = {
     competitionSlug: string;
     seasonLabel: string;
     matchdayNumber: string;
+  }>;
+  searchParams?: Promise<{
+    debug_logos?: string;
   }>;
 };
 
@@ -1837,6 +1840,45 @@ const publicMatchdayStyles = `
     white-space: pre-wrap;
   }
 
+  .public-logo-diagnostic {
+    margin-top: 18px;
+    padding: 16px;
+    border: 1px solid #d8dee6;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #26313d;
+  }
+
+  .public-logo-diagnostic h2,
+  .public-logo-diagnostic p {
+    margin: 0;
+  }
+
+  .public-logo-diagnostic p {
+    margin-top: 6px;
+    color: #667282;
+    font-size: 13px;
+  }
+
+  .public-logo-diagnostic table {
+    width: 100%;
+    margin-top: 12px;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .public-logo-diagnostic th,
+  .public-logo-diagnostic td {
+    padding: 8px;
+    border-top: 1px solid #e1e6ed;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .public-logo-diagnostic code {
+    word-break: break-all;
+  }
+
   @media (max-width: 760px) {
     .public-matchday-shell {
       padding: 0 16px 16px;
@@ -2278,8 +2320,106 @@ function DiagnosticPanel({ diagnostic }: { diagnostic: PublicMatchdayDiagnostic 
   );
 }
 
-export default async function PublicMatchdayPage({ params }: PublicMatchdayPageProps) {
+function logoDiagnosticStatus(logoUrl?: string | null) {
+  const value = logoUrl?.trim();
+
+  if (!value) {
+    return "sem logo_url";
+  }
+
+  if (!/^https?:\/\//i.test(value)) {
+    return "valor nao URL";
+  }
+
+  if (/Special:(FilePath|Redirect)/i.test(value)) {
+    return "URL Wikimedia Special";
+  }
+
+  if (/upload\.wikimedia\.org/i.test(value)) {
+    return "URL direta Wikimedia";
+  }
+
+  return "URL http/https";
+}
+
+function LogoDiagnosticPanel({ context }: { context: PublicMatchdayContext }) {
+  const rowsById = new Map<
+    string,
+    {
+      name: string;
+      shortName: string;
+      slug: string;
+      logoUrl: string | null;
+      sources: Set<string>;
+    }
+  >();
+  const addTeam = (
+    team: PublicSeasonMatch["homeTeam"],
+    source: string
+  ) => {
+    if (!team) {
+      return;
+    }
+
+    const existing = rowsById.get(team.id);
+    if (existing) {
+      existing.sources.add(source);
+      return;
+    }
+
+    rowsById.set(team.id, {
+      name: team.name,
+      shortName: team.short_name,
+      slug: team.slug,
+      logoUrl: team.logo_url,
+      sources: new Set([source])
+    });
+  };
+
+  context.participants.forEach((participant, index) => {
+    addTeam(participant.team, `participante ${index + 1}`);
+  });
+  context.matchesForMatchday.forEach((match) => {
+    addTeam(match.homeTeam, `J${context.matchday.number} casa`);
+    addTeam(match.awayTeam, `J${context.matchday.number} fora`);
+  });
+  const rows = Array.from(rowsById.values()).sort((a, b) => a.name.localeCompare(b.name));
+
+  return (
+    <section className="public-logo-diagnostic" aria-label="Diagnóstico temporário dos emblemas">
+      <h2>Diagnóstico temporário dos emblemas</h2>
+      <p>
+        Esta caixa só aparece com <code>?debug_logos=1</code>. A consola do browser também indica os URLs que falham no carregamento.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Clube</th>
+            <th>Slug</th>
+            <th>Logo recebido</th>
+            <th>Estado</th>
+            <th>Origem</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.slug}>
+              <td>{row.name || row.shortName}</td>
+              <td>{row.slug}</td>
+              <td>{row.logoUrl ? <code>{row.logoUrl}</code> : "—"}</td>
+              <td>{logoDiagnosticStatus(row.logoUrl)}</td>
+              <td>{Array.from(row.sources).join(", ")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+export default async function PublicMatchdayPage({ params, searchParams }: PublicMatchdayPageProps) {
   const { competitionSlug, seasonLabel, matchdayNumber } = await params;
+  const query = searchParams ? await searchParams : {};
 
   if (competitionSlug === "liga-espanha") {
     redirect(`/competicoes/la-liga/${seasonLabel}/jornadas/${matchdayNumber}`);
@@ -2295,6 +2435,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   if (!context) {
     return <DiagnosticPanel diagnostic={diagnostic} />;
   }
+  const showLogoDiagnostic = query.debug_logos === "1";
 
   const seasonSegment = seasonLabelToUrlSegment(context.season.label);
   const seasonOptions = context.seasons.map((season) => ({
@@ -2391,6 +2532,7 @@ export default async function PublicMatchdayPage({ params }: PublicMatchdayPageP
   return (
     <main className="public-matchday-shell">
       <style>{publicMatchdayStyles}</style>
+      {showLogoDiagnostic ? <LogoDiagnosticPanel context={context} /> : null}
       <div className="public-top-stack">
       <header className="public-site-topbar" aria-label="Topo do Jornada.pt">
         <a className="public-site-brand" href="/">
