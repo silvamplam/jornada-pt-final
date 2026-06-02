@@ -11,6 +11,48 @@ type RoundupVideoSwitcherProps = {
   headingColor?: string | null;
 };
 
+const roundupVideoListPolishStyles = `
+  .public-roundup-video-layout .public-matchday-roundup,
+  .public-roundup-video-layout .public-roundup-scroll-frame,
+  .public-roundup-video-layout .public-roundup-scroll-window,
+  .public-roundup-video-layout .public-cover-story-strip {
+    border-color: transparent !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  .public-roundup-video-layout .public-roundup-scroll-frame {
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+  }
+
+  .public-roundup-video-layout .public-roundup-switch-item {
+    border-radius: 0;
+    background: #ffffff;
+    box-shadow: none;
+  }
+
+  .public-roundup-video-layout .public-roundup-switch-item:hover {
+    background: #fbfcfd;
+  }
+
+  .public-roundup-video-layout .public-roundup-switch-item[aria-pressed="true"] {
+    background: #ffffff;
+    outline: 0;
+    box-shadow: inset 2px 0 0 rgba(196, 0, 18, 0.5);
+  }
+
+  .public-roundup-video-layout .public-roundup-scroll-button {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.96) 18%, rgba(255, 255, 255, 0.96) 82%, rgba(255, 255, 255, 0));
+    color: #526174;
+  }
+
+  .public-roundup-video-layout .public-roundup-scroll-button-top,
+  .public-roundup-video-layout .public-roundup-scroll-button-bottom {
+    border-color: #eef2f6;
+  }
+`;
+
 function videoEmbedUrl(value?: string | null) {
   if (!value) {
     return null;
@@ -113,6 +155,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
 
   return (
     <div className="public-roundup-video-layout">
+      <style>{roundupVideoListPolishStyles}</style>
       <section
         className={`public-matchday-roundup public-below-headline-roundup public-editorial-flex-block${hasScrollControls ? " public-roundup-has-scroll" : ""}`}
         data-editorial-slot="resumo-ou-noticias"
