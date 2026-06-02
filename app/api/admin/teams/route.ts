@@ -40,6 +40,35 @@ function isValidLogoUrl(value: string | null | undefined): value is string {
   return typeof value === "string" && /^https?:\/\//i.test(value.trim());
 }
 
+function cleanAssetCell(value: string | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const cleaned = value
+    .trim()
+    .replace(/^\|+|\|+$/g, "")
+    .trim()
+    .replace(/^`+|`+$/g, "")
+    .replace(/^"+|"+$/g, "")
+    .replace(/^'+|'+$/g, "")
+    .trim();
+
+  return cleaned ? cleaned : null;
+}
+
+function firstTextValue(formData: FormData, names: string[]) {
+  for (const name of names) {
+    const value = cleanText(formData.get(name));
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
 function isTruthyFormValue(value: FormDataEntryValue | null) {
   return typeof value === "string" && ["1", "true", "on", "yes"].includes(value.trim().toLowerCase());
 }
@@ -64,12 +93,22 @@ function parseTeamAssetRows(raw: string | null) {
       continue;
     }
 
-    const [slugValue, logoValue, colorValue] = trimmed.split(";");
-    const slug = slugValue?.trim();
-    const logoUrl = logoValue?.trim() || null;
-    const primaryColor = colorValue?.trim() || null;
+    const parts = trimmed.includes(";")
+      ? trimmed.split(";")
+      : trimmed.includes("|")
+        ? trimmed.split("|").map((part) => part.trim()).filter(Boolean)
+        : trimmed.split(/\t|,/);
+    const slug = slugify(cleanAssetCell(parts[0]) ?? "");
+    const logoUrl = cleanAssetCell(parts[1]) || null;
+    const primaryColor = cleanAssetCell(parts[2]) || null;
 
-    if (!slug || (!logoUrl && !primaryColor) || (logoUrl && !isValidLogoUrl(logoUrl)) || seenSlugs.has(slug)) {
+    if (
+      !slug ||
+      slug === "slug" ||
+      (!logoUrl && !primaryColor) ||
+      (logoUrl && !isValidLogoUrl(logoUrl)) ||
+      seenSlugs.has(slug)
+    ) {
       invalid += 1;
       continue;
     }
@@ -82,11 +121,16 @@ function parseTeamAssetRows(raw: string | null) {
 }
 
 async function updateTeamAssets(request: Request, formData: FormData) {
-  const { rows, invalid } = parseTeamAssetRows(cleanText(formData.get("team_assets")));
+  const rawPayload = firstTextValue(formData, ["team_assets", "teams_payload", "logos_payload", "club_logos"]);
+  const { rows, invalid } = parseTeamAssetRows(rawPayload);
   const replaceExistingLogos = shouldReplaceExistingLogos(formData);
+  const replaceFlag = replaceExistingLogos ? "1" : "0";
 
   if (rows.length === 0) {
-    return redirectTo(request, `/admin/clubes?assets_updated=0&assets_existing=0&assets_replaced=0&assets_missing=0&assets_invalid=${invalid}`);
+    return redirectTo(
+      request,
+      `/admin/clubes?assets_updated=0&assets_existing=0&assets_replaced=0&assets_missing=0&assets_invalid=${invalid}&assets_found=0&assets_errors=0&assets_replace=${replaceFlag}`
+    );
   }
 
   const slugFilter = rows.map((row) => encodeURIComponent(row.slug)).join(",");
@@ -98,6 +142,8 @@ async function updateTeamAssets(request: Request, formData: FormData) {
   let alreadyHadLogo = 0;
   let replacedLogos = 0;
   let notFound = 0;
+  let found = 0;
+  let errors = 0;
 
   for (const row of rows) {
     const team = teamsBySlug.get(row.slug);
@@ -107,6 +153,7 @@ async function updateTeamAssets(request: Request, formData: FormData) {
       continue;
     }
 
+    found += 1;
     const hasValidExistingLogo = isValidLogoUrl(team.logo_url);
 
     if (hasValidExistingLogo && !replaceExistingLogos) {
@@ -116,7 +163,7 @@ async function updateTeamAssets(request: Request, formData: FormData) {
 
     const payload: Record<string, string> = {};
 
-    if (isValidLogoUrl(row.logoUrl) && row.logoUrl !== team.logo_url) {
+    if (isValidLogoUrl(row.logoUrl) && (replaceExistingLogos || row.logoUrl !== team.logo_url)) {
       payload.logo_url = row.logoUrl;
     }
 
@@ -128,20 +175,24 @@ async function updateTeamAssets(request: Request, formData: FormData) {
       continue;
     }
 
-    await writeSupabaseAdmin(`teams?id=eq.${encodeURIComponent(team.id)}`, {
-      method: "PATCH",
-      body: JSON.stringify(payload)
-    });
-    if (hasValidExistingLogo && replaceExistingLogos && payload.logo_url) {
-      replacedLogos += 1;
-    } else {
-      updated += 1;
+    try {
+      await writeSupabaseAdmin(`teams?slug=eq.${encodeURIComponent(team.slug)}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      });
+      if (hasValidExistingLogo && replaceExistingLogos && payload.logo_url) {
+        replacedLogos += 1;
+      } else {
+        updated += 1;
+      }
+    } catch {
+      errors += 1;
     }
   }
 
   return redirectTo(
     request,
-    `/admin/clubes?assets_updated=${updated}&assets_existing=${alreadyHadLogo}&assets_replaced=${replacedLogos}&assets_missing=${notFound}&assets_invalid=${invalid}`
+    `/admin/clubes?assets_updated=${updated}&assets_existing=${alreadyHadLogo}&assets_replaced=${replacedLogos}&assets_missing=${notFound}&assets_invalid=${invalid}&assets_found=${found}&assets_errors=${errors}&assets_replace=${replaceFlag}`
   );
 }
 

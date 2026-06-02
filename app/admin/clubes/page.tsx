@@ -303,6 +303,9 @@ type TeamsPageProps = {
     assets_replaced?: string;
     assets_missing?: string;
     assets_invalid?: string;
+    assets_found?: string;
+    assets_errors?: string;
+    assets_replace?: string;
     error?: string;
   }>;
 };
@@ -337,13 +340,23 @@ export default async function AdminTeamsPage({ searchParams }: TeamsPageProps) {
   const message = errorMessage(params.error);
   const canWrite = overview.writeConfigured && !overview.error;
   const assetSummary =
-    params.assets_updated || params.assets_existing || params.assets_replaced || params.assets_missing || params.assets_invalid
+    params.assets_updated ||
+    params.assets_existing ||
+    params.assets_replaced ||
+    params.assets_missing ||
+    params.assets_invalid ||
+    params.assets_found ||
+    params.assets_errors ||
+    params.assets_replace
       ? {
           updated: Number(params.assets_updated ?? 0),
           existing: Number(params.assets_existing ?? 0),
           replaced: Number(params.assets_replaced ?? 0),
           missing: Number(params.assets_missing ?? 0),
-          invalid: Number(params.assets_invalid ?? 0)
+          invalid: Number(params.assets_invalid ?? 0),
+          found: Number(params.assets_found ?? 0),
+          errors: Number(params.assets_errors ?? 0),
+          replace: params.assets_replace === "1"
         }
       : null;
 
@@ -398,11 +411,14 @@ export default async function AdminTeamsPage({ searchParams }: TeamsPageProps) {
         <section className="team-admin-message success">
           Atualizacao de emblemas concluida.
           <div className="team-admin-summary">
+            <span>Substituicao {assetSummary.replace ? "ativa" : "inativa"}</span>
+            <span>{assetSummary.found} slugs encontrados</span>
             <span>{assetSummary.updated} clubes atualizados</span>
             <span>{assetSummary.existing} emblemas existentes ignorados</span>
             <span>{assetSummary.replaced} emblemas substituidos</span>
             <span>{assetSummary.missing} nao encontrados</span>
             <span>{assetSummary.invalid} linhas invalidas</span>
+            <span>{assetSummary.errors} erros de gravacao</span>
           </div>
         </section>
       ) : null}
