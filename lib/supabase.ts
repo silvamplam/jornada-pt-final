@@ -176,6 +176,7 @@ export type SupabaseTeam = {
   name: string;
   short_name: string;
   slug: string;
+  code?: string | null;
   country: string | null;
   logo_url: string | null;
   primary_color: string | null;
@@ -767,7 +768,7 @@ export async function getAdminSeasonParticipants(): Promise<{
         "seasons?select=id,competition_id,label,starts_on,ends_on,is_current&order=label.desc"
       ),
       readTable<SupabaseTeam>(
-        "teams?select=id,name,short_name,slug,country,logo_url,primary_color&order=name.asc"
+        "teams?select=id,name,short_name,slug,code,country,logo_url,primary_color&order=name.asc"
       ),
       readTable<SupabaseMatch>(
         "matches?select=id,season_id,home_team_id,away_team_id,kickoff_at,status,home_score,away_score&order=kickoff_at.asc&limit=1000"

@@ -80,7 +80,13 @@ type TeamRow = {
   name: string;
   short_name: string | null;
   slug: string;
+  code?: string | null;
   country_id: string | null;
+};
+
+type TeamAliasRow = {
+  team_id: string;
+  normalized_alias: string;
 };
 
 type ClubListRow = {
@@ -1159,6 +1165,13 @@ function teamLookupKey(value: string | null | undefined) {
   return value ? slugify(value) : "";
 }
 
+function addTeamLookupKey(teamsByKey: Map<string, TeamRow>, key: string | null | undefined, team: TeamRow) {
+  const lookupKey = teamLookupKey(key);
+  if (lookupKey && !teamsByKey.has(lookupKey)) {
+    teamsByKey.set(lookupKey, team);
+  }
+}
+
 async function applyCalendarList(formData: FormData): Promise<CalendarApplySummary> {
   const countryId = cleanText(formData.get("country_id"));
   const competitionId = cleanText(formData.get("competition_id"));
@@ -1213,14 +1226,23 @@ async function applyCalendarList(formData: FormData): Promise<CalendarApplySumma
 
   const teamsQuery = participantTeamIds.map((id) => encodeURIComponent(id)).join(",");
   const teams = await fetchSupabaseAdminTable<TeamRow>(
-    `teams?select=id,name,short_name,slug,country_id&id=in.(${teamsQuery})&country_id=eq.${encodeURIComponent(countryId)}&limit=500`
+    `teams?select=id,name,short_name,slug,code,country_id&id=in.(${teamsQuery})&country_id=eq.${encodeURIComponent(countryId)}&limit=500`
   );
+  const teamsById = new Map(teams.map((team) => [team.id, team]));
   const teamsByKey = new Map<string, TeamRow>();
   teams.forEach((team) => {
-    teamsByKey.set(teamLookupKey(team.name), team);
-    teamsByKey.set(team.slug, team);
-    if (team.short_name) {
-      teamsByKey.set(teamLookupKey(team.short_name), team);
+    addTeamLookupKey(teamsByKey, team.name, team);
+    addTeamLookupKey(teamsByKey, team.short_name, team);
+    addTeamLookupKey(teamsByKey, team.slug, team);
+    addTeamLookupKey(teamsByKey, team.code, team);
+  });
+  const teamAliases = await fetchSupabaseAdminTable<TeamAliasRow>(
+    `team_aliases?select=team_id,normalized_alias&team_id=in.(${teamsQuery})&limit=1000`
+  ).catch(() => []);
+  teamAliases.forEach((alias) => {
+    const team = teamsById.get(alias.team_id);
+    if (team) {
+      addTeamLookupKey(teamsByKey, alias.normalized_alias, team);
     }
   });
 
