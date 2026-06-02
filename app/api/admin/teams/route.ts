@@ -71,9 +71,10 @@ function parseTeamAssetRows(raw: string | null) {
 
 async function updateTeamAssets(request: Request, formData: FormData) {
   const { rows, invalid } = parseTeamAssetRows(cleanText(formData.get("team_assets")));
+  const replaceExistingLogos = cleanText(formData.get("replace_existing_logos")) === "1";
 
   if (rows.length === 0) {
-    return redirectTo(request, `/admin/clubes?assets_updated=0&assets_existing=0&assets_missing=0&assets_invalid=${invalid}`);
+    return redirectTo(request, `/admin/clubes?assets_updated=0&assets_existing=0&assets_replaced=0&assets_missing=0&assets_invalid=${invalid}`);
   }
 
   const slugFilter = rows.map((row) => encodeURIComponent(row.slug)).join(",");
@@ -83,6 +84,7 @@ async function updateTeamAssets(request: Request, formData: FormData) {
   const teamsBySlug = new Map(existingTeams.map((team) => [team.slug, team]));
   let updated = 0;
   let alreadyHadLogo = 0;
+  let replacedLogos = 0;
   let notFound = 0;
 
   for (const row of rows) {
@@ -93,13 +95,15 @@ async function updateTeamAssets(request: Request, formData: FormData) {
       continue;
     }
 
-    if (isValidLogoUrl(team.logo_url)) {
+    const hasValidExistingLogo = isValidLogoUrl(team.logo_url);
+
+    if (hasValidExistingLogo && !replaceExistingLogos) {
       alreadyHadLogo += 1;
     }
 
     const payload: Record<string, string> = {};
 
-    if (isValidLogoUrl(row.logoUrl) && row.logoUrl !== team.logo_url) {
+    if (isValidLogoUrl(row.logoUrl) && row.logoUrl !== team.logo_url && (!hasValidExistingLogo || replaceExistingLogos)) {
       payload.logo_url = row.logoUrl;
     }
 
@@ -115,12 +119,16 @@ async function updateTeamAssets(request: Request, formData: FormData) {
       method: "PATCH",
       body: JSON.stringify(payload)
     });
-    updated += 1;
+    if (hasValidExistingLogo && replaceExistingLogos && payload.logo_url) {
+      replacedLogos += 1;
+    } else {
+      updated += 1;
+    }
   }
 
   return redirectTo(
     request,
-    `/admin/clubes?assets_updated=${updated}&assets_existing=${alreadyHadLogo}&assets_missing=${notFound}&assets_invalid=${invalid}`
+    `/admin/clubes?assets_updated=${updated}&assets_existing=${alreadyHadLogo}&assets_replaced=${replacedLogos}&assets_missing=${notFound}&assets_invalid=${invalid}`
   );
 }
 

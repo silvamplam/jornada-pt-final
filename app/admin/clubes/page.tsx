@@ -214,6 +214,21 @@ const teamAdminStyles = `
     padding: 18px 20px 20px;
   }
 
+  .team-assets-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #34404d;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .team-assets-option input {
+    width: 16px;
+    height: 16px;
+    accent-color: #e5252a;
+  }
+
   .team-form button,
   .team-assets-form button {
     min-height: 39px;
@@ -285,6 +300,7 @@ type TeamsPageProps = {
     updated?: string;
     assets_updated?: string;
     assets_existing?: string;
+    assets_replaced?: string;
     assets_missing?: string;
     assets_invalid?: string;
     error?: string;
@@ -321,10 +337,11 @@ export default async function AdminTeamsPage({ searchParams }: TeamsPageProps) {
   const message = errorMessage(params.error);
   const canWrite = overview.writeConfigured && !overview.error;
   const assetSummary =
-    params.assets_updated || params.assets_existing || params.assets_missing || params.assets_invalid
+    params.assets_updated || params.assets_existing || params.assets_replaced || params.assets_missing || params.assets_invalid
       ? {
           updated: Number(params.assets_updated ?? 0),
           existing: Number(params.assets_existing ?? 0),
+          replaced: Number(params.assets_replaced ?? 0),
           missing: Number(params.assets_missing ?? 0),
           invalid: Number(params.assets_invalid ?? 0)
         }
@@ -382,7 +399,8 @@ export default async function AdminTeamsPage({ searchParams }: TeamsPageProps) {
           Atualizacao de emblemas concluida.
           <div className="team-admin-summary">
             <span>{assetSummary.updated} clubes atualizados</span>
-            <span>{assetSummary.existing} ja tinham emblema</span>
+            <span>{assetSummary.existing} emblemas existentes ignorados</span>
+            <span>{assetSummary.replaced} emblemas substituidos</span>
             <span>{assetSummary.missing} nao encontrados</span>
             <span>{assetSummary.invalid} linhas invalidas</span>
           </div>
@@ -443,6 +461,10 @@ export default async function AdminTeamsPage({ searchParams }: TeamsPageProps) {
               placeholder={"Slug;Emblema URL;Cor\nfc-barcelona;https://...;#A50044\natletico-de-madrid;https://...;#CB3524"}
             />
           </div>
+          <label className="team-assets-option">
+            <input disabled={!canWrite} name="replace_existing_logos" type="checkbox" value="1" />
+            <span>Substituir emblemas existentes</span>
+          </label>
           <button disabled={!canWrite} type="submit">Atualizar clubes</button>
         </form>
       </section>

@@ -1,5 +1,6 @@
 ﻿import { buildAccumulatedClassification, totalClassificationStats, type ClassificationSplit } from "@/lib/classification";
 import { getPublicMatchdayDiagnostic, seasonLabelToUrlSegment, type PublicMatchdayDiagnostic, type PublicSeasonMatch } from "@/lib/public-matchday";
+import PublicTeamBadge from "@/components/public/PublicTeamBadge";
 import RoundupVideoSwitcher from "@/components/public/RoundupVideoSwitcher";
 import { redirect } from "next/navigation";
 
@@ -2173,13 +2174,7 @@ function renderStatHeaders(group: string) {
 }
 
 function TeamBadge({ logoUrl, name, shortName }: { logoUrl?: string | null; name?: string | null; shortName?: string | null }) {
-  const validLogoUrl = typeof logoUrl === "string" && /^https?:\/\//i.test(logoUrl.trim()) ? logoUrl.trim() : null;
-
-  return (
-    <span className="public-team-badge" aria-hidden="true">
-      {validLogoUrl ? <img alt="" src={validLogoUrl} /> : teamInitials(name, shortName)}
-    </span>
-  );
+  return <PublicTeamBadge fallbackLabel={teamInitials(name, shortName)} logoUrl={logoUrl} />;
 }
 
 function BroadcastBadge({ match }: { match: PublicSeasonMatch }) {
