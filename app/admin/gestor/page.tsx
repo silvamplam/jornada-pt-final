@@ -24,11 +24,12 @@ type CountryTeam = SupabaseTeam & {
   country_id: string | null;
 };
 type UnassignedTeam = Pick<CountryTeam, "id" | "name" | "short_name" | "slug" | "country_id">;
-type ClubPreviewTeam = Pick<CountryTeam, "id" | "name" | "short_name" | "slug" | "country_id" | "logo_url" | "primary_color">;
+type ClubPreviewTeam = Pick<CountryTeam, "id" | "name" | "short_name" | "slug" | "code" | "country_id" | "logo_url" | "primary_color">;
 type TeamAlias = {
   team_id: string;
   normalized_alias: string;
 };
+type TeamIdentity = Pick<CountryTeam, "id" | "name" | "short_name" | "slug" | "code">;
 type SeasonMatchday = {
   id: string;
   season_id: string;
@@ -1155,11 +1156,63 @@ function slugifyClub(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-function addTeamLookupKey(teamsByKey: Map<string, SupabaseTeam>, key: string | null | undefined, team: SupabaseTeam) {
+function addTeamLookupKey<T extends TeamIdentity>(
+  teamsByKey: Map<string, T>,
+  key: string | null | undefined,
+  team: T,
+  options: { override?: boolean } = {}
+) {
   const lookupKey = key ? slugifyClub(key) : "";
-  if (lookupKey && !teamsByKey.has(lookupKey)) {
+  if (lookupKey && (options.override || !teamsByKey.has(lookupKey))) {
     teamsByKey.set(lookupKey, team);
   }
+}
+
+function buildTeamLookupIndex<T extends TeamIdentity>(teams: T[], aliases: TeamAlias[]) {
+  const teamsById = new Map(teams.map((team) => [team.id, team]));
+  const teamsByKey = new Map<string, T>();
+
+  teams.forEach((team) => {
+    addTeamLookupKey(teamsByKey, team.slug, team);
+    addTeamLookupKey(teamsByKey, team.name, team);
+    addTeamLookupKey(teamsByKey, team.short_name, team);
+    addTeamLookupKey(teamsByKey, team.code, team);
+  });
+
+  aliases.forEach((alias) => {
+    const team = teamsById.get(alias.team_id);
+    if (team) {
+      addTeamLookupKey(teamsByKey, alias.normalized_alias, team, { override: true });
+    }
+  });
+
+  return teamsByKey;
+}
+
+function resolveTeamByInputName<T extends TeamIdentity>({
+  teamsByKey,
+  slug,
+  name,
+  shortName,
+  code
+}: {
+  teamsByKey: Map<string, T>;
+  slug?: string | null;
+  name?: string | null;
+  shortName?: string | null;
+  code?: string | null;
+}) {
+  const keys = [slug, name, shortName, code];
+
+  for (const key of keys) {
+    const lookupKey = key ? slugifyClub(key) : "";
+    const team = lookupKey ? teamsByKey.get(lookupKey) : null;
+    if (team) {
+      return team;
+    }
+  }
+
+  return null;
 }
 
 function signedNumber(value: number) {
@@ -1245,16 +1298,18 @@ function buildClubPreview({
   rawList,
   selectedCountry,
   allTeams,
+  teamAliases,
   participantsForSeason,
   countries
 }: {
   rawList: string;
   selectedCountry: SupabaseCountry | null;
   allTeams: ClubPreviewTeam[];
+  teamAliases: TeamAlias[];
   participantsForSeason: SupabaseAdminSeasonTeam[];
   countries: SupabaseCountry[];
 }): { rows: ClubPreviewRow[]; summary: ClubPreviewSummary } {
-  const teamsBySlug = new Map(allTeams.map((team) => [team.slug, team]));
+  const teamsByKey = buildTeamLookupIndex(allTeams, teamAliases);
   const countryById = new Map(countries.map((country) => [country.id, country.name]));
   const participantTeamIds = new Set(participantsForSeason.map((participant) => participant.team_id));
   const seenSlugs = new Set<string>();
@@ -1297,7 +1352,12 @@ function buildClubPreview({
       }
 
       seenSlugs.add(slug);
-      const existingTeam = teamsBySlug.get(slug);
+      const existingTeam = resolveTeamByInputName({
+        teamsByKey,
+        slug,
+        name,
+        shortName
+      });
 
       if (!existingTeam) {
         summary.newClubs += 1;
@@ -1394,7 +1454,7 @@ function buildCalendarPreview({
   teamAliasesForSeason.forEach((alias) => {
     const team = teamsById.get(alias.team_id);
     if (team) {
-      addTeamLookupKey(teamsByKey, alias.normalized_alias, team);
+      addTeamLookupKey(teamsByKey, alias.normalized_alias, team, { override: true });
     }
   });
 
@@ -1575,7 +1635,7 @@ async function readTeamsForCountry(countryId?: string): Promise<CountryTeam[]> {
 async function readTeamsForClubPreview(): Promise<ClubPreviewTeam[]> {
   try {
     return await fetchSupabaseAdminTable<ClubPreviewTeam>(
-      "teams?select=id,name,short_name,slug,country_id,logo_url,primary_color&order=name.asc&limit=2000"
+      "teams?select=id,name,short_name,slug,code,country_id,logo_url,primary_color&order=name.asc&limit=2000"
     );
   } catch {
     return [];
@@ -1801,6 +1861,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     : [];
   const teamsForCountry = await readTeamsForCountry(selectedCountry?.id);
   const teamsForClubPreview = rawClubPreviewList.trim() ? await readTeamsForClubPreview() : [];
+  const teamAliasesForClubPreview = rawClubPreviewList.trim()
+    ? await readTeamAliasesForTeams(teamsForClubPreview.map((team) => team.id))
+    : [];
   const unassignedTeams = await readUnassignedTeams();
   const matchdaysForSeason = await readMatchdaysForSeason(selectedSeason?.id);
   const selectedMatchday =
@@ -1849,6 +1912,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     rawList: rawClubPreviewList,
     selectedCountry,
     allTeams: teamsForClubPreview,
+    teamAliases: teamAliasesForClubPreview,
     participantsForSeason,
     countries
   });

@@ -381,6 +381,19 @@ async function createTeam(formData: FormData) {
     throw new Error("missing-fields");
   }
 
+  const lookupTeams = await readTeamsForCountryLookup(countryId);
+  const lookupAliases = await readTeamAliasesForTeamIds(lookupTeams.map((team) => team.id));
+  const existingTeamByInput = resolveTeamByInputName({
+    teamsByKey: buildTeamLookupIndex(lookupTeams, lookupAliases),
+    slug,
+    name,
+    shortName
+  });
+
+  if (existingTeamByInput) {
+    throw new Error("team-slug-exists");
+  }
+
   if (await hasRows(`teams?select=id&slug=eq.${encodeURIComponent(slug)}`)) {
     throw new Error("team-slug-exists");
   }
@@ -535,12 +548,24 @@ async function applyClubList(formData: FormData): Promise<ApplyClubListSummary> 
     blockedConflicts: 0,
     invalidLines: parsed.invalidLines
   };
+  const lookupTeams = await readTeamsForCountryLookup(countryId);
+  const lookupAliases = await readTeamAliasesForTeamIds(lookupTeams.map((team) => team.id));
+  const teamsByKey = buildTeamLookupIndex(lookupTeams, lookupAliases);
 
   for (const row of parsed.rows) {
-    const existingTeams = await fetchSupabaseAdminTable<TeamRow>(
-      `teams?select=id,name,short_name,slug,country_id&slug=eq.${encodeURIComponent(row.slug)}&limit=1`
-    );
-    let team = existingTeams[0];
+    let team = resolveTeamByInputName({
+      teamsByKey,
+      slug: row.slug,
+      name: row.name,
+      shortName: row.shortName
+    });
+
+    if (!team) {
+      const existingTeams = await fetchSupabaseAdminTable<TeamRow>(
+        `teams?select=id,name,short_name,slug,code,country_id&slug=eq.${encodeURIComponent(row.slug)}&limit=1`
+      );
+      team = existingTeams[0];
+    }
 
     if (team?.country_id && team.country_id !== countryId) {
       summary.blockedConflicts += 1;
@@ -561,6 +586,12 @@ async function applyClubList(formData: FormData): Promise<ApplyClubListSummary> 
       });
       team = createdTeams[0];
       summary.createdTeams += 1;
+      if (team) {
+        addTeamLookupKey(teamsByKey, team.slug, team);
+        addTeamLookupKey(teamsByKey, team.name, team);
+        addTeamLookupKey(teamsByKey, team.short_name, team);
+        addTeamLookupKey(teamsByKey, team.code, team);
+      }
     } else {
       summary.reusedTeams += 1;
 
@@ -1165,11 +1196,80 @@ function teamLookupKey(value: string | null | undefined) {
   return value ? slugify(value) : "";
 }
 
-function addTeamLookupKey(teamsByKey: Map<string, TeamRow>, key: string | null | undefined, team: TeamRow) {
+function addTeamLookupKey(
+  teamsByKey: Map<string, TeamRow>,
+  key: string | null | undefined,
+  team: TeamRow,
+  options: { override?: boolean } = {}
+) {
   const lookupKey = teamLookupKey(key);
-  if (lookupKey && !teamsByKey.has(lookupKey)) {
+  if (lookupKey && (options.override || !teamsByKey.has(lookupKey))) {
     teamsByKey.set(lookupKey, team);
   }
+}
+
+function buildTeamLookupIndex(teams: TeamRow[], aliases: TeamAliasRow[]) {
+  const teamsById = new Map(teams.map((team) => [team.id, team]));
+  const teamsByKey = new Map<string, TeamRow>();
+
+  teams.forEach((team) => {
+    addTeamLookupKey(teamsByKey, team.slug, team);
+    addTeamLookupKey(teamsByKey, team.name, team);
+    addTeamLookupKey(teamsByKey, team.short_name, team);
+    addTeamLookupKey(teamsByKey, team.code, team);
+  });
+
+  aliases.forEach((alias) => {
+    const team = teamsById.get(alias.team_id);
+    if (team) {
+      addTeamLookupKey(teamsByKey, alias.normalized_alias, team, { override: true });
+    }
+  });
+
+  return teamsByKey;
+}
+
+function resolveTeamByInputName({
+  teamsByKey,
+  slug,
+  name,
+  shortName,
+  code
+}: {
+  teamsByKey: Map<string, TeamRow>;
+  slug?: string | null;
+  name?: string | null;
+  shortName?: string | null;
+  code?: string | null;
+}) {
+  const keys = [slug, name, shortName, code];
+
+  for (const key of keys) {
+    const lookupKey = teamLookupKey(key);
+    const team = lookupKey ? teamsByKey.get(lookupKey) : null;
+    if (team) {
+      return team;
+    }
+  }
+
+  return null;
+}
+
+async function readTeamsForCountryLookup(countryId: string) {
+  return fetchSupabaseAdminTable<TeamRow>(
+    `teams?select=id,name,short_name,slug,code,country_id&or=(country_id.eq.${encodeURIComponent(countryId)},country_id.is.null)&limit=2000`
+  );
+}
+
+async function readTeamAliasesForTeamIds(teamIds: string[]) {
+  const uniqueTeamIds = Array.from(new Set(teamIds)).filter(Boolean);
+  if (uniqueTeamIds.length === 0) {
+    return [];
+  }
+
+  return fetchSupabaseAdminTable<TeamAliasRow>(
+    `team_aliases?select=team_id,normalized_alias&team_id=in.(${uniqueTeamIds.map(encodeURIComponent).join(",")})&limit=1000`
+  ).catch(() => []);
 }
 
 async function applyCalendarList(formData: FormData): Promise<CalendarApplySummary> {
@@ -1242,7 +1342,7 @@ async function applyCalendarList(formData: FormData): Promise<CalendarApplySumma
   teamAliases.forEach((alias) => {
     const team = teamsById.get(alias.team_id);
     if (team) {
-      addTeamLookupKey(teamsByKey, alias.normalized_alias, team);
+      addTeamLookupKey(teamsByKey, alias.normalized_alias, team, { override: true });
     }
   });
 
