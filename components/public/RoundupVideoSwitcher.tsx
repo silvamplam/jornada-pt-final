@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseMatchdayRoundupItem } from "@/lib/supabase";
@@ -12,6 +12,29 @@ type RoundupVideoSwitcherProps = {
 };
 
 const roundupVideoListPolishStyles = `
+  .public-roundup-video-layout {
+    position: relative;
+  }
+
+  .public-roundup-video-layout .public-roundup-zone-heading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: grid;
+    gap: 2px;
+    color: #0b1f3a;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  .public-roundup-video-layout .public-roundup-zone-heading span + span {
+    opacity: 0.72;
+  }
+
   .public-roundup-video-layout .public-matchday-roundup,
   .public-roundup-video-layout .public-roundup-scroll-frame,
   .public-roundup-video-layout .public-roundup-scroll-window,
@@ -24,6 +47,11 @@ const roundupVideoListPolishStyles = `
   .public-roundup-video-layout .public-roundup-scroll-frame {
     border-top: 0 !important;
     border-bottom: 0 !important;
+  }
+
+  .public-roundup-video-layout .public-roundup-inline-head-spacer {
+    visibility: hidden;
+    pointer-events: none;
   }
 
   .public-roundup-video-layout .public-roundup-scroll-window {
@@ -81,6 +109,25 @@ const roundupVideoListPolishStyles = `
   }
 `;
 
+function splitHeadingLines(value?: string | null) {
+  const cleaned = value?.trim();
+
+  if (!cleaned) {
+    return [];
+  }
+
+  const parts = cleaned
+    .split(/\r?\n|·|Â·|&middot;|\s+-\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length <= 2) {
+    return parts;
+  }
+
+  return [parts[0], parts.slice(1).join(" ")];
+}
+
 function videoEmbedUrl(value?: string | null) {
   if (!value) {
     return null;
@@ -111,7 +158,7 @@ function videoEmbedUrl(value?: string | null) {
   return null;
 }
 
-export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNumber, heading, headingColor }: RoundupVideoSwitcherProps) {
+export default function RoundupVideoSwitcher({ items, initialItemId, heading, headingColor }: RoundupVideoSwitcherProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const initialItem = useMemo(
     () => items.find((item) => item.id === initialItemId) ?? items[0] ?? null,
@@ -125,10 +172,8 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
     canScrollDown: hasScrollControls,
     canScrollUp: false
   });
-  const fallbackMatchdayLabel = matchdayNumber
-    ? `Jornada ${String(matchdayNumber).padStart(2, "0")} · Jogos Vídeo Resumo`
-    : "Jornada · Jogos Vídeo Resumo";
-  const matchdayLabel = heading?.trim() || fallbackMatchdayLabel;
+  const headingLines = splitHeadingLines(heading);
+  const headingStyle = headingColor?.trim() ? { color: headingColor.trim() } : undefined;
 
   const updateScrollState = useCallback(() => {
     const list = listRef.current;
@@ -184,15 +229,22 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
   return (
     <div className="public-roundup-video-layout">
       <style>{roundupVideoListPolishStyles}</style>
+      {headingLines.length > 0 ? (
+        <div className="public-roundup-zone-heading" style={headingStyle}>
+          {headingLines.map((line, index) => (
+            <span key={`${line}-${index}`}>{line}</span>
+          ))}
+        </div>
+      ) : null}
       <section
         className={`public-matchday-roundup public-below-headline-roundup public-editorial-flex-block${hasScrollControls ? " public-roundup-has-scroll" : ""}`}
         data-editorial-slot="resumo-ou-noticias"
       >
-        <div className="public-editorial-block-head">
-          <span className="public-roundup-matchday-label" style={headingColor?.trim() ? { color: headingColor.trim() } : undefined}>
-            {matchdayLabel}
-          </span>
-        </div>
+        {headingLines.length > 0 ? (
+          <div aria-hidden="true" className="public-editorial-block-head public-roundup-inline-head-spacer">
+            <span className="public-roundup-matchday-label">{headingLines.join(" ")}</span>
+          </div>
+        ) : null}
         <div className="public-roundup-scroll-frame">
           {hasScrollControls && scrollState.canScrollUp ? (
             <button className="public-roundup-scroll-button public-roundup-scroll-button-top" onClick={() => scrollRoundupList(-1)} type="button" aria-label="Ver itens anteriores">
