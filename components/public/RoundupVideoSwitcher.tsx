@@ -51,6 +51,7 @@ const roundupVideoListPolishStyles = `
   .public-roundup-video-layout .public-roundup-scroll-frame {
     border-top: 0 !important;
     border-bottom: 0 !important;
+    margin-top: -4px;
   }
 
   .public-roundup-video-layout .public-roundup-inline-head-spacer {
