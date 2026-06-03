@@ -26,7 +26,14 @@ const roundupVideoListPolishStyles = `
     border-bottom: 0 !important;
   }
 
+  .public-roundup-video-layout .public-roundup-scroll-window {
+    margin-left: -24px;
+    padding-left: 24px;
+    overflow-x: visible !important;
+  }
+
   .public-roundup-video-layout .public-roundup-switch-item {
+    position: relative;
     border-radius: 0;
     background: #ffffff;
     box-shadow: none;
@@ -37,10 +44,22 @@ const roundupVideoListPolishStyles = `
   }
 
   .public-roundup-video-layout .public-roundup-switch-item[aria-pressed="true"] {
-    background: #fbfcfd;
-    outline: 1px solid #eef2f6;
-    outline-offset: -1px;
+    background: #ffffff;
+    outline: 0;
     box-shadow: none;
+  }
+
+  .public-roundup-video-layout .public-roundup-switch-item[aria-pressed="true"]::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -22px;
+    width: 16px;
+    height: 1px;
+    background: #0b1f3a;
+    opacity: 0.66;
+    transform: translateY(-50%);
+    pointer-events: none;
   }
 
   .public-roundup-video-layout .public-roundup-scroll-button {
