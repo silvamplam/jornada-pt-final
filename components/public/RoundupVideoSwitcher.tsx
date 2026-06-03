@@ -35,6 +35,10 @@ const roundupVideoListPolishStyles = `
     opacity: 0.72;
   }
 
+  .public-roundup-video-layout .public-roundup-video-panel {
+    padding-top: calc(var(--public-roundup-video-top-offset, 28px) + 3px);
+  }
+
   .public-roundup-video-layout .public-matchday-roundup,
   .public-roundup-video-layout .public-roundup-scroll-frame,
   .public-roundup-video-layout .public-roundup-scroll-window,
