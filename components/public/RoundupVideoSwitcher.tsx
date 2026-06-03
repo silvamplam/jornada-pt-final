@@ -53,6 +53,20 @@ const roundupVideoListPolishStyles = `
     border-bottom: 0 !important;
   }
 
+  .public-roundup-video-layout .public-roundup-compact-list .public-roundup-scroll-frame {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  .public-roundup-video-layout .public-roundup-compact-list .public-roundup-scroll-window {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    align-content: start !important;
+    grid-auto-rows: auto;
+    overflow-y: visible;
+  }
+
   .public-roundup-video-layout .public-roundup-inline-head-spacer {
     visibility: hidden;
     min-height: 22px;
@@ -188,6 +202,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
   const headingLines = splitHeadingLines(heading);
   const headingStyle = headingColor?.trim() ? { color: headingColor.trim() } : undefined;
   const headingSpacerText = headingLines.length > 0 ? headingLines.join(" ") : "Jornada 00 Jogos Video Resumo";
+  const compactListClass = items.length > 0 && items.length < 5 ? " public-roundup-compact-list" : "";
 
   const updateScrollState = useCallback(() => {
     const list = listRef.current;
@@ -251,7 +266,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
         </div>
       ) : null}
       <section
-        className={`public-matchday-roundup public-below-headline-roundup public-editorial-flex-block${hasScrollControls ? " public-roundup-has-scroll" : ""}`}
+        className={`public-matchday-roundup public-below-headline-roundup public-editorial-flex-block${hasScrollControls ? " public-roundup-has-scroll" : ""}${compactListClass}`}
         data-editorial-slot="resumo-ou-noticias"
       >
         <div aria-hidden="true" className="public-editorial-block-head public-roundup-inline-head-spacer">
