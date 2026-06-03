@@ -27,8 +27,8 @@ const roundupVideoListPolishStyles = `
   }
 
   .public-roundup-video-layout .public-roundup-scroll-window {
-    margin-left: -24px;
-    padding-left: 24px;
+    margin-left: -32px;
+    padding-left: 32px;
     overflow-x: visible !important;
   }
 
@@ -49,12 +49,16 @@ const roundupVideoListPolishStyles = `
     box-shadow: none;
   }
 
+  .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-item {
+    gap: 3px 17px;
+  }
+
   .public-roundup-video-layout .public-roundup-switch-item[aria-pressed="true"]::before {
     content: "";
     position: absolute;
     top: 50%;
-    left: -22px;
-    width: 16px;
+    left: -28px;
+    width: 18px;
     height: 1px;
     background: #0b1f3a;
     opacity: 0.66;
@@ -214,7 +218,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, matchdayNum
                     </div>
                     <span className="public-roundup-meta">
                       {itemLabel ? <span>{itemLabel}</span> : <span aria-hidden="true" />}
-                      {itemDuration ? <span className="public-roundup-duration">{itemLabel ? `· ${itemDuration}` : itemDuration}</span> : null}
+                      {itemDuration ? <span className="public-roundup-duration">{itemDuration}</span> : null}
                     </span>
                     <strong>{item.title ?? "Video da jornada"}</strong>
                     {item.subtitle ? <small>{item.subtitle}</small> : null}
