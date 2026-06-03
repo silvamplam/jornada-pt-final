@@ -27,8 +27,8 @@ const roundupVideoListPolishStyles = `
   }
 
   .public-roundup-video-layout .public-roundup-scroll-window {
-    margin-left: -32px;
-    padding-left: 32px;
+    margin-left: -38px;
+    padding-left: 38px;
     overflow-x: visible !important;
   }
 
@@ -50,15 +50,19 @@ const roundupVideoListPolishStyles = `
   }
 
   .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-item {
-    gap: 3px 17px;
+    gap: 3px 21px;
+  }
+
+  .public-roundup-video-layout .public-roundup-meta {
+    gap: 12px !important;
   }
 
   .public-roundup-video-layout .public-roundup-switch-item[aria-pressed="true"]::before {
     content: "";
     position: absolute;
     top: 50%;
-    left: -28px;
-    width: 18px;
+    left: -34px;
+    width: 22px;
     height: 1px;
     background: #0b1f3a;
     opacity: 0.66;
