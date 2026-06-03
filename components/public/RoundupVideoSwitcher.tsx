@@ -18,7 +18,7 @@ const roundupVideoListPolishStyles = `
 
   .public-roundup-video-layout .public-roundup-zone-heading {
     position: absolute;
-    top: calc(var(--public-roundup-video-top-offset, 28px) + 3px);
+    top: calc(var(--public-roundup-video-top-offset, 28px) + 10px);
     left: 0;
     display: grid;
     gap: 2px;
