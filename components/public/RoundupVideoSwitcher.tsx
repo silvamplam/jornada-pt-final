@@ -51,6 +51,7 @@ const roundupVideoListPolishStyles = `
 
   .public-roundup-video-layout .public-roundup-inline-head-spacer {
     visibility: hidden;
+    min-height: 22px;
     pointer-events: none;
   }
 
@@ -121,6 +122,14 @@ function splitHeadingLines(value?: string | null) {
     .map((part) => part.trim())
     .filter(Boolean);
 
+  if (parts.length === 1) {
+    const jornadaMatch = parts[0].match(/^(jornada\s+\d{1,2})(?:\s+)(.+)$/i);
+
+    if (jornadaMatch) {
+      return [jornadaMatch[1], jornadaMatch[2]];
+    }
+  }
+
   if (parts.length <= 2) {
     return parts;
   }
@@ -174,6 +183,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
   });
   const headingLines = splitHeadingLines(heading);
   const headingStyle = headingColor?.trim() ? { color: headingColor.trim() } : undefined;
+  const headingSpacerText = headingLines.length > 0 ? headingLines.join(" ") : "Jornada 00 Jogos Video Resumo";
 
   const updateScrollState = useCallback(() => {
     const list = listRef.current;
@@ -240,11 +250,9 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
         className={`public-matchday-roundup public-below-headline-roundup public-editorial-flex-block${hasScrollControls ? " public-roundup-has-scroll" : ""}`}
         data-editorial-slot="resumo-ou-noticias"
       >
-        {headingLines.length > 0 ? (
-          <div aria-hidden="true" className="public-editorial-block-head public-roundup-inline-head-spacer">
-            <span className="public-roundup-matchday-label">{headingLines.join(" ")}</span>
-          </div>
-        ) : null}
+        <div aria-hidden="true" className="public-editorial-block-head public-roundup-inline-head-spacer">
+          <span className="public-roundup-matchday-label">{headingSpacerText}</span>
+        </div>
         <div className="public-roundup-scroll-frame">
           {hasScrollControls && scrollState.canScrollUp ? (
             <button className="public-roundup-scroll-button public-roundup-scroll-button-top" onClick={() => scrollRoundupList(-1)} type="button" aria-label="Ver itens anteriores">
