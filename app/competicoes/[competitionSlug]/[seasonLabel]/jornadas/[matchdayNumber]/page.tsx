@@ -2940,7 +2940,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                               key={`${row.teamId}-${resultIndex}-${result.label}`}
                               title={result.title}
                             >
-                              {result.label}
+                              {result.label.charAt(0)}
                             </span>
                           ))}
                         </span>
