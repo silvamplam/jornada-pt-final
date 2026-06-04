@@ -132,6 +132,8 @@ const roundupVideoListPolishStyles = `
 
   .public-roundup-video-layout .public-roundup-meta {
     gap: 12px !important;
+    justify-content: space-between !important;
+    width: 100%;
   }
 
   .public-roundup-video-layout .public-roundup-switch-item[aria-pressed="true"]::before {
