@@ -97,7 +97,37 @@ const roundupVideoListPolishStyles = `
   }
 
   .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-item {
+    grid-template-columns: 30px minmax(0, 1fr) auto auto;
     gap: 3px 21px;
+  }
+
+  .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-play {
+    position: relative;
+    display: block;
+    grid-column: 1 / 2;
+    grid-row: 1 / 4;
+    align-self: center;
+    justify-self: start;
+    width: 26px;
+    height: 18px;
+    min-width: 26px;
+    border-radius: 6px;
+    background: #d71920;
+    box-shadow: none;
+  }
+
+  .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-play::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    margin-left: 1px;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 8px solid #ffffff;
+    transform: translate(-50%, -50%);
   }
 
   .public-roundup-video-layout .public-roundup-meta {
@@ -281,8 +311,6 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
           <div className="public-cover-story-strip public-roundup-scroll-window" ref={listRef} aria-label="Resumos e videos da jornada">
             {items.length > 0 ? (
               items.map((item) => {
-                const showPlay = Boolean(item.video_url) || item.type === "video" || item.type === "golos" || item.type === "resumo";
-                const imageUrl = item.image_url?.trim();
                 const isActive = item.id === activeItem?.id;
                 const itemLabel = item.label?.trim();
                 const itemDuration = item.duration?.trim();
@@ -295,10 +323,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
                     onClick={() => setActiveItemId(item.id)}
                     type="button"
                   >
-                    <div className="public-highlight-image">
-                      {imageUrl ? <img alt="" src={imageUrl} /> : null}
-                      {showPlay ? <span aria-hidden="true" className="public-media-play public-media-play-icon-only" /> : null}
-                    </div>
+                    <span aria-hidden="true" className="public-roundup-switch-play" />
                     <span className="public-roundup-meta">
                       {itemLabel ? <span>{itemLabel}</span> : <span aria-hidden="true" />}
                       {itemDuration ? <span className="public-roundup-duration">{itemDuration}</span> : null}
