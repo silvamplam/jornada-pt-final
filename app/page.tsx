@@ -1028,6 +1028,12 @@ export default async function HomePage() {
           gap: 10px;
         }
 
+        .public-matchday-roundup .public-cover-story-strip {
+          grid-template-columns: 1fr;
+          gap: 0;
+          padding-top: 0;
+        }
+
         .public-cover-story {
           position: relative;
           display: grid;
