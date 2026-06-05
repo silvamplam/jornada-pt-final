@@ -1,10 +1,22 @@
 ﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { SupabaseMatchdayRoundupItem } from "@/lib/supabase";
+
+export type RoundupVideoItem = {
+  id: string;
+  label: string | null;
+  title: string | null;
+  subtitle: string | null;
+  image_url: string | null;
+  video_url: string | null;
+  duration: string | null;
+  type?: "video" | "golos" | "resumo" | "noticia";
+  sort_order?: number;
+  status?: "draft" | "published";
+};
 
 type RoundupVideoSwitcherProps = {
-  items: SupabaseMatchdayRoundupItem[];
+  items: RoundupVideoItem[];
   initialItemId?: string | null;
   matchdayNumber?: number | null;
   heading?: string | null;

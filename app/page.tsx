@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RoundupVideoSwitcher from "@/components/public/RoundupVideoSwitcher";
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -166,32 +167,6 @@ function HighlightCard({
   );
 }
 
-function RoundupCard({ item }: { item: SiteRoundupItem }) {
-  const showPlay = Boolean(item.video_url) || item.type === "video" || item.type === "golos" || item.type === "resumo";
-
-  return (
-    <article className="home-cover-story">
-      <div className="home-highlight-image">
-        {item.image_url ? <img src={item.image_url} alt="" /> : null}
-        {showPlay ? <span className="home-media-play" aria-hidden="true">▶</span> : null}
-      </div>
-      {item.label ? <span>{item.label}</span> : null}
-      <strong>{item.title}</strong>
-      {item.subtitle ? <small>{item.subtitle}</small> : null}
-      <div className="home-roundup-meta">
-        {item.duration ? <span>{item.duration}</span> : null}
-        {item.video_url ? (
-          <a href={item.video_url} aria-label="Abrir conteudo do resumo">
-            ›
-          </a>
-        ) : (
-          <span aria-hidden="true">›</span>
-        )}
-      </div>
-    </article>
-  );
-}
-
 export default async function HomePage() {
   const editorial = await readHomeEditorial();
   const [highlights, roundupItems, latestNews] = editorial
@@ -225,13 +200,8 @@ export default async function HomePage() {
     complementaryMode === "complementary_story" &&
     editorial?.complementary_status === "published" &&
     Boolean(cleanText(editorial.complementary_title) || cleanText(editorial.complementary_text));
-  const initialRoundupItem =
-    (editorial?.complementary_roundup_item_id
-      ? roundupItems.find((item) => item.id === editorial.complementary_roundup_item_id)
-      : null) ?? roundupItems[0] ?? null;
-  const showRoundupComplement = complementaryMode === "roundup_video" && Boolean(initialRoundupItem);
   const visibleHighlights = highlights.length > 0 ? highlights : fallbackHighlights;
-  const visibleBelowRoundupItems = roundupItems.length > 0 ? roundupItems : [];
+  const hasRoundupVideoBlock = (belowHeadlineMode === "roundup" || complementaryMode === "roundup_video") && roundupItems.length > 0;
 
   return (
     <main className="public-home">
@@ -312,44 +282,24 @@ export default async function HomePage() {
             </article>
 
             <div className="public-home-main-lower">
-              {showRoundupComplement && initialRoundupItem ? (
-                <section className="public-roundup-video-panel" aria-label="Video em destaque">
-                  <div className="public-roundup-video-block">
-                    <div className="public-complement-media">
-                      {initialRoundupItem.image_url ? <img src={initialRoundupItem.image_url} alt="" /> : null}
-                      <span className="home-media-play" aria-hidden="true">▶</span>
+              {hasRoundupVideoBlock ? (
+                <RoundupVideoSwitcher
+                  heading={cleanText(editorial?.roundup_video_heading) || belowHeadlineHeading}
+                  headingColor={cleanText(editorial?.roundup_video_heading_color) || belowHeadlineHeadingColor}
+                  initialItemId={editorial?.complementary_roundup_item_id ?? null}
+                  items={roundupItems}
+                />
+              ) : (
+                <>
+                  <section className="public-home-roundup public-below-highlights" aria-label="Zona editorial abaixo da manchete">
+                    <div className="public-editorial-block-head">
+                      <span style={belowHeadlineHeadingColor ? { color: belowHeadlineHeadingColor } : undefined}>{belowHeadlineHeading}</span>
                     </div>
-                    <div className="public-complement-body">
-                      <span
-                        className="public-complement-label"
-                        style={editorial?.roundup_video_heading_color ? { color: editorial.roundup_video_heading_color } : undefined}
-                      >
-                        {cleanText(editorial?.roundup_video_heading) || "Resumo da Jornada"}
-                      </span>
-                      <strong>{initialRoundupItem.title}</strong>
-                      {initialRoundupItem.subtitle ? <p>{initialRoundupItem.subtitle}</p> : null}
-                      {initialRoundupItem.video_url ? (
-                        <a className="public-more-link" href={initialRoundupItem.video_url}>
-                          Ver video <span aria-hidden="true">›</span>
-                        </a>
-                      ) : null}
+                    <div className="public-cover-story-strip">
+                      {visibleHighlights.slice(0, 3).map((item) => <HighlightCard item={item} key={item.id} />)}
                     </div>
-                  </div>
-                </section>
-              ) : null}
+                  </section>
 
-              <section className={`public-home-roundup public-below-${belowHeadlineMode}`} aria-label="Zona editorial abaixo da manchete">
-                <div className="public-editorial-block-head">
-                  <span style={belowHeadlineHeadingColor ? { color: belowHeadlineHeadingColor } : undefined}>{belowHeadlineHeading}</span>
-                </div>
-                <div className="public-cover-story-strip">
-                  {belowHeadlineMode === "roundup" && visibleBelowRoundupItems.length > 0
-                    ? visibleBelowRoundupItems.map((item) => <RoundupCard item={item} key={item.id} />)
-                    : visibleHighlights.slice(0, 3).map((item) => <HighlightCard item={item} key={item.id} />)}
-                </div>
-              </section>
-
-              {!showRoundupComplement ? (
                 <aside className="public-home-cover-side" aria-label="Bloco complementar">
                   {hasComplementaryStory && editorial ? (
                     <>
@@ -384,7 +334,8 @@ export default async function HomePage() {
                     </div>
                   )}
                 </aside>
-              ) : null}
+                </>
+              )}
             </div>
           </div>
 
@@ -661,6 +612,122 @@ export default async function HomePage() {
 
         .public-home-main-lower:has(.public-roundup-video-panel) {
           grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1fr);
+          --public-roundup-video-top-offset: 28px;
+          --public-roundup-visible-list-height: 285px;
+          --public-roundup-scroll-control-height: 14px;
+        }
+
+        .public-roundup-video-layout {
+          display: grid;
+          grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1fr);
+          gap: 18px;
+          align-items: start;
+          grid-column: 1 / -1;
+        }
+
+        .public-matchday-roundup {
+          --public-roundup-visible-list-height: 285px;
+          --public-roundup-scroll-control-height: 14px;
+          overflow: hidden;
+          border: 1px solid #dce3eb;
+          border-radius: 8px;
+          background: #ffffff;
+        }
+
+        .public-matchday-roundup .public-editorial-block-head {
+          margin-bottom: 0;
+        }
+
+        .public-roundup-scroll-frame {
+          position: relative;
+          overflow: visible;
+        }
+
+        .public-roundup-scroll-window {
+          display: grid;
+          gap: 0;
+          max-height: var(--public-roundup-visible-list-height);
+          overflow-y: auto;
+        }
+
+        .public-roundup-has-scroll .public-roundup-scroll-window {
+          height: var(--public-roundup-visible-list-height);
+        }
+
+        .public-roundup-scroll-window::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .public-roundup-scroll-window::-webkit-scrollbar-thumb {
+          border-radius: 999px;
+          background: #cbd5df;
+        }
+
+        .public-roundup-scroll-button {
+          position: absolute;
+          z-index: 2;
+          left: 0;
+          right: 0;
+          display: grid;
+          place-items: center;
+          height: var(--public-roundup-scroll-control-height);
+          border: 0;
+          background: rgba(255, 255, 255, 0.94);
+          color: #526174;
+          cursor: pointer;
+        }
+
+        .public-roundup-scroll-button-top {
+          top: 0;
+        }
+
+        .public-roundup-scroll-button-bottom {
+          bottom: 0;
+        }
+
+        .public-roundup-switch-item {
+          display: grid;
+          width: 100%;
+          min-height: calc(var(--public-roundup-visible-list-height) / 5);
+          padding: 12px 0;
+          border: 0;
+          border-bottom: 1px solid #e6ebf1;
+          color: inherit;
+          font: inherit;
+          text-align: left;
+          cursor: pointer;
+        }
+
+        .public-roundup-switch-item:last-child {
+          border-bottom: 0;
+        }
+
+        .public-roundup-meta {
+          display: flex;
+          align-items: center;
+          color: #e5252a;
+          font-size: 12px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .public-roundup-duration {
+          color: #5d6875;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .public-roundup-arrow {
+          display: grid;
+          place-items: center;
+          align-self: center;
+          width: 26px;
+          height: 26px;
+          border-radius: 50%;
+          background: #eef2f6;
+          color: #e5252a;
+          font-size: 18px;
+          font-weight: 900;
         }
 
         .public-roundup-video-panel {
@@ -677,6 +744,19 @@ export default async function HomePage() {
           min-height: 190px;
         }
 
+        .public-roundup-video-panel .public-complement-media {
+          aspect-ratio: 16 / 9;
+          min-height: 0;
+        }
+
+        .public-roundup-video-panel iframe {
+          display: block;
+          width: 100%;
+          height: 100%;
+          min-height: 260px;
+          border: 0;
+        }
+
         .home-media-play {
           position: absolute;
           inset: 50% auto auto 50%;
@@ -688,6 +768,38 @@ export default async function HomePage() {
           background: rgba(229, 37, 42, 0.92);
           color: #ffffff;
           transform: translate(-50%, -50%);
+        }
+
+        .public-media-play-icon-only {
+          position: absolute;
+          inset: 50% auto auto 50%;
+          display: grid;
+          place-items: center;
+          width: 52px;
+          height: 52px;
+          border-radius: 50%;
+          background: rgba(229, 37, 42, 0.92);
+          transform: translate(-50%, -50%);
+        }
+
+        .public-media-play-icon-only::before {
+          content: "";
+          width: 0;
+          height: 0;
+          margin-left: 3px;
+          border-top: 8px solid transparent;
+          border-bottom: 8px solid transparent;
+          border-left: 13px solid #ffffff;
+        }
+
+        .public-roundup-active-meta {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          color: #e5252a;
+          font-size: 12px;
+          font-weight: 900;
+          text-transform: uppercase;
         }
 
         .public-complement-body {
@@ -711,10 +823,6 @@ export default async function HomePage() {
           gap: 14px;
         }
 
-        .public-below-roundup .public-cover-story-strip {
-          grid-template-columns: 1fr;
-        }
-
         .home-cover-story {
           position: relative;
           display: grid;
@@ -733,47 +841,6 @@ export default async function HomePage() {
           color: #111820;
           font-size: 18px;
           line-height: 1.16;
-        }
-
-        .public-below-roundup .home-cover-story {
-          grid-template-columns: 96px minmax(0, 1fr) auto;
-          gap: 12px;
-          align-items: center;
-          padding-bottom: 12px;
-          border-bottom: 1px solid #e6ebf1;
-        }
-
-        .public-below-roundup .home-highlight-image {
-          aspect-ratio: 16 / 10;
-        }
-
-        .public-below-roundup .home-cover-story > span,
-        .public-below-roundup .home-cover-story > strong,
-        .public-below-roundup .home-cover-story > small {
-          grid-column: 2;
-        }
-
-        .home-roundup-meta {
-          grid-column: 3;
-          grid-row: 1 / span 4;
-          display: grid;
-          gap: 8px;
-          justify-items: end;
-          color: #e5252a;
-          font-size: 13px;
-          font-weight: 900;
-        }
-
-        .home-roundup-meta a,
-        .home-roundup-meta span:last-child {
-          display: grid;
-          place-items: center;
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          background: #e5252a;
-          color: #ffffff;
-          text-decoration: none;
         }
 
         .public-home-cover-side {
@@ -841,7 +908,8 @@ export default async function HomePage() {
         @media (max-width: 1100px) {
           .public-home-cover,
           .public-home-main-lower,
-          .public-home-main-lower:has(.public-roundup-video-panel) {
+          .public-home-main-lower:has(.public-roundup-video-panel),
+          .public-roundup-video-layout {
             grid-template-columns: 1fr;
           }
 
