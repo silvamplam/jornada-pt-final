@@ -1957,6 +1957,28 @@ export default async function HomePage() {
           min-width: 372px;
         }
 
+        .public-roundup-video-layout .public-matchday-roundup .public-highlight-image,
+        .public-roundup-video-layout .public-matchday-roundup .public-media-play {
+          display: none !important;
+        }
+
+        .public-roundup-video-layout .public-matchday-roundup .public-roundup-arrow {
+          display: none !important;
+          width: 0 !important;
+          height: 0 !important;
+          min-width: 0 !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          color: transparent !important;
+          pointer-events: none !important;
+        }
+
+        .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-item strong {
+          grid-column: 2 / 5 !important;
+        }
+
         @media (max-width: 1100px) {
           .public-matchday-cover:has(.public-roundup-video-panel) {
             grid-template-columns: 1fr;
