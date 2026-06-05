@@ -772,7 +772,7 @@ export default async function HomePage() {
         }
 
         .public-site-actions button::before {
-          content: "⌕";
+          content: "âŒ•";
           font-size: 19px;
         }
 
@@ -928,7 +928,7 @@ export default async function HomePage() {
         }
 
         .public-editorial-more-link span::before {
-          content: "›";
+          content: "â€º";
           font-size: 11px;
         }
 
@@ -1332,7 +1332,7 @@ export default async function HomePage() {
         <Link className="public-site-brand" href="/" aria-label="Jornada.pt">
           Jornada<span>.pt</span>
         </Link>
-        <nav className="public-site-menu" aria-label="Competições principais">
+        <nav className="public-site-menu" aria-label="CompetiÃ§Ãµes principais">
           {competitionLinks.map((link) => (
             <Link href={link.href} key={link.label}>
               {link.label}
@@ -1342,7 +1342,7 @@ export default async function HomePage() {
           <Link href="/competicoes/liga-portugal/2026-27/jornadas/1#classificacao">Classificacao</Link>
         </nav>
         <div className="public-site-actions" aria-label="Acoes">
-          <button type="button" aria-label="Pesquisar">⌕</button>
+          <button type="button" aria-label="Pesquisar">âŒ•</button>
           <Link href="/admin/login">Entrar</Link>
         </div>
       </header>
@@ -1391,7 +1391,7 @@ export default async function HomePage() {
           }
         }}
         latestNews={publicLatestNews}
-        latestNewsTitle="�ltimas not�cias"
+        latestNewsTitle="Últimas notícias"
       />
     </main>
   );
