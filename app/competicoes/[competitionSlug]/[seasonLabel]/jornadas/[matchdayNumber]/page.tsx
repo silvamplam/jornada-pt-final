@@ -2050,7 +2050,7 @@ function formatMiniCardKickoff(value: string) {
   }).format(date);
   const time = formatKickoffTime(value);
 
-  return `${dayMonth} ∑ ${time}`;
+  return `${dayMonth} ¬∑ ${time}`;
 }
 
 function formatMatchdayDateContext(matches: PublicSeasonMatch[]) {
@@ -2087,10 +2087,10 @@ function formatMatchdayDateContext(matches: PublicSeasonMatch[]) {
 
   const sameMonth = monthKeyFormatter.format(firstDate) === monthKeyFormatter.format(lastDate);
   if (sameMonth) {
-    return `${dayFormatter.format(firstDate)}ñ${dayFormatter.format(lastDate)} ${monthFormatter.format(lastDate)}`;
+    return `${dayFormatter.format(firstDate)}‚Äì${dayFormatter.format(lastDate)} ${monthFormatter.format(lastDate)}`;
   }
 
-  return `${firstLabel} ñ ${lastLabel}`;
+  return `${firstLabel} ‚Äì ${lastLabel}`;
 }
 
 function statusLabel(status: string) {
@@ -2115,11 +2115,11 @@ function statusKind(status: string) {
 
 function sideBlockTypeLabel(value?: string | null) {
   const labels: Record<string, string> = {
-    opiniao: "OPINI√O",
+    opiniao: "OPINI√ÉO",
     arbitragem: "ARBITRAGEM",
-    balanco: "BALAN«O",
-    analise: "AN¡LISE",
-    cronica: "CR”NICA",
+    balanco: "BALAN√áO",
+    analise: "AN√ÅLISE",
+    cronica: "CR√ìNICA",
     "figura-da-jornada": "FIGURA DA JORNADA",
     outro: "EDITORIAL"
   };
@@ -2237,7 +2237,7 @@ function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: 
   const broadcastChannelName = match.broadcastChannel?.name?.trim();
   const hasScore = match.home_score !== null && match.away_score !== null;
   const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
-  const liveStatus = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} ∑ ${match.minute}'` : statusLabel(match.status);
+  const liveStatus = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} ¬∑ ${match.minute}'` : statusLabel(match.status);
 
   return (
     <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>
@@ -2261,7 +2261,7 @@ function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: 
             <time className="public-matchday-mini-time" dateTime={match.kickoff_at}>{formatMiniCardKickoff(match.kickoff_at)}</time>
             {broadcastChannelName ? (
               <>
-                <span className="public-matchday-mini-separator" aria-hidden="true">∑</span>
+                <span className="public-matchday-mini-separator" aria-hidden="true">¬∑</span>
                 <span className="public-matchday-mini-channel">{broadcastChannelName}</span>
               </>
             ) : null}
@@ -2312,8 +2312,8 @@ function DiagnosticPanel({ diagnostic }: { diagnostic: PublicMatchdayDiagnostic 
     <main className="public-matchday-shell">
       <style>{publicMatchdayStyles}</style>
       <section className="public-diagnostic">
-        <h2>DiagnÛstico tempor·rio da p·gina p˙blica</h2>
-        <p>A rota foi carregada, mas os dados necess·rios n„o foram encontrados ou ocorreu um erro de leitura.</p>
+        <h2>Diagn√≥stico tempor√°rio da p√°gina p√∫blica</h2>
+        <p>A rota foi carregada, mas os dados necess√°rios n√£o foram encontrados ou ocorreu um erro de leitura.</p>
         <pre>{JSON.stringify(diagnostic, null, 2)}</pre>
       </section>
     </main>
@@ -2386,10 +2386,10 @@ function LogoDiagnosticPanel({ context }: { context: PublicMatchdayContext }) {
   const rows = Array.from(rowsById.values()).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <section className="public-logo-diagnostic" aria-label="DiagnÛstico tempor·rio dos emblemas">
-      <h2>DiagnÛstico tempor·rio dos emblemas</h2>
+    <section className="public-logo-diagnostic" aria-label="Diagn√≥stico tempor√°rio dos emblemas">
+      <h2>Diagn√≥stico tempor√°rio dos emblemas</h2>
       <p>
-        Esta caixa sÛ aparece com <code>?debug_logos=1</code>. A consola do browser tambÈm indica os URLs que falham no carregamento.
+        Esta caixa s√≥ aparece com <code>?debug_logos=1</code>. A consola do browser tamb√©m indica os URLs que falham no carregamento.
       </p>
       <table>
         <thead>
@@ -2406,7 +2406,7 @@ function LogoDiagnosticPanel({ context }: { context: PublicMatchdayContext }) {
             <tr key={row.slug}>
               <td>{row.name || row.shortName}</td>
               <td>{row.slug}</td>
-              <td>{row.logoUrl ? <code>{row.logoUrl}</code> : "ó"}</td>
+              <td>{row.logoUrl ? <code>{row.logoUrl}</code> : "‚Äî"}</td>
               <td>{logoDiagnosticStatus(row.logoUrl)}</td>
               <td>{Array.from(row.sources).join(", ")}</td>
             </tr>
@@ -2518,13 +2518,13 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
           {
             id: "placeholder-news-lineup",
             timeLabel: "12:45",
-            title: "Treinador confirma alteraÁıes no onze",
+            title: "Treinador confirma altera√ß√µes no onze",
             imageUrl: null
           },
           {
             id: "placeholder-news-tickets",
             timeLabel: "13:10",
-            title: "Adeptos esgotam bilhetes para o cl·ssico",
+            title: "Adeptos esgotam bilhetes para o cl√°ssico",
             imageUrl: null
           }
         ];
@@ -2539,8 +2539,8 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
       : [
           {
             id: "placeholder-highlight-preview",
-            label: "Antevis„o",
-            title: "Os pontos de atenÁ„o antes da bola rolar",
+            label: "Antevis√£o",
+            title: "Os pontos de aten√ß√£o antes da bola rolar",
             imageUrl: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80"
           },
           {
@@ -2567,7 +2567,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
         <a className="public-site-brand" href="/">
           Jornada<span>.pt</span>
         </a>
-        <nav className="public-site-menu" aria-label="CompetiÁıes principais">
+        <nav className="public-site-menu" aria-label="Competi√ß√µes principais">
           {publicCompetitionMenu.map((item) => (
             <a
               aria-current={item.slug === context.competition.slug ? "page" : undefined}
@@ -2578,9 +2578,9 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
             </a>
           ))}
           <a href="#jogos">Jogos</a>
-          <a href="#classificacao">ClassificaÁ„o</a>
+          <a href="#classificacao">Classifica√ß√£o</a>
         </nav>
-        <div className="public-site-actions" aria-label="AÁıes">
+        <div className="public-site-actions" aria-label="A√ß√µes">
           <span className="public-site-search" aria-label="Pesquisar">Pesquisar</span>
           <a href="/admin/gestor">Entrar</a>
         </div>
@@ -2588,11 +2588,11 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
       <section className="public-season-nav-bar" aria-label="Navegacao de jornadas">
         <div className="public-hidden-heading">
           <h2>Jornadas</h2>
-          <p>NavegaÁ„o principal da Època {context.season.label}.</p>
+          <p>Navega√ß√£o principal da √©poca {context.season.label}.</p>
         </div>
         <div className="public-season-nav-inner">
         <label className="public-season-select-wrap">
-          <span>…poca</span>
+          <span>√âpoca</span>
           <select className="public-season-select" data-season-select defaultValue={currentSeasonHref}>
             {seasonOptions.map((season) => (
               <option key={season.id} value={season.href}>
@@ -2637,7 +2637,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
       <section className="public-matchday-panel public-matchday-scoreboard-panel" aria-label="Visao rapida dos jogos">
         <div className="public-matchday-strip-shell">
           <button className="public-matchday-strip-button" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
-            ã
+            ‚Äπ
           </button>
           <div className="public-matchday-strip" data-matchday-strip>
             {context.matchesForMatchday.length > 0 ? (
@@ -2649,7 +2649,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
             )}
           </div>
           <button className="public-matchday-strip-button" data-strip-scroll="right" type="button" aria-label="Ver jogos seguintes">
-            õ
+            ‚Ä∫
           </button>
         </div>
         <script
@@ -2693,7 +2693,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
           imageUrl: publishedHeadline?.image_url ?? null,
           titleColor: publishedHeadline?.title_color ?? null,
           fallbackTitle: "Manchete da jornada",
-          fallbackSubtitle: "EspaÁo reservado para a leitura editorial desta jornada."
+          fallbackSubtitle: "Espa√ßo reservado para a leitura editorial desta jornada."
         }}
         belowHeadline={{
           mode: belowHeadlineMode,
@@ -2713,12 +2713,12 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
             text: editorial?.complementary_text ?? null,
             imageUrl: editorial?.complementary_image_url ?? null,
             linkUrl: editorial?.complementary_link_url ?? null,
-            fallbackTitle: "EspaÁo editorial preparado",
+            fallbackTitle: "Espa√ßo editorial preparado",
             fallbackText: "Bloco complementar por definir."
           }
         }}
         latestNews={publicLatestNews}
-        latestNewsTitle="⁄ltimas notÌcias"
+        latestNewsTitle="√öltimas not√≠cias"
       />
       <section className="public-matchday-panel" id="classificacao" aria-label="Classificacao acumulada">
         <div className="public-table-wrap">
@@ -2745,7 +2745,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                     <span className="public-club-cell">
                     <span className="public-club-name">{row.name}</span>
                     <span className="public-club-form">
-                      <span>⁄ltimos:</span>
+                      <span>√öltimos:</span>
                       {row.recentForm.length > 0 ? (
                         <span className="public-form-list">
                           {row.recentForm.map((result, resultIndex) => (
@@ -2765,7 +2765,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                           ))}
                         </span>
                       ) : (
-                        "ó"
+                        "‚Äî"
                       )}
                     </span>
                     </span>
