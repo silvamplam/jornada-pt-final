@@ -1931,6 +1931,49 @@ export default async function HomePage() {
         .public-roundup-video-layout .public-roundup-scroll-button-bottom {
           border-color: #eef2f6;
         }
+
+        .public-matchday-cover:has(.public-roundup-video-panel) {
+          grid-template-columns: minmax(220px, 240px) minmax(740px, 1fr) minmax(240px, 280px);
+        }
+
+        .public-matchday-cover:has(.public-roundup-video-panel) .public-matchday-main-column {
+          min-width: 740px;
+        }
+
+        .public-matchday-cover:has(.public-roundup-video-panel) .public-roundup-video-layout {
+          grid-template-columns: 340px 372px !important;
+          justify-content: end;
+          gap: 14px;
+          min-width: 726px;
+        }
+
+        .public-matchday-cover:has(.public-roundup-video-panel) .public-roundup-video-layout > .public-matchday-roundup {
+          width: 340px !important;
+          min-width: 340px;
+        }
+
+        .public-matchday-cover:has(.public-roundup-video-panel) .public-roundup-video-layout > .public-roundup-video-panel {
+          width: 372px;
+          min-width: 372px;
+        }
+
+        @media (max-width: 1100px) {
+          .public-matchday-cover:has(.public-roundup-video-panel) {
+            grid-template-columns: 1fr;
+          }
+
+          .public-matchday-cover:has(.public-roundup-video-panel) .public-matchday-main-column,
+          .public-matchday-cover:has(.public-roundup-video-panel) .public-roundup-video-layout,
+          .public-matchday-cover:has(.public-roundup-video-panel) .public-roundup-video-layout > .public-matchday-roundup,
+          .public-matchday-cover:has(.public-roundup-video-panel) .public-roundup-video-layout > .public-roundup-video-panel {
+            width: 100% !important;
+            min-width: 0;
+          }
+
+          .public-matchday-cover:has(.public-roundup-video-panel) .public-roundup-video-layout {
+            grid-template-columns: 1fr !important;
+          }
+        }
       `}</style>
     </main>
   );
