@@ -60,9 +60,14 @@ const roundupVideoListPolishStyles = `
     box-shadow: none !important;
   }
 
+  .public-roundup-video-layout .public-matchday-roundup {
+    overflow: visible !important;
+  }
+
   .public-roundup-video-layout .public-roundup-scroll-frame {
     border-top: 0 !important;
     border-bottom: 0 !important;
+    overflow: visible !important;
   }
 
   .public-roundup-video-layout .public-roundup-compact-list .public-roundup-scroll-frame {
@@ -109,17 +114,19 @@ const roundupVideoListPolishStyles = `
   }
 
   .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-item {
-    grid-template-columns: 30px minmax(0, 1fr) auto auto;
-    gap: 3px 21px;
+    display: grid !important;
+    grid-template-columns: 30px minmax(0, 1fr) auto auto !important;
+    gap: 3px 21px !important;
+    align-items: center !important;
   }
 
   .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-play {
     position: relative;
-    display: block;
-    grid-column: 1 / 2;
-    grid-row: 1 / 4;
-    align-self: center;
-    justify-self: start;
+    display: block !important;
+    grid-column: 1 / 2 !important;
+    grid-row: 1 / 4 !important;
+    align-self: center !important;
+    justify-self: start !important;
     width: 26px;
     height: 18px;
     min-width: 26px;
@@ -143,22 +150,64 @@ const roundupVideoListPolishStyles = `
   }
 
   .public-roundup-video-layout .public-roundup-meta {
+    display: grid !important;
+    grid-column: 2 / 5 !important;
+    grid-row: 1 / 2 !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
     gap: 12px !important;
-    justify-content: space-between !important;
-    width: 100%;
+    width: 100% !important;
+    min-width: 0 !important;
+    color: #c40012 !important;
+    line-height: 1 !important;
+  }
+
+  .public-roundup-video-layout .public-roundup-meta span {
+    min-width: 0 !important;
+  }
+
+  .public-roundup-video-layout .public-roundup-duration {
+    grid-column: 2 / 3 !important;
+    justify-self: end !important;
+    color: #c40012 !important;
+    font-size: 11px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
   }
 
   .public-roundup-video-layout .public-roundup-switch-item[aria-pressed="true"]::before {
     content: "";
-    position: absolute;
-    top: 50%;
-    left: -34px;
-    width: 22px;
-    height: 1px;
-    background: #0b1f3a;
-    opacity: 0.66;
-    transform: translateY(-50%);
+    position: absolute !important;
+    top: 50% !important;
+    left: -34px !important;
+    width: 22px !important;
+    height: 1px !important;
+    background: #0b1f3a !important;
+    opacity: 0.66 !important;
+    transform: translateY(-50%) !important;
     pointer-events: none;
+  }
+
+  .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-item strong {
+    grid-column: 2 / 4 !important;
+    grid-row: 2 / 3 !important;
+    min-width: 0 !important;
+    color: #10151b !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 13.5px !important;
+    font-weight: 900 !important;
+    line-height: 1.14 !important;
+  }
+
+  .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-item small {
+    grid-column: 2 / 5 !important;
+    grid-row: 3 / 4 !important;
+    min-width: 0 !important;
+    color: #6b7786 !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
   }
 
   .public-roundup-video-layout .public-roundup-scroll-button {
