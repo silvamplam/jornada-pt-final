@@ -882,10 +882,6 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
               <input id={`roundup-${sortOrder}-subtitle`} name={`roundup_${sortOrder}_subtitle`} defaultValue={item?.subtitle ?? ""} />
             </div>
             <div className="editorial-admin-field">
-              <label htmlFor={`roundup-${sortOrder}-image-url`}>Imagem URL</label>
-              <input id={`roundup-${sortOrder}-image-url`} name={`roundup_${sortOrder}_image_url`} defaultValue={item?.image_url ?? ""} />
-            </div>
-            <div className="editorial-admin-field">
               <label htmlFor={`roundup-${sortOrder}-video-url`}>Video URL</label>
               <input id={`roundup-${sortOrder}-video-url`} name={`roundup_${sortOrder}_video_url`} defaultValue={item?.video_url ?? ""} />
             </div>
