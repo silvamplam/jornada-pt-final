@@ -409,6 +409,7 @@ export default async function AdminPage() {
         </div>
         <div className="admin-hero-actions">
           <a href="/admin/gestor">Centro de gestao</a>
+          <a href="/admin/editorial/home">HOME EDITORIAL</a>
           <a href="/">Voltar ao site</a>
           <form action="/api/admin/logout" method="post">
             <button type="submit">Sair</button>

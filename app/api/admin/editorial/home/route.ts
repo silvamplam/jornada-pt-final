@@ -3,7 +3,7 @@ import { fetchSupabaseAdminTable, getSupabaseServiceConfig, writeSupabaseAdmin }
 
 const HIGHLIGHT_SORT_ORDERS = Array.from({ length: 6 }, (_, index) => index + 1);
 const ROUNDUP_SORT_ORDERS = Array.from({ length: 10 }, (_, index) => index + 1);
-const LATEST_NEWS_SORT_ORDERS = Array.from({ length: 8 }, (_, index) => index + 1);
+const LATEST_NEWS_SORT_ORDERS = Array.from({ length: 3 }, (_, index) => index + 1);
 
 type SiteEditorialIdRow = {
   id: string;
