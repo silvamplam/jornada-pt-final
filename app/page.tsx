@@ -154,7 +154,7 @@ function HighlightCard({
 }) {
   const body = (
     <>
-      <div className="home-highlight-image">{item.image_url ? <img src={item.image_url} alt="" /> : null}</div>
+      <div className="public-highlight-image">{item.image_url ? <img src={item.image_url} alt="" /> : null}</div>
       {item.label ? <span>{item.label}</span> : null}
       <strong>{item.title}</strong>
       {item.subtitle ? <small>{item.subtitle}</small> : null}
@@ -162,11 +162,11 @@ function HighlightCard({
   );
 
   return item.link_url ? (
-    <a className="home-cover-story" href={item.link_url}>
+    <a className="public-cover-story" href={item.link_url}>
       {body}
     </a>
   ) : (
-    <article className="home-cover-story">{body}</article>
+    <article className="public-cover-story">{body}</article>
   );
 }
 
@@ -207,12 +207,13 @@ export default async function HomePage() {
   const hasRoundupVideoBlock = (belowHeadlineMode === "roundup" || complementaryMode === "roundup_video") && roundupItems.length > 0;
 
   return (
-    <main className="public-home">
-      <header className="public-site-header">
-        <Link className="public-brand" href="/" aria-label="Jornada.pt">
+    <main className="public-matchday-shell">
+      <div className="public-top-stack">
+      <header className="public-site-topbar" aria-label="Topo do Jornada.pt">
+        <Link className="public-site-brand" href="/" aria-label="Jornada.pt">
           Jornada<span>.pt</span>
         </Link>
-        <nav className="public-nav" aria-label="Menu principal">
+        <nav className="public-site-menu" aria-label="Competições principais">
           {competitionLinks.map((link) => (
             <Link href={link.href} key={link.label}>
               {link.label}
@@ -221,15 +222,16 @@ export default async function HomePage() {
           <Link href="/competicoes/liga-portugal/2026-27/jornadas/1#jogos">Jogos</Link>
           <Link href="/competicoes/liga-portugal/2026-27/jornadas/1#classificacao">Classificacao</Link>
         </nav>
-        <div className="public-actions" aria-label="Acoes">
+        <div className="public-site-actions" aria-label="Acoes">
           <button type="button" aria-label="Pesquisar">⌕</button>
           <Link href="/admin/login">Entrar</Link>
         </div>
       </header>
+      </div>
 
-      <section className="public-home-panel" aria-label="Capa editorial do Jornada.pt">
-        <div className="public-home-cover">
-          <aside className="public-side-editorial-block" aria-label="Bloco editorial lateral">
+      <section className="public-matchday-panel" aria-label="Capa da jornada">
+        <div className="public-matchday-cover">
+          <aside className="public-matchday-feature public-side-editorial-block" aria-label="Bloco editorial lateral">
             <div className="public-side-editorial-inner">
               {hasPublishedSideBlock ? (
                 <>
@@ -242,7 +244,7 @@ export default async function HomePage() {
                     {sideBlockLabel ? <span>{sideBlockLabel}</span> : null}
                     {sideBlockTitle ? (
                       sideBlockLinkUrl ? (
-                        <a className="public-title-link" href={sideBlockLinkUrl}>
+                        <a className="public-side-editorial-title-link" href={sideBlockLinkUrl}>
                           <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
                         </a>
                       ) : (
@@ -252,20 +254,20 @@ export default async function HomePage() {
                     {sideBlockAuthor ? <small>Por {sideBlockAuthor}</small> : null}
                     {sideBlockText ? <p>{sideBlockText}</p> : null}
                     {sideBlockLinkUrl ? (
-                      <a className="public-more-link" href={sideBlockLinkUrl}>
+                      <a className="public-editorial-more-link" href={sideBlockLinkUrl}>
                         Ler mais <span aria-hidden="true">›</span>
                       </a>
                     ) : null}
                   </div>
                 </>
               ) : (
-                <div className="public-side-placeholder">Editorial em preparacao</div>
+                <div className="public-side-editorial-placeholder">Espaco editorial por definir</div>
               )}
             </div>
           </aside>
 
-          <div className="public-home-main-column">
-            <article className="public-home-editorial">
+          <div className="public-matchday-main-column">
+            <article className="public-matchday-editorial">
               <div className="public-cover-headline">
                 {headlineImageUrl ? (
                   <div className="public-editorial-main-image">
@@ -284,7 +286,7 @@ export default async function HomePage() {
               </div>
             </article>
 
-            <div className="public-home-main-lower">
+            <div className="public-matchday-main-lower">
               {hasRoundupVideoBlock ? (
                 <RoundupVideoSwitcher
                   heading={cleanText(editorial?.roundup_video_heading) || belowHeadlineHeading}
@@ -294,7 +296,7 @@ export default async function HomePage() {
                 />
               ) : (
                 <>
-                  <section className="public-home-roundup public-below-highlights" aria-label="Zona editorial abaixo da manchete">
+                  <section className={`public-matchday-roundup public-below-headline-${belowHeadlineMode} public-editorial-flex-block`} data-editorial-slot="resumo-ou-noticias" aria-label="Zona editorial abaixo da manchete">
                     <div className="public-editorial-block-head">
                       <span style={belowHeadlineHeadingColor ? { color: belowHeadlineHeadingColor } : undefined}>{belowHeadlineHeading}</span>
                     </div>
@@ -303,7 +305,7 @@ export default async function HomePage() {
                     </div>
                   </section>
 
-                <aside className="public-home-cover-side" aria-label="Bloco complementar">
+                <aside className="public-matchday-cover-side public-editorial-flex-block public-below-headline-side" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar">
                   {hasComplementaryStory && editorial ? (
                     <>
                       {editorial.complementary_image_url ? (
@@ -315,7 +317,7 @@ export default async function HomePage() {
                         {editorial.complementary_label ? <span>{editorial.complementary_label}</span> : null}
                         {editorial.complementary_title ? (
                           editorial.complementary_link_url ? (
-                            <a className="public-title-link" href={editorial.complementary_link_url}>
+                            <a className="public-complement-title-link" href={editorial.complementary_link_url}>
                               <strong>{editorial.complementary_title}</strong>
                             </a>
                           ) : (
@@ -324,7 +326,7 @@ export default async function HomePage() {
                         ) : null}
                         {editorial.complementary_text ? <p>{editorial.complementary_text}</p> : null}
                         {editorial.complementary_link_url ? (
-                          <a className="public-more-link" href={editorial.complementary_link_url}>
+                          <a className="public-editorial-more-link" href={editorial.complementary_link_url}>
                             Ver mais <span aria-hidden="true">›</span>
                           </a>
                         ) : null}
@@ -342,8 +344,8 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <aside className="public-home-news" aria-label="Ultimas noticias">
-            <h2>Ultimas noticias</h2>
+          <aside className="public-matchday-news" aria-label="Ultimas noticias">
+            <h3>Ultimas noticias</h3>
             <ul className="public-news-list">
               {latestNews.map((item) => (
                 <li className="public-news-item" key={item.id}>
@@ -355,9 +357,9 @@ export default async function HomePage() {
                   <div className="public-news-copy">
                     {item.time_label ? <time dateTime={item.time_label}>{item.time_label}</time> : null}
                     {item.link_url ? (
-                      <a href={item.link_url}>{item.title}</a>
+                      <a className="public-news-title" href={item.link_url}>{item.title}</a>
                     ) : (
-                      <span>{item.title}</span>
+                      <span className="public-news-title">{item.title}</span>
                     )}
                   </div>
                 </li>
@@ -957,6 +959,490 @@ export default async function HomePage() {
 
           .public-cover-story-strip {
             grid-template-columns: 1fr;
+          }
+        }
+
+        .public-matchday-shell {
+          min-height: 100vh;
+          padding: 0 24px 28px;
+          overflow-x: hidden;
+          background: #ffffff;
+          color: #10151b;
+          font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .public-top-stack {
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          margin: 0 -24px;
+          padding: 0 24px;
+          border-bottom: 1px solid #d8dee6;
+          background: #ffffff;
+        }
+
+        .public-site-topbar {
+          display: flex;
+          align-items: center;
+          gap: 26px;
+          min-height: 72px;
+        }
+
+        .public-site-brand {
+          color: #111820;
+          font-size: 25px;
+          font-weight: 900;
+          text-decoration: none;
+          white-space: nowrap;
+        }
+
+        .public-site-brand span,
+        .public-site-menu a:hover,
+        .public-site-actions a:hover {
+          color: #e5252a;
+        }
+
+        .public-site-menu {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          flex: 1;
+          overflow-x: auto;
+          font-size: 13px;
+          font-weight: 900;
+        }
+
+        .public-site-menu a,
+        .public-site-actions a {
+          color: #2f3843;
+          text-decoration: none;
+          white-space: nowrap;
+        }
+
+        .public-site-actions {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          font-size: 13px;
+          font-weight: 900;
+        }
+
+        .public-site-actions button {
+          display: grid;
+          place-items: center;
+          width: 34px;
+          height: 34px;
+          border: 1px solid #cbd5df;
+          border-radius: 50%;
+          background: #ffffff;
+          color: #111820;
+          font-size: 0;
+          cursor: pointer;
+        }
+
+        .public-site-actions button::before {
+          content: "⌕";
+          font-size: 19px;
+        }
+
+        .public-matchday-panel {
+          max-width: 100%;
+          margin: 0 auto;
+          padding: 0;
+        }
+
+        .public-matchday-cover {
+          --public-cover-rule-color: #10151b;
+          --public-cover-rule-gap: 8px;
+          --public-cover-rule-size: 4px;
+          display: grid;
+          grid-template-columns: minmax(220px, 240px) minmax(0, 1fr) minmax(240px, 280px);
+          grid-template-areas: "feature main news";
+          gap: 24px;
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
+          margin: 0 auto;
+          padding: 20px 0;
+          align-items: stretch;
+          min-height: 420px;
+        }
+
+        .public-matchday-editorial,
+        .public-matchday-feature,
+        .public-matchday-main-column,
+        .public-matchday-roundup,
+        .public-matchday-cover-side,
+        .public-matchday-news {
+          display: grid;
+          gap: 10px;
+          align-content: start;
+          min-width: 0;
+          box-sizing: border-box;
+          padding: 16px;
+          border: 1px solid #dfe5ec;
+          background: #ffffff;
+        }
+
+        .public-matchday-main-column {
+          grid-area: main;
+          gap: 8px;
+          padding: 0;
+          border: 0;
+          grid-template-rows: auto 1fr;
+        }
+
+        .public-matchday-editorial {
+          align-content: start;
+          min-height: 0;
+          padding: 0;
+          border: 0;
+        }
+
+        .public-matchday-feature {
+          grid-area: feature;
+          padding: 0 14px 14px;
+        }
+
+        .public-matchday-news {
+          grid-area: news;
+          min-height: 100%;
+          padding-top: 0;
+        }
+
+        .public-side-editorial-inner {
+          display: grid;
+          gap: 12px;
+          align-content: start;
+          min-width: 0;
+        }
+
+        .public-side-editorial-image {
+          width: 100%;
+          aspect-ratio: 16 / 9;
+          overflow: hidden;
+          border-radius: 6px;
+          background: #eef2f6;
+        }
+
+        .public-side-editorial-image img,
+        .public-editorial-main-image img,
+        .public-highlight-image img,
+        .public-complement-media img,
+        .public-news-thumb img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
+        }
+
+        .public-side-editorial-copy,
+        .public-side-editorial-placeholder,
+        .public-complement-body {
+          display: grid;
+          gap: 10px;
+          align-content: start;
+          min-width: 0;
+        }
+
+        .public-side-editorial-copy span,
+        .public-editorial-block-head span,
+        .public-cover-story > span,
+        .public-complement-label,
+        .public-complement-body span {
+          color: #c40012;
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+        }
+
+        .public-side-editorial-copy strong,
+        .public-complement-body strong {
+          color: #10151b;
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 22px;
+          line-height: 1.05;
+        }
+
+        .public-side-editorial-copy p,
+        .public-side-editorial-copy small,
+        .public-complement-body p,
+        .public-cover-story small {
+          margin: 0;
+          color: #526174;
+          font-size: 13px;
+          line-height: 1.45;
+        }
+
+        .public-side-editorial-title-link,
+        .public-complement-title-link,
+        .public-cover-story,
+        .public-editorial-more-link {
+          color: inherit;
+          text-decoration: none;
+        }
+
+        .public-editorial-more-link {
+          width: fit-content;
+          color: #c40012;
+          font-size: 11px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .public-editorial-more-link span {
+          font-size: 0;
+        }
+
+        .public-editorial-more-link span::before {
+          content: "›";
+          font-size: 11px;
+        }
+
+        .public-side-editorial-placeholder {
+          min-height: 180px;
+          place-items: center;
+          color: #687380;
+          font-size: 12px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .public-cover-headline {
+          position: relative;
+          display: grid;
+          grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.95fr);
+          gap: 18px;
+          align-items: start;
+          min-height: 0;
+          color: #10151b;
+          background: #ffffff;
+        }
+
+        .public-editorial-main-image {
+          position: relative;
+          inset: auto;
+          width: 100%;
+          min-height: 0;
+          aspect-ratio: 16 / 10;
+          overflow: hidden;
+          border-radius: 6px;
+          background: #eef2f6;
+        }
+
+        .public-editorial-main-image::after {
+          display: none;
+        }
+
+        .public-cover-headline > div:last-child {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          gap: 14px;
+          align-content: start;
+          max-width: 100%;
+          padding: 0;
+        }
+
+        .public-cover-headline h1 {
+          margin: 0;
+          color: #c40012;
+          font-family: Georgia, "Times New Roman", serif;
+          max-width: 100%;
+          font-size: 44px;
+          line-height: 1.02;
+          letter-spacing: 0;
+        }
+
+        .public-cover-headline p {
+          max-width: 100%;
+          margin: 0;
+          color: #526174;
+          font-size: 15px;
+          line-height: 1.48;
+        }
+
+        .public-matchday-main-lower {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(220px, 0.54fr);
+          gap: 8px;
+          align-items: stretch;
+          min-height: 0;
+        }
+
+        .public-matchday-main-lower:has(.public-roundup-video-panel) {
+          grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1fr);
+          --public-roundup-video-top-offset: 28px;
+          --public-roundup-visible-list-height: 285px;
+          --public-roundup-scroll-control-height: 14px;
+        }
+
+        .public-roundup-video-layout {
+          display: grid;
+          grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1fr);
+          gap: 8px;
+          align-items: start;
+          grid-column: 1 / -1;
+        }
+
+        .public-editorial-block-head {
+          margin-bottom: 0;
+        }
+
+        .public-cover-story-strip {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .public-cover-story {
+          position: relative;
+          display: grid;
+          gap: 8px;
+          align-content: start;
+          min-width: 0;
+        }
+
+        .public-highlight-image {
+          position: relative;
+          aspect-ratio: 16 / 10;
+          overflow: hidden;
+          border-radius: 6px;
+          background: #eef2f6;
+        }
+
+        .public-cover-story strong {
+          color: #10151b;
+          font-size: 15px;
+          font-weight: 900;
+          line-height: 1.16;
+        }
+
+        .public-complement-media {
+          position: relative;
+          width: 100%;
+          aspect-ratio: 16 / 9;
+          min-height: 0;
+          overflow: hidden;
+          border-radius: 6px;
+          background: #eef2f6;
+        }
+
+        .public-roundup-video-panel {
+          padding: 0;
+        }
+
+        .public-roundup-video-panel .public-complement-media {
+          border-radius: 0;
+        }
+
+        .public-matchday-news h3 {
+          margin: 0 0 12px;
+          color: #10151b;
+          font-size: 18px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .public-news-list {
+          display: grid;
+          gap: 0;
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+
+        .public-news-item {
+          display: grid;
+          grid-template-columns: 68px minmax(0, 1fr);
+          gap: 10px;
+          padding: 11px 0;
+          border-top: 1px solid #e6ebf1;
+        }
+
+        .public-news-item:first-child {
+          border-top: 0;
+          padding-top: 0;
+        }
+
+        .public-news-thumb {
+          aspect-ratio: 1 / 0.78;
+          overflow: hidden;
+          border-radius: 5px;
+          background: #eef2f6;
+        }
+
+        .public-news-copy {
+          display: grid;
+          gap: 5px;
+          align-content: start;
+        }
+
+        .public-news-copy time {
+          color: #c40012;
+          font-size: 11px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .public-news-title {
+          color: #10151b;
+          font-size: 13px;
+          font-weight: 900;
+          line-height: 1.25;
+          text-decoration: none;
+        }
+
+        @media (max-width: 1100px) {
+          .public-matchday-cover,
+          .public-matchday-main-lower,
+          .public-matchday-main-lower:has(.public-roundup-video-panel),
+          .public-roundup-video-layout {
+            grid-template-columns: 1fr;
+            grid-template-areas: none;
+          }
+
+          .public-matchday-feature {
+            order: 2;
+          }
+
+          .public-matchday-news {
+            order: 3;
+          }
+        }
+
+        @media (max-width: 780px) {
+          .public-matchday-shell {
+            padding: 0 14px 28px;
+          }
+
+          .public-top-stack {
+            margin: 0 -14px;
+            padding: 0 14px;
+          }
+
+          .public-site-topbar {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px 0;
+          }
+
+          .public-site-actions {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+          }
+
+          .public-cover-headline,
+          .public-cover-story-strip {
+            grid-template-columns: 1fr;
+          }
+
+          .public-cover-headline h1 {
+            font-size: 36px;
           }
         }
       `}</style>
