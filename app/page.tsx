@@ -208,167 +208,6 @@ export default async function HomePage() {
 
   return (
     <main className="public-matchday-shell">
-      <div className="public-top-stack">
-      <header className="public-site-topbar" aria-label="Topo do Jornada.pt">
-        <Link className="public-site-brand" href="/" aria-label="Jornada.pt">
-          Jornada<span>.pt</span>
-        </Link>
-        <nav className="public-site-menu" aria-label="Competições principais">
-          {competitionLinks.map((link) => (
-            <Link href={link.href} key={link.label}>
-              {link.label}
-            </Link>
-          ))}
-          <Link href="/competicoes/liga-portugal/2026-27/jornadas/1#jogos">Jogos</Link>
-          <Link href="/competicoes/liga-portugal/2026-27/jornadas/1#classificacao">Classificacao</Link>
-        </nav>
-        <div className="public-site-actions" aria-label="Acoes">
-          <button type="button" aria-label="Pesquisar">⌕</button>
-          <Link href="/admin/login">Entrar</Link>
-        </div>
-      </header>
-      </div>
-
-      <section className="public-matchday-panel" aria-label="Capa da jornada">
-        <div className="public-matchday-cover">
-          <aside className="public-matchday-feature public-side-editorial-block" aria-label="Bloco editorial lateral">
-            <div className="public-side-editorial-inner">
-              {hasPublishedSideBlock ? (
-                <>
-                  {sideBlockImageUrl ? (
-                    <div className="public-side-editorial-image">
-                      <img src={sideBlockImageUrl} alt="" />
-                    </div>
-                  ) : null}
-                  <div className="public-side-editorial-copy">
-                    {sideBlockLabel ? <span>{sideBlockLabel}</span> : null}
-                    {sideBlockTitle ? (
-                      sideBlockLinkUrl ? (
-                        <a className="public-side-editorial-title-link" href={sideBlockLinkUrl}>
-                          <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
-                        </a>
-                      ) : (
-                        <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
-                      )
-                    ) : null}
-                    {sideBlockAuthor ? <small>Por {sideBlockAuthor}</small> : null}
-                    {sideBlockText ? <p>{sideBlockText}</p> : null}
-                    {sideBlockLinkUrl ? (
-                      <a className="public-editorial-more-link" href={sideBlockLinkUrl}>
-                        Ler mais <span aria-hidden="true">›</span>
-                      </a>
-                    ) : null}
-                  </div>
-                </>
-              ) : (
-                <div className="public-side-editorial-placeholder">Espaco editorial por definir</div>
-              )}
-            </div>
-          </aside>
-
-          <div className="public-matchday-main-column">
-            <article className="public-matchday-editorial">
-              <div className="public-cover-headline">
-                {headlineImageUrl ? (
-                  <div className="public-editorial-main-image">
-                    <img src={headlineImageUrl} alt="" />
-                  </div>
-                ) : null}
-                <div>
-                  <h1 style={headlineTitleColor ? { color: headlineTitleColor } : undefined}>
-                    {headlineTitle || "Jornada.pt"}
-                  </h1>
-                  <p>
-                    {headlineSubtitle ||
-                      "A capa editorial do futebol, pronta para acompanhar os grandes temas antes, durante e depois dos jogos."}
-                  </p>
-                </div>
-              </div>
-            </article>
-
-            <div className="public-matchday-main-lower">
-              {hasRoundupVideoBlock ? (
-                <RoundupVideoSwitcher
-                  heading={editorial?.roundup_video_heading ?? null}
-                  headingColor={editorial?.roundup_video_heading_color ?? null}
-                  initialItemId={editorial?.complementary_roundup_item_id ?? null}
-                  items={roundupItems}
-                />
-              ) : (
-                <>
-                  <section className={`public-matchday-roundup public-below-headline-${belowHeadlineMode} public-editorial-flex-block`} data-editorial-slot="resumo-ou-noticias" aria-label="Zona editorial abaixo da manchete">
-                    <div className="public-editorial-block-head">
-                      <span style={belowHeadlineHeadingColor ? { color: belowHeadlineHeadingColor } : undefined}>{belowHeadlineHeading}</span>
-                    </div>
-                    <div className="public-cover-story-strip">
-                      {visibleHighlights.slice(0, 3).map((item) => <HighlightCard item={item} key={item.id} />)}
-                    </div>
-                  </section>
-
-                <aside className="public-matchday-cover-side public-editorial-flex-block public-below-headline-side" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar">
-                  {hasComplementaryStory && editorial ? (
-                    <>
-                      {editorial.complementary_image_url ? (
-                        <div className="public-complement-media">
-                          <img src={editorial.complementary_image_url} alt="" />
-                        </div>
-                      ) : null}
-                      <div className="public-complement-body">
-                        {editorial.complementary_label ? <span>{editorial.complementary_label}</span> : null}
-                        {editorial.complementary_title ? (
-                          editorial.complementary_link_url ? (
-                            <a className="public-complement-title-link" href={editorial.complementary_link_url}>
-                              <strong>{editorial.complementary_title}</strong>
-                            </a>
-                          ) : (
-                            <strong>{editorial.complementary_title}</strong>
-                          )
-                        ) : null}
-                        {editorial.complementary_text ? <p>{editorial.complementary_text}</p> : null}
-                        {editorial.complementary_link_url ? (
-                          <a className="public-editorial-more-link" href={editorial.complementary_link_url}>
-                            Ver mais <span aria-hidden="true">›</span>
-                          </a>
-                        ) : null}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="public-complement-body">
-                      <strong>Leitura editorial</strong>
-                      <p>O complemento da capa fica reservado para a proxima historia publicada.</p>
-                    </div>
-                  )}
-                </aside>
-                </>
-              )}
-            </div>
-          </div>
-
-          <aside className="public-matchday-news" aria-label="Ultimas noticias">
-            <h3>Ultimas noticias</h3>
-            <ul className="public-news-list">
-              {latestNews.map((item) => (
-                <li className="public-news-item" key={item.id}>
-                  {item.image_url ? (
-                    <div className="public-news-thumb">
-                      <img src={item.image_url} alt="" />
-                    </div>
-                  ) : null}
-                  <div className="public-news-copy">
-                    {item.time_label ? <time dateTime={item.time_label}>{item.time_label}</time> : null}
-                    {item.link_url ? (
-                      <a className="public-news-title" href={item.link_url}>{item.title}</a>
-                    ) : (
-                      <span className="public-news-title">{item.title}</span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </aside>
-        </div>
-      </section>
-
       <style>{`
         .public-home {
           min-height: 100vh;
@@ -622,14 +461,6 @@ export default async function HomePage() {
           --public-roundup-scroll-control-height: 14px;
         }
 
-        .public-roundup-video-layout {
-          display: grid;
-          grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1fr);
-          gap: 18px;
-          align-items: start;
-          grid-column: 1 / -1;
-        }
-
         .public-matchday-roundup {
           --public-roundup-visible-list-height: 285px;
           --public-roundup-scroll-control-height: 14px;
@@ -641,98 +472,6 @@ export default async function HomePage() {
 
         .public-matchday-roundup .public-editorial-block-head {
           margin-bottom: 0;
-        }
-
-        .public-roundup-scroll-frame {
-          position: relative;
-          overflow: visible;
-        }
-
-        .public-roundup-scroll-window {
-          display: grid;
-          gap: 0;
-          max-height: var(--public-roundup-visible-list-height);
-          overflow-y: auto;
-        }
-
-        .public-roundup-has-scroll .public-roundup-scroll-window {
-          height: var(--public-roundup-visible-list-height);
-        }
-
-        .public-roundup-scroll-window::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        .public-roundup-scroll-window::-webkit-scrollbar-thumb {
-          border-radius: 999px;
-          background: #cbd5df;
-        }
-
-        .public-roundup-scroll-button {
-          position: absolute;
-          z-index: 2;
-          left: 0;
-          right: 0;
-          display: grid;
-          place-items: center;
-          height: var(--public-roundup-scroll-control-height);
-          border: 0;
-          background: rgba(255, 255, 255, 0.94);
-          color: #526174;
-          cursor: pointer;
-        }
-
-        .public-roundup-scroll-button-top {
-          top: 0;
-        }
-
-        .public-roundup-scroll-button-bottom {
-          bottom: 0;
-        }
-
-        .public-roundup-switch-item {
-          display: grid;
-          width: 100%;
-          min-height: calc(var(--public-roundup-visible-list-height) / 5);
-          padding: 12px 0;
-          border: 0;
-          border-bottom: 1px solid #e6ebf1;
-          color: inherit;
-          font: inherit;
-          text-align: left;
-          cursor: pointer;
-        }
-
-        .public-roundup-switch-item:last-child {
-          border-bottom: 0;
-        }
-
-        .public-roundup-meta {
-          display: flex;
-          align-items: center;
-          color: #e5252a;
-          font-size: 12px;
-          font-weight: 900;
-          text-transform: uppercase;
-        }
-
-        .public-roundup-duration {
-          color: #5d6875;
-          font-size: 12px;
-          font-weight: 900;
-        }
-
-        .public-roundup-arrow {
-          display: grid;
-          place-items: center;
-          align-self: center;
-          width: 26px;
-          height: 26px;
-          border-radius: 50%;
-          background: #eef2f6;
-          color: #e5252a;
-          font-size: 18px;
-          font-weight: 900;
         }
 
         .public-roundup-video-panel {
@@ -1279,14 +1018,6 @@ export default async function HomePage() {
           --public-roundup-scroll-control-height: 14px;
         }
 
-        .public-roundup-video-layout {
-          display: grid;
-          grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1fr);
-          gap: 8px;
-          align-items: start;
-          grid-column: 1 / -1;
-        }
-
         .public-editorial-block-head {
           margin-bottom: 0;
         }
@@ -1498,181 +1229,6 @@ export default async function HomePage() {
           grid-row: 1;
         }
 
-        .public-matchday-roundup .public-roundup-scroll-window {
-          height: 100%;
-          max-height: var(--public-roundup-visible-list-height);
-          overflow-y: auto;
-          scroll-behavior: smooth;
-          scrollbar-color: rgba(96, 112, 134, 0.32) transparent;
-          scrollbar-width: thin;
-        }
-
-        .public-roundup-has-scroll .public-roundup-scroll-window {
-          height: var(--public-roundup-visible-list-height);
-          max-height: var(--public-roundup-visible-list-height);
-          padding-right: 4px;
-          box-sizing: border-box;
-          scrollbar-gutter: stable;
-        }
-
-        .public-matchday-roundup .public-roundup-scroll-window::-webkit-scrollbar {
-          width: 4px;
-        }
-
-        .public-matchday-roundup .public-roundup-scroll-window::-webkit-scrollbar-track {
-          background: transparent;
-        }
-
-        .public-matchday-roundup .public-roundup-scroll-window::-webkit-scrollbar-thumb {
-          border-radius: 999px;
-          background: rgba(96, 112, 134, 0.28);
-        }
-
-        .public-roundup-scroll-button {
-          position: absolute;
-          right: 4px;
-          left: 0;
-          z-index: 2;
-          display: grid;
-          place-items: center;
-          width: auto;
-          height: var(--public-roundup-scroll-control-height);
-          border: 0;
-          border-radius: 0;
-          background: linear-gradient(90deg, rgba(255, 255, 255, 0), #f5f7fa 18%, #f5f7fa 82%, rgba(255, 255, 255, 0));
-          color: #526174;
-          font-size: 10px;
-          font-weight: 900;
-          line-height: 1;
-          cursor: pointer;
-          box-shadow: none;
-        }
-
-        .public-roundup-scroll-button-top {
-          top: 0;
-          border-bottom: 1px solid #edf2f7;
-        }
-
-        .public-roundup-scroll-button-bottom {
-          bottom: 0;
-          border-top: 1px solid #edf2f7;
-        }
-
-        .public-matchday-roundup .public-cover-story {
-          grid-template-columns: 44px minmax(0, 1fr) auto auto;
-          gap: 2px 9px;
-          align-items: center;
-          box-sizing: border-box;
-          min-height: 56px;
-          padding: 5px 0;
-          border-bottom: 1px solid #e6ebf1;
-        }
-
-        .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup .public-cover-story {
-          min-height: calc(var(--public-roundup-visible-list-height) / 5);
-          gap: 3px 14px;
-          padding: 7px 6px;
-          border-bottom-color: #edf2f7;
-        }
-
-        .public-roundup-has-scroll .public-cover-story {
-          min-height: calc(var(--public-roundup-visible-list-height) / 5);
-        }
-
-        .public-matchday-roundup .public-cover-story span,
-        .public-matchday-roundup .public-cover-story strong,
-        .public-matchday-roundup .public-cover-story small {
-          min-width: 0;
-        }
-
-        .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-play {
-          grid-column: 1 / 2;
-          grid-row: 1 / 4;
-          align-self: center;
-          justify-self: start;
-        }
-
-        .public-matchday-roundup .public-cover-story .public-roundup-meta {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          grid-column: 2 / 5;
-          grid-row: 1 / 2;
-          width: 100%;
-          min-width: 0;
-          line-height: 1;
-        }
-
-        .public-matchday-roundup .public-cover-story .public-roundup-meta span {
-          grid-column: auto;
-          grid-row: auto;
-          min-width: 0;
-        }
-
-        .public-matchday-roundup .public-cover-story strong {
-          grid-column: 2 / 3;
-          grid-row: 2 / 3;
-          font-size: 13px;
-          line-height: 1.1;
-        }
-
-        .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup .public-cover-story strong {
-          grid-column: 2 / 4;
-          font-size: 13.5px;
-          line-height: 1.14;
-        }
-
-        .public-matchday-roundup .public-cover-story small {
-          grid-column: 2 / 5;
-          grid-row: 3 / 4;
-          color: #607086;
-          font-size: 11px;
-          font-weight: 800;
-          line-height: 1.15;
-        }
-
-        .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup .public-cover-story small {
-          color: #6b7786;
-          line-height: 1.2;
-        }
-
-        .public-roundup-duration,
-        .public-roundup-arrow {
-          color: #263241;
-          font-size: 11px;
-          font-weight: 900;
-          white-space: nowrap;
-        }
-
-        .public-roundup-duration {
-          justify-self: end;
-        }
-
-        .public-roundup-arrow {
-          grid-column: 4 / 5;
-          grid-row: 2 / 3;
-          text-decoration: none;
-        }
-
-        .public-roundup-switch-item {
-          width: 100%;
-          border: 0;
-          background: transparent;
-          color: inherit;
-          font: inherit;
-          text-align: left;
-          cursor: pointer;
-        }
-
-        .public-roundup-switch-item[aria-pressed="true"] {
-          border-radius: 4px;
-          background: #f8fafc;
-          outline: 1px solid #dde5ed;
-          outline-offset: -1px;
-          box-shadow: inset 2px 0 0 rgba(96, 112, 134, 0.36), 0 1px 4px rgba(16, 21, 27, 0.03);
-        }
-
         .public-roundup-video-panel {
           align-self: stretch;
           display: flex;
@@ -1753,185 +1309,6 @@ export default async function HomePage() {
           }
         }
 
-        .public-roundup-video-layout {
-          position: relative;
-        }
-
-        .public-roundup-video-layout .public-roundup-zone-heading {
-          position: absolute;
-          top: calc(var(--public-roundup-video-top-offset, 28px) + 10px);
-          left: 0;
-          display: grid;
-          gap: 2px;
-          color: #0b1f3a;
-          font-size: 11px;
-          font-weight: 900;
-          line-height: 1.05;
-          letter-spacing: 0.02em;
-          text-transform: uppercase;
-          pointer-events: none;
-        }
-
-        .public-roundup-video-layout .public-roundup-zone-heading span + span {
-          opacity: 0.72;
-        }
-
-        .public-roundup-video-layout .public-roundup-video-panel {
-          padding-top: calc(var(--public-roundup-video-top-offset, 28px) + 3px);
-        }
-
-        .public-roundup-video-layout .public-matchday-roundup,
-        .public-roundup-video-layout .public-roundup-scroll-frame,
-        .public-roundup-video-layout .public-roundup-scroll-window,
-        .public-roundup-video-layout .public-cover-story-strip {
-          border-color: transparent !important;
-          background: #ffffff !important;
-          box-shadow: none !important;
-        }
-
-        .public-roundup-video-layout .public-matchday-roundup {
-          overflow: visible !important;
-        }
-
-        .public-roundup-video-layout .public-roundup-scroll-frame {
-          border-top: 0 !important;
-          border-bottom: 0 !important;
-          overflow: visible !important;
-        }
-
-        .public-roundup-video-layout .public-roundup-compact-list .public-roundup-scroll-frame {
-          height: auto !important;
-          min-height: 0 !important;
-        }
-
-        .public-roundup-video-layout .public-roundup-compact-list .public-roundup-scroll-window {
-          height: auto !important;
-          max-height: none !important;
-          min-height: 0 !important;
-          align-content: start !important;
-          grid-auto-rows: auto;
-          overflow-y: visible;
-        }
-
-        .public-roundup-video-layout .public-roundup-inline-head-spacer {
-          visibility: hidden;
-          min-height: 22px;
-          pointer-events: none;
-        }
-
-        .public-roundup-video-layout .public-roundup-scroll-window {
-          margin-left: -38px;
-          padding-left: 38px;
-          overflow-x: visible !important;
-        }
-
-        .public-roundup-video-layout .public-roundup-switch-item {
-          position: relative;
-          border-radius: 0;
-          background: #ffffff;
-          box-shadow: none;
-        }
-
-        .public-roundup-video-layout .public-roundup-switch-item:hover {
-          background: #fbfcfd;
-        }
-
-        .public-roundup-video-layout .public-roundup-switch-item[aria-pressed="true"] {
-          background: #ffffff;
-          outline: 0;
-          box-shadow: none;
-        }
-
-        .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-item {
-          grid-template-columns: 30px minmax(0, 1fr) auto auto;
-          gap: 3px 21px;
-        }
-
-        .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-play {
-          position: relative;
-          display: block;
-          grid-column: 1 / 2;
-          grid-row: 1 / 4;
-          align-self: center;
-          justify-self: start;
-          width: 26px;
-          height: 18px;
-          min-width: 26px;
-          border-radius: 6px;
-          background: #d71920;
-          box-shadow: none;
-        }
-
-        .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-play::before {
-          content: "";
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 0;
-          height: 0;
-          margin-left: 1px;
-          border-top: 5px solid transparent;
-          border-bottom: 5px solid transparent;
-          border-left: 8px solid #ffffff;
-          transform: translate(-50%, -50%);
-        }
-
-        .public-roundup-video-layout .public-roundup-meta {
-          gap: 12px !important;
-          justify-content: space-between !important;
-          width: 100%;
-        }
-
-        .public-roundup-video-layout .public-roundup-switch-item[aria-pressed="true"]::before {
-          content: "";
-          position: absolute;
-          top: 50%;
-          left: -34px;
-          width: 22px;
-          height: 1px;
-          background: #0b1f3a;
-          opacity: 0.66;
-          transform: translateY(-50%);
-          pointer-events: none;
-        }
-
-        .public-roundup-video-layout .public-matchday-roundup .public-cover-story strong {
-          grid-column: 2 / 4;
-          grid-row: 2 / 3;
-          min-width: 0;
-          color: #10151b;
-          font-family: Arial, Helvetica, sans-serif;
-          font-size: 13.5px;
-          font-weight: 900;
-          line-height: 1.14;
-        }
-
-        .public-roundup-video-layout .public-matchday-roundup .public-cover-story small {
-          grid-column: 2 / 5;
-          grid-row: 3 / 4;
-          min-width: 0;
-          color: #6b7786;
-          font-size: 11px;
-          font-weight: 800;
-          line-height: 1.2;
-        }
-
-        .public-roundup-video-layout .public-roundup-duration {
-          justify-self: end;
-          color: #607086;
-          white-space: nowrap;
-        }
-
-        .public-roundup-video-layout .public-roundup-scroll-button {
-          background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.96) 18%, rgba(255, 255, 255, 0.96) 82%, rgba(255, 255, 255, 0));
-          color: #526174;
-        }
-
-        .public-roundup-video-layout .public-roundup-scroll-button-top,
-        .public-roundup-video-layout .public-roundup-scroll-button-bottom {
-          border-color: #eef2f6;
-        }
-
         .public-matchday-cover:has(.public-roundup-video-panel) {
           grid-template-columns: minmax(220px, 240px) minmax(740px, 1fr) minmax(240px, 280px);
         }
@@ -1975,10 +1352,6 @@ export default async function HomePage() {
           pointer-events: none !important;
         }
 
-        .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-item strong {
-          grid-column: 2 / 5 !important;
-        }
-
         @media (max-width: 1100px) {
           .public-matchday-cover:has(.public-roundup-video-panel) {
             grid-template-columns: 1fr;
@@ -1997,6 +1370,166 @@ export default async function HomePage() {
           }
         }
       `}</style>
+      <div className="public-top-stack">
+      <header className="public-site-topbar" aria-label="Topo do Jornada.pt">
+        <Link className="public-site-brand" href="/" aria-label="Jornada.pt">
+          Jornada<span>.pt</span>
+        </Link>
+        <nav className="public-site-menu" aria-label="Competições principais">
+          {competitionLinks.map((link) => (
+            <Link href={link.href} key={link.label}>
+              {link.label}
+            </Link>
+          ))}
+          <Link href="/competicoes/liga-portugal/2026-27/jornadas/1#jogos">Jogos</Link>
+          <Link href="/competicoes/liga-portugal/2026-27/jornadas/1#classificacao">Classificacao</Link>
+        </nav>
+        <div className="public-site-actions" aria-label="Acoes">
+          <button type="button" aria-label="Pesquisar">⌕</button>
+          <Link href="/admin/login">Entrar</Link>
+        </div>
+      </header>
+      </div>
+
+      <section className="public-matchday-panel" aria-label="Capa da jornada">
+        <div className="public-matchday-cover">
+          <aside className="public-matchday-feature public-side-editorial-block" aria-label="Bloco editorial lateral">
+            <div className="public-side-editorial-inner">
+              {hasPublishedSideBlock ? (
+                <>
+                  {sideBlockImageUrl ? (
+                    <div className="public-side-editorial-image">
+                      <img src={sideBlockImageUrl} alt="" />
+                    </div>
+                  ) : null}
+                  <div className="public-side-editorial-copy">
+                    {sideBlockLabel ? <span>{sideBlockLabel}</span> : null}
+                    {sideBlockTitle ? (
+                      sideBlockLinkUrl ? (
+                        <a className="public-side-editorial-title-link" href={sideBlockLinkUrl}>
+                          <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
+                        </a>
+                      ) : (
+                        <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
+                      )
+                    ) : null}
+                    {sideBlockAuthor ? <small>Por {sideBlockAuthor}</small> : null}
+                    {sideBlockText ? <p>{sideBlockText}</p> : null}
+                    {sideBlockLinkUrl ? (
+                      <a className="public-editorial-more-link" href={sideBlockLinkUrl}>
+                        Ler mais <span aria-hidden="true">›</span>
+                      </a>
+                    ) : null}
+                  </div>
+                </>
+              ) : (
+                <div className="public-side-editorial-placeholder">Espaco editorial por definir</div>
+              )}
+            </div>
+          </aside>
+
+          <div className="public-matchday-main-column">
+            <article className="public-matchday-editorial">
+              <div className="public-cover-headline">
+                {headlineImageUrl ? (
+                  <div className="public-editorial-main-image">
+                    <img src={headlineImageUrl} alt="" />
+                  </div>
+                ) : null}
+                <div>
+                  <h1 style={headlineTitleColor ? { color: headlineTitleColor } : undefined}>
+                    {headlineTitle || "Jornada.pt"}
+                  </h1>
+                  <p>
+                    {headlineSubtitle ||
+                      "A capa editorial do futebol, pronta para acompanhar os grandes temas antes, durante e depois dos jogos."}
+                  </p>
+                </div>
+              </div>
+            </article>
+
+            <div className="public-matchday-main-lower">
+              {hasRoundupVideoBlock ? (
+                <RoundupVideoSwitcher
+                  heading={editorial?.roundup_video_heading ?? null}
+                  headingColor={editorial?.roundup_video_heading_color ?? null}
+                  initialItemId={editorial?.complementary_roundup_item_id ?? null}
+                  items={roundupItems}
+                />
+              ) : (
+                <>
+                  <section className={`public-matchday-roundup public-below-headline-${belowHeadlineMode} public-editorial-flex-block`} data-editorial-slot="resumo-ou-noticias" aria-label="Zona editorial abaixo da manchete">
+                    <div className="public-editorial-block-head">
+                      <span style={belowHeadlineHeadingColor ? { color: belowHeadlineHeadingColor } : undefined}>{belowHeadlineHeading}</span>
+                    </div>
+                    <div className="public-cover-story-strip">
+                      {visibleHighlights.slice(0, 3).map((item) => <HighlightCard item={item} key={item.id} />)}
+                    </div>
+                  </section>
+
+                <aside className="public-matchday-cover-side public-editorial-flex-block public-below-headline-side" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar">
+                  {hasComplementaryStory && editorial ? (
+                    <>
+                      {editorial.complementary_image_url ? (
+                        <div className="public-complement-media">
+                          <img src={editorial.complementary_image_url} alt="" />
+                        </div>
+                      ) : null}
+                      <div className="public-complement-body">
+                        {editorial.complementary_label ? <span>{editorial.complementary_label}</span> : null}
+                        {editorial.complementary_title ? (
+                          editorial.complementary_link_url ? (
+                            <a className="public-complement-title-link" href={editorial.complementary_link_url}>
+                              <strong>{editorial.complementary_title}</strong>
+                            </a>
+                          ) : (
+                            <strong>{editorial.complementary_title}</strong>
+                          )
+                        ) : null}
+                        {editorial.complementary_text ? <p>{editorial.complementary_text}</p> : null}
+                        {editorial.complementary_link_url ? (
+                          <a className="public-editorial-more-link" href={editorial.complementary_link_url}>
+                            Ver mais <span aria-hidden="true">›</span>
+                          </a>
+                        ) : null}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="public-complement-body">
+                      <strong>Leitura editorial</strong>
+                      <p>O complemento da capa fica reservado para a proxima historia publicada.</p>
+                    </div>
+                  )}
+                </aside>
+                </>
+              )}
+            </div>
+          </div>
+
+          <aside className="public-matchday-news" aria-label="Ultimas noticias">
+            <h3>Ultimas noticias</h3>
+            <ul className="public-news-list">
+              {latestNews.map((item) => (
+                <li className="public-news-item" key={item.id}>
+                  {item.image_url ? (
+                    <div className="public-news-thumb">
+                      <img src={item.image_url} alt="" />
+                    </div>
+                  ) : null}
+                  <div className="public-news-copy">
+                    {item.time_label ? <time dateTime={item.time_label}>{item.time_label}</time> : null}
+                    {item.link_url ? (
+                      <a className="public-news-title" href={item.link_url}>{item.title}</a>
+                    ) : (
+                      <span className="public-news-title">{item.title}</span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        </div>
+      </section>
     </main>
   );
 }
