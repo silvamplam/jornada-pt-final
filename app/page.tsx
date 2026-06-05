@@ -289,8 +289,8 @@ export default async function HomePage() {
             <div className="public-matchday-main-lower">
               {hasRoundupVideoBlock ? (
                 <RoundupVideoSwitcher
-                  heading={cleanText(editorial?.roundup_video_heading) || belowHeadlineHeading}
-                  headingColor={cleanText(editorial?.roundup_video_heading_color) || belowHeadlineHeadingColor}
+                  heading={editorial?.roundup_video_heading ?? null}
+                  headingColor={editorial?.roundup_video_heading_color ?? null}
                   initialItemId={editorial?.complementary_roundup_item_id ?? null}
                   items={roundupItems}
                 />
@@ -1789,9 +1789,14 @@ export default async function HomePage() {
           box-shadow: none !important;
         }
 
+        .public-roundup-video-layout .public-matchday-roundup {
+          overflow: visible !important;
+        }
+
         .public-roundup-video-layout .public-roundup-scroll-frame {
           border-top: 0 !important;
           border-bottom: 0 !important;
+          overflow: visible !important;
         }
 
         .public-roundup-video-layout .public-roundup-compact-list .public-roundup-scroll-frame {
@@ -1888,6 +1893,33 @@ export default async function HomePage() {
           opacity: 0.66;
           transform: translateY(-50%);
           pointer-events: none;
+        }
+
+        .public-roundup-video-layout .public-matchday-roundup .public-cover-story strong {
+          grid-column: 2 / 4;
+          grid-row: 2 / 3;
+          min-width: 0;
+          color: #10151b;
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 13.5px;
+          font-weight: 900;
+          line-height: 1.14;
+        }
+
+        .public-roundup-video-layout .public-matchday-roundup .public-cover-story small {
+          grid-column: 2 / 5;
+          grid-row: 3 / 4;
+          min-width: 0;
+          color: #6b7786;
+          font-size: 11px;
+          font-weight: 800;
+          line-height: 1.2;
+        }
+
+        .public-roundup-video-layout .public-roundup-duration {
+          justify-self: end;
+          color: #607086;
+          white-space: nowrap;
         }
 
         .public-roundup-video-layout .public-roundup-scroll-button {
