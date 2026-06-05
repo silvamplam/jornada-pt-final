@@ -207,6 +207,51 @@ const styles = `
     gap: 14px;
   }
 
+  .home-admin-stack {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.78fr);
+    align-items: start;
+    margin-top: 18px;
+  }
+
+  .home-admin-headline-panel {
+    grid-column: 1;
+    order: 1;
+  }
+
+  .home-admin-side-panel {
+    grid-column: 2;
+    order: 2;
+  }
+
+  .home-admin-composition-panel {
+    grid-column: 1;
+    order: 3;
+  }
+
+  .home-admin-complement-panel {
+    grid-column: 2;
+    order: 4;
+  }
+
+  .home-admin-wide-panel {
+    grid-column: 1 / -1;
+  }
+
+  .home-admin-highlights-panel,
+  .home-admin-roundup-panel,
+  .home-admin-latest-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-admin-highlights-panel > header,
+  .home-admin-roundup-panel > header,
+  .home-admin-latest-panel > header,
+  .home-admin-highlights-panel > .home-admin-button,
+  .home-admin-roundup-panel > .home-admin-button,
+  .home-admin-latest-panel > .home-admin-button {
+    grid-column: 1 / -1;
+  }
+
   .home-admin-compact-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -254,6 +299,16 @@ const styles = `
     background: #f8fafc;
   }
 
+  .home-admin-fieldset legend {
+    width: fit-content;
+    padding: 0 8px;
+    color: #10151b;
+  }
+
+  .home-admin-hidden-form {
+    display: none;
+  }
+
   .home-admin-preview {
     overflow: hidden;
     border: 1px solid #dce3eb;
@@ -293,8 +348,20 @@ const styles = `
     .home-admin-hero,
     .home-admin-grid,
     .home-admin-two-grid,
-    .home-admin-compact-grid {
+    .home-admin-compact-grid,
+    .home-admin-stack,
+    .home-admin-highlights-panel,
+    .home-admin-roundup-panel,
+    .home-admin-latest-panel {
       grid-template-columns: 1fr;
+    }
+
+    .home-admin-headline-panel,
+    .home-admin-side-panel,
+    .home-admin-composition-panel,
+    .home-admin-complement-panel,
+    .home-admin-wide-panel {
+      grid-column: 1;
     }
   }
 `;
@@ -422,7 +489,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
       {message ? <div className={`home-admin-message ${message.type === "warning" ? "warning" : ""}`}>{message.text}</div> : null}
 
       <section className="home-admin-stack">
-        <section className="home-admin-panel">
+        <section className="home-admin-panel home-admin-headline-panel">
           <header>
             <h2>Manchete principal</h2>
             <p>A chamada principal da capa geral do Jornada.pt.</p>
@@ -472,7 +539,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
           </form>
         </section>
 
-        <section className="home-admin-panel">
+        <section className="home-admin-panel home-admin-side-panel">
           <header>
             <h2>Bloco lateral</h2>
             <p>Chamada editorial independente da manchete.</p>
@@ -525,7 +592,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
           </form>
         </section>
 
-        <section className="home-admin-panel">
+        <section className="home-admin-panel home-admin-composition-panel">
           <header>
             <h2>Composicao abaixo da manchete</h2>
             <p>A escolha da zona esquerda orienta automaticamente o bloco complementar da direita.</p>
@@ -581,7 +648,12 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
           />
         </section>
 
-        <form className="home-admin-panel home-admin-form" action="/api/admin/editorial/home" method="post">
+        <form
+          className="home-admin-panel home-admin-form home-admin-wide-panel home-admin-highlights-panel"
+          action="/api/admin/editorial/home"
+          method="post"
+          style={{ order: editorial.below_headline_mode === "roundup" ? 6 : 5 }}
+        >
           <input type="hidden" name="action_type" value="save_home_highlights" />
           <input type="hidden" name="return_to" value="/admin/editorial/home" />
           <header>
@@ -640,14 +712,19 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
           <button className="home-admin-button" type="submit">Guardar destaques</button>
         </form>
         {HIGHLIGHT_SORT_ORDERS.map((sortOrder) => (
-          <form action="/api/admin/editorial/home/image" encType="multipart/form-data" id={`highlight-upload-${sortOrder}`} key={`upload-${sortOrder}`} method="post">
+          <form className="home-admin-hidden-form" action="/api/admin/editorial/home/image" encType="multipart/form-data" id={`highlight-upload-${sortOrder}`} key={`upload-${sortOrder}`} method="post">
             <input type="hidden" name="return_to" value="/admin/editorial/home" />
             <input type="hidden" name="target" value="highlight" />
             <input type="hidden" name="sort_order" value={sortOrder} />
           </form>
         ))}
 
-        <form className="home-admin-panel home-admin-form" action="/api/admin/editorial/home" method="post">
+        <form
+          className="home-admin-panel home-admin-form home-admin-wide-panel home-admin-roundup-panel"
+          action="/api/admin/editorial/home"
+          method="post"
+          style={{ order: editorial.below_headline_mode === "roundup" ? 5 : 6 }}
+        >
           <input type="hidden" name="action_type" value="save_home_roundup_items" />
           <input type="hidden" name="return_to" value="/admin/editorial/home" />
           <header>
@@ -709,7 +786,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
           <button className="home-admin-button" type="submit">Guardar Resumo da Jornada</button>
         </form>
 
-        <section className="home-admin-panel">
+        <section className="home-admin-panel home-admin-complement-panel">
           <header>
             <h2>Bloco complementar</h2>
             <p>Campos do bloco da direita, coerentes com a composicao escolhida.</p>
@@ -781,7 +858,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
           </form>
         </section>
 
-        <form className="home-admin-panel home-admin-form" action="/api/admin/editorial/home" method="post">
+        <form className="home-admin-panel home-admin-form home-admin-wide-panel home-admin-latest-panel" action="/api/admin/editorial/home" method="post" style={{ order: 7 }}>
           <input type="hidden" name="action_type" value="save_home_latest_news" />
           <input type="hidden" name="return_to" value="/admin/editorial/home" />
           <header>
