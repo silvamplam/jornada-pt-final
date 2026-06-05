@@ -75,9 +75,9 @@ type HomeEditorialPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-const HIGHLIGHT_SORT_ORDERS = Array.from({ length: 6 }, (_, index) => index + 1);
+const HIGHLIGHT_SORT_ORDERS = Array.from({ length: 3 }, (_, index) => index + 1);
 const ROUNDUP_SORT_ORDERS = Array.from({ length: 10 }, (_, index) => index + 1);
-const LATEST_NEWS_SORT_ORDERS = Array.from({ length: 3 }, (_, index) => index + 1);
+const LATEST_NEWS_SORT_ORDERS = Array.from({ length: 8 }, (_, index) => index + 1);
 
 const styles = `
   body {
@@ -712,7 +712,7 @@ async function readHomeEditorial() {
 
 async function readHighlights(siteEditorialId: string) {
   const rows = await fetchSupabaseAdminTable<HomeHighlight>(
-    `site_editorial_highlights?select=id,site_editorial_id,label,title,subtitle,image_url,link_url,sort_order,status&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}&order=sort_order.asc&limit=6`
+    `site_editorial_highlights?select=id,site_editorial_id,label,title,subtitle,image_url,link_url,sort_order,status&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}&order=sort_order.asc&limit=3`
   ).catch(() => []);
 
   return new Map(rows.map((row) => [row.sort_order, row]));
@@ -728,7 +728,7 @@ async function readRoundupItems(siteEditorialId: string) {
 
 async function readLatestNews(siteEditorialId: string) {
   const rows = await fetchSupabaseAdminTable<HomeLatestNews>(
-    `site_editorial_latest_news?select=id,site_editorial_id,time_label,title,link_url,image_url,sort_order,status&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}&order=sort_order.asc&limit=3`
+    `site_editorial_latest_news?select=id,site_editorial_id,time_label,title,link_url,image_url,sort_order,status&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}&order=sort_order.asc&limit=8`
   ).catch(() => []);
 
   return new Map(rows.map((row) => [row.sort_order, row]));
