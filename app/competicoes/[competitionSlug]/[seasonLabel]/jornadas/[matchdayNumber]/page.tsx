@@ -1,7 +1,7 @@
-Ôªøimport { buildAccumulatedClassification, totalClassificationStats, type ClassificationSplit } from "@/lib/classification";
+import { buildAccumulatedClassification, totalClassificationStats, type ClassificationSplit } from "@/lib/classification";
 import { getPublicMatchdayDiagnostic, seasonLabelToUrlSegment, type PublicMatchdayContext, type PublicMatchdayDiagnostic, type PublicSeasonMatch } from "@/lib/public-matchday";
 import PublicTeamBadge from "@/components/public/PublicTeamBadge";
-import RoundupVideoSwitcher from "@/components/public/RoundupVideoSwitcher";
+import { PublicEditorialLayout, type PublicEditorialHighlight, type PublicEditorialLatestNews } from "@/components/public/PublicEditorialLayout";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -137,7 +137,7 @@ const publicMatchdayStyles = `
   }
 
   .public-site-search::before {
-    content: "‚åï";
+    content: "?";
     display: grid;
     place-items: center;
     width: 20px;
@@ -2050,7 +2050,7 @@ function formatMiniCardKickoff(value: string) {
   }).format(date);
   const time = formatKickoffTime(value);
 
-  return `${dayMonth} ¬∑ ${time}`;
+  return `${dayMonth} ∑ ${time}`;
 }
 
 function formatMatchdayDateContext(matches: PublicSeasonMatch[]) {
@@ -2087,10 +2087,10 @@ function formatMatchdayDateContext(matches: PublicSeasonMatch[]) {
 
   const sameMonth = monthKeyFormatter.format(firstDate) === monthKeyFormatter.format(lastDate);
   if (sameMonth) {
-    return `${dayFormatter.format(firstDate)}‚Äì${dayFormatter.format(lastDate)} ${monthFormatter.format(lastDate)}`;
+    return `${dayFormatter.format(firstDate)}ñ${dayFormatter.format(lastDate)} ${monthFormatter.format(lastDate)}`;
   }
 
-  return `${firstLabel} ‚Äì ${lastLabel}`;
+  return `${firstLabel} ñ ${lastLabel}`;
 }
 
 function statusLabel(status: string) {
@@ -2115,11 +2115,11 @@ function statusKind(status: string) {
 
 function sideBlockTypeLabel(value?: string | null) {
   const labels: Record<string, string> = {
-    opiniao: "OPINI√ÉO",
+    opiniao: "OPINI√O",
     arbitragem: "ARBITRAGEM",
-    balanco: "BALAN√áO",
-    analise: "AN√ÅLISE",
-    cronica: "CR√ìNICA",
+    balanco: "BALAN«O",
+    analise: "AN¡LISE",
+    cronica: "CR”NICA",
     "figura-da-jornada": "FIGURA DA JORNADA",
     outro: "EDITORIAL"
   };
@@ -2237,7 +2237,7 @@ function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: 
   const broadcastChannelName = match.broadcastChannel?.name?.trim();
   const hasScore = match.home_score !== null && match.away_score !== null;
   const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
-  const liveStatus = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} ¬∑ ${match.minute}'` : statusLabel(match.status);
+  const liveStatus = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} ∑ ${match.minute}'` : statusLabel(match.status);
 
   return (
     <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>
@@ -2261,7 +2261,7 @@ function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: 
             <time className="public-matchday-mini-time" dateTime={match.kickoff_at}>{formatMiniCardKickoff(match.kickoff_at)}</time>
             {broadcastChannelName ? (
               <>
-                <span className="public-matchday-mini-separator" aria-hidden="true">¬∑</span>
+                <span className="public-matchday-mini-separator" aria-hidden="true">∑</span>
                 <span className="public-matchday-mini-channel">{broadcastChannelName}</span>
               </>
             ) : null}
@@ -2312,8 +2312,8 @@ function DiagnosticPanel({ diagnostic }: { diagnostic: PublicMatchdayDiagnostic 
     <main className="public-matchday-shell">
       <style>{publicMatchdayStyles}</style>
       <section className="public-diagnostic">
-        <h2>Diagn√≥stico tempor√°rio da p√°gina p√∫blica</h2>
-        <p>A rota foi carregada, mas os dados necess√°rios n√£o foram encontrados ou ocorreu um erro de leitura.</p>
+        <h2>DiagnÛstico tempor·rio da p·gina p˙blica</h2>
+        <p>A rota foi carregada, mas os dados necess·rios n„o foram encontrados ou ocorreu um erro de leitura.</p>
         <pre>{JSON.stringify(diagnostic, null, 2)}</pre>
       </section>
     </main>
@@ -2386,10 +2386,10 @@ function LogoDiagnosticPanel({ context }: { context: PublicMatchdayContext }) {
   const rows = Array.from(rowsById.values()).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <section className="public-logo-diagnostic" aria-label="Diagn√≥stico tempor√°rio dos emblemas">
-      <h2>Diagn√≥stico tempor√°rio dos emblemas</h2>
+    <section className="public-logo-diagnostic" aria-label="DiagnÛstico tempor·rio dos emblemas">
+      <h2>DiagnÛstico tempor·rio dos emblemas</h2>
       <p>
-        Esta caixa s√≥ aparece com <code>?debug_logos=1</code>. A consola do browser tamb√©m indica os URLs que falham no carregamento.
+        Esta caixa sÛ aparece com <code>?debug_logos=1</code>. A consola do browser tambÈm indica os URLs que falham no carregamento.
       </p>
       <table>
         <thead>
@@ -2406,7 +2406,7 @@ function LogoDiagnosticPanel({ context }: { context: PublicMatchdayContext }) {
             <tr key={row.slug}>
               <td>{row.name || row.shortName}</td>
               <td>{row.slug}</td>
-              <td>{row.logoUrl ? <code>{row.logoUrl}</code> : "‚Äî"}</td>
+              <td>{row.logoUrl ? <code>{row.logoUrl}</code> : "ó"}</td>
               <td>{logoDiagnosticStatus(row.logoUrl)}</td>
               <td>{Array.from(row.sources).join(", ")}</td>
             </tr>
@@ -2518,16 +2518,45 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
           {
             id: "placeholder-news-lineup",
             timeLabel: "12:45",
-            title: "Treinador confirma altera√ß√µes no onze",
+            title: "Treinador confirma alteraÁıes no onze",
             imageUrl: null
           },
           {
             id: "placeholder-news-tickets",
             timeLabel: "13:10",
-            title: "Adeptos esgotam bilhetes para o cl√°ssico",
+            title: "Adeptos esgotam bilhetes para o cl·ssico",
             imageUrl: null
           }
         ];
+  const publicHighlights: PublicEditorialHighlight[] =
+    context.highlights.length > 0
+      ? context.highlights.map((highlight) => ({
+          id: highlight.id,
+          label: highlight.label,
+          title: highlight.title,
+          imageUrl: highlight.image_url?.trim() || null
+        }))
+      : [
+          {
+            id: "placeholder-highlight-preview",
+            label: "Antevis„o",
+            title: "Os pontos de atenÁ„o antes da bola rolar",
+            imageUrl: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80"
+          },
+          {
+            id: "placeholder-highlight-stand",
+            label: "Ambiente",
+            title: "A jornada vista pelas bancadas e pelos protagonistas",
+            imageUrl: "https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=700&q=80"
+          },
+          {
+            id: "placeholder-highlight-context",
+            label: "Contexto",
+            title: "O que pode mudar na tabela depois dos resultados",
+            imageUrl: "https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=700&q=80"
+          }
+        ];
+  const publicLatestNews: PublicEditorialLatestNews[] = latestNewsItems;
 
   return (
     <main className="public-matchday-shell">
@@ -2538,7 +2567,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
         <a className="public-site-brand" href="/">
           Jornada<span>.pt</span>
         </a>
-        <nav className="public-site-menu" aria-label="Competi√ß√µes principais">
+        <nav className="public-site-menu" aria-label="CompetiÁıes principais">
           {publicCompetitionMenu.map((item) => (
             <a
               aria-current={item.slug === context.competition.slug ? "page" : undefined}
@@ -2549,9 +2578,9 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
             </a>
           ))}
           <a href="#jogos">Jogos</a>
-          <a href="#classificacao">Classifica√ß√£o</a>
+          <a href="#classificacao">ClassificaÁ„o</a>
         </nav>
-        <div className="public-site-actions" aria-label="A√ß√µes">
+        <div className="public-site-actions" aria-label="AÁıes">
           <span className="public-site-search" aria-label="Pesquisar">Pesquisar</span>
           <a href="/admin/gestor">Entrar</a>
         </div>
@@ -2559,11 +2588,11 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
       <section className="public-season-nav-bar" aria-label="Navegacao de jornadas">
         <div className="public-hidden-heading">
           <h2>Jornadas</h2>
-          <p>Navega√ß√£o principal da √©poca {context.season.label}.</p>
+          <p>NavegaÁ„o principal da Època {context.season.label}.</p>
         </div>
         <div className="public-season-nav-inner">
         <label className="public-season-select-wrap">
-          <span>√âpoca</span>
+          <span>…poca</span>
           <select className="public-season-select" data-season-select defaultValue={currentSeasonHref}>
             {seasonOptions.map((season) => (
               <option key={season.id} value={season.href}>
@@ -2608,7 +2637,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
       <section className="public-matchday-panel public-matchday-scoreboard-panel" aria-label="Visao rapida dos jogos">
         <div className="public-matchday-strip-shell">
           <button className="public-matchday-strip-button" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
-            ‚Äπ
+            ã
           </button>
           <div className="public-matchday-strip" data-matchday-strip>
             {context.matchesForMatchday.length > 0 ? (
@@ -2620,7 +2649,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
             )}
           </div>
           <button className="public-matchday-strip-button" data-strip-scroll="right" type="button" aria-label="Ver jogos seguintes">
-            ‚Ä∫
+            õ
           </button>
         </div>
         <script
@@ -2645,261 +2674,52 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
         />
       </section>
 
-      <section className="public-matchday-panel" aria-label="Capa da jornada">
-        <div className="public-matchday-cover">
-          <aside className="public-matchday-feature public-side-editorial-block" aria-label="Bloco editorial lateral da jornada">
-            <div className="public-side-editorial-inner">
-              {hasPublishedSideBlock ? (
-                <>
-                  {sideBlockImageUrl ? (
-                    <div className="public-side-editorial-image">
-                      <img alt="" src={sideBlockImageUrl} />
-                    </div>
-                  ) : null}
-                  <div className="public-side-editorial-copy">
-                    {sideBlockLabel ? <span className="public-side-editorial-label">{sideBlockLabel}</span> : null}
-                    {sideBlockTitle ? (
-                      sideBlockLinkUrl ? (
-                        <a className="public-side-editorial-title-link" href={sideBlockLinkUrl}>
-                          <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
-                        </a>
-                      ) : (
-                        <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
-                      )
-                    ) : null}
-                    {sideBlockAuthor ? <small>Por {sideBlockAuthor}</small> : null}
-                    {sideBlockText ? <p>{sideBlockText}</p> : null}
-                    {sideBlockLinkUrl ? (
-                      <a className="public-editorial-more-link" href={sideBlockLinkUrl}>
-                        Ler mais <span aria-hidden="true">‚Ä∫</span>
-                      </a>
-                    ) : null}
-                  </div>
-                </>
-              ) : (
-                <div className="public-side-editorial-placeholder">Espaco editorial por definir</div>
-              )}
-            </div>
-          </aside>
-          <div className="public-matchday-main-column">
-            <article className="public-matchday-editorial">
-              <div className="public-cover-headline">
-                {publishedHeadline?.image_url ? (
-                  <div className="public-editorial-main-image">
-                    <img src={publishedHeadline.image_url} alt="" />
-                  </div>
-                ) : null}
-                <div>
-                  <h2 style={publishedHeadline?.title_color ? { color: publishedHeadline.title_color } : undefined}>
-                    {publishedHeadline?.title || "Manchete da jornada"}
-                  </h2>
-                  <p>{publishedHeadline?.summary || "Espa√ßo reservado para a leitura editorial desta jornada."}</p>
-                </div>
-              </div>
-            </article>
-            <div className="public-matchday-main-lower">
-              {hasRoundupVideoComplement ? (
-                <RoundupVideoSwitcher
-                  items={context.roundupItems}
-                  initialItemId={editorial?.complementary_roundup_item_id ?? null}
-                  heading={editorial?.roundup_video_heading ?? null}
-                  headingColor={editorial?.roundup_video_heading_color ?? null}
-                  matchdayNumber={context.matchday.number}
-                />
-              ) : (
-                <>
-              <section
-                className={`public-matchday-roundup public-below-headline-${belowHeadlineMode} public-editorial-flex-block`}
-                data-editorial-slot="videos-ou-noticias"
-                aria-label="Zona editorial abaixo da manchete"
-              >
-                <div className="public-editorial-block-head">
-                  <span className="public-roundup-matchday-label" style={belowHeadlineLabelColor ? { color: belowHeadlineLabelColor } : undefined}>
-                    {belowHeadlineLabel}
-                  </span>
-                </div>
-                <div className="public-cover-story-strip" aria-label="Resumos e destaques da jornada">
-              {belowHeadlineMode === "highlights" ? (
-                context.highlights.length > 0 ? (
-                  context.highlights.map((highlight) => {
-                    const imageUrl = highlight.image_url?.trim();
-                    return (
-                      <article className="public-cover-story" key={highlight.id}>
-                        <div className="public-highlight-image">
-                          {imageUrl ? <img src={imageUrl} alt="" /> : null}
-                        </div>
-                        {highlight.label ? <span>{highlight.label}</span> : null}
-                        <strong>{highlight.title}</strong>
-                      </article>
-                    );
-                  })
-                ) : (
-                  <>
-                    <article className="public-cover-story">
-                      <div className="public-highlight-image">
-                        <img
-                          src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80"
-                          alt=""
-                        />
-                      </div>
-                      <span>Antevis√£o</span>
-                      <strong>Os pontos de aten√ß√£o antes da bola rolar</strong>
-                    </article>
-                    <article className="public-cover-story">
-                      <div className="public-highlight-image">
-                        <img
-                          src="https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=700&q=80"
-                          alt=""
-                        />
-                      </div>
-                      <span>Ambiente</span>
-                      <strong>A jornada vista pelas bancadas e pelos protagonistas</strong>
-                    </article>
-                    <article className="public-cover-story">
-                      <div className="public-highlight-image">
-                        <img
-                          src="https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=700&q=80"
-                          alt=""
-                        />
-                      </div>
-                      <span>Contexto</span>
-                      <strong>O que pode mudar na tabela depois dos resultados</strong>
-                    </article>
-                  </>
-                )
-              ) : context.roundupItems.length > 0 ? (
-                context.roundupItems.map((item) => {
-                  const showPlay = Boolean(item.video_url) || item.type === "video" || item.type === "golos" || item.type === "resumo";
-                  const imageUrl = item.image_url?.trim();
-                  return (
-                    <article className="public-cover-story" key={item.id}>
-                      <div className="public-highlight-image">
-                        {imageUrl ? <img src={imageUrl} alt="" /> : null}
-                        {showPlay ? <span className="public-media-play" aria-hidden="true">‚ñ∂</span> : null}
-                      </div>
-                      {item.label ? <span>{item.label}</span> : null}
-                      <strong>{item.title}</strong>
-                      {item.subtitle ? <small>{item.subtitle}</small> : null}
-                      {item.duration ? <span className="public-roundup-duration">{item.duration}</span> : null}
-                      {item.video_url ? (
-                        <a className="public-roundup-arrow" href={item.video_url} aria-label="Abrir conteudo do resumo">
-                          ‚Ä∫
-                        </a>
-                      ) : (
-                        <span className="public-roundup-arrow" aria-hidden="true">‚Ä∫</span>
-                      )}
-                    </article>
-                  );
-                })
-              ) : (
-                <>
-                  <article className="public-cover-story">
-                    <div className="public-highlight-image">
-                      <img
-                        src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80"
-                        alt=""
-                      />
-                      <span className="public-media-play" aria-hidden="true">‚ñ∂</span>
-                    </div>
-                    <span>Antevis√£o</span>
-                    <strong>Os pontos de aten√ß√£o antes da bola rolar</strong>
-                    <small>Resumo completo</small>
-                    <span className="public-roundup-duration">5:42</span>
-                    <span className="public-roundup-arrow" aria-hidden="true">‚Ä∫</span>
-                  </article>
-                  <article className="public-cover-story">
-                    <div className="public-highlight-image">
-                      <img
-                        src="https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=700&q=80"
-                        alt=""
-                      />
-                      <span className="public-media-play" aria-hidden="true">‚ñ∂</span>
-                    </div>
-                    <span>Ambiente</span>
-                    <strong>A jornada vista pelas bancadas e pelos protagonistas</strong>
-                    <small>Golos e melhores momentos</small>
-                    <span className="public-roundup-duration">4:18</span>
-                    <span className="public-roundup-arrow" aria-hidden="true">‚Ä∫</span>
-                  </article>
-                  <article className="public-cover-story">
-                    <div className="public-highlight-image">
-                      <img
-                        src="https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=700&q=80"
-                        alt=""
-                      />
-                      <span className="public-media-play" aria-hidden="true">‚ñ∂</span>
-                    </div>
-                    <span>Contexto</span>
-                    <strong>O que pode mudar na tabela depois dos resultados</strong>
-                    <small>Not√≠cia de contexto</small>
-                    <span className="public-roundup-duration">6:21</span>
-                    <span className="public-roundup-arrow" aria-hidden="true">‚Ä∫</span>
-                  </article>
-                </>
-              )}
-                </div>
-              </section>
-              <aside className="public-matchday-cover-side public-editorial-flex-block public-below-headline-side" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar da jornada">
-                {hasPublishedComplementaryStory && editorial ? (
-                  <>
-                    {editorial.complementary_image_url ? (
-                      <div className="public-complement-media">
-                        <img src={editorial.complementary_image_url} alt="" />
-                      </div>
-                    ) : null}
-                    <div className="public-complement-body">
-                      {editorial.complementary_label ? (
-                        <span className="public-complement-label">{editorial.complementary_label}</span>
-                      ) : null}
-                      {editorial.complementary_title ? (
-                        editorial.complementary_link_url ? (
-                          <a className="public-complement-title-link" href={editorial.complementary_link_url}>
-                            <strong>{editorial.complementary_title}</strong>
-                          </a>
-                        ) : (
-                          <strong>{editorial.complementary_title}</strong>
-                        )
-                      ) : null}
-                      {editorial.complementary_text ? <p>{editorial.complementary_text}</p> : null}
-                      {editorial.complementary_link_url ? (
-                        <a className="public-editorial-more-link" href={editorial.complementary_link_url}>
-                          Ver mais <span aria-hidden="true">‚Ä∫</span>
-                        </a>
-                      ) : null}
-                    </div>
-                  </>
-                ) : (
-                  <div className="public-complement-body">
-                    <strong>Espa√ßo editorial preparado</strong>
-                    <p>Bloco complementar por definir.</p>
-                  </div>
-                )}
-              </aside>
-                </>
-              )}
-            </div>
-          </div>
-          <aside className="public-matchday-news" aria-label="√öltimas not√≠cias">
-            <h3>√öltimas not√≠cias</h3>
-            <ul className="public-news-list">
-              {latestNewsItems.map((item) => (
-                <li className="public-news-item" key={item.id}>
-                  {item.imageUrl ? (
-                    <div className="public-news-thumb">
-                      <img alt="" src={item.imageUrl} />
-                    </div>
-                  ) : null}
-                  <div className="public-news-copy">
-                    {item.timeLabel ? <time dateTime={item.timeLabel}>{item.timeLabel}</time> : null}
-                    <span className="public-news-title">{item.title}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </aside>
-        </div>
-      </section>
-
+      <PublicEditorialLayout
+        ariaLabel="Capa da jornada"
+        sideBlock={{
+          isPublished: hasPublishedSideBlock,
+          label: sideBlockLabel,
+          title: sideBlockTitle,
+          titleColor: sideBlockTitleColor,
+          author: sideBlockAuthor,
+          text: sideBlockText,
+          imageUrl: sideBlockImageUrl,
+          linkUrl: sideBlockLinkUrl,
+          placeholder: "Espaco editorial por definir"
+        }}
+        headline={{
+          title: publishedHeadline?.title ?? null,
+          subtitle: publishedHeadline?.summary ?? null,
+          imageUrl: publishedHeadline?.image_url ?? null,
+          titleColor: publishedHeadline?.title_color ?? null,
+          fallbackTitle: "Manchete da jornada",
+          fallbackSubtitle: "EspaÁo reservado para a leitura editorial desta jornada."
+        }}
+        belowHeadline={{
+          mode: belowHeadlineMode,
+          label: belowHeadlineLabel,
+          labelColor: belowHeadlineLabelColor,
+          highlights: publicHighlights,
+          roundupItems: context.roundupItems,
+          showRoundupVideo: hasRoundupVideoComplement,
+          roundupHeading: editorial?.roundup_video_heading ?? null,
+          roundupHeadingColor: editorial?.roundup_video_heading_color ?? null,
+          initialRoundupItemId: editorial?.complementary_roundup_item_id ?? null,
+          matchdayNumber: context.matchday.number,
+          complementary: {
+            isPublished: Boolean(hasPublishedComplementaryStory && editorial),
+            label: editorial?.complementary_label ?? null,
+            title: editorial?.complementary_title ?? null,
+            text: editorial?.complementary_text ?? null,
+            imageUrl: editorial?.complementary_image_url ?? null,
+            linkUrl: editorial?.complementary_link_url ?? null,
+            fallbackTitle: "EspaÁo editorial preparado",
+            fallbackText: "Bloco complementar por definir."
+          }
+        }}
+        latestNews={publicLatestNews}
+        latestNewsTitle="⁄ltimas notÌcias"
+      />
       <section className="public-matchday-panel" id="classificacao" aria-label="Classificacao acumulada">
         <div className="public-table-wrap">
           <table className="public-table">
@@ -2925,7 +2745,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                     <span className="public-club-cell">
                     <span className="public-club-name">{row.name}</span>
                     <span className="public-club-form">
-                      <span>√öltimos:</span>
+                      <span>⁄ltimos:</span>
                       {row.recentForm.length > 0 ? (
                         <span className="public-form-list">
                           {row.recentForm.map((result, resultIndex) => (
@@ -2945,7 +2765,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                           ))}
                         </span>
                       ) : (
-                        "‚Äî"
+                        "ó"
                       )}
                     </span>
                     </span>

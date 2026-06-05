@@ -1,5 +1,5 @@
 import Link from "next/link";
-import RoundupVideoSwitcher from "@/components/public/RoundupVideoSwitcher";
+import { PublicEditorialLayout, type PublicEditorialHighlight, type PublicEditorialLatestNews } from "@/components/public/PublicEditorialLayout";
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -147,29 +147,6 @@ async function readHomeLatestNews(siteEditorialId: string) {
   ).catch(() => []);
 }
 
-function HighlightCard({
-  item
-}: {
-  item: Pick<SiteHighlight, "id" | "label" | "title" | "subtitle" | "image_url" | "link_url">;
-}) {
-  const body = (
-    <>
-      <div className="public-highlight-image">{item.image_url ? <img src={item.image_url} alt="" /> : null}</div>
-      {item.label ? <span>{item.label}</span> : null}
-      <strong>{item.title}</strong>
-      {item.subtitle ? <small>{item.subtitle}</small> : null}
-    </>
-  );
-
-  return item.link_url ? (
-    <a className="public-cover-story" href={item.link_url}>
-      {body}
-    </a>
-  ) : (
-    <article className="public-cover-story">{body}</article>
-  );
-}
-
 export default async function HomePage() {
   const editorial = await readHomeEditorial();
   const [highlights, roundupItems, latestNews] = editorial
@@ -205,6 +182,21 @@ export default async function HomePage() {
     Boolean(cleanText(editorial.complementary_title) || cleanText(editorial.complementary_text));
   const visibleHighlights = highlights.length > 0 ? highlights : fallbackHighlights;
   const hasRoundupVideoBlock = (belowHeadlineMode === "roundup" || complementaryMode === "roundup_video") && roundupItems.length > 0;
+  const publicHighlights: PublicEditorialHighlight[] = visibleHighlights.slice(0, 3).map((item) => ({
+    id: item.id,
+    label: item.label,
+    title: item.title,
+    subtitle: item.subtitle,
+    imageUrl: item.image_url,
+    linkUrl: item.link_url
+  }));
+  const publicLatestNews: PublicEditorialLatestNews[] = latestNews.map((item) => ({
+    id: item.id,
+    timeLabel: item.time_label,
+    title: item.title || "Noticia",
+    imageUrl: item.image_url,
+    linkUrl: item.link_url
+  }));
 
   return (
     <main className="public-matchday-shell">
@@ -1356,145 +1348,51 @@ export default async function HomePage() {
       </header>
       </div>
 
-      <section className="public-matchday-panel" aria-label="Capa da jornada">
-        <div className="public-matchday-cover">
-          <aside className="public-matchday-feature public-side-editorial-block" aria-label="Bloco editorial lateral">
-            <div className="public-side-editorial-inner">
-              {hasPublishedSideBlock ? (
-                <>
-                  {sideBlockImageUrl ? (
-                    <div className="public-side-editorial-image">
-                      <img src={sideBlockImageUrl} alt="" />
-                    </div>
-                  ) : null}
-                  <div className="public-side-editorial-copy">
-                    {sideBlockLabel ? <span>{sideBlockLabel}</span> : null}
-                    {sideBlockTitle ? (
-                      sideBlockLinkUrl ? (
-                        <a className="public-side-editorial-title-link" href={sideBlockLinkUrl}>
-                          <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
-                        </a>
-                      ) : (
-                        <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
-                      )
-                    ) : null}
-                    {sideBlockAuthor ? <small>Por {sideBlockAuthor}</small> : null}
-                    {sideBlockText ? <p>{sideBlockText}</p> : null}
-                    {sideBlockLinkUrl ? (
-                      <a className="public-editorial-more-link" href={sideBlockLinkUrl}>
-                        Ler mais <span aria-hidden="true">â€º</span>
-                      </a>
-                    ) : null}
-                  </div>
-                </>
-              ) : (
-                <div className="public-side-editorial-placeholder">Espaco editorial por definir</div>
-              )}
-            </div>
-          </aside>
-
-          <div className="public-matchday-main-column">
-            <article className="public-matchday-editorial">
-              <div className="public-cover-headline">
-                {headlineImageUrl ? (
-                  <div className="public-editorial-main-image">
-                    <img src={headlineImageUrl} alt="" />
-                  </div>
-                ) : null}
-                <div>
-                  <h1 style={headlineTitleColor ? { color: headlineTitleColor } : undefined}>
-                    {headlineTitle || "Jornada.pt"}
-                  </h1>
-                  <p>
-                    {headlineSubtitle ||
-                      "A capa editorial do futebol, pronta para acompanhar os grandes temas antes, durante e depois dos jogos."}
-                  </p>
-                </div>
-              </div>
-            </article>
-
-            <div className="public-matchday-main-lower">
-              {hasRoundupVideoBlock ? (
-                <RoundupVideoSwitcher
-                  heading={editorial?.roundup_video_heading ?? null}
-                  headingColor={editorial?.roundup_video_heading_color ?? null}
-                  initialItemId={editorial?.complementary_roundup_item_id ?? null}
-                  items={roundupItems}
-                />
-              ) : (
-                <>
-                  <section className={`public-matchday-roundup public-below-headline-${belowHeadlineMode} public-editorial-flex-block`} data-editorial-slot="resumo-ou-noticias" aria-label="Zona editorial abaixo da manchete">
-                    <div className="public-editorial-block-head">
-                      <span style={belowHeadlineHeadingColor ? { color: belowHeadlineHeadingColor } : undefined}>{belowHeadlineHeading}</span>
-                    </div>
-                    <div className="public-cover-story-strip">
-                      {visibleHighlights.slice(0, 3).map((item) => <HighlightCard item={item} key={item.id} />)}
-                    </div>
-                  </section>
-
-                <aside className="public-matchday-cover-side public-editorial-flex-block public-below-headline-side" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar">
-                  {hasComplementaryStory && editorial ? (
-                    <>
-                      {editorial.complementary_image_url ? (
-                        <div className="public-complement-media">
-                          <img src={editorial.complementary_image_url} alt="" />
-                        </div>
-                      ) : null}
-                      <div className="public-complement-body">
-                        {editorial.complementary_label ? <span>{editorial.complementary_label}</span> : null}
-                        {editorial.complementary_title ? (
-                          editorial.complementary_link_url ? (
-                            <a className="public-complement-title-link" href={editorial.complementary_link_url}>
-                              <strong>{editorial.complementary_title}</strong>
-                            </a>
-                          ) : (
-                            <strong>{editorial.complementary_title}</strong>
-                          )
-                        ) : null}
-                        {editorial.complementary_text ? <p>{editorial.complementary_text}</p> : null}
-                        {editorial.complementary_link_url ? (
-                          <a className="public-editorial-more-link" href={editorial.complementary_link_url}>
-                            Ver mais <span aria-hidden="true">â€º</span>
-                          </a>
-                        ) : null}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="public-complement-body">
-                      <strong>Leitura editorial</strong>
-                      <p>O complemento da capa fica reservado para a proxima historia publicada.</p>
-                    </div>
-                  )}
-                </aside>
-                </>
-              )}
-            </div>
-          </div>
-
-          <aside className="public-matchday-news" aria-label="Ultimas noticias">
-            <h3>Ultimas noticias</h3>
-            <ul className="public-news-list">
-              {latestNews.map((item) => (
-                <li className="public-news-item" key={item.id}>
-                  {item.image_url ? (
-                    <div className="public-news-thumb">
-                      <img src={item.image_url} alt="" />
-                    </div>
-                  ) : null}
-                  <div className="public-news-copy">
-                    {item.time_label ? <time dateTime={item.time_label}>{item.time_label}</time> : null}
-                    {item.link_url ? (
-                      <a className="public-news-title" href={item.link_url}>{item.title}</a>
-                    ) : (
-                      <span className="public-news-title">{item.title}</span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </aside>
-        </div>
-      </section>
+      <PublicEditorialLayout
+        ariaLabel="Capa da jornada"
+        sideBlock={{
+          isPublished: hasPublishedSideBlock,
+          label: sideBlockLabel,
+          title: sideBlockTitle,
+          titleColor: sideBlockTitleColor,
+          author: sideBlockAuthor,
+          text: sideBlockText,
+          imageUrl: sideBlockImageUrl,
+          linkUrl: sideBlockLinkUrl,
+          placeholder: "Espaco editorial por definir"
+        }}
+        headline={{
+          title: headlineTitle,
+          subtitle: headlineSubtitle,
+          imageUrl: headlineImageUrl,
+          titleColor: headlineTitleColor,
+          fallbackTitle: "Jornada.pt",
+          fallbackSubtitle: "A capa editorial do futebol, pronta para acompanhar os grandes temas antes, durante e depois dos jogos."
+        }}
+        belowHeadline={{
+          mode: belowHeadlineMode,
+          label: belowHeadlineHeading,
+          labelColor: belowHeadlineHeadingColor,
+          highlights: publicHighlights,
+          roundupItems,
+          showRoundupVideo: hasRoundupVideoBlock,
+          roundupHeading: editorial?.roundup_video_heading ?? null,
+          roundupHeadingColor: editorial?.roundup_video_heading_color ?? null,
+          initialRoundupItemId: editorial?.complementary_roundup_item_id ?? null,
+          complementary: {
+            isPublished: Boolean(hasComplementaryStory && editorial),
+            label: editorial?.complementary_label ?? null,
+            title: editorial?.complementary_title ?? null,
+            text: editorial?.complementary_text ?? null,
+            imageUrl: editorial?.complementary_image_url ?? null,
+            linkUrl: editorial?.complementary_link_url ?? null,
+            fallbackTitle: "Leitura editorial",
+            fallbackText: "O complemento da capa fica reservado para a proxima historia publicada."
+          }
+        }}
+        latestNews={publicLatestNews}
+        latestNewsTitle="Últimas notícias"
+      />
     </main>
   );
 }
