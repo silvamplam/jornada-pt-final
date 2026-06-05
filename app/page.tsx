@@ -1,137 +1,472 @@
 import Link from "next/link";
+import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
-const competitions = [
+export const dynamic = "force-dynamic";
+
+type SiteEditorial = {
+  id: string;
+  slug: string;
+  status: "draft" | "published";
+  headline_title: string | null;
+  headline_subtitle: string | null;
+  headline_image_url: string | null;
+  headline_title_color: string | null;
+  below_headline_mode: "highlights" | "roundup" | null;
+  below_headline_heading: string | null;
+  below_headline_heading_color: string | null;
+  side_block_status: "draft" | "published";
+  side_block_type: string | null;
+  side_block_label: string | null;
+  side_block_title: string | null;
+  side_block_title_color: string | null;
+  side_block_author: string | null;
+  side_block_text: string | null;
+  side_block_image_url: string | null;
+  side_block_link_url: string | null;
+  complementary_mode: "none" | "complementary_story" | "roundup_video" | null;
+  complementary_roundup_item_id: string | null;
+  complementary_label: string | null;
+  complementary_title: string | null;
+  complementary_text: string | null;
+  complementary_image_url: string | null;
+  complementary_link_url: string | null;
+  complementary_status: "draft" | "published";
+  roundup_video_heading: string | null;
+  roundup_video_heading_color: string | null;
+};
+
+type SiteHighlight = {
+  id: string;
+  label: string | null;
+  title: string | null;
+  subtitle: string | null;
+  image_url: string | null;
+  link_url: string | null;
+  sort_order: number;
+  status: "draft" | "published";
+};
+
+type SiteRoundupItem = {
+  id: string;
+  sort_order: number;
+  label: string | null;
+  title: string | null;
+  subtitle: string | null;
+  image_url: string | null;
+  video_url: string | null;
+  duration: string | null;
+  type: "video" | "golos" | "resumo" | "noticia";
+  status: "draft" | "published";
+};
+
+type SiteLatestNews = {
+  id: string;
+  time_label: string | null;
+  title: string | null;
+  link_url: string | null;
+  image_url: string | null;
+  sort_order: number;
+  status: "draft" | "published";
+};
+
+const competitionLinks = [
+  { label: "Liga Portugal", href: "/competicoes/liga-portugal/2026-27/jornadas/1" },
+  { label: "La Liga", href: "/competicoes/la-liga/2026-27/jornadas/1" },
+  { label: "Premier League", href: "/competicoes/premier-league/2026-27/jornadas/1" }
+];
+
+const fallbackHighlights = [
   {
-    name: "Liga Portugal",
-    href: "/competicoes/liga-portugal/2026-27/jornadas/1",
-    summary: "Calendario, jogos e leitura editorial da Liga Portugal."
+    id: "fallback-highlight-1",
+    label: "Antevisao",
+    title: "Os temas fortes antes da bola rolar",
+    image_url: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80",
+    link_url: null
   },
   {
-    name: "La Liga",
-    href: "/competicoes/la-liga/2026-27/jornadas/1",
-    summary: "Acompanhe jornadas, resultados e contexto da liga espanhola."
+    id: "fallback-highlight-2",
+    label: "Ambiente",
+    title: "A jornada vista pelas bancadas e pelos protagonistas",
+    image_url: "https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=700&q=80",
+    link_url: null
   },
   {
-    name: "Premier League",
-    href: "/competicoes/premier-league/2026-27/jornadas/1",
-    summary: "Jogos, videos, classificacao e historias da liga inglesa."
+    id: "fallback-highlight-3",
+    label: "Contexto",
+    title: "O futebol contado antes, durante e depois do jogo",
+    image_url: "https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=700&q=80",
+    link_url: null
   }
 ];
 
-const phases = ["Antes da jornada", "Durante a jornada", "Depois da jornada"];
+function cleanText(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
 
-export default function HomePage() {
+function sideBlockTypeLabel(type: string | null | undefined) {
+  const labels: Record<string, string> = {
+    opiniao: "OPINIAO",
+    arbitragem: "ARBITRAGEM",
+    balanco: "BALANCO",
+    analise: "ANALISE",
+    cronica: "CRONICA",
+    "figura-da-jornada": "FIGURA"
+  };
+
+  return type ? labels[type] ?? type.toUpperCase() : null;
+}
+
+async function readHomeEditorial() {
+  const editorials = await fetchSupabaseAdminTable<SiteEditorial>(
+    "site_editorials?select=id,slug,status,headline_title,headline_subtitle,headline_image_url,headline_title_color,below_headline_mode,below_headline_heading,below_headline_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color&slug=eq.home&limit=1"
+  ).catch(() => []);
+
+  return editorials[0] ?? null;
+}
+
+async function readHomeHighlights(siteEditorialId: string) {
+  return fetchSupabaseAdminTable<SiteHighlight>(
+    `site_editorial_highlights?select=id,label,title,subtitle,image_url,link_url,sort_order,status&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}&status=eq.published&order=sort_order.asc&limit=3`
+  ).catch(() => []);
+}
+
+async function readHomeRoundupItems(siteEditorialId: string) {
+  return fetchSupabaseAdminTable<SiteRoundupItem>(
+    `site_editorial_roundup_items?select=id,sort_order,label,title,subtitle,image_url,video_url,duration,type,status&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}&status=eq.published&order=sort_order.asc&limit=20`
+  ).catch(() => []);
+}
+
+async function readHomeLatestNews(siteEditorialId: string) {
+  return fetchSupabaseAdminTable<SiteLatestNews>(
+    `site_editorial_latest_news?select=id,time_label,title,link_url,image_url,sort_order,status&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}&status=eq.published&order=sort_order.asc&limit=8`
+  ).catch(() => []);
+}
+
+function HighlightCard({
+  item
+}: {
+  item: Pick<SiteHighlight, "id" | "label" | "title" | "subtitle" | "image_url" | "link_url">;
+}) {
+  const body = (
+    <>
+      <div className="home-highlight-image">{item.image_url ? <img src={item.image_url} alt="" /> : null}</div>
+      {item.label ? <span>{item.label}</span> : null}
+      <strong>{item.title}</strong>
+      {item.subtitle ? <small>{item.subtitle}</small> : null}
+    </>
+  );
+
+  return item.link_url ? (
+    <a className="home-cover-story" href={item.link_url}>
+      {body}
+    </a>
+  ) : (
+    <article className="home-cover-story">{body}</article>
+  );
+}
+
+function RoundupCard({ item }: { item: SiteRoundupItem }) {
+  const showPlay = Boolean(item.video_url) || item.type === "video" || item.type === "golos" || item.type === "resumo";
+
   return (
-    <main className="central-home">
-      <header className="central-header">
-        <Link className="central-brand" href="/" aria-label="Jornada.pt">
+    <article className="home-cover-story">
+      <div className="home-highlight-image">
+        {item.image_url ? <img src={item.image_url} alt="" /> : null}
+        {showPlay ? <span className="home-media-play" aria-hidden="true">▶</span> : null}
+      </div>
+      {item.label ? <span>{item.label}</span> : null}
+      <strong>{item.title}</strong>
+      {item.subtitle ? <small>{item.subtitle}</small> : null}
+      <div className="home-roundup-meta">
+        {item.duration ? <span>{item.duration}</span> : null}
+        {item.video_url ? (
+          <a href={item.video_url} aria-label="Abrir conteudo do resumo">
+            ›
+          </a>
+        ) : (
+          <span aria-hidden="true">›</span>
+        )}
+      </div>
+    </article>
+  );
+}
+
+export default async function HomePage() {
+  const editorial = await readHomeEditorial();
+  const [highlights, roundupItems, latestNews] = editorial
+    ? await Promise.all([
+        readHomeHighlights(editorial.id),
+        readHomeRoundupItems(editorial.id),
+        readHomeLatestNews(editorial.id)
+      ])
+    : [[], [], []];
+  const headlineIsPublished = editorial?.status === "published";
+  const headlineTitle = headlineIsPublished ? cleanText(editorial.headline_title) : null;
+  const headlineSubtitle = headlineIsPublished ? cleanText(editorial.headline_subtitle) : null;
+  const headlineImageUrl = headlineIsPublished ? cleanText(editorial.headline_image_url) : null;
+  const headlineTitleColor = headlineIsPublished ? cleanText(editorial.headline_title_color) : null;
+  const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
+  const belowHeadlineHeading =
+    cleanText(editorial?.below_headline_heading) || (belowHeadlineMode === "roundup" ? "Resumo da Jornada" : "Destaques");
+  const belowHeadlineHeadingColor = cleanText(editorial?.below_headline_heading_color);
+  const hasPublishedSideBlock =
+    editorial?.side_block_status === "published" &&
+    Boolean(cleanText(editorial.side_block_title) || cleanText(editorial.side_block_text));
+  const sideBlockLabel = cleanText(editorial?.side_block_label) || sideBlockTypeLabel(editorial?.side_block_type);
+  const sideBlockTitle = cleanText(editorial?.side_block_title);
+  const sideBlockText = cleanText(editorial?.side_block_text);
+  const sideBlockAuthor = cleanText(editorial?.side_block_author);
+  const sideBlockImageUrl = cleanText(editorial?.side_block_image_url);
+  const sideBlockLinkUrl = cleanText(editorial?.side_block_link_url);
+  const sideBlockTitleColor = cleanText(editorial?.side_block_title_color);
+  const complementaryMode = editorial?.complementary_mode ?? "none";
+  const hasComplementaryStory =
+    complementaryMode === "complementary_story" &&
+    editorial?.complementary_status === "published" &&
+    Boolean(cleanText(editorial.complementary_title) || cleanText(editorial.complementary_text));
+  const initialRoundupItem =
+    (editorial?.complementary_roundup_item_id
+      ? roundupItems.find((item) => item.id === editorial.complementary_roundup_item_id)
+      : null) ?? roundupItems[0] ?? null;
+  const showRoundupComplement = complementaryMode === "roundup_video" && Boolean(initialRoundupItem);
+  const visibleHighlights = highlights.length > 0 ? highlights : fallbackHighlights;
+  const visibleBelowRoundupItems = roundupItems.length > 0 ? roundupItems : [];
+
+  return (
+    <main className="public-home">
+      <header className="public-site-header">
+        <Link className="public-brand" href="/" aria-label="Jornada.pt">
           Jornada<span>.pt</span>
         </Link>
-
-        <nav className="central-nav" aria-label="Menu principal">
-          <Link href="/competicoes/liga-portugal/2026-27/jornadas/1">Liga Portugal</Link>
-          <Link href="/competicoes/la-liga/2026-27/jornadas/1">La Liga</Link>
-          <Link href="/competicoes/premier-league/2026-27/jornadas/1">Premier League</Link>
+        <nav className="public-nav" aria-label="Menu principal">
+          {competitionLinks.map((link) => (
+            <Link href={link.href} key={link.label}>
+              {link.label}
+            </Link>
+          ))}
           <Link href="/competicoes/liga-portugal/2026-27/jornadas/1#jogos">Jogos</Link>
           <Link href="/competicoes/liga-portugal/2026-27/jornadas/1#classificacao">Classificacao</Link>
         </nav>
-
-        <div className="central-actions" aria-label="Acoes">
+        <div className="public-actions" aria-label="Acoes">
           <button type="button" aria-label="Pesquisar">⌕</button>
           <Link href="/admin/login">Entrar</Link>
         </div>
       </header>
 
-      <section className="central-hero">
-        <div className="central-hero-copy">
-          <p className="central-kicker">Futebol em contexto</p>
-          <h1>Jornada.pt</h1>
-          <p className="central-subtitle">A maquina do tempo do futebol.</p>
-          <p className="central-intro">
-            Escolha uma competicao para acompanhar jornadas, jogos, resultados, videos,
-            classificacao e leitura editorial.
-          </p>
-        </div>
-      </section>
+      <section className="public-home-panel" aria-label="Capa editorial do Jornada.pt">
+        <div className="public-home-cover">
+          <aside className="public-side-editorial-block" aria-label="Bloco editorial lateral">
+            <div className="public-side-editorial-inner">
+              {hasPublishedSideBlock ? (
+                <>
+                  {sideBlockImageUrl ? (
+                    <div className="public-side-editorial-image">
+                      <img src={sideBlockImageUrl} alt="" />
+                    </div>
+                  ) : null}
+                  <div className="public-side-editorial-copy">
+                    {sideBlockLabel ? <span>{sideBlockLabel}</span> : null}
+                    {sideBlockTitle ? (
+                      sideBlockLinkUrl ? (
+                        <a className="public-title-link" href={sideBlockLinkUrl}>
+                          <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
+                        </a>
+                      ) : (
+                        <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
+                      )
+                    ) : null}
+                    {sideBlockAuthor ? <small>Por {sideBlockAuthor}</small> : null}
+                    {sideBlockText ? <p>{sideBlockText}</p> : null}
+                    {sideBlockLinkUrl ? (
+                      <a className="public-more-link" href={sideBlockLinkUrl}>
+                        Ler mais <span aria-hidden="true">›</span>
+                      </a>
+                    ) : null}
+                  </div>
+                </>
+              ) : (
+                <div className="public-side-placeholder">Editorial em preparacao</div>
+              )}
+            </div>
+          </aside>
 
-      <section className="central-section" aria-labelledby="competitions-title">
-        <div className="central-section-heading">
-          <p>Competicoes</p>
-          <h2 id="competitions-title">Escolha por onde entrar</h2>
-        </div>
+          <div className="public-home-main-column">
+            <article className="public-home-editorial">
+              <div className="public-cover-headline">
+                {headlineImageUrl ? (
+                  <div className="public-editorial-main-image">
+                    <img src={headlineImageUrl} alt="" />
+                  </div>
+                ) : null}
+                <div>
+                  <h1 style={headlineTitleColor ? { color: headlineTitleColor } : undefined}>
+                    {headlineTitle || "Jornada.pt"}
+                  </h1>
+                  <p>
+                    {headlineSubtitle ||
+                      "A capa editorial do futebol, pronta para acompanhar os grandes temas antes, durante e depois dos jogos."}
+                  </p>
+                </div>
+              </div>
+            </article>
 
-        <div className="competition-grid">
-          {competitions.map((competition) => (
-            <Link className="competition-card" href={competition.href} key={competition.name}>
-              <span>{competition.name}</span>
-              <strong>2026-27 · Jornada 1</strong>
-              <small>{competition.summary}</small>
-            </Link>
-          ))}
-        </div>
-      </section>
+            <div className="public-home-main-lower">
+              {showRoundupComplement && initialRoundupItem ? (
+                <section className="public-roundup-video-panel" aria-label="Video em destaque">
+                  <div className="public-roundup-video-block">
+                    <div className="public-complement-media">
+                      {initialRoundupItem.image_url ? <img src={initialRoundupItem.image_url} alt="" /> : null}
+                      <span className="home-media-play" aria-hidden="true">▶</span>
+                    </div>
+                    <div className="public-complement-body">
+                      <span
+                        className="public-complement-label"
+                        style={editorial?.roundup_video_heading_color ? { color: editorial.roundup_video_heading_color } : undefined}
+                      >
+                        {cleanText(editorial?.roundup_video_heading) || "Resumo da Jornada"}
+                      </span>
+                      <strong>{initialRoundupItem.title}</strong>
+                      {initialRoundupItem.subtitle ? <p>{initialRoundupItem.subtitle}</p> : null}
+                      {initialRoundupItem.video_url ? (
+                        <a className="public-more-link" href={initialRoundupItem.video_url}>
+                          Ver video <span aria-hidden="true">›</span>
+                        </a>
+                      ) : null}
+                    </div>
+                  </div>
+                </section>
+              ) : null}
 
-      <section className="phase-strip" aria-label="Momentos da jornada">
-        {phases.map((phase) => (
-          <span key={phase}>{phase}</span>
-        ))}
+              <section className={`public-home-roundup public-below-${belowHeadlineMode}`} aria-label="Zona editorial abaixo da manchete">
+                <div className="public-editorial-block-head">
+                  <span style={belowHeadlineHeadingColor ? { color: belowHeadlineHeadingColor } : undefined}>{belowHeadlineHeading}</span>
+                </div>
+                <div className="public-cover-story-strip">
+                  {belowHeadlineMode === "roundup" && visibleBelowRoundupItems.length > 0
+                    ? visibleBelowRoundupItems.map((item) => <RoundupCard item={item} key={item.id} />)
+                    : visibleHighlights.slice(0, 3).map((item) => <HighlightCard item={item} key={item.id} />)}
+                </div>
+              </section>
+
+              {!showRoundupComplement ? (
+                <aside className="public-home-cover-side" aria-label="Bloco complementar">
+                  {hasComplementaryStory && editorial ? (
+                    <>
+                      {editorial.complementary_image_url ? (
+                        <div className="public-complement-media">
+                          <img src={editorial.complementary_image_url} alt="" />
+                        </div>
+                      ) : null}
+                      <div className="public-complement-body">
+                        {editorial.complementary_label ? <span>{editorial.complementary_label}</span> : null}
+                        {editorial.complementary_title ? (
+                          editorial.complementary_link_url ? (
+                            <a className="public-title-link" href={editorial.complementary_link_url}>
+                              <strong>{editorial.complementary_title}</strong>
+                            </a>
+                          ) : (
+                            <strong>{editorial.complementary_title}</strong>
+                          )
+                        ) : null}
+                        {editorial.complementary_text ? <p>{editorial.complementary_text}</p> : null}
+                        {editorial.complementary_link_url ? (
+                          <a className="public-more-link" href={editorial.complementary_link_url}>
+                            Ver mais <span aria-hidden="true">›</span>
+                          </a>
+                        ) : null}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="public-complement-body">
+                      <strong>Leitura editorial</strong>
+                      <p>O complemento da capa fica reservado para a proxima historia publicada.</p>
+                    </div>
+                  )}
+                </aside>
+              ) : null}
+            </div>
+          </div>
+
+          <aside className="public-home-news" aria-label="Ultimas noticias">
+            <h2>Ultimas noticias</h2>
+            <ul className="public-news-list">
+              {latestNews.map((item) => (
+                <li className="public-news-item" key={item.id}>
+                  {item.image_url ? (
+                    <div className="public-news-thumb">
+                      <img src={item.image_url} alt="" />
+                    </div>
+                  ) : null}
+                  <div className="public-news-copy">
+                    {item.time_label ? <time dateTime={item.time_label}>{item.time_label}</time> : null}
+                    {item.link_url ? (
+                      <a href={item.link_url}>{item.title}</a>
+                    ) : (
+                      <span>{item.title}</span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        </div>
       </section>
 
       <style>{`
-        .central-home {
+        .public-home {
           min-height: 100vh;
-          background: #f5f6f3;
-          color: #151719;
+          background: #eef2f6;
+          color: #111820;
           font-family: Arial, Helvetica, sans-serif;
         }
 
-        .central-header {
-          display: flex;
-          align-items: center;
-          gap: 28px;
-          min-height: 76px;
-          padding: 0 36px;
-          border-bottom: 1px solid rgba(21, 23, 25, 0.1);
-          background: rgba(245, 246, 243, 0.94);
+        .public-site-header {
           position: sticky;
           top: 0;
-          z-index: 10;
+          z-index: 20;
+          display: flex;
+          align-items: center;
+          gap: 26px;
+          min-height: 72px;
+          padding: 0 32px;
+          border-bottom: 1px solid #dce3eb;
+          background: rgba(255, 255, 255, 0.95);
           backdrop-filter: blur(14px);
         }
 
-        .central-brand {
-          color: #151719;
+        .public-brand {
+          color: #111820;
           font-size: 25px;
           font-weight: 900;
           text-decoration: none;
           white-space: nowrap;
         }
 
-        .central-brand span {
-          color: #b5252a;
+        .public-brand span,
+        .public-nav a:hover,
+        .public-actions a:hover {
+          color: #e5252a;
         }
 
-        .central-nav {
+        .public-nav {
           display: flex;
           align-items: center;
           gap: 18px;
           flex: 1;
+          overflow-x: auto;
           font-size: 13px;
-          font-weight: 800;
+          font-weight: 900;
         }
 
-        .central-nav a,
-        .central-actions a {
-          color: #2f3439;
+        .public-nav a,
+        .public-actions a {
+          color: #2f3843;
           text-decoration: none;
+          white-space: nowrap;
         }
 
-        .central-nav a:hover,
-        .central-actions a:hover {
-          color: #b5252a;
-        }
-
-        .central-actions {
+        .public-actions {
           display: flex;
           align-items: center;
           gap: 14px;
@@ -139,175 +474,418 @@ export default function HomePage() {
           font-weight: 900;
         }
 
-        .central-actions button {
+        .public-actions button {
+          display: grid;
+          place-items: center;
           width: 34px;
           height: 34px;
-          border: 1px solid rgba(21, 23, 25, 0.2);
+          border: 1px solid #cbd5df;
           border-radius: 50%;
           background: #ffffff;
-          color: #151719;
-          font-size: 20px;
-          line-height: 1;
+          color: #111820;
+          font-size: 19px;
           cursor: pointer;
         }
 
-        .central-hero {
-          min-height: 430px;
-          display: flex;
-          align-items: flex-end;
-          padding: 86px 36px 54px;
-          background:
-            linear-gradient(90deg, rgba(13, 16, 20, 0.86), rgba(13, 16, 20, 0.52), rgba(13, 16, 20, 0.16)),
-            url("https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=1800&q=80") center / cover;
-          color: #ffffff;
-        }
-
-        .central-hero-copy {
-          max-width: 760px;
-        }
-
-        .central-kicker,
-        .central-section-heading p {
-          margin: 0 0 14px;
-          color: #b5252a;
-          font-size: 12px;
-          font-weight: 900;
-          letter-spacing: 0;
-          text-transform: uppercase;
-        }
-
-        .central-hero h1 {
-          margin: 0;
-          font-size: 88px;
-          line-height: 0.95;
-          letter-spacing: 0;
-        }
-
-        .central-subtitle {
-          margin: 20px 0 0;
-          font-size: 25px;
-          font-weight: 900;
-        }
-
-        .central-intro {
-          max-width: 640px;
-          margin: 16px 0 0;
-          color: rgba(255, 255, 255, 0.88);
-          font-size: 18px;
-          line-height: 1.55;
-        }
-
-        .central-section {
-          max-width: 1180px;
+        .public-home-panel {
+          max-width: 1360px;
           margin: 0 auto;
-          padding: 54px 36px 34px;
+          padding: 24px 28px 52px;
         }
 
-        .central-section-heading h2 {
-          margin: 0;
-          font-size: 34px;
-          letter-spacing: 0;
-        }
-
-        .competition-grid {
+        .public-home-cover {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: 280px minmax(0, 1fr) 300px;
           gap: 18px;
-          margin-top: 26px;
+          align-items: stretch;
         }
 
-        .competition-card {
-          min-height: 170px;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          padding: 22px;
-          border: 1px solid rgba(21, 23, 25, 0.12);
+        .public-side-editorial-block,
+        .public-home-editorial,
+        .public-home-roundup,
+        .public-home-cover-side,
+        .public-home-news,
+        .public-roundup-video-panel {
+          overflow: hidden;
+          border: 1px solid #dce3eb;
           border-radius: 8px;
           background: #ffffff;
-          color: #151719;
-          text-decoration: none;
-          box-shadow: 0 14px 34px rgba(21, 23, 25, 0.08);
+          box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
         }
 
-        .competition-card:hover {
-          border-color: rgba(181, 37, 42, 0.48);
-          transform: translateY(-2px);
+        .public-side-editorial-inner {
+          display: grid;
+          min-height: 100%;
         }
 
-        .competition-card span {
-          font-size: 24px;
+        .public-side-editorial-image,
+        .public-editorial-main-image,
+        .home-highlight-image,
+        .public-complement-media,
+        .public-news-thumb {
+          overflow: hidden;
+          background: #dce3eb;
+        }
+
+        .public-side-editorial-image img,
+        .public-editorial-main-image img,
+        .home-highlight-image img,
+        .public-complement-media img,
+        .public-news-thumb img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .public-side-editorial-image {
+          height: 210px;
+        }
+
+        .public-side-editorial-copy,
+        .public-side-placeholder {
+          display: grid;
+          gap: 12px;
+          align-content: start;
+          padding: 20px;
+        }
+
+        .public-side-editorial-copy span,
+        .public-complement-body span,
+        .public-editorial-block-head span,
+        .home-cover-story > span {
+          color: #e5252a;
+          font-size: 12px;
           font-weight: 900;
-        }
-
-        .competition-card strong {
-          color: #b5252a;
-          font-size: 13px;
           text-transform: uppercase;
         }
 
-        .competition-card small {
-          color: #59626b;
-          font-size: 14px;
+        .public-side-editorial-copy strong,
+        .public-complement-body strong {
+          display: block;
+          color: #111820;
+          font-size: 24px;
+          line-height: 1.05;
+        }
+
+        .public-side-editorial-copy small,
+        .public-side-editorial-copy p,
+        .public-complement-body p,
+        .home-cover-story small {
+          color: #5d6875;
           line-height: 1.45;
         }
 
-        .phase-strip {
-          max-width: 1180px;
-          margin: 0 auto;
-          padding: 0 36px 60px;
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 12px;
+        .public-more-link,
+        .public-title-link,
+        .home-cover-story {
+          color: inherit;
+          text-decoration: none;
         }
 
-        .phase-strip span {
-          padding: 16px 18px;
-          border-top: 3px solid #b5252a;
-          background: rgba(255, 255, 255, 0.68);
-          color: #2f3439;
-          font-size: 14px;
+        .public-more-link {
+          width: fit-content;
+          color: #e5252a;
+          font-size: 12px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .public-side-placeholder {
+          min-height: 240px;
+          place-items: center;
+          color: #687380;
+          font-size: 13px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .public-home-main-column {
+          display: grid;
+          gap: 18px;
+          min-width: 0;
+        }
+
+        .public-cover-headline {
+          position: relative;
+          display: grid;
+          min-height: 440px;
+          color: #ffffff;
+          background: #10151b;
+        }
+
+        .public-editorial-main-image {
+          position: absolute;
+          inset: 0;
+        }
+
+        .public-editorial-main-image::after {
+          position: absolute;
+          inset: 0;
+          content: "";
+          background: linear-gradient(90deg, rgba(8, 12, 18, 0.9), rgba(8, 12, 18, 0.58), rgba(8, 12, 18, 0.2));
+        }
+
+        .public-cover-headline > div:last-child {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          gap: 18px;
+          align-content: end;
+          max-width: 760px;
+          padding: 44px;
+        }
+
+        .public-cover-headline h1 {
+          margin: 0;
+          color: #ffffff;
+          font-size: 64px;
+          line-height: 0.96;
+          letter-spacing: 0;
+        }
+
+        .public-cover-headline p {
+          max-width: 650px;
+          margin: 0;
+          color: rgba(255, 255, 255, 0.88);
+          font-size: 19px;
+          line-height: 1.5;
+        }
+
+        .public-home-main-lower {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(260px, 0.58fr);
+          gap: 18px;
+          align-items: stretch;
+        }
+
+        .public-home-main-lower:has(.public-roundup-video-panel) {
+          grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1fr);
+        }
+
+        .public-roundup-video-panel {
+          padding: 0;
+        }
+
+        .public-roundup-video-block {
+          display: grid;
+          min-height: 100%;
+        }
+
+        .public-complement-media {
+          position: relative;
+          min-height: 190px;
+        }
+
+        .home-media-play {
+          position: absolute;
+          inset: 50% auto auto 50%;
+          display: grid;
+          place-items: center;
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background: rgba(229, 37, 42, 0.92);
+          color: #ffffff;
+          transform: translate(-50%, -50%);
+        }
+
+        .public-complement-body {
+          display: grid;
+          gap: 12px;
+          align-content: start;
+          padding: 20px;
+        }
+
+        .public-home-roundup {
+          padding: 18px;
+        }
+
+        .public-editorial-block-head {
+          margin-bottom: 14px;
+        }
+
+        .public-cover-story-strip {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 14px;
+        }
+
+        .public-below-roundup .public-cover-story-strip {
+          grid-template-columns: 1fr;
+        }
+
+        .home-cover-story {
+          position: relative;
+          display: grid;
+          gap: 9px;
+          align-content: start;
+          min-width: 0;
+        }
+
+        .home-highlight-image {
+          position: relative;
+          aspect-ratio: 16 / 10;
+          border-radius: 6px;
+        }
+
+        .home-cover-story strong {
+          color: #111820;
+          font-size: 18px;
+          line-height: 1.16;
+        }
+
+        .public-below-roundup .home-cover-story {
+          grid-template-columns: 96px minmax(0, 1fr) auto;
+          gap: 12px;
+          align-items: center;
+          padding-bottom: 12px;
+          border-bottom: 1px solid #e6ebf1;
+        }
+
+        .public-below-roundup .home-highlight-image {
+          aspect-ratio: 16 / 10;
+        }
+
+        .public-below-roundup .home-cover-story > span,
+        .public-below-roundup .home-cover-story > strong,
+        .public-below-roundup .home-cover-story > small {
+          grid-column: 2;
+        }
+
+        .home-roundup-meta {
+          grid-column: 3;
+          grid-row: 1 / span 4;
+          display: grid;
+          gap: 8px;
+          justify-items: end;
+          color: #e5252a;
+          font-size: 13px;
           font-weight: 900;
         }
 
-        @media (max-width: 900px) {
-          .central-header {
-            align-items: flex-start;
-            flex-direction: column;
-            gap: 14px;
-            padding: 18px 22px;
-          }
+        .home-roundup-meta a,
+        .home-roundup-meta span:last-child {
+          display: grid;
+          place-items: center;
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          background: #e5252a;
+          color: #ffffff;
+          text-decoration: none;
+        }
 
-          .central-nav {
-            width: 100%;
-            overflow-x: auto;
-            padding-bottom: 4px;
-          }
+        .public-home-cover-side {
+          min-height: 100%;
+        }
 
-          .central-actions {
-            position: absolute;
-            top: 18px;
-            right: 22px;
-          }
+        .public-home-news {
+          padding: 20px;
+        }
 
-          .central-hero {
-            min-height: 440px;
-            padding: 72px 22px 42px;
-          }
+        .public-home-news h2 {
+          margin: 0 0 16px;
+          font-size: 20px;
+          text-transform: uppercase;
+        }
 
-          .central-hero h1 {
-            font-size: 58px;
-          }
+        .public-news-list {
+          display: grid;
+          gap: 0;
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
 
-          .competition-grid,
-          .phase-strip {
+        .public-news-item {
+          display: grid;
+          grid-template-columns: 74px minmax(0, 1fr);
+          gap: 12px;
+          padding: 12px 0;
+          border-top: 1px solid #e6ebf1;
+        }
+
+        .public-news-item:first-child {
+          border-top: 0;
+          padding-top: 0;
+        }
+
+        .public-news-thumb {
+          aspect-ratio: 1 / 0.78;
+          border-radius: 5px;
+        }
+
+        .public-news-copy {
+          display: grid;
+          gap: 5px;
+          align-content: start;
+        }
+
+        .public-news-copy time {
+          color: #e5252a;
+          font-size: 11px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .public-news-copy a,
+        .public-news-copy span {
+          color: #111820;
+          font-size: 14px;
+          font-weight: 900;
+          line-height: 1.25;
+          text-decoration: none;
+        }
+
+        @media (max-width: 1100px) {
+          .public-home-cover,
+          .public-home-main-lower,
+          .public-home-main-lower:has(.public-roundup-video-panel) {
             grid-template-columns: 1fr;
           }
 
-          .central-section,
-          .phase-strip {
-            padding-left: 22px;
-            padding-right: 22px;
+          .public-side-editorial-block {
+            order: 2;
+          }
+
+          .public-home-news {
+            order: 3;
+          }
+        }
+
+        @media (max-width: 780px) {
+          .public-site-header {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px 20px;
+          }
+
+          .public-actions {
+            position: absolute;
+            top: 14px;
+            right: 20px;
+          }
+
+          .public-home-panel {
+            padding: 16px 14px 36px;
+          }
+
+          .public-cover-headline {
+            min-height: 410px;
+          }
+
+          .public-cover-headline > div:last-child {
+            padding: 28px;
+          }
+
+          .public-cover-headline h1 {
+            font-size: 46px;
+          }
+
+          .public-cover-story-strip {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
