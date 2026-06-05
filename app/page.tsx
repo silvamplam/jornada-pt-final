@@ -81,6 +81,7 @@ const fallbackHighlights = [
     id: "fallback-highlight-1",
     label: "Antevisao",
     title: "Os temas fortes antes da bola rolar",
+    subtitle: "",
     image_url: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80",
     link_url: null
   },
@@ -88,6 +89,7 @@ const fallbackHighlights = [
     id: "fallback-highlight-2",
     label: "Ambiente",
     title: "A jornada vista pelas bancadas e pelos protagonistas",
+    subtitle: "",
     image_url: "https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=700&q=80",
     link_url: null
   },
@@ -95,6 +97,7 @@ const fallbackHighlights = [
     id: "fallback-highlight-3",
     label: "Contexto",
     title: "O futebol contado antes, durante e depois do jogo",
+    subtitle: "",
     image_url: "https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=700&q=80",
     link_url: null
   }
