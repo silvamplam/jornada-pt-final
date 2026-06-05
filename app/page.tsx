@@ -1034,6 +1034,25 @@ export default async function HomePage() {
           padding-top: 0;
         }
 
+        .public-matchday-roundup .public-cover-story {
+          box-sizing: border-box;
+          border-bottom: 1px solid #e6ebf1;
+        }
+
+        .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup .public-cover-story {
+          border-bottom-color: #edf2f7;
+        }
+
+        .public-roundup-switch-item {
+          width: 100%;
+          border: 0;
+          background: transparent;
+          color: inherit;
+          font: inherit;
+          text-align: left;
+          cursor: pointer;
+        }
+
         .public-cover-story {
           position: relative;
           display: grid;
