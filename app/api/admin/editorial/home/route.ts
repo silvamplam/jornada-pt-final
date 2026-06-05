@@ -83,9 +83,18 @@ async function getHomeEditorialId() {
 
 async function saveHomeEditorial(formData: FormData) {
   const id = await getHomeEditorialId();
+  const hasBelowHeadlineMode = formData.has("below_headline_mode");
   const belowHeadlineMode = cleanBelowHeadlineMode(formData.get("below_headline_mode"));
-  const complementaryMode = cleanComplementaryMode(formData.get("complementary_mode"));
+  let complementaryMode = cleanComplementaryMode(formData.get("complementary_mode"));
+  const shouldSyncComplementaryMode =
+    hasBelowHeadlineMode && complementaryMode !== "none" && !formData.has("allow_manual_complementary_mode");
+
+  if (shouldSyncComplementaryMode) {
+    complementaryMode = belowHeadlineMode === "roundup" ? "roundup_video" : "complementary_story";
+  }
+
   const complementaryRoundupItemId = cleanText(formData.get("complementary_roundup_item_id"));
+  const payload: Record<string, string | null> = {};
 
   if (complementaryRoundupItemId) {
     const rows = await fetchSupabaseAdminTable<{ id: string }>(
@@ -97,37 +106,61 @@ async function saveHomeEditorial(formData: FormData) {
     }
   }
 
+  const assignText = (field: string) => {
+    if (formData.has(field)) {
+      payload[field] = cleanText(formData.get(field));
+    }
+  };
+
+  if (formData.has("status")) {
+    payload.status = cleanStatus(formData.get("status"));
+  }
+
+  assignText("headline_title");
+  assignText("headline_subtitle");
+  assignText("headline_image_url");
+  assignText("headline_title_color");
+
+  if (hasBelowHeadlineMode) {
+    payload.below_headline_mode = belowHeadlineMode;
+  }
+
+  assignText("below_headline_heading");
+  assignText("below_headline_heading_color");
+
+  if (formData.has("side_block_status")) {
+    payload.side_block_status = cleanStatus(formData.get("side_block_status"));
+  }
+
+  assignText("side_block_type");
+  assignText("side_block_label");
+  assignText("side_block_title");
+  assignText("side_block_title_color");
+  assignText("side_block_author");
+  assignText("side_block_text");
+  assignText("side_block_image_url");
+  assignText("side_block_link_url");
+
+  if (formData.has("complementary_status")) {
+    payload.complementary_status = cleanStatus(formData.get("complementary_status"));
+  }
+
+  if (formData.has("complementary_mode") || shouldSyncComplementaryMode) {
+    payload.complementary_mode = complementaryMode;
+  }
+
+  assignText("complementary_roundup_item_id");
+  assignText("complementary_label");
+  assignText("complementary_title");
+  assignText("complementary_text");
+  assignText("complementary_image_url");
+  assignText("complementary_link_url");
+  assignText("roundup_video_heading");
+  assignText("roundup_video_heading_color");
+
   await writeSupabaseAdmin(`site_editorials?id=eq.${encodeURIComponent(id)}`, {
     method: "PATCH",
-    body: JSON.stringify({
-      status: cleanStatus(formData.get("status")),
-      headline_title: cleanText(formData.get("headline_title")),
-      headline_subtitle: cleanText(formData.get("headline_subtitle")),
-      headline_image_url: cleanText(formData.get("headline_image_url")),
-      headline_title_color: cleanText(formData.get("headline_title_color")),
-      below_headline_mode: belowHeadlineMode,
-      below_headline_heading: cleanText(formData.get("below_headline_heading")),
-      below_headline_heading_color: cleanText(formData.get("below_headline_heading_color")),
-      side_block_status: cleanStatus(formData.get("side_block_status")),
-      side_block_type: cleanText(formData.get("side_block_type")),
-      side_block_label: cleanText(formData.get("side_block_label")),
-      side_block_title: cleanText(formData.get("side_block_title")),
-      side_block_title_color: cleanText(formData.get("side_block_title_color")),
-      side_block_author: cleanText(formData.get("side_block_author")),
-      side_block_text: cleanText(formData.get("side_block_text")),
-      side_block_image_url: cleanText(formData.get("side_block_image_url")),
-      side_block_link_url: cleanText(formData.get("side_block_link_url")),
-      complementary_status: cleanStatus(formData.get("complementary_status")),
-      complementary_mode: complementaryMode,
-      complementary_roundup_item_id: complementaryRoundupItemId,
-      complementary_label: cleanText(formData.get("complementary_label")),
-      complementary_title: cleanText(formData.get("complementary_title")),
-      complementary_text: cleanText(formData.get("complementary_text")),
-      complementary_image_url: cleanText(formData.get("complementary_image_url")),
-      complementary_link_url: cleanText(formData.get("complementary_link_url")),
-      roundup_video_heading: cleanText(formData.get("roundup_video_heading")),
-      roundup_video_heading_color: cleanText(formData.get("roundup_video_heading_color"))
-    })
+    body: JSON.stringify(payload)
   });
 }
 

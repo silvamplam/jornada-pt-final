@@ -140,6 +140,14 @@ const styles = `
     font-size: 15px;
   }
 
+  .home-admin-hero-actions {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
   .home-admin-button {
     display: inline-block;
     width: fit-content;
@@ -405,21 +413,23 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
           <h1>Home editorial</h1>
           <small>Edita site_editorials.slug = home, sem liga, epoca ou jornada associada.</small>
         </div>
-        <a className="home-admin-button secondary" href="/">Ver site</a>
+        <div className="home-admin-hero-actions">
+          <a className="home-admin-button secondary" href="/admin/gestor">Voltar ao gestor</a>
+          <a className="home-admin-button secondary" href="/">Ver site</a>
+        </div>
       </section>
 
       {message ? <div className={`home-admin-message ${message.type === "warning" ? "warning" : ""}`}>{message.text}</div> : null}
 
-      <form className="home-admin-grid" action="/api/admin/editorial/home" method="post">
-        <input type="hidden" name="action_type" value="save_home_editorial" />
-        <input type="hidden" name="return_to" value="/admin/editorial/home" />
-
+      <section className="home-admin-stack">
         <section className="home-admin-panel">
           <header>
-            <h2>Manchete</h2>
+            <h2>Manchete principal</h2>
             <p>A chamada principal da capa geral do Jornada.pt.</p>
           </header>
-          <div className="home-admin-form">
+          <form className="home-admin-form" action="/api/admin/editorial/home" method="post">
+            <input type="hidden" name="action_type" value="save_home_editorial" />
+            <input type="hidden" name="return_to" value="/admin/editorial/home" />
             <div className="home-admin-field">
               <label htmlFor="home-status">Estado da home</label>
               <select id="home-status" name="status" defaultValue={editorial.status}>
@@ -443,39 +453,33 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
               <label htmlFor="headline-title-color">Cor do titulo</label>
               <input id="headline-title-color" name="headline_title_color" defaultValue={editorial.headline_title_color ?? ""} placeholder="#10151b" />
             </div>
-          </div>
+            <button className="home-admin-button" type="submit">Guardar manchete</button>
+          </form>
+          <form className="home-admin-fieldset" action="/api/admin/editorial/home/image" encType="multipart/form-data" method="post">
+            <input type="hidden" name="return_to" value="/admin/editorial/home" />
+            <input type="hidden" name="target" value="headline" />
+            <h3>Upload de imagem da manchete</h3>
+            {editorial.headline_image_url ? (
+              <div className="home-admin-preview">
+                <img alt="" src={editorial.headline_image_url} />
+              </div>
+            ) : null}
+            <div className="home-admin-field">
+              <label htmlFor="headline-image-upload">Imagem da manchete</label>
+              <input accept="image/jpeg,image/png,image/webp" id="headline-image-upload" name="image" type="file" />
+            </div>
+            <button className="home-admin-button secondary" type="submit">Carregar imagem</button>
+          </form>
         </section>
 
         <section className="home-admin-panel">
           <header>
-            <h2>Composicao abaixo da manchete</h2>
-            <p>Escolhe a zona editorial principal abaixo da manchete da capa.</p>
-          </header>
-          <div className="home-admin-form">
-            <div className="home-admin-field">
-              <label htmlFor="below-headline-mode">Zona abaixo da manchete</label>
-              <select id="below-headline-mode" name="below_headline_mode" defaultValue={editorial.below_headline_mode ?? "highlights"}>
-                <option value="highlights">Destaques abaixo da manchete</option>
-                <option value="roundup">Resumo da Jornada</option>
-              </select>
-            </div>
-            <div className="home-admin-field">
-              <label htmlFor="below-headline-heading">Texto do topo</label>
-              <input id="below-headline-heading" name="below_headline_heading" defaultValue={editorial.below_headline_heading ?? ""} placeholder="Capa Jornada.pt" />
-            </div>
-            <div className="home-admin-field">
-              <label htmlFor="below-headline-heading-color">Cor do texto do topo</label>
-              <input id="below-headline-heading-color" name="below_headline_heading_color" defaultValue={editorial.below_headline_heading_color ?? ""} placeholder="#0b1f3a" />
-            </div>
-          </div>
-        </section>
-
-        <aside className="home-admin-panel">
-          <header>
             <h2>Bloco lateral</h2>
             <p>Chamada editorial independente da manchete.</p>
           </header>
-          <div className="home-admin-form">
+          <form className="home-admin-form" action="/api/admin/editorial/home" method="post">
+            <input type="hidden" name="action_type" value="save_home_editorial" />
+            <input type="hidden" name="return_to" value="/admin/editorial/home" />
             <div className="home-admin-compact-grid">
               <div className="home-admin-field">
                 <label htmlFor="side-block-status">Estado</label>
@@ -517,26 +521,29 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
               <label htmlFor="side-block-link-url">Link</label>
               <input id="side-block-link-url" name="side_block_link_url" defaultValue={editorial.side_block_link_url ?? ""} />
             </div>
-          </div>
-        </aside>
+            <button className="home-admin-button" type="submit">Guardar bloco lateral</button>
+          </form>
+        </section>
 
         <section className="home-admin-panel">
           <header>
-            <h2>Complemento</h2>
-            <p>Bloco complementar da manchete, publicado de forma independente.</p>
+            <h2>Composicao abaixo da manchete</h2>
+            <p>A escolha da zona esquerda orienta automaticamente o bloco complementar da direita.</p>
           </header>
-          <div className="home-admin-form">
+          <form className="home-admin-form" action="/api/admin/editorial/home" data-composition-form method="post">
+            <input type="hidden" name="action_type" value="save_home_editorial" />
+            <input type="hidden" name="return_to" value="/admin/editorial/home" />
             <div className="home-admin-compact-grid">
               <div className="home-admin-field">
-                <label htmlFor="complementary-status">Estado</label>
-                <select id="complementary-status" name="complementary_status" defaultValue={editorial.complementary_status}>
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
+                <label htmlFor="below-headline-mode">Zona abaixo da manchete</label>
+                <select id="below-headline-mode" name="below_headline_mode" data-below-headline-mode defaultValue={editorial.below_headline_mode ?? "highlights"}>
+                  <option value="highlights">Destaques abaixo da manchete</option>
+                  <option value="roundup">Resumo da Jornada</option>
                 </select>
               </div>
               <div className="home-admin-field">
-                <label htmlFor="complementary-mode">Modo</label>
-                <select id="complementary-mode" name="complementary_mode" defaultValue={editorial.complementary_mode}>
+                <label htmlFor="composition-complementary-mode">Bloco complementar da direita</label>
+                <select id="composition-complementary-mode" name="complementary_mode" data-complementary-mode defaultValue={editorial.complementary_mode}>
                   <option value="none">Sem complemento</option>
                   <option value="complementary_story">Complemento editorial</option>
                   <option value="roundup_video">Video do Resumo da Jornada</option>
@@ -544,97 +551,36 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
               </div>
             </div>
             <div className="home-admin-field">
-              <label htmlFor="complementary-roundup-item">Video inicial opcional</label>
-              <select id="complementary-roundup-item" name="complementary_roundup_item_id" defaultValue={editorial.complementary_roundup_item_id ?? ""}>
-                <option value="">Escolha opcional</option>
-                {Array.from(roundupItems.values())
-                  .sort((a, b) => a.sort_order - b.sort_order)
-                  .map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.sort_order}. {item.title || item.label || "Item do resumo"}
-                    </option>
-                  ))}
-              </select>
+              <label htmlFor="below-headline-heading">Texto do topo</label>
+              <input id="below-headline-heading" name="below_headline_heading" defaultValue={editorial.below_headline_heading ?? ""} placeholder="Capa Jornada.pt" />
             </div>
             <div className="home-admin-field">
-              <label htmlFor="roundup-video-heading">Titulo da lista / cabecalho do resumo</label>
-              <input id="roundup-video-heading" name="roundup_video_heading" defaultValue={editorial.roundup_video_heading ?? ""} placeholder="Jogos Video Resumo" />
+              <label htmlFor="below-headline-heading-color">Cor do texto do topo</label>
+              <input id="below-headline-heading-color" name="below_headline_heading_color" defaultValue={editorial.below_headline_heading_color ?? ""} placeholder="#0b1f3a" />
             </div>
-            <div className="home-admin-field">
-              <label htmlFor="roundup-video-heading-color">Cor do cabecalho</label>
-              <input id="roundup-video-heading-color" name="roundup_video_heading_color" defaultValue={editorial.roundup_video_heading_color ?? ""} placeholder="#003f8f" />
-            </div>
-            <div className="home-admin-field">
-              <label htmlFor="complementary-label">Etiqueta</label>
-              <input id="complementary-label" name="complementary_label" defaultValue={editorial.complementary_label ?? ""} />
-            </div>
-            <div className="home-admin-field">
-              <label htmlFor="complementary-title">Titulo</label>
-              <input id="complementary-title" name="complementary_title" defaultValue={editorial.complementary_title ?? ""} />
-            </div>
-            <div className="home-admin-field">
-              <label htmlFor="complementary-text">Texto</label>
-              <textarea id="complementary-text" name="complementary_text" defaultValue={editorial.complementary_text ?? ""} />
-            </div>
-            <div className="home-admin-field">
-              <label htmlFor="complementary-image-url">Imagem URL</label>
-              <input id="complementary-image-url" name="complementary_image_url" defaultValue={editorial.complementary_image_url ?? ""} />
-            </div>
-            <div className="home-admin-field">
-              <label htmlFor="complementary-link-url">Link</label>
-              <input id="complementary-link-url" name="complementary_link_url" defaultValue={editorial.complementary_link_url ?? ""} />
-            </div>
-            <button className="home-admin-button" type="submit">Guardar capa</button>
-          </div>
-        </section>
-      </form>
-
-      <section className="home-admin-panel" style={{ marginTop: 18 }}>
-        <header>
-          <h2>Upload de imagens</h2>
-          <p>Carrega imagens para a manchete e para os destaques da capa.</p>
-        </header>
-        <div className="home-admin-compact-grid">
-          <form className="home-admin-fieldset" action="/api/admin/editorial/home/image" encType="multipart/form-data" method="post">
-            <input type="hidden" name="return_to" value="/admin/editorial/home" />
-            <input type="hidden" name="target" value="headline" />
-            <h3>Manchete</h3>
-            {editorial.headline_image_url ? (
-              <div className="home-admin-preview">
-                <img alt="" src={editorial.headline_image_url} />
-              </div>
-            ) : null}
-            <div className="home-admin-field">
-              <label htmlFor="headline-image-upload">Imagem da manchete</label>
-              <input accept="image/jpeg,image/png,image/webp" id="headline-image-upload" name="image" type="file" />
-            </div>
-            <button className="home-admin-button secondary" type="submit">Carregar imagem</button>
+            <p className="home-admin-muted">Destaques escolhe automaticamente Complemento da manchete. Resumo da Jornada escolhe automaticamente Video do Resumo da Jornada.</p>
+            <button className="home-admin-button" type="submit">Guardar composicao</button>
           </form>
-          {HIGHLIGHT_SORT_ORDERS.map((sortOrder) => {
-            const item = highlights.get(sortOrder);
-            return (
-              <form className="home-admin-fieldset" action="/api/admin/editorial/home/image" encType="multipart/form-data" method="post" key={sortOrder}>
-                <input type="hidden" name="return_to" value="/admin/editorial/home" />
-                <input type="hidden" name="target" value="highlight" />
-                <input type="hidden" name="sort_order" value={sortOrder} />
-                <h3>Destaque {sortOrder}</h3>
-                {item?.image_url ? (
-                  <div className="home-admin-preview">
-                    <img alt="" src={item.image_url} />
-                  </div>
-                ) : null}
-                <div className="home-admin-field">
-                  <label htmlFor={`highlight-${sortOrder}-image-upload`}>Imagem do destaque {sortOrder}</label>
-                  <input accept="image/jpeg,image/png,image/webp" id={`highlight-${sortOrder}-image-upload`} name="image" type="file" />
-                </div>
-                <button className="home-admin-button secondary" type="submit">Carregar imagem</button>
-              </form>
-            );
-          })}
-        </div>
-      </section>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                document.addEventListener("DOMContentLoaded", function () {
+                  var belowSelect = document.querySelector("[data-below-headline-mode]");
+                  var complementarySelects = document.querySelectorAll("[data-complementary-mode]");
+                  if (!belowSelect || complementarySelects.length === 0) return;
+                  var syncComplement = function () {
+                    var nextValue = belowSelect.value === "roundup" ? "roundup_video" : "complementary_story";
+                    complementarySelects.forEach(function (select) {
+                      select.value = nextValue;
+                    });
+                  };
+                  belowSelect.addEventListener("change", syncComplement);
+                });
+              `
+            }}
+          />
+        </section>
 
-      <section className="home-admin-two-grid">
         <form className="home-admin-panel home-admin-form" action="/api/admin/editorial/home" method="post">
           <input type="hidden" name="action_type" value="save_home_highlights" />
           <input type="hidden" name="return_to" value="/admin/editorial/home" />
@@ -676,11 +622,30 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
                   <label htmlFor={`highlight-${sortOrder}-link-url`}>Link</label>
                   <input id={`highlight-${sortOrder}-link-url`} name={`highlight_${sortOrder}_link_url`} defaultValue={item?.link_url ?? ""} />
                 </div>
+                <div className="home-admin-fieldset">
+                  {item?.image_url ? (
+                    <div className="home-admin-preview">
+                      <img alt="" src={item.image_url} />
+                    </div>
+                  ) : null}
+                  <div className="home-admin-field">
+                    <label htmlFor={`highlight-${sortOrder}-image-upload`}>Upload imagem do destaque {sortOrder}</label>
+                    <input accept="image/jpeg,image/png,image/webp" form={`highlight-upload-${sortOrder}`} id={`highlight-${sortOrder}-image-upload`} name="image" type="file" />
+                  </div>
+                  <button className="home-admin-button secondary" form={`highlight-upload-${sortOrder}`} type="submit">Carregar imagem</button>
+                </div>
               </fieldset>
             );
           })}
           <button className="home-admin-button" type="submit">Guardar destaques</button>
         </form>
+        {HIGHLIGHT_SORT_ORDERS.map((sortOrder) => (
+          <form action="/api/admin/editorial/home/image" encType="multipart/form-data" id={`highlight-upload-${sortOrder}`} key={`upload-${sortOrder}`} method="post">
+            <input type="hidden" name="return_to" value="/admin/editorial/home" />
+            <input type="hidden" name="target" value="highlight" />
+            <input type="hidden" name="sort_order" value={sortOrder} />
+          </form>
+        ))}
 
         <form className="home-admin-panel home-admin-form" action="/api/admin/editorial/home" method="post">
           <input type="hidden" name="action_type" value="save_home_roundup_items" />
@@ -743,6 +708,78 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
           })}
           <button className="home-admin-button" type="submit">Guardar Resumo da Jornada</button>
         </form>
+
+        <section className="home-admin-panel">
+          <header>
+            <h2>Bloco complementar</h2>
+            <p>Campos do bloco da direita, coerentes com a composicao escolhida.</p>
+          </header>
+          <form className="home-admin-form" action="/api/admin/editorial/home" method="post">
+            <input type="hidden" name="action_type" value="save_home_editorial" />
+            <input type="hidden" name="return_to" value="/admin/editorial/home" />
+            <input type="hidden" name="allow_manual_complementary_mode" value="1" />
+            <div className="home-admin-compact-grid">
+              <div className="home-admin-field">
+                <label htmlFor="complementary-status">Estado</label>
+                <select id="complementary-status" name="complementary_status" defaultValue={editorial.complementary_status}>
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                </select>
+              </div>
+              <div className="home-admin-field">
+                <label htmlFor="complementary-mode">Tipo de bloco complementar</label>
+                <select id="complementary-mode" name="complementary_mode" data-complementary-mode defaultValue={editorial.complementary_mode}>
+                  <option value="none">Sem complemento</option>
+                  <option value="complementary_story">Complemento da manchete</option>
+                  <option value="roundup_video">Video do Resumo da Jornada</option>
+                </select>
+              </div>
+            </div>
+            <div className="home-admin-field">
+              <label htmlFor="complementary-roundup-item">Video inicial opcional</label>
+              <select id="complementary-roundup-item" name="complementary_roundup_item_id" defaultValue={editorial.complementary_roundup_item_id ?? ""}>
+                <option value="">Escolha opcional</option>
+                {Array.from(roundupItems.values())
+                  .sort((a, b) => a.sort_order - b.sort_order)
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.sort_order}. {item.title || item.label || "Item do resumo"}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div className="home-admin-field">
+              <label htmlFor="roundup-video-heading">Titulo da lista / cabecalho do resumo</label>
+              <input id="roundup-video-heading" name="roundup_video_heading" defaultValue={editorial.roundup_video_heading ?? ""} placeholder="Jogos Video Resumo" />
+            </div>
+            <div className="home-admin-field">
+              <label htmlFor="roundup-video-heading-color">Cor do cabecalho</label>
+              <input id="roundup-video-heading-color" name="roundup_video_heading_color" defaultValue={editorial.roundup_video_heading_color ?? ""} placeholder="#003f8f" />
+            </div>
+            <p className="home-admin-muted">Quando o modo e Video do Resumo da Jornada, este bloco usa os itens publicados do Resumo da Jornada.</p>
+            <div className="home-admin-field">
+              <label htmlFor="complementary-label">Etiqueta</label>
+              <input id="complementary-label" name="complementary_label" defaultValue={editorial.complementary_label ?? ""} />
+            </div>
+            <div className="home-admin-field">
+              <label htmlFor="complementary-title">Titulo</label>
+              <input id="complementary-title" name="complementary_title" defaultValue={editorial.complementary_title ?? ""} />
+            </div>
+            <div className="home-admin-field">
+              <label htmlFor="complementary-text">Texto</label>
+              <textarea id="complementary-text" name="complementary_text" defaultValue={editorial.complementary_text ?? ""} />
+            </div>
+            <div className="home-admin-field">
+              <label htmlFor="complementary-image-url">Imagem URL</label>
+              <input id="complementary-image-url" name="complementary_image_url" defaultValue={editorial.complementary_image_url ?? ""} />
+            </div>
+            <div className="home-admin-field">
+              <label htmlFor="complementary-link-url">Link</label>
+              <input id="complementary-link-url" name="complementary_link_url" defaultValue={editorial.complementary_link_url ?? ""} />
+            </div>
+            <button className="home-admin-button" type="submit">Guardar bloco complementar</button>
+          </form>
+        </section>
 
         <form className="home-admin-panel home-admin-form" action="/api/admin/editorial/home" method="post">
           <input type="hidden" name="action_type" value="save_home_latest_news" />
