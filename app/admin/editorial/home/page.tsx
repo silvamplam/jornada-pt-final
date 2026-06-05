@@ -10,7 +10,9 @@ type HomeEditorial = {
   headline_subtitle: string | null;
   headline_image_url: string | null;
   headline_title_color: string | null;
-  below_headline_mode: "highlights";
+  below_headline_mode: "highlights" | "roundup";
+  below_headline_heading: string | null;
+  below_headline_heading_color: string | null;
   side_block_status: "draft" | "published";
   side_block_type: string | null;
   side_block_label: string | null;
@@ -20,13 +22,16 @@ type HomeEditorial = {
   side_block_text: string | null;
   side_block_image_url: string | null;
   side_block_link_url: string | null;
-  complementary_mode: "none" | "complementary_story";
+  complementary_mode: "none" | "complementary_story" | "roundup_video";
+  complementary_roundup_item_id: string | null;
   complementary_label: string | null;
   complementary_title: string | null;
   complementary_text: string | null;
   complementary_image_url: string | null;
   complementary_link_url: string | null;
   complementary_status: "draft" | "published";
+  roundup_video_heading: string | null;
+  roundup_video_heading_color: string | null;
 };
 
 type HomeHighlight = {
@@ -52,11 +57,26 @@ type HomeLatestNews = {
   status: "draft" | "published";
 };
 
+type HomeRoundupItem = {
+  id: string;
+  site_editorial_id: string;
+  sort_order: number;
+  label: string | null;
+  title: string | null;
+  subtitle: string | null;
+  image_url: string | null;
+  video_url: string | null;
+  duration: string | null;
+  type: "video" | "golos" | "resumo" | "noticia";
+  status: "draft" | "published";
+};
+
 type HomeEditorialPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 const HIGHLIGHT_SORT_ORDERS = Array.from({ length: 6 }, (_, index) => index + 1);
+const ROUNDUP_SORT_ORDERS = Array.from({ length: 10 }, (_, index) => index + 1);
 const LATEST_NEWS_SORT_ORDERS = Array.from({ length: 8 }, (_, index) => index + 1);
 
 const styles = `
@@ -278,7 +298,7 @@ function oneParam(params: Record<string, string | string[] | undefined>, key: st
 
 async function readHomeEditorial() {
   const rows = await fetchSupabaseAdminTable<HomeEditorial>(
-    "site_editorials?select=id,slug,status,headline_title,headline_subtitle,headline_image_url,headline_title_color,below_headline_mode,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,complementary_mode,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status&slug=eq.home&limit=1"
+    "site_editorials?select=id,slug,status,headline_title,headline_subtitle,headline_image_url,headline_title_color,below_headline_mode,below_headline_heading,below_headline_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color&slug=eq.home&limit=1"
   ).catch(() => []);
 
   if (rows[0]) {
@@ -302,7 +322,7 @@ async function readHomeEditorial() {
 
   return (
     await fetchSupabaseAdminTable<HomeEditorial>(
-      "site_editorials?select=id,slug,status,headline_title,headline_subtitle,headline_image_url,headline_title_color,below_headline_mode,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,complementary_mode,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status&slug=eq.home&limit=1"
+      "site_editorials?select=id,slug,status,headline_title,headline_subtitle,headline_image_url,headline_title_color,below_headline_mode,below_headline_heading,below_headline_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color&slug=eq.home&limit=1"
     ).catch(() => [])
   )[0] ?? null;
 }
@@ -310,6 +330,14 @@ async function readHomeEditorial() {
 async function readHighlights(siteEditorialId: string) {
   const rows = await fetchSupabaseAdminTable<HomeHighlight>(
     `site_editorial_highlights?select=id,site_editorial_id,label,title,subtitle,image_url,link_url,sort_order,status&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}&order=sort_order.asc&limit=6`
+  ).catch(() => []);
+
+  return new Map(rows.map((row) => [row.sort_order, row]));
+}
+
+async function readRoundupItems(siteEditorialId: string) {
+  const rows = await fetchSupabaseAdminTable<HomeRoundupItem>(
+    `site_editorial_roundup_items?select=id,site_editorial_id,sort_order,label,title,subtitle,image_url,video_url,duration,type,status&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}&order=sort_order.asc&limit=10`
   ).catch(() => []);
 
   return new Map(rows.map((row) => [row.sort_order, row]));
@@ -327,7 +355,10 @@ function feedbackMessage(created?: string, error?: string) {
   const createdLabels: Record<string, string> = {
     save_home_editorial: "Capa editorial da home guardada.",
     save_home_highlights: "Destaques da home guardados.",
-    save_home_latest_news: "Ultimas noticias da home guardadas."
+    save_home_roundup_items: "Resumo da home guardado.",
+    save_home_latest_news: "Ultimas noticias da home guardadas.",
+    upload_home_headline_image: "Imagem da manchete carregada.",
+    upload_home_highlight_image: "Imagem do destaque carregada."
   };
 
   if (created) {
@@ -345,6 +376,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
   const query = searchParams ? await searchParams : {};
   const editorial = await readHomeEditorial();
   const highlights = editorial ? await readHighlights(editorial.id) : new Map<number, HomeHighlight>();
+  const roundupItems = editorial ? await readRoundupItems(editorial.id) : new Map<number, HomeRoundupItem>();
   const latestNews = editorial ? await readLatestNews(editorial.id) : new Map<number, HomeLatestNews>();
   const message = feedbackMessage(oneParam(query, "created"), oneParam(query, "error"));
 
@@ -410,6 +442,30 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
             <div className="home-admin-field">
               <label htmlFor="headline-title-color">Cor do titulo</label>
               <input id="headline-title-color" name="headline_title_color" defaultValue={editorial.headline_title_color ?? ""} placeholder="#10151b" />
+            </div>
+          </div>
+        </section>
+
+        <section className="home-admin-panel">
+          <header>
+            <h2>Composicao abaixo da manchete</h2>
+            <p>Escolhe a zona editorial principal abaixo da manchete da capa.</p>
+          </header>
+          <div className="home-admin-form">
+            <div className="home-admin-field">
+              <label htmlFor="below-headline-mode">Zona abaixo da manchete</label>
+              <select id="below-headline-mode" name="below_headline_mode" defaultValue={editorial.below_headline_mode ?? "highlights"}>
+                <option value="highlights">Destaques abaixo da manchete</option>
+                <option value="roundup">Resumo da Jornada</option>
+              </select>
+            </div>
+            <div className="home-admin-field">
+              <label htmlFor="below-headline-heading">Texto do topo</label>
+              <input id="below-headline-heading" name="below_headline_heading" defaultValue={editorial.below_headline_heading ?? ""} placeholder="Capa Jornada.pt" />
+            </div>
+            <div className="home-admin-field">
+              <label htmlFor="below-headline-heading-color">Cor do texto do topo</label>
+              <input id="below-headline-heading-color" name="below_headline_heading_color" defaultValue={editorial.below_headline_heading_color ?? ""} placeholder="#0b1f3a" />
             </div>
           </div>
         </section>
@@ -483,8 +539,30 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
                 <select id="complementary-mode" name="complementary_mode" defaultValue={editorial.complementary_mode}>
                   <option value="none">Sem complemento</option>
                   <option value="complementary_story">Complemento editorial</option>
+                  <option value="roundup_video">Video do Resumo da Jornada</option>
                 </select>
               </div>
+            </div>
+            <div className="home-admin-field">
+              <label htmlFor="complementary-roundup-item">Video inicial opcional</label>
+              <select id="complementary-roundup-item" name="complementary_roundup_item_id" defaultValue={editorial.complementary_roundup_item_id ?? ""}>
+                <option value="">Escolha opcional</option>
+                {Array.from(roundupItems.values())
+                  .sort((a, b) => a.sort_order - b.sort_order)
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.sort_order}. {item.title || item.label || "Item do resumo"}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div className="home-admin-field">
+              <label htmlFor="roundup-video-heading">Titulo da lista / cabecalho do resumo</label>
+              <input id="roundup-video-heading" name="roundup_video_heading" defaultValue={editorial.roundup_video_heading ?? ""} placeholder="Jogos Video Resumo" />
+            </div>
+            <div className="home-admin-field">
+              <label htmlFor="roundup-video-heading-color">Cor do cabecalho</label>
+              <input id="roundup-video-heading-color" name="roundup_video_heading_color" defaultValue={editorial.roundup_video_heading_color ?? ""} placeholder="#003f8f" />
             </div>
             <div className="home-admin-field">
               <label htmlFor="complementary-label">Etiqueta</label>
@@ -510,6 +588,51 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
           </div>
         </section>
       </form>
+
+      <section className="home-admin-panel" style={{ marginTop: 18 }}>
+        <header>
+          <h2>Upload de imagens</h2>
+          <p>Carrega imagens para a manchete e para os destaques da capa.</p>
+        </header>
+        <div className="home-admin-compact-grid">
+          <form className="home-admin-fieldset" action="/api/admin/editorial/home/image" encType="multipart/form-data" method="post">
+            <input type="hidden" name="return_to" value="/admin/editorial/home" />
+            <input type="hidden" name="target" value="headline" />
+            <h3>Manchete</h3>
+            {editorial.headline_image_url ? (
+              <div className="home-admin-preview">
+                <img alt="" src={editorial.headline_image_url} />
+              </div>
+            ) : null}
+            <div className="home-admin-field">
+              <label htmlFor="headline-image-upload">Imagem da manchete</label>
+              <input accept="image/jpeg,image/png,image/webp" id="headline-image-upload" name="image" type="file" />
+            </div>
+            <button className="home-admin-button secondary" type="submit">Carregar imagem</button>
+          </form>
+          {HIGHLIGHT_SORT_ORDERS.map((sortOrder) => {
+            const item = highlights.get(sortOrder);
+            return (
+              <form className="home-admin-fieldset" action="/api/admin/editorial/home/image" encType="multipart/form-data" method="post" key={sortOrder}>
+                <input type="hidden" name="return_to" value="/admin/editorial/home" />
+                <input type="hidden" name="target" value="highlight" />
+                <input type="hidden" name="sort_order" value={sortOrder} />
+                <h3>Destaque {sortOrder}</h3>
+                {item?.image_url ? (
+                  <div className="home-admin-preview">
+                    <img alt="" src={item.image_url} />
+                  </div>
+                ) : null}
+                <div className="home-admin-field">
+                  <label htmlFor={`highlight-${sortOrder}-image-upload`}>Imagem do destaque {sortOrder}</label>
+                  <input accept="image/jpeg,image/png,image/webp" id={`highlight-${sortOrder}-image-upload`} name="image" type="file" />
+                </div>
+                <button className="home-admin-button secondary" type="submit">Carregar imagem</button>
+              </form>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="home-admin-two-grid">
         <form className="home-admin-panel home-admin-form" action="/api/admin/editorial/home" method="post">
@@ -557,6 +680,68 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
             );
           })}
           <button className="home-admin-button" type="submit">Guardar destaques</button>
+        </form>
+
+        <form className="home-admin-panel home-admin-form" action="/api/admin/editorial/home" method="post">
+          <input type="hidden" name="action_type" value="save_home_roundup_items" />
+          <input type="hidden" name="return_to" value="/admin/editorial/home" />
+          <header>
+            <h2>Resumo da Jornada</h2>
+            <p>Lista de videos/resumos da capa editorial global.</p>
+          </header>
+          {ROUNDUP_SORT_ORDERS.map((sortOrder) => {
+            const item = roundupItems.get(sortOrder);
+            return (
+              <fieldset className="home-admin-fieldset" key={sortOrder}>
+                <legend>Resumo {sortOrder}</legend>
+                <div className="home-admin-compact-grid">
+                  <div className="home-admin-field">
+                    <label htmlFor={`roundup-${sortOrder}-status`}>Estado</label>
+                    <select id={`roundup-${sortOrder}-status`} name={`roundup_${sortOrder}_status`} defaultValue={item?.status ?? "draft"}>
+                      <option value="draft">Draft</option>
+                      <option value="published">Published</option>
+                    </select>
+                  </div>
+                  <div className="home-admin-field">
+                    <label htmlFor={`roundup-${sortOrder}-type`}>Tipo</label>
+                    <select id={`roundup-${sortOrder}-type`} name={`roundup_${sortOrder}_type`} defaultValue={item?.type ?? "resumo"}>
+                      <option value="resumo">Resumo</option>
+                      <option value="video">Video</option>
+                      <option value="golos">Golos</option>
+                      <option value="noticia">Noticia</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="home-admin-compact-grid">
+                  <div className="home-admin-field">
+                    <label htmlFor={`roundup-${sortOrder}-label`}>Etiqueta</label>
+                    <input id={`roundup-${sortOrder}-label`} name={`roundup_${sortOrder}_label`} defaultValue={item?.label ?? ""} placeholder={sortOrder === 1 ? "VIDEO" : sortOrder === 2 ? "GOLOS" : "RESUMO"} />
+                  </div>
+                  <div className="home-admin-field">
+                    <label htmlFor={`roundup-${sortOrder}-duration`}>Duracao</label>
+                    <input id={`roundup-${sortOrder}-duration`} name={`roundup_${sortOrder}_duration`} defaultValue={item?.duration ?? ""} placeholder="5:42" />
+                  </div>
+                </div>
+                <div className="home-admin-field">
+                  <label htmlFor={`roundup-${sortOrder}-title`}>Titulo</label>
+                  <input id={`roundup-${sortOrder}-title`} name={`roundup_${sortOrder}_title`} defaultValue={item?.title ?? ""} />
+                </div>
+                <div className="home-admin-field">
+                  <label htmlFor={`roundup-${sortOrder}-subtitle`}>Subtitulo</label>
+                  <input id={`roundup-${sortOrder}-subtitle`} name={`roundup_${sortOrder}_subtitle`} defaultValue={item?.subtitle ?? ""} />
+                </div>
+                <div className="home-admin-field">
+                  <label htmlFor={`roundup-${sortOrder}-image-url`}>Imagem URL</label>
+                  <input id={`roundup-${sortOrder}-image-url`} name={`roundup_${sortOrder}_image_url`} defaultValue={item?.image_url ?? ""} />
+                </div>
+                <div className="home-admin-field">
+                  <label htmlFor={`roundup-${sortOrder}-video-url`}>Video URL</label>
+                  <input id={`roundup-${sortOrder}-video-url`} name={`roundup_${sortOrder}_video_url`} defaultValue={item?.video_url ?? ""} />
+                </div>
+              </fieldset>
+            );
+          })}
+          <button className="home-admin-button" type="submit">Guardar Resumo da Jornada</button>
         </form>
 
         <form className="home-admin-panel home-admin-form" action="/api/admin/editorial/home" method="post">

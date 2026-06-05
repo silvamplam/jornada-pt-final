@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { fetchSupabaseAdminTable, getSupabaseServiceConfig, writeSupabaseAdmin } from "@/lib/supabase";
 
 const HIGHLIGHT_SORT_ORDERS = Array.from({ length: 6 }, (_, index) => index + 1);
+const ROUNDUP_SORT_ORDERS = Array.from({ length: 10 }, (_, index) => index + 1);
 const LATEST_NEWS_SORT_ORDERS = Array.from({ length: 8 }, (_, index) => index + 1);
 
 type SiteEditorialIdRow = {
@@ -21,8 +22,20 @@ function cleanStatus(value: FormDataEntryValue | null): "draft" | "published" {
   return cleanText(value) === "published" ? "published" : "draft";
 }
 
-function cleanComplementaryMode(value: FormDataEntryValue | null): "none" | "complementary_story" {
-  return cleanText(value) === "complementary_story" ? "complementary_story" : "none";
+function cleanBelowHeadlineMode(value: FormDataEntryValue | null): "highlights" | "roundup" {
+  return cleanText(value) === "roundup" ? "roundup" : "highlights";
+}
+
+function cleanComplementaryMode(value: FormDataEntryValue | null): "none" | "complementary_story" | "roundup_video" {
+  const mode = cleanText(value);
+
+  return mode === "complementary_story" || mode === "roundup_video" ? mode : "none";
+}
+
+function cleanRoundupType(value: FormDataEntryValue | null): "video" | "golos" | "resumo" | "noticia" {
+  const type = cleanText(value);
+
+  return type === "video" || type === "golos" || type === "noticia" ? type : "resumo";
 }
 
 function returnUrl(request: Request, formData: FormData, key: "created" | "error", value: string) {
@@ -70,7 +83,19 @@ async function getHomeEditorialId() {
 
 async function saveHomeEditorial(formData: FormData) {
   const id = await getHomeEditorialId();
+  const belowHeadlineMode = cleanBelowHeadlineMode(formData.get("below_headline_mode"));
   const complementaryMode = cleanComplementaryMode(formData.get("complementary_mode"));
+  const complementaryRoundupItemId = cleanText(formData.get("complementary_roundup_item_id"));
+
+  if (complementaryRoundupItemId) {
+    const rows = await fetchSupabaseAdminTable<{ id: string }>(
+      `site_editorial_roundup_items?select=id&id=eq.${encodeURIComponent(complementaryRoundupItemId)}&site_editorial_id=eq.${encodeURIComponent(id)}&limit=1`
+    );
+
+    if (!rows[0]) {
+      throw new Error("roundup-item-invalid");
+    }
+  }
 
   await writeSupabaseAdmin(`site_editorials?id=eq.${encodeURIComponent(id)}`, {
     method: "PATCH",
@@ -80,7 +105,9 @@ async function saveHomeEditorial(formData: FormData) {
       headline_subtitle: cleanText(formData.get("headline_subtitle")),
       headline_image_url: cleanText(formData.get("headline_image_url")),
       headline_title_color: cleanText(formData.get("headline_title_color")),
-      below_headline_mode: "highlights",
+      below_headline_mode: belowHeadlineMode,
+      below_headline_heading: cleanText(formData.get("below_headline_heading")),
+      below_headline_heading_color: cleanText(formData.get("below_headline_heading_color")),
       side_block_status: cleanStatus(formData.get("side_block_status")),
       side_block_type: cleanText(formData.get("side_block_type")),
       side_block_label: cleanText(formData.get("side_block_label")),
@@ -92,17 +119,20 @@ async function saveHomeEditorial(formData: FormData) {
       side_block_link_url: cleanText(formData.get("side_block_link_url")),
       complementary_status: cleanStatus(formData.get("complementary_status")),
       complementary_mode: complementaryMode,
+      complementary_roundup_item_id: complementaryRoundupItemId,
       complementary_label: cleanText(formData.get("complementary_label")),
       complementary_title: cleanText(formData.get("complementary_title")),
       complementary_text: cleanText(formData.get("complementary_text")),
       complementary_image_url: cleanText(formData.get("complementary_image_url")),
-      complementary_link_url: cleanText(formData.get("complementary_link_url"))
+      complementary_link_url: cleanText(formData.get("complementary_link_url")),
+      roundup_video_heading: cleanText(formData.get("roundup_video_heading")),
+      roundup_video_heading_color: cleanText(formData.get("roundup_video_heading_color"))
     })
   });
 }
 
 async function upsertEditorialItem(
-  table: "site_editorial_highlights" | "site_editorial_latest_news",
+  table: "site_editorial_highlights" | "site_editorial_roundup_items" | "site_editorial_latest_news",
   siteEditorialId: string,
   sortOrder: number,
   payload: Record<string, string | number | null>
@@ -148,6 +178,27 @@ async function saveHighlights(formData: FormData) {
   }
 }
 
+async function saveRoundupItems(formData: FormData) {
+  const siteEditorialId = await getHomeEditorialId();
+
+  for (const sortOrder of ROUNDUP_SORT_ORDERS) {
+    const title = cleanText(formData.get(`roundup_${sortOrder}_title`));
+    const payload = {
+      label: cleanText(formData.get(`roundup_${sortOrder}_label`)),
+      title,
+      subtitle: cleanText(formData.get(`roundup_${sortOrder}_subtitle`)),
+      image_url: cleanText(formData.get(`roundup_${sortOrder}_image_url`)),
+      video_url: cleanText(formData.get(`roundup_${sortOrder}_video_url`)),
+      duration: cleanText(formData.get(`roundup_${sortOrder}_duration`)),
+      type: cleanRoundupType(formData.get(`roundup_${sortOrder}_type`)),
+      sort_order: sortOrder,
+      status: title ? cleanStatus(formData.get(`roundup_${sortOrder}_status`)) : "draft"
+    };
+
+    await upsertEditorialItem("site_editorial_roundup_items", siteEditorialId, sortOrder, payload);
+  }
+}
+
 async function saveLatestNews(formData: FormData) {
   const siteEditorialId = await getHomeEditorialId();
 
@@ -180,6 +231,8 @@ export async function POST(request: Request) {
       await saveHomeEditorial(formData);
     } else if (actionType === "save_home_highlights") {
       await saveHighlights(formData);
+    } else if (actionType === "save_home_roundup_items") {
+      await saveRoundupItems(formData);
     } else if (actionType === "save_home_latest_news") {
       await saveLatestNews(formData);
     } else {
