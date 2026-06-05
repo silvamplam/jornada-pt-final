@@ -762,6 +762,11 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
   const roundupItems = editorial ? await readRoundupItems(editorial.id) : new Map<number, HomeRoundupItem>();
   const latestNews = editorial ? await readLatestNews(editorial.id) : new Map<number, HomeLatestNews>();
   const message = feedbackMessage(oneParam(query, "created"), oneParam(query, "error"));
+  const feedbackScope = oneParam(query, "feedback_scope");
+  const renderScopedMessage = (scope: string) =>
+    message && feedbackScope === scope ? (
+      <div className={`editorial-admin-message ${message.type === "warning" ? "warning" : ""}`}>{message.text}</div>
+    ) : null;
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = editorial?.complementary_mode ?? "none";
   const returnTo = "/admin/editorial/home";
@@ -977,7 +982,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
         </div>
       </section>
 
-      {message ? <div className={`editorial-admin-message ${message.type === "warning" ? "warning" : ""}`}>{message.text}</div> : null}
+      {message && !feedbackScope ? <div className={`editorial-admin-message ${message.type === "warning" ? "warning" : ""}`}>{message.text}</div> : null}
 
       <div className="editorial-admin-grid">
         <section className="editorial-admin-panel" id="manchete">
@@ -985,6 +990,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
             <h2>Manchete principal</h2>
             <p>Campos de site_editorials ligados a slug home.</p>
           </header>
+          {renderScopedMessage("manchete")}
           <form className="editorial-admin-form" action="/api/admin/editorial/home" method="post">
             <input type="hidden" name="action_type" value="save_home_editorial" />
             <input type="hidden" name="return_to" value={returnToManchete} />
@@ -1034,6 +1040,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
             <h2>Bloco lateral</h2>
             <p>Controla a chamada editorial curta da coluna lateral da capa.</p>
           </header>
+          {renderScopedMessage("bloco-lateral")}
           <form className="editorial-admin-form" action="/api/admin/editorial/home" method="post">
             <input type="hidden" name="action_type" value="save_home_editorial" />
             <input type="hidden" name="return_to" value={returnToBlocoLateral} />
@@ -1094,6 +1101,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
           <h2>Composicao abaixo da manchete</h2>
           <p>Controla os dois espacos editoriais que aparecem por baixo da manchete na primeira pagina.</p>
         </header>
+        {renderScopedMessage("composicao")}
         <div data-composition-form>
           <div className="editorial-admin-composition-grid">
             <div className="editorial-admin-composition-card">
@@ -1115,6 +1123,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
               <div className="editorial-below-mode-section" data-below-section="highlights" hidden={belowHeadlineMode !== "highlights"} id="destaques">
                 <h4>Destaques abaixo da manchete</h4>
                 <p className="editorial-admin-muted">Edita os destaques editoriais desta zona e o texto superior que aparece no publico.</p>
+                {renderScopedMessage("destaques")}
                 <div className="editorial-admin-compact-stack">
                   <div className="editorial-admin-field">
                     <label htmlFor="below-headline-heading">Texto do topo</label>
@@ -1132,15 +1141,17 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
               <div className="editorial-below-mode-section" data-below-section="roundup" hidden={belowHeadlineMode !== "roundup"} id="resumo-jornada">
                 <h4>Resumo da Jornada</h4>
                 <p className="editorial-admin-muted">Edita entradas para videos, golos, resumos ou noticias da capa global.</p>
+                {renderScopedMessage("resumo-jornada")}
                 {roundupEditor}
               </div>
             </div>
 
             <div className="editorial-admin-composition-side-stack">
-              <div className="editorial-admin-composition-card">
+              <div className="editorial-admin-composition-card" id="bloco-complementar">
                 <h3>Bloco complementar</h3>
                 <p>Escolhe o conteudo do espaco editorial da direita.</p>
-                <form className="editorial-admin-form" action="/api/admin/editorial/home" data-complementary-form method="post" id="bloco-complementar">
+                {renderScopedMessage("bloco-complementar")}
+                <form className="editorial-admin-form" action="/api/admin/editorial/home" data-complementary-form method="post">
                   <input type="hidden" name="action_type" value="save_home_editorial" />
                   <input type="hidden" name="return_to" value={returnToComplementar} />
                   <input type="hidden" name="allow_manual_complementary_mode" value="1" />
@@ -1215,6 +1226,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
               <section className="editorial-admin-composition-card" id="ultimas-noticias">
                 <h3>Ultimas noticias</h3>
                 <p>Edita a coluna direita da primeira pagina. A imagem e opcional: se ficar vazia, a noticia aparece apenas com hora e titulo.</p>
+                {renderScopedMessage("ultimas-noticias")}
                 {latestNewsEditor}
               </section>
             </div>
