@@ -381,8 +381,6 @@ export default async function HomePage() {
               {link.label}
             </Link>
           ))}
-          <Link href="/competicoes/liga-portugal/2026-27/jornadas/1#jogos">Jogos</Link>
-          <Link href="/competicoes/liga-portugal/2026-27/jornadas/1#classificacao">Classificacao</Link>
         </nav>
         <div className="public-site-actions" aria-label="Acoes">
           <span className="public-site-search" aria-label="Pesquisar">Pesquisar</span>
