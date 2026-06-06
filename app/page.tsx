@@ -246,7 +246,7 @@ async function readHomeFeaturedMatches(): Promise<PublicMatchStripMatch[]> {
         broadcastChannel: broadcastChannelsByMatchId.get(match.id) ?? null
       };
     })
-    .filter((match): match is PublicMatchStripMatch => Boolean(match))
+    .filter((match): match is PublicMatchStripMatch => match !== null)
     .sort((first, second) => {
       const firstOrder = sortOrderByMatchId.get(first.id) ?? null;
       const secondOrder = sortOrderByMatchId.get(second.id) ?? null;
