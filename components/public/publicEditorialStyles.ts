@@ -260,10 +260,10 @@ export const publicEditorialStyles = `
 
   .public-matchday-strip {
     display: flex;
-    gap: 14px;
+    gap: 10px;
     overflow-x: auto;
     scroll-behavior: smooth;
-    scroll-padding: 14px;
+    scroll-padding: 10px;
     padding: 8px;
     background: #ffffff;
   }
@@ -294,7 +294,7 @@ export const publicEditorialStyles = `
   .public-matchday-mini-card {
     position: relative;
     display: grid;
-    flex: 0 0 226px;
+    flex: 0 0 178px;
     grid-template-columns: minmax(0, 1fr);
     gap: 4px;
     align-items: start;
@@ -312,7 +312,7 @@ export const publicEditorialStyles = `
     position: absolute;
     top: 10px;
     bottom: 10px;
-    left: -7px;
+    left: -5px;
     width: 1px;
     background: #dfe5ec;
   }
