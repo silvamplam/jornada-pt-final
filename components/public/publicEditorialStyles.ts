@@ -206,6 +206,10 @@ export const publicEditorialStyles = `
     overflow: hidden;
   }
 
+  #classificacao {
+    scroll-margin-top: 140px;
+  }
+
   .public-matchday-scoreboard-panel {
     margin-top: 1px;
     border-top: 0;
