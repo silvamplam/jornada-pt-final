@@ -87,6 +87,7 @@ type HomeMatchRow = {
   minute: number | string | null;
   home_score: number | null;
   away_score: number | null;
+  broadcast_channel_id: string | null;
 };
 
 type HomeTeamRow = {
@@ -214,19 +215,20 @@ async function readHomeFeaturedMatches(): Promise<PublicMatchStripMatch[]> {
     return [];
   }
 
-  const [matchesById, broadcastChannelsByMatchId] = await Promise.all([
-    readRowsById<HomeMatchRow>(
-      "matches",
-      "id,home_team_id,away_team_id,kickoff_at,status,minute,home_score,away_score",
-      matchIds
-    ),
-    readBroadcastChannelsByMatchId(matchIds)
-  ]);
-  const teamsById = await readRowsById<HomeTeamRow>(
-    "teams",
-    "id,name,short_name,logo_url",
-    uniqueValues(Array.from(matchesById.values()).flatMap((match) => [match.home_team_id, match.away_team_id]))
+  const matchesById = await readRowsById<HomeMatchRow>(
+    "matches",
+    "id,home_team_id,away_team_id,kickoff_at,status,minute,home_score,away_score,broadcast_channel_id",
+    matchIds
   );
+  const matches = Array.from(matchesById.values());
+  const [teamsById, broadcastChannelsByMatchId] = await Promise.all([
+    readRowsById<HomeTeamRow>(
+      "teams",
+      "id,name,short_name,logo_url",
+      uniqueValues(matches.flatMap((match) => [match.home_team_id, match.away_team_id]))
+    ),
+    readBroadcastChannelsByMatchId(matchIds, matches)
+  ]);
   const sortOrderByMatchId = new Map(featuredRows.map((row) => [row.match_id, row.sort_order]));
 
   const selectedMatches: PublicMatchStripMatch[] = [];
@@ -258,9 +260,28 @@ async function readHomeFeaturedMatches(): Promise<PublicMatchStripMatch[]> {
   });
 }
 
-async function readBroadcastChannelsByMatchId(matchIds: string[]) {
+async function readBroadcastChannelsByMatchId(matchIds: string[], matches: HomeMatchRow[] = []) {
   const empty = new Map<string, HomeBroadcastChannelRow>();
   if (matchIds.length === 0) return empty;
+
+  const directChannelIdsByMatchId = new Map(
+    matches
+      .filter((match) => Boolean(match.broadcast_channel_id))
+      .map((match) => [match.id, match.broadcast_channel_id as string])
+  );
+  const directChannelsById = await readRowsById<HomeBroadcastChannelRow>(
+    "broadcast_channels",
+    "id,name,logo_url",
+    uniqueValues(Array.from(directChannelIdsByMatchId.values()))
+  );
+  const channelsByMatchId = new Map<string, HomeBroadcastChannelRow>();
+
+  for (const [matchId, channelId] of directChannelIdsByMatchId) {
+    const channel = directChannelsById.get(channelId);
+    if (channel) {
+      channelsByMatchId.set(matchId, channel);
+    }
+  }
 
   const matchFilter = inFilter(matchIds);
   const relationQueries = [
@@ -275,14 +296,13 @@ async function readBroadcastChannelsByMatchId(matchIds: string[]) {
     if (links.length > 0) break;
   }
 
-  if (links.length === 0) return empty;
+  if (links.length === 0) return channelsByMatchId;
 
   const channelsById = await readRowsById<HomeBroadcastChannelRow>(
     "broadcast_channels",
     "id,name,logo_url",
     uniqueValues(links.map((link) => link.broadcast_channel_id))
   );
-  const channelsByMatchId = new Map<string, HomeBroadcastChannelRow>();
 
   for (const link of links) {
     if (!link.match_id || !link.broadcast_channel_id || channelsByMatchId.has(link.match_id)) continue;
