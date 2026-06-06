@@ -114,6 +114,7 @@ type AdminFeaturedMatchOption = {
   homeTeamName: string;
   awayTeamName: string;
   kickoffAt: string | null;
+  matchdayId: string | null;
   matchdayNumber: number | null;
 };
 
@@ -122,6 +123,18 @@ type AdminFeaturedMatchGroup = {
   competitionName: string;
   sortOrder: number;
   matches: AdminFeaturedMatchOption[];
+};
+
+type AdminFeaturedMatchdayGroup = {
+  matchdayId: string;
+  matchdayNumber: number | null;
+  firstKickoffMs: number | null;
+  lastKickoffMs: number | null;
+  matches: AdminFeaturedMatchOption[];
+};
+
+type AdminFeaturedCompetitionBucket = AdminFeaturedMatchGroup & {
+  matchdayGroups: Map<string, AdminFeaturedMatchdayGroup>;
 };
 
 type HomeEditorialPageProps = {
@@ -865,6 +878,46 @@ async function readFeaturedMatches() {
   ).catch(() => []);
 }
 
+function kickoffTimestamp(kickoffAt: string | null) {
+  if (!kickoffAt) return null;
+  const timestamp = new Date(kickoffAt).getTime();
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+function compareFeaturedMatchOptions(first: AdminFeaturedMatchOption, second: AdminFeaturedMatchOption) {
+  const firstMatchday = first.matchdayNumber ?? 999;
+  const secondMatchday = second.matchdayNumber ?? 999;
+  if (firstMatchday !== secondMatchday) return firstMatchday - secondMatchday;
+  const kickoffCompare = (first.kickoffAt ?? "").localeCompare(second.kickoffAt ?? "");
+  if (kickoffCompare !== 0) return kickoffCompare;
+  return `${first.homeTeamName} ${first.awayTeamName}`.localeCompare(`${second.homeTeamName} ${second.awayTeamName}`);
+}
+
+function selectRelevantMatchdayGroup(groups: AdminFeaturedMatchdayGroup[]) {
+  const now = Date.now();
+  const byMatchday = (first: AdminFeaturedMatchdayGroup, second: AdminFeaturedMatchdayGroup) =>
+    (first.matchdayNumber ?? 999) - (second.matchdayNumber ?? 999);
+  const byFirstKickoff = (first: AdminFeaturedMatchdayGroup, second: AdminFeaturedMatchdayGroup) =>
+    (first.firstKickoffMs ?? Number.POSITIVE_INFINITY) - (second.firstKickoffMs ?? Number.POSITIVE_INFINITY);
+  const byLastKickoffDesc = (first: AdminFeaturedMatchdayGroup, second: AdminFeaturedMatchdayGroup) =>
+    (second.lastKickoffMs ?? Number.NEGATIVE_INFINITY) - (first.lastKickoffMs ?? Number.NEGATIVE_INFINITY);
+
+  const upcomingOrCurrent = groups
+    .filter((group) => {
+      const end = group.lastKickoffMs ?? group.firstKickoffMs;
+      return end !== null && end >= now;
+    })
+    .sort((first, second) => byFirstKickoff(first, second) || byMatchday(first, second))[0];
+
+  if (upcomingOrCurrent) return upcomingOrCurrent;
+
+  const latestPast = groups
+    .filter((group) => group.firstKickoffMs !== null || group.lastKickoffMs !== null)
+    .sort((first, second) => byLastKickoffDesc(first, second) || byMatchday(second, first))[0];
+
+  return latestPast ?? groups.sort(byMatchday)[0] ?? null;
+}
+
 async function readAvailableMatchesByCompetition(): Promise<AdminFeaturedMatchGroup[]> {
   const matches = await fetchSupabaseAdminTable<AdminMatchRow>(
     "matches?select=id,home_team_id,away_team_id,matchday_id,kickoff_at&order=kickoff_at.asc.nullslast&limit=500"
@@ -891,11 +944,12 @@ async function readAvailableMatchesByCompetition(): Promise<AdminFeaturedMatchGr
     uniqueValues(Array.from(seasonsById.values()).map((season) => season.competition_id))
   );
 
-  const groupsByCompetition = new Map<string, AdminFeaturedMatchGroup>();
   const teamName = (teamId: string | null, fallback: string) => {
     const team = teamId ? teamsById.get(teamId) : null;
     return team?.name?.trim() || team?.short_name?.trim() || fallback;
   };
+
+  const groupsByCompetition = new Map<string, AdminFeaturedCompetitionBucket>();
 
   for (const match of matches) {
     const matchday = match.matchday_id ? matchdaysById.get(match.matchday_id) : null;
@@ -907,29 +961,49 @@ async function readAvailableMatchesByCompetition(): Promise<AdminFeaturedMatchGr
       competitionId,
       competitionName,
       sortOrder: 999,
+      matches: [],
+      matchdayGroups: new Map<string, AdminFeaturedMatchdayGroup>()
+    };
+    const matchdayId = matchday?.id ?? null;
+    const matchdayKey = matchdayId ?? `sem-jornada-${competitionId}`;
+    const matchdayGroup = group.matchdayGroups.get(matchdayKey) ?? {
+      matchdayId: matchdayKey,
+      matchdayNumber: matchday?.number ?? null,
+      firstKickoffMs: null,
+      lastKickoffMs: null,
       matches: []
     };
-
-    group.matches.push({
+    const option = {
       id: match.id,
       homeTeamName: teamName(match.home_team_id, "Equipa da casa"),
       awayTeamName: teamName(match.away_team_id, "Equipa visitante"),
       kickoffAt: match.kickoff_at,
+      matchdayId,
       matchdayNumber: matchday?.number ?? null
-    });
+    };
+    const kickoffMs = kickoffTimestamp(option.kickoffAt);
+
+    if (kickoffMs !== null) {
+      matchdayGroup.firstKickoffMs = matchdayGroup.firstKickoffMs === null ? kickoffMs : Math.min(matchdayGroup.firstKickoffMs, kickoffMs);
+      matchdayGroup.lastKickoffMs = matchdayGroup.lastKickoffMs === null ? kickoffMs : Math.max(matchdayGroup.lastKickoffMs, kickoffMs);
+    }
+
+    matchdayGroup.matches.push(option);
+    group.matchdayGroups.set(matchdayKey, matchdayGroup);
     groupsByCompetition.set(competitionId, group);
   }
 
   return Array.from(groupsByCompetition.values())
-    .map((group) => ({
-      ...group,
-      matches: group.matches.sort((first, second) => {
-        const firstMatchday = first.matchdayNumber ?? 999;
-        const secondMatchday = second.matchdayNumber ?? 999;
-        if (firstMatchday !== secondMatchday) return firstMatchday - secondMatchday;
-        return (first.kickoffAt ?? "").localeCompare(second.kickoffAt ?? "");
-      })
-    }))
+    .map((group) => {
+      const selectedMatchday = selectRelevantMatchdayGroup(Array.from(group.matchdayGroups.values()));
+      return {
+        competitionId: group.competitionId,
+        competitionName: group.competitionName,
+        sortOrder: group.sortOrder,
+        matches: selectedMatchday ? [...selectedMatchday.matches].sort(compareFeaturedMatchOptions) : []
+      };
+    })
+    .filter((group) => group.matches.length > 0)
     .sort((first, second) => {
       if (first.sortOrder !== second.sortOrder) return first.sortOrder - second.sortOrder;
       return first.competitionName.localeCompare(second.competitionName);
@@ -1196,7 +1270,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
       <section className="editorial-admin-panel editorial-admin-composition" id="jogos-home">
         <header>
           <h2>Jogos na pagina inicial</h2>
-          <p>Seleciona os jogos existentes que aparecem na barra da home. A selecao guarda apenas o match_id.</p>
+          <p>Seleciona jogos da jornada atual/relevante de cada competicao. A selecao guarda apenas o match_id.</p>
         </header>
         {renderScopedMessage("jogos-home")}
         <form className="editorial-admin-form" action="/api/admin/editorial/home" method="post">
