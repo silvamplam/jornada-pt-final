@@ -37,12 +37,6 @@ function cleanComplementaryMode(value: FormDataEntryValue | null): "none" | "com
   return mode === "complementary_story" || mode === "roundup_video" ? mode : "none";
 }
 
-function cleanRoundupType(value: FormDataEntryValue | null): "video" | "golos" | "resumo" | "noticia" {
-  const type = cleanText(value);
-
-  return type === "video" || type === "golos" || type === "noticia" ? type : "resumo";
-}
-
 function uniqueFormValues(values: FormDataEntryValue[]) {
   const selected: string[] = [];
   const seen = new Set<string>();
@@ -242,7 +236,7 @@ async function saveRoundupItems(formData: FormData) {
       subtitle: cleanText(formData.get(`roundup_${sortOrder}_subtitle`)),
       video_url: cleanText(formData.get(`roundup_${sortOrder}_video_url`)),
       duration: cleanText(formData.get(`roundup_${sortOrder}_duration`)),
-      type: cleanRoundupType(formData.get(`roundup_${sortOrder}_type`)),
+      type: "video",
       sort_order: sortOrder,
       status: title ? cleanStatus(formData.get(`roundup_${sortOrder}_status`)) : "draft"
     };

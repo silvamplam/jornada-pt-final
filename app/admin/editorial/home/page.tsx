@@ -1178,15 +1178,6 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
               <input id={`roundup-${sortOrder}-duration`} name={`roundup_${sortOrder}_duration`} defaultValue={item?.duration ?? ""} />
             </div>
             <div className="editorial-admin-field">
-              <label htmlFor={`roundup-${sortOrder}-type`}>Tipo</label>
-              <select id={`roundup-${sortOrder}-type`} name={`roundup_${sortOrder}_type`} defaultValue={item?.type ?? "resumo"}>
-                <option value="video">Video</option>
-                <option value="golos">Golos</option>
-                <option value="resumo">Resumo</option>
-                <option value="noticia">Noticia</option>
-              </select>
-            </div>
-            <div className="editorial-admin-field">
               <label htmlFor={`roundup-${sortOrder}-status`}>Estado</label>
               <select id={`roundup-${sortOrder}-status`} name={`roundup_${sortOrder}_status`} defaultValue={item?.status ?? "draft"}>
                 <option value="draft">Rascunho</option>
