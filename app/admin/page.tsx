@@ -431,6 +431,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         <div className="admin-hero-actions">
           <a href="/admin/gestor">Centro de gestao</a>
           <a href="/admin/editorial/home">HOME EDITORIAL</a>
+          <a href="/admin/editorial/artigos">ARTIGOS / NOTÍCIAS</a>
           {matchdayEditorialHref ? (
             <a href={matchdayEditorialHref}>EDITORIAL DA JORNADA</a>
           ) : (
