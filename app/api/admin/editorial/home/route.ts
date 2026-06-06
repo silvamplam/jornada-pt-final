@@ -9,6 +9,11 @@ type SiteEditorialIdRow = {
   id: string;
 };
 
+type FeaturedMatchRow = {
+  id: string;
+  match_id: string;
+};
+
 function cleanText(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") {
     return null;
@@ -36,6 +41,21 @@ function cleanRoundupType(value: FormDataEntryValue | null): "video" | "golos" |
   const type = cleanText(value);
 
   return type === "video" || type === "golos" || type === "noticia" ? type : "resumo";
+}
+
+function uniqueFormValues(values: FormDataEntryValue[]) {
+  const selected: string[] = [];
+  const seen = new Set<string>();
+
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    selected.push(trimmed);
+    seen.add(trimmed);
+  }
+
+  return selected;
 }
 
 function returnUrl(request: Request, formData: FormData, key: "created" | "error", value: string) {
@@ -220,7 +240,6 @@ async function saveRoundupItems(formData: FormData) {
       label: cleanText(formData.get(`roundup_${sortOrder}_label`)),
       title,
       subtitle: cleanText(formData.get(`roundup_${sortOrder}_subtitle`)),
-      image_url: cleanText(formData.get(`roundup_${sortOrder}_image_url`)),
       video_url: cleanText(formData.get(`roundup_${sortOrder}_video_url`)),
       duration: cleanText(formData.get(`roundup_${sortOrder}_duration`)),
       type: cleanRoundupType(formData.get(`roundup_${sortOrder}_type`)),
@@ -229,6 +248,33 @@ async function saveRoundupItems(formData: FormData) {
     };
 
     await upsertEditorialItem("site_editorial_roundup_items", siteEditorialId, sortOrder, payload);
+  }
+}
+
+async function saveFeaturedMatches(formData: FormData) {
+  const selectedMatchIds = uniqueFormValues(formData.getAll("featured_match_id"));
+  const selectedSet = new Set(selectedMatchIds);
+  const existingRows = await fetchSupabaseAdminTable<FeaturedMatchRow>(
+    "site_featured_matches?select=id,match_id"
+  );
+
+  for (const row of existingRows) {
+    if (!selectedSet.has(row.match_id)) {
+      await writeSupabaseAdmin(`site_featured_matches?id=eq.${encodeURIComponent(row.id)}`, {
+        method: "DELETE"
+      });
+    }
+  }
+
+  for (const [index, matchId] of selectedMatchIds.entries()) {
+    await writeSupabaseAdmin("site_featured_matches?on_conflict=match_id", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates" },
+      body: JSON.stringify({
+        match_id: matchId,
+        sort_order: index + 1
+      })
+    });
   }
 }
 
@@ -268,6 +314,8 @@ export async function POST(request: Request) {
       await saveRoundupItems(formData);
     } else if (actionType === "save_home_latest_news") {
       await saveLatestNews(formData);
+    } else if (actionType === "save_home_featured_matches") {
+      await saveFeaturedMatches(formData);
     } else {
       throw new Error("invalid-action");
     }

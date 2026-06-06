@@ -71,6 +71,59 @@ type HomeRoundupItem = {
   status: "draft" | "published";
 };
 
+type HomeFeaturedMatch = {
+  id: string;
+  match_id: string;
+  sort_order: number | null;
+};
+
+type AdminMatchRow = {
+  id: string;
+  home_team_id: string | null;
+  away_team_id: string | null;
+  matchday_id: string | null;
+  kickoff_at: string | null;
+};
+
+type AdminTeamRow = {
+  id: string;
+  name: string | null;
+  short_name: string | null;
+};
+
+type AdminMatchdayRow = {
+  id: string;
+  number: number | null;
+  season_id: string | null;
+};
+
+type AdminSeasonRow = {
+  id: string;
+  label: string | null;
+  competition_id: string | null;
+};
+
+type AdminCompetitionRow = {
+  id: string;
+  name: string | null;
+  slug: string | null;
+};
+
+type AdminFeaturedMatchOption = {
+  id: string;
+  homeTeamName: string;
+  awayTeamName: string;
+  kickoffAt: string | null;
+  matchdayNumber: number | null;
+};
+
+type AdminFeaturedMatchGroup = {
+  competitionId: string;
+  competitionName: string;
+  sortOrder: number;
+  matches: AdminFeaturedMatchOption[];
+};
+
 type HomeEditorialPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
@@ -444,6 +497,47 @@ const styles = `
     margin-top: 18px;
   }
 
+  .home-featured-matches-list {
+    display: grid;
+    gap: 14px;
+  }
+
+  .home-featured-matches-group {
+    display: grid;
+    gap: 6px;
+    padding: 12px;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #f8fafc;
+  }
+
+  .home-featured-matches-group h3 {
+    margin: 0 0 4px;
+    color: #10151b;
+    font-size: 16px;
+  }
+
+  .home-featured-match-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px solid #e6ebf1;
+    color: #263241;
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  .home-featured-match-row:first-of-type {
+    border-top: 0;
+  }
+
+  .home-featured-match-row input {
+    width: 17px;
+    height: 17px;
+    flex: 0 0 auto;
+  }
+
   .editorial-admin-composition-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -679,6 +773,26 @@ function oneParam(params: Record<string, string | string[] | undefined>, key: st
   return Array.isArray(value) ? value[0] : value;
 }
 
+function inFilter(values: string[]) {
+  return `in.(${values.map((value) => encodeURIComponent(value)).join(",")})`;
+}
+
+function uniqueValues(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.filter((value): value is string => Boolean(value))));
+}
+
+async function readRowsById<T extends { id: string }>(table: string, select: string, ids: string[]) {
+  if (ids.length === 0) {
+    return new Map<string, T>();
+  }
+
+  const rows = await fetchSupabaseAdminTable<T>(
+    `${table}?select=${select}&id=${inFilter(ids)}`
+  ).catch(() => []);
+
+  return new Map(rows.map((row) => [row.id, row]));
+}
+
 async function readHomeEditorial() {
   const rows = await fetchSupabaseAdminTable<HomeEditorial>(
     "site_editorials?select=id,slug,status,headline_title,headline_subtitle,headline_image_url,headline_title_color,below_headline_mode,below_headline_heading,below_headline_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color&slug=eq.home&limit=1"
@@ -734,12 +848,90 @@ async function readLatestNews(siteEditorialId: string) {
   return new Map(rows.map((row) => [row.sort_order, row]));
 }
 
+async function readFeaturedMatches() {
+  return fetchSupabaseAdminTable<HomeFeaturedMatch>(
+    "site_featured_matches?select=id,match_id,sort_order&order=sort_order.asc.nullslast,created_at.asc"
+  ).catch(() => []);
+}
+
+async function readAvailableMatchesByCompetition(): Promise<AdminFeaturedMatchGroup[]> {
+  const matches = await fetchSupabaseAdminTable<AdminMatchRow>(
+    "matches?select=id,home_team_id,away_team_id,matchday_id,kickoff_at&order=kickoff_at.asc.nullslast&limit=500"
+  ).catch(() => []);
+
+  const teamsById = await readRowsById<AdminTeamRow>(
+    "teams",
+    "id,name,short_name",
+    uniqueValues(matches.flatMap((match) => [match.home_team_id, match.away_team_id]))
+  );
+  const matchdaysById = await readRowsById<AdminMatchdayRow>(
+    "matchdays",
+    "id,number,season_id",
+    uniqueValues(matches.map((match) => match.matchday_id))
+  );
+  const seasonsById = await readRowsById<AdminSeasonRow>(
+    "seasons",
+    "id,label,competition_id",
+    uniqueValues(Array.from(matchdaysById.values()).map((matchday) => matchday.season_id))
+  );
+  const competitionsById = await readRowsById<AdminCompetitionRow>(
+    "competitions",
+    "id,name,slug",
+    uniqueValues(Array.from(seasonsById.values()).map((season) => season.competition_id))
+  );
+
+  const groupsByCompetition = new Map<string, AdminFeaturedMatchGroup>();
+  const teamName = (teamId: string | null, fallback: string) => {
+    const team = teamId ? teamsById.get(teamId) : null;
+    return team?.name?.trim() || team?.short_name?.trim() || fallback;
+  };
+
+  for (const match of matches) {
+    const matchday = match.matchday_id ? matchdaysById.get(match.matchday_id) : null;
+    const season = matchday?.season_id ? seasonsById.get(matchday.season_id) : null;
+    const competition = season?.competition_id ? competitionsById.get(season.competition_id) : null;
+    const competitionId = competition?.id ?? "sem-competicao";
+    const competitionName = competition?.name?.trim() || "Competicao por definir";
+    const group = groupsByCompetition.get(competitionId) ?? {
+      competitionId,
+      competitionName,
+      sortOrder: 999,
+      matches: []
+    };
+
+    group.matches.push({
+      id: match.id,
+      homeTeamName: teamName(match.home_team_id, "Equipa da casa"),
+      awayTeamName: teamName(match.away_team_id, "Equipa visitante"),
+      kickoffAt: match.kickoff_at,
+      matchdayNumber: matchday?.number ?? null
+    });
+    groupsByCompetition.set(competitionId, group);
+  }
+
+  return Array.from(groupsByCompetition.values())
+    .map((group) => ({
+      ...group,
+      matches: group.matches.sort((first, second) => {
+        const firstMatchday = first.matchdayNumber ?? 999;
+        const secondMatchday = second.matchdayNumber ?? 999;
+        if (firstMatchday !== secondMatchday) return firstMatchday - secondMatchday;
+        return (first.kickoffAt ?? "").localeCompare(second.kickoffAt ?? "");
+      })
+    }))
+    .sort((first, second) => {
+      if (first.sortOrder !== second.sortOrder) return first.sortOrder - second.sortOrder;
+      return first.competitionName.localeCompare(second.competitionName);
+    });
+}
+
 function feedbackMessage(created?: string, error?: string) {
   const createdLabels: Record<string, string> = {
     save_home_editorial: "Capa editorial da home guardada.",
     save_home_highlights: "Destaques da home guardados.",
     save_home_roundup_items: "Resumo da home guardado.",
     save_home_latest_news: "Ultimas noticias da home guardadas.",
+    save_home_featured_matches: "Jogos da pagina inicial guardados.",
     upload_home_headline_image: "Imagem da manchete carregada.",
     upload_home_highlight_image: "Imagem do destaque carregada."
   };
@@ -761,6 +953,11 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
   const highlights = editorial ? await readHighlights(editorial.id) : new Map<number, HomeHighlight>();
   const roundupItems = editorial ? await readRoundupItems(editorial.id) : new Map<number, HomeRoundupItem>();
   const latestNews = editorial ? await readLatestNews(editorial.id) : new Map<number, HomeLatestNews>();
+  const [featuredMatches, availableMatchesByCompetition] = await Promise.all([
+    readFeaturedMatches(),
+    readAvailableMatchesByCompetition()
+  ]);
+  const selectedFeaturedMatchIds = new Set(featuredMatches.map((match) => match.match_id));
   const message = feedbackMessage(oneParam(query, "created"), oneParam(query, "error"));
   const feedbackScope = oneParam(query, "feedback_scope");
   const renderScopedMessage = (scope: string) =>
@@ -778,6 +975,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
   const returnToResumo = scopedReturnTo("resumo-jornada");
   const returnToComplementar = scopedReturnTo("bloco-complementar");
   const returnToUltimasNoticias = scopedReturnTo("ultimas-noticias");
+  const returnToJogosHome = scopedReturnTo("jogos-home");
   const belowHeadlineHeadingFallback = "Capa Jornada.pt";
   const roundupVideoHeadingFallback = "Capa Jornada.pt - Videos e resumo";
   const highlightsFormId = "home-highlights-form";
@@ -983,6 +1181,41 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
       </section>
 
       {message && !feedbackScope ? <div className={`editorial-admin-message ${message.type === "warning" ? "warning" : ""}`}>{message.text}</div> : null}
+
+      <section className="editorial-admin-panel editorial-admin-composition" id="jogos-home">
+        <header>
+          <h2>Jogos na pagina inicial</h2>
+          <p>Seleciona os jogos existentes que aparecem na barra da home. A selecao guarda apenas o match_id.</p>
+        </header>
+        {renderScopedMessage("jogos-home")}
+        <form className="editorial-admin-form" action="/api/admin/editorial/home" method="post">
+          <input type="hidden" name="action_type" value="save_home_featured_matches" />
+          <input type="hidden" name="return_to" value={returnToJogosHome} />
+          {availableMatchesByCompetition.length > 0 ? (
+            <div className="home-featured-matches-list">
+              {availableMatchesByCompetition.map((group) => (
+                <section className="home-featured-matches-group" key={group.competitionId}>
+                  <h3>{group.competitionName}</h3>
+                  {group.matches.map((match) => (
+                    <label className="home-featured-match-row" key={match.id}>
+                      <input
+                        defaultChecked={selectedFeaturedMatchIds.has(match.id)}
+                        name="featured_match_id"
+                        type="checkbox"
+                        value={match.id}
+                      />
+                      <span>{match.homeTeamName} vs {match.awayTeamName}</span>
+                    </label>
+                  ))}
+                </section>
+              ))}
+            </div>
+          ) : (
+            <p className="editorial-admin-muted">Nao foram encontrados jogos para selecionar.</p>
+          )}
+          <button className="editorial-admin-button" type="submit">Guardar selecao de jogos</button>
+        </form>
+      </section>
 
       <div className="editorial-admin-grid">
         <section className="editorial-admin-panel" id="manchete">
