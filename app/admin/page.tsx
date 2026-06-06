@@ -412,9 +412,10 @@ function oneParam(params: Record<string, string | string[] | undefined>, key: st
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const query = searchParams ? await searchParams : {};
-  const selectedMatchdayId = oneParam(query, "jornada");
-  const matchdayEditorialHref = selectedMatchdayId ? `/admin/editorial/jornada/${encodeURIComponent(selectedMatchdayId)}` : null;
+  const requestedMatchdayId = oneParam(query, "jornada");
   const overview = await getAdminOverview();
+  const selectedMatchdayId = requestedMatchdayId ?? overview.matchdays[0]?.id ?? null;
+  const matchdayEditorialHref = selectedMatchdayId ? `/admin/editorial/jornada/${encodeURIComponent(selectedMatchdayId)}` : null;
   const countriesById = new Map(overview.countries.map((country) => [country.id, country]));
   const competitionsById = new Map(overview.competitions.map((competition) => [competition.id, competition]));
 
@@ -431,10 +432,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <a href="/admin/gestor">Centro de gestao</a>
           <a href="/admin/editorial/home">HOME EDITORIAL</a>
           {matchdayEditorialHref ? (
-            <a href={matchdayEditorialHref}>Editorial da jornada</a>
+            <a href={matchdayEditorialHref}>EDITORIAL DA JORNADA</a>
           ) : (
-            <span aria-disabled="true" className="admin-disabled-link" title="Selecione uma jornada primeiro">
-              Selecione uma jornada primeiro
+            <span aria-disabled="true" className="admin-disabled-link" title="Sem jornada disponivel">
+              SEM JORNADA DISPONIVEL
             </span>
           )}
           <a href="/">Voltar ao site</a>
