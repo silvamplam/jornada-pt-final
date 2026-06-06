@@ -373,19 +373,25 @@ export const publicEditorialStyles = `
 
   .public-matchday-mini-card .public-matchday-mini-status {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     justify-content: flex-start;
-    gap: 4px;
+    gap: 3px;
     min-width: 0;
+    overflow: hidden;
     padding: 3px 0 0 30px;
     border-radius: 0;
     background: transparent;
     color: #607086;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 800;
     line-height: 1.15;
     text-transform: none;
+    white-space: nowrap;
+  }
+
+  .public-matchday-mini-card .public-matchday-mini-status > * {
+    flex: 0 0 auto;
   }
 
   .public-matchday-mini-time {
@@ -394,6 +400,7 @@ export const publicEditorialStyles = `
   }
 
   .public-matchday-mini-channel {
+    flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
     color: #607086;
