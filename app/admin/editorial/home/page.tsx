@@ -504,7 +504,7 @@ const styles = `
 
   .home-featured-matches-group {
     display: grid;
-    gap: 6px;
+    gap: 10px;
     padding: 12px;
     border: 1px solid #dce3eb;
     border-radius: 8px;
@@ -517,25 +517,35 @@ const styles = `
     font-size: 16px;
   }
 
+  .home-featured-matches-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px 14px;
+  }
+
   .home-featured-match-row {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 0;
-    border-top: 1px solid #e6ebf1;
+    min-width: 0;
+    padding: 4px 0;
     color: #263241;
     font-size: 14px;
     font-weight: 800;
-  }
-
-  .home-featured-match-row:first-of-type {
-    border-top: 0;
+    line-height: 1.25;
   }
 
   .home-featured-match-row input {
     width: 17px;
     height: 17px;
     flex: 0 0 auto;
+  }
+
+  .home-featured-match-row span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .editorial-admin-composition-grid {
@@ -746,7 +756,8 @@ const styles = `
     .home-admin-roundup-panel,
     .home-admin-latest-panel,
     .editorial-admin-grid,
-    .editorial-admin-composition-grid {
+    .editorial-admin-composition-grid,
+    .home-featured-matches-grid {
       grid-template-columns: 1fr;
     }
 
@@ -1196,17 +1207,19 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
               {availableMatchesByCompetition.map((group) => (
                 <section className="home-featured-matches-group" key={group.competitionId}>
                   <h3>{group.competitionName}</h3>
-                  {group.matches.map((match) => (
-                    <label className="home-featured-match-row" key={match.id}>
-                      <input
-                        defaultChecked={selectedFeaturedMatchIds.has(match.id)}
-                        name="featured_match_id"
-                        type="checkbox"
-                        value={match.id}
-                      />
-                      <span>{match.homeTeamName} vs {match.awayTeamName}</span>
-                    </label>
-                  ))}
+                  <div className="home-featured-matches-grid">
+                    {group.matches.map((match) => (
+                      <label className="home-featured-match-row" key={match.id}>
+                        <input
+                          defaultChecked={selectedFeaturedMatchIds.has(match.id)}
+                          name="featured_match_id"
+                          type="checkbox"
+                          value={match.id}
+                        />
+                        <span>{match.homeTeamName} vs {match.awayTeamName}</span>
+                      </label>
+                    ))}
+                  </div>
                 </section>
               ))}
             </div>
