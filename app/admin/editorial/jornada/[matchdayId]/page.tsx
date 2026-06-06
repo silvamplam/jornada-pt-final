@@ -87,6 +87,14 @@ const editorialPageStyles = `
     font-size: 15px;
   }
 
+  .editorial-admin-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
   .editorial-admin-button {
     display: inline-block;
     width: fit-content;
@@ -355,6 +363,10 @@ const editorialPageStyles = `
     .editorial-admin-hero {
       display: grid;
     }
+
+    .editorial-admin-hero-actions {
+      justify-content: flex-start;
+    }
   }
 `;
 
@@ -509,15 +521,14 @@ function gestorReturnUrl(context: MatchdayContext) {
   const params = new URLSearchParams({
     competicao: context.competition.id,
     epoca: context.season.id,
-    jornada: context.matchday.id,
-    section: "linha-editorial"
+    jornada: context.matchday.id
   });
 
   if (context.country) {
     params.set("pais", context.country.id);
   }
 
-  return `/admin/gestor?${params.toString()}#linha-editorial`;
+  return `/admin/gestor?${params.toString()}`;
 }
 
 export default async function AdminMatchdayEditorialPage({ params, searchParams }: EditorialPageProps) {
@@ -758,9 +769,17 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           <h1>Editar editorial</h1>
           <small>{contextLabel}</small>
         </div>
-        <a className="editorial-admin-button secondary" href={backToGestor}>
-          Voltar ao gestor
-        </a>
+        <div className="editorial-admin-hero-actions">
+          <a className="editorial-admin-button secondary" href={backToGestor}>
+            Voltar ao gestor
+          </a>
+          <a className="editorial-admin-button secondary" href="/admin/editorial/home">
+            HOME EDITORIAL
+          </a>
+          <a className="editorial-admin-button secondary" href="/admin">
+            VOLTAR AO BACKOFFICE
+          </a>
+        </div>
       </section>
 
       {feedbackScope ? null : messageFor(created, error)}
