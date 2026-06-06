@@ -83,15 +83,54 @@ function teamInitials(name?: string | null, shortName?: string | null) {
   return initials || "FC";
 }
 
-function shortTeamLabel(name?: string | null, shortName?: string | null) {
-  const editorialName = name?.trim();
-  const fallback = shortName?.trim() || editorialName || "Equipa";
+function normalizeTeamName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const compactTeamNameOverrides: Record<string, string> = {
+  "academico de viseu": "A. de Viseu",
+  "manchester city": "M. City",
+  "manchester united": "M. United",
+  "atletico madrid": "A. Madrid",
+  "real sociedad": "R. Sociedad",
+  "nottingham forest": "N. Forest",
+  "brighton & hove albion": "Brighton",
+  "brighton and hove albion": "Brighton",
+  "deportivo la coruna": "Dep. La Coruña",
+  "rayo vallecano": "R. Vallecano",
+  "tottenham hotspur": "Tottenham"
+};
+
+function compactTeamName(team?: PublicMatchStripTeam | null) {
+  const editorialName = team?.name?.trim();
+  const fallback = team?.short_name?.trim() || editorialName || "Equipa";
 
   if (!editorialName) {
     return fallback;
   }
 
-  return editorialName.length <= 20 ? editorialName : fallback;
+  const normalizedName = normalizeTeamName(editorialName);
+  const override = compactTeamNameOverrides[normalizedName];
+  if (override) {
+    return override;
+  }
+
+  if (editorialName.length <= 13) {
+    return editorialName;
+  }
+
+  const parts = editorialName.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    const compactName = `${parts[0][0]}. ${parts.slice(1).join(" ")}`;
+    return compactName.length <= 16 ? compactName : `${parts[0][0]}. ${parts[1]}`;
+  }
+
+  return fallback.length <= 13 ? fallback : editorialName;
 }
 
 function TeamBadge({ team }: { team?: PublicMatchStripTeam | null }) {
@@ -115,12 +154,12 @@ function CompactMatchCard({ match, focus }: { match: PublicMatchStripMatch; focu
     <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>
       <span className="public-matchday-mini-team">
         <TeamBadge team={match.homeTeam} />
-        <span>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</span>
+        <span>{compactTeamName(match.homeTeam)}</span>
         {showScore ? <b className="public-matchday-mini-score">{match.home_score}</b> : null}
       </span>
       <span className="public-matchday-mini-team">
         <TeamBadge team={match.awayTeam} />
-        <span>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</span>
+        <span>{compactTeamName(match.awayTeam)}</span>
         {showScore ? <b className="public-matchday-mini-score">{match.away_score}</b> : null}
       </span>
       <span className="public-matchday-mini-status">
