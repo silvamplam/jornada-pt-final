@@ -169,7 +169,17 @@ const managerStyles = `
     font-size: 16px;
   }
 
+  .manager-hero-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
   .manager-hero a,
+  .manager-hero .manager-disabled-link,
   .manager-button,
   .manager-link-button {
     display: inline-block;
@@ -191,6 +201,14 @@ const managerStyles = `
   .manager-hero a {
     border: 1px solid rgba(255, 255, 255, 0.28);
     background: transparent;
+  }
+
+  .manager-hero .manager-disabled-link {
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: transparent;
+    opacity: 0.52;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 
   .manager-subtle-button {
@@ -1126,6 +1144,7 @@ const managerStyles = `
     }
 
     .manager-hero a,
+    .manager-hero .manager-disabled-link,
     .manager-button {
       width: 100%;
       text-align: center;
@@ -2289,6 +2308,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     epoca: selectedSeason?.id ?? "",
     jornada: selectedMatchday?.id ?? ""
   };
+  const homeEditorialHref = selectedMatchday
+    ? `/admin/editorial/home?jornada=${encodeURIComponent(selectedMatchday.id)}`
+    : "/admin/editorial/home";
+  const matchdayEditorialHref = selectedMatchday
+    ? `/admin/editorial/jornada/${encodeURIComponent(selectedMatchday.id)}`
+    : null;
 
   return (
     <main className="manager-shell">
@@ -2466,7 +2491,17 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             Resultados - Classificacao. As acoes de suporte ficam separadas em manutencao.
           </span>
         </div>
-        <a href="/admin">Voltar ao backoffice</a>
+        <div className="manager-hero-actions">
+          <a href="/admin">Voltar ao backoffice</a>
+          <a href={homeEditorialHref}>Home editorial</a>
+          {matchdayEditorialHref ? (
+            <a href={matchdayEditorialHref}>Editorial da jornada</a>
+          ) : (
+            <span aria-disabled="true" className="manager-disabled-link" title="Selecione uma jornada primeiro">
+              Selecione uma jornada primeiro
+            </span>
+          )}
+        </div>
       </header>
 
       {!messageSection && created && createdLabels[created] ? <div className="manager-message">{createdLabels[created]}</div> : null}
