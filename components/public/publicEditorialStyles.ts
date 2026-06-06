@@ -107,13 +107,15 @@ export const publicEditorialStyles = `
   }
 
   .public-site-search::before {
-    content: "?";
+    content: "";
     display: grid;
     place-items: center;
     width: 20px;
     height: 20px;
     border-radius: 999px;
-    background: #ffe04f;
+    background: #ffe04f
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10.5 18a7.5 7.5 0 1 1 5.3-12.8 7.5 7.5 0 0 1-5.3 12.8Zm5.7-1.8 4.1 4.1' fill='none' stroke='%2310151b' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E")
+      center / 13px 13px no-repeat;
     color: #10151b;
     font-size: 13px;
   }
