@@ -229,32 +229,33 @@ async function readHomeFeaturedMatches(): Promise<PublicMatchStripMatch[]> {
   );
   const sortOrderByMatchId = new Map(featuredRows.map((row) => [row.match_id, row.sort_order]));
 
-  return matchIds
-    .map((matchId) => {
-      const match = matchesById.get(matchId);
-      if (!match) return null;
+  const selectedMatches: PublicMatchStripMatch[] = [];
 
-      return {
-        id: match.id,
-        kickoff_at: match.kickoff_at,
-        status: match.status ?? "scheduled",
-        minute: match.minute,
-        home_score: match.home_score,
-        away_score: match.away_score,
-        homeTeam: match.home_team_id ? teamsById.get(match.home_team_id) ?? null : null,
-        awayTeam: match.away_team_id ? teamsById.get(match.away_team_id) ?? null : null,
-        broadcastChannel: broadcastChannelsByMatchId.get(match.id) ?? null
-      };
-    })
-    .filter((match): match is PublicMatchStripMatch => match !== null)
-    .sort((first, second) => {
-      const firstOrder = sortOrderByMatchId.get(first.id) ?? null;
-      const secondOrder = sortOrderByMatchId.get(second.id) ?? null;
-      if (firstOrder !== null && secondOrder !== null && firstOrder !== secondOrder) return firstOrder - secondOrder;
-      if (firstOrder !== null && secondOrder === null) return -1;
-      if (firstOrder === null && secondOrder !== null) return 1;
-      return (first.kickoff_at ?? "").localeCompare(second.kickoff_at ?? "");
+  for (const matchId of matchIds) {
+    const match = matchesById.get(matchId);
+    if (!match) continue;
+
+    selectedMatches.push({
+      id: match.id,
+      kickoff_at: match.kickoff_at,
+      status: match.status ?? "scheduled",
+      minute: match.minute,
+      home_score: match.home_score,
+      away_score: match.away_score,
+      homeTeam: match.home_team_id ? teamsById.get(match.home_team_id) ?? null : null,
+      awayTeam: match.away_team_id ? teamsById.get(match.away_team_id) ?? null : null,
+      broadcastChannel: broadcastChannelsByMatchId.get(match.id) ?? null
     });
+  }
+
+  return selectedMatches.sort((first, second) => {
+    const firstOrder = sortOrderByMatchId.get(first.id) ?? null;
+    const secondOrder = sortOrderByMatchId.get(second.id) ?? null;
+    if (firstOrder !== null && secondOrder !== null && firstOrder !== secondOrder) return firstOrder - secondOrder;
+    if (firstOrder !== null && secondOrder === null) return -1;
+    if (firstOrder === null && secondOrder !== null) return 1;
+    return (first.kickoff_at ?? "").localeCompare(second.kickoff_at ?? "");
+  });
 }
 
 async function readBroadcastChannelsByMatchId(matchIds: string[]) {
