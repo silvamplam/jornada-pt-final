@@ -243,6 +243,13 @@ const styles = `
     color: #ffffff;
   }
 
+  .home-admin-button.disabled,
+  .editorial-admin-button.disabled {
+    opacity: 0.52;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
   .home-admin-grid,
   .home-admin-two-grid {
     display: grid;
@@ -1034,6 +1041,8 @@ function feedbackMessage(created?: string, error?: string) {
 
 export default async function HomeEditorialAdminPage({ searchParams }: HomeEditorialPageProps) {
   const query = searchParams ? await searchParams : {};
+  const selectedMatchdayId = oneParam(query, "jornada");
+  const matchdayEditorialHref = selectedMatchdayId ? `/admin/editorial/jornada/${encodeURIComponent(selectedMatchdayId)}` : null;
   const editorial = await readHomeEditorial();
   const highlights = editorial ? await readHighlights(editorial.id) : new Map<number, HomeHighlight>();
   const roundupItems = editorial ? await readRoundupItems(editorial.id) : new Map<number, HomeRoundupItem>();
@@ -1076,7 +1085,16 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
             <h1>Home editorial</h1>
             <small>O registo site_editorials.slug = home ainda nao esta disponivel.</small>
           </div>
-          <a className="home-admin-button secondary" href="/admin/gestor">Voltar ao gestor</a>
+          <div className="home-admin-hero-actions">
+            <a className="home-admin-button secondary" href="/admin/gestor">Voltar ao gestor</a>
+            {matchdayEditorialHref ? (
+              <a className="home-admin-button secondary" href={matchdayEditorialHref}>Editorial da jornada</a>
+            ) : (
+              <span aria-disabled="true" className="home-admin-button secondary disabled" title="Selecione uma jornada primeiro">
+                Selecione uma jornada primeiro
+              </span>
+            )}
+          </div>
         </section>
       </main>
     );
@@ -1252,7 +1270,13 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
         </div>
         <div className="editorial-admin-hero-actions">
           <a className="editorial-admin-button secondary" href="/admin/gestor">Voltar ao gestor</a>
-          <a className="editorial-admin-button secondary" href="/">Ver site</a>
+          {matchdayEditorialHref ? (
+            <a className="editorial-admin-button secondary" href={matchdayEditorialHref}>Editorial da jornada</a>
+          ) : (
+            <span aria-disabled="true" className="editorial-admin-button secondary disabled" title="Selecione uma jornada primeiro">
+              Selecione uma jornada primeiro
+            </span>
+          )}
         </div>
       </section>
 

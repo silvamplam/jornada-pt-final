@@ -2,6 +2,10 @@ import { getAdminOverview } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
+type AdminPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
 const adminPageStyles = `
   body {
     margin: 0;
@@ -66,7 +70,8 @@ const adminPageStyles = `
   }
 
   .admin-hero a,
-  .admin-hero button {
+  .admin-hero button,
+  .admin-hero .admin-disabled-link {
     display: inline-block;
     flex: 0 0 auto;
     padding: 11px 16px;
@@ -81,6 +86,12 @@ const adminPageStyles = `
     text-decoration: none;
     text-transform: uppercase;
     cursor: pointer;
+  }
+
+  .admin-hero .admin-disabled-link {
+    opacity: 0.52;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 
   .admin-hero button {
@@ -386,14 +397,23 @@ const adminPageStyles = `
     }
 
     .admin-hero-actions a,
-    .admin-hero-actions button {
+    .admin-hero-actions button,
+    .admin-hero-actions .admin-disabled-link {
       width: 100%;
       text-align: center;
     }
   }
 `;
 
-export default async function AdminPage() {
+function oneParam(params: Record<string, string | string[] | undefined>, key: string) {
+  const value = params[key];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function AdminPage({ searchParams }: AdminPageProps) {
+  const query = searchParams ? await searchParams : {};
+  const selectedMatchdayId = oneParam(query, "jornada");
+  const matchdayEditorialHref = selectedMatchdayId ? `/admin/editorial/jornada/${encodeURIComponent(selectedMatchdayId)}` : null;
   const overview = await getAdminOverview();
   const countriesById = new Map(overview.countries.map((country) => [country.id, country]));
   const competitionsById = new Map(overview.competitions.map((competition) => [competition.id, competition]));
@@ -410,6 +430,13 @@ export default async function AdminPage() {
         <div className="admin-hero-actions">
           <a href="/admin/gestor">Centro de gestao</a>
           <a href="/admin/editorial/home">HOME EDITORIAL</a>
+          {matchdayEditorialHref ? (
+            <a href={matchdayEditorialHref}>Editorial da jornada</a>
+          ) : (
+            <span aria-disabled="true" className="admin-disabled-link" title="Selecione uma jornada primeiro">
+              Selecione uma jornada primeiro
+            </span>
+          )}
           <a href="/">Voltar ao site</a>
           <form action="/api/admin/logout" method="post">
             <button type="submit">Sair</button>
