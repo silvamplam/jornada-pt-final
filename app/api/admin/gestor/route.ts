@@ -1036,9 +1036,9 @@ async function saveMatchdayRoundupItems(formData: FormData) {
     const imageUrl = cleanText(formData.get(`roundup_${sortOrder}_image_url`));
     const videoUrl = cleanText(formData.get(`roundup_${sortOrder}_video_url`));
     const duration = cleanText(formData.get(`roundup_${sortOrder}_duration`));
-    const typeValue = cleanText(formData.get(`roundup_${sortOrder}_type`)) ?? "resumo";
+    const typeValue = cleanText(formData.get(`roundup_${sortOrder}_type`)) ?? "video";
     const statusValue = cleanText(formData.get(`roundup_${sortOrder}_status`)) ?? "draft";
-    const type = allowedTypes.has(typeValue) ? typeValue : "resumo";
+    const type = allowedTypes.has(typeValue) ? typeValue : "video";
     const status = statusValue === "published" ? "published" : "draft";
     const hasContent = Boolean(label || title || subtitle || imageUrl || videoUrl || duration);
 

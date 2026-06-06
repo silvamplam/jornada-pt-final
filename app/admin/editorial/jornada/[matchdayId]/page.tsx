@@ -682,15 +682,6 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               <input id={`roundup-${order}-duration`} name={`roundup_${order}_duration`} defaultValue={item?.duration ?? ""} placeholder="5:42" />
             </div>
             <div className="editorial-admin-field">
-              <label htmlFor={`roundup-${order}-type`}>Tipo</label>
-              <select id={`roundup-${order}-type`} name={`roundup_${order}_type`} defaultValue={item?.type ?? "resumo"}>
-                <option value="video">Video</option>
-                <option value="golos">Golos</option>
-                <option value="resumo">Resumo</option>
-                <option value="noticia">Noticia</option>
-              </select>
-            </div>
-            <div className="editorial-admin-field">
               <label htmlFor={`roundup-${order}-status`}>Estado</label>
               <select id={`roundup-${order}-status`} name={`roundup_${order}_status`} defaultValue={item?.status ?? "draft"}>
                 <option value="draft">Rascunho</option>
