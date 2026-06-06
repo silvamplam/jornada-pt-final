@@ -885,6 +885,14 @@ async function readFeaturedMatches() {
   ).catch(() => []);
 }
 
+async function readFirstAvailableMatchdayId() {
+  const rows = await fetchSupabaseAdminTable<{ id: string }>(
+    "matchdays?select=id&order=starts_on.asc.nullslast,number.asc&limit=1"
+  ).catch(() => []);
+
+  return rows[0]?.id ?? null;
+}
+
 function kickoffTimestamp(kickoffAt: string | null) {
   if (!kickoffAt) return null;
   const timestamp = new Date(kickoffAt).getTime();
@@ -1041,7 +1049,9 @@ function feedbackMessage(created?: string, error?: string) {
 
 export default async function HomeEditorialAdminPage({ searchParams }: HomeEditorialPageProps) {
   const query = searchParams ? await searchParams : {};
-  const selectedMatchdayId = oneParam(query, "jornada");
+  const requestedMatchdayId = oneParam(query, "jornada");
+  const fallbackMatchdayId = requestedMatchdayId ? null : await readFirstAvailableMatchdayId();
+  const selectedMatchdayId = requestedMatchdayId ?? fallbackMatchdayId;
   const matchdayEditorialHref = selectedMatchdayId ? `/admin/editorial/jornada/${encodeURIComponent(selectedMatchdayId)}` : null;
   const editorial = await readHomeEditorial();
   const highlights = editorial ? await readHighlights(editorial.id) : new Map<number, HomeHighlight>();
@@ -1088,10 +1098,10 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
           <div className="home-admin-hero-actions">
             <a className="home-admin-button secondary" href="/admin/gestor">Voltar ao gestor</a>
             {matchdayEditorialHref ? (
-              <a className="home-admin-button secondary" href={matchdayEditorialHref}>Editorial da jornada</a>
+              <a className="home-admin-button secondary" href={matchdayEditorialHref}>EDITORIAL DA JORNADA</a>
             ) : (
-              <span aria-disabled="true" className="home-admin-button secondary disabled" title="Selecione uma jornada primeiro">
-                Selecione uma jornada primeiro
+              <span aria-disabled="true" className="home-admin-button secondary disabled" title="Sem jornada disponivel">
+                SEM JORNADA DISPONIVEL
               </span>
             )}
           </div>
@@ -1271,10 +1281,10 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
         <div className="editorial-admin-hero-actions">
           <a className="editorial-admin-button secondary" href="/admin/gestor">Voltar ao gestor</a>
           {matchdayEditorialHref ? (
-            <a className="editorial-admin-button secondary" href={matchdayEditorialHref}>Editorial da jornada</a>
+            <a className="editorial-admin-button secondary" href={matchdayEditorialHref}>EDITORIAL DA JORNADA</a>
           ) : (
-            <span aria-disabled="true" className="editorial-admin-button secondary disabled" title="Selecione uma jornada primeiro">
-              Selecione uma jornada primeiro
+            <span aria-disabled="true" className="editorial-admin-button secondary disabled" title="Sem jornada disponivel">
+              SEM JORNADA DISPONIVEL
             </span>
           )}
         </div>
