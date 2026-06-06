@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PublicEditorialLayout, type PublicEditorialHighlight, type PublicEditorialLatestNews } from "@/components/public/PublicEditorialLayout";
+import PublicMatchStrip, { type PublicMatchStripMatch } from "@/components/public/PublicMatchStrip";
 import { publicEditorialStyles } from "@/components/public/publicEditorialStyles";
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
@@ -71,6 +72,41 @@ type SiteLatestNews = {
   status: "draft" | "published";
 };
 
+type SiteFeaturedMatch = {
+  match_id: string;
+  sort_order: number | null;
+  created_at: string | null;
+};
+
+type HomeMatchRow = {
+  id: string;
+  home_team_id: string | null;
+  away_team_id: string | null;
+  kickoff_at: string | null;
+  status: string | null;
+  minute: number | string | null;
+  home_score: number | null;
+  away_score: number | null;
+};
+
+type HomeTeamRow = {
+  id: string;
+  name: string | null;
+  short_name: string | null;
+  logo_url: string | null;
+};
+
+type HomeBroadcastLinkRow = {
+  match_id: string | null;
+  broadcast_channel_id: string | null;
+};
+
+type HomeBroadcastChannelRow = {
+  id: string;
+  name: string | null;
+  logo_url: string | null;
+};
+
 const competitionLinks = [
   { label: "Liga Portugal", href: "/competicoes/liga-portugal/2026-27/jornadas/1" },
   { label: "La Liga", href: "/competicoes/la-liga/2026-27/jornadas/1" },
@@ -107,6 +143,26 @@ const fallbackHighlights = [
 function cleanText(value: string | null | undefined) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function inFilter(values: string[]) {
+  return `in.(${values.map((value) => encodeURIComponent(value)).join(",")})`;
+}
+
+function uniqueValues(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.filter((value): value is string => Boolean(value))));
+}
+
+async function readRowsById<T extends { id: string }>(table: string, select: string, ids: string[]) {
+  if (ids.length === 0) {
+    return new Map<string, T>();
+  }
+
+  const rows = await fetchSupabaseAdminTable<T>(
+    `${table}?select=${select}&id=${inFilter(ids)}`
+  ).catch(() => []);
+
+  return new Map(rows.map((row) => [row.id, row]));
 }
 
 function sideBlockTypeLabel(type: string | null | undefined) {
@@ -148,9 +204,100 @@ async function readHomeLatestNews(siteEditorialId: string) {
   ).catch(() => []);
 }
 
+async function readHomeFeaturedMatches(): Promise<PublicMatchStripMatch[]> {
+  const featuredRows = await fetchSupabaseAdminTable<SiteFeaturedMatch>(
+    "site_featured_matches?select=match_id,sort_order,created_at&order=sort_order.asc.nullslast,created_at.asc"
+  ).catch(() => []);
+  const matchIds = featuredRows.map((row) => row.match_id);
+
+  if (matchIds.length === 0) {
+    return [];
+  }
+
+  const [matchesById, broadcastChannelsByMatchId] = await Promise.all([
+    readRowsById<HomeMatchRow>(
+      "matches",
+      "id,home_team_id,away_team_id,kickoff_at,status,minute,home_score,away_score",
+      matchIds
+    ),
+    readBroadcastChannelsByMatchId(matchIds)
+  ]);
+  const teamsById = await readRowsById<HomeTeamRow>(
+    "teams",
+    "id,name,short_name,logo_url",
+    uniqueValues(Array.from(matchesById.values()).flatMap((match) => [match.home_team_id, match.away_team_id]))
+  );
+  const sortOrderByMatchId = new Map(featuredRows.map((row) => [row.match_id, row.sort_order]));
+
+  return matchIds
+    .map((matchId) => {
+      const match = matchesById.get(matchId);
+      if (!match) return null;
+
+      return {
+        id: match.id,
+        kickoff_at: match.kickoff_at,
+        status: match.status ?? "scheduled",
+        minute: match.minute,
+        home_score: match.home_score,
+        away_score: match.away_score,
+        homeTeam: match.home_team_id ? teamsById.get(match.home_team_id) ?? null : null,
+        awayTeam: match.away_team_id ? teamsById.get(match.away_team_id) ?? null : null,
+        broadcastChannel: broadcastChannelsByMatchId.get(match.id) ?? null
+      };
+    })
+    .filter((match): match is PublicMatchStripMatch => Boolean(match))
+    .sort((first, second) => {
+      const firstOrder = sortOrderByMatchId.get(first.id) ?? null;
+      const secondOrder = sortOrderByMatchId.get(second.id) ?? null;
+      if (firstOrder !== null && secondOrder !== null && firstOrder !== secondOrder) return firstOrder - secondOrder;
+      if (firstOrder !== null && secondOrder === null) return -1;
+      if (firstOrder === null && secondOrder !== null) return 1;
+      return (first.kickoff_at ?? "").localeCompare(second.kickoff_at ?? "");
+    });
+}
+
+async function readBroadcastChannelsByMatchId(matchIds: string[]) {
+  const empty = new Map<string, HomeBroadcastChannelRow>();
+  if (matchIds.length === 0) return empty;
+
+  const matchFilter = inFilter(matchIds);
+  const relationQueries = [
+    `match_broadcast_channels?select=match_id,broadcast_channel_id&match_id=${matchFilter}`,
+    `match_broadcasts?select=match_id,broadcast_channel_id&match_id=${matchFilter}`,
+    `matches_broadcast_channels?select=match_id,broadcast_channel_id&match_id=${matchFilter}`
+  ];
+  let links: HomeBroadcastLinkRow[] = [];
+
+  for (const query of relationQueries) {
+    links = await fetchSupabaseAdminTable<HomeBroadcastLinkRow>(query).catch(() => []);
+    if (links.length > 0) break;
+  }
+
+  if (links.length === 0) return empty;
+
+  const channelsById = await readRowsById<HomeBroadcastChannelRow>(
+    "broadcast_channels",
+    "id,name,logo_url",
+    uniqueValues(links.map((link) => link.broadcast_channel_id))
+  );
+  const channelsByMatchId = new Map<string, HomeBroadcastChannelRow>();
+
+  for (const link of links) {
+    if (!link.match_id || !link.broadcast_channel_id || channelsByMatchId.has(link.match_id)) continue;
+    const channel = channelsById.get(link.broadcast_channel_id);
+    if (channel) {
+      channelsByMatchId.set(link.match_id, channel);
+    }
+  }
+
+  return channelsByMatchId;
+}
+
 export default async function HomePage() {
   const editorial = await readHomeEditorial();
-  const [highlights, roundupItems, latestNews] = editorial
+  const featuredMatches = await readHomeFeaturedMatches();
+  const [highlights, roundupItems, latestNews]: [SiteHighlight[], SiteRoundupItem[], SiteLatestNews[]] = editorial
     ? await Promise.all([
         readHomeHighlights(editorial.id),
         readHomeRoundupItems(editorial.id),
@@ -222,6 +369,8 @@ export default async function HomePage() {
         </div>
       </header>
       </div>
+
+      <PublicMatchStrip matches={featuredMatches} />
 
       <PublicEditorialLayout
         ariaLabel="Capa da jornada"
