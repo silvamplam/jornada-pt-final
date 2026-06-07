@@ -1096,7 +1096,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
             <small>O registo site_editorials.slug = home ainda nao esta disponivel.</small>
           </div>
           <div className="home-admin-hero-actions">
-            <a className="home-admin-button secondary" href="/admin/gestor">Voltar ao gestor</a>
+            <a className="home-admin-button secondary" href="/admin/gestor">VOLTAR AO BACKOFFICE</a>
             {matchdayEditorialHref ? (
               <a className="home-admin-button secondary" href={matchdayEditorialHref}>EDITORIAL DA JORNADA</a>
             ) : (
@@ -1279,7 +1279,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
           <small>Edita site_editorials.slug = home, sem liga, epoca ou jornada associada.</small>
         </div>
         <div className="editorial-admin-hero-actions">
-          <a className="editorial-admin-button secondary" href="/admin/gestor">Voltar ao gestor</a>
+          <a className="editorial-admin-button secondary" href="/admin/gestor">VOLTAR AO BACKOFFICE</a>
           {matchdayEditorialHref ? (
             <a className="editorial-admin-button secondary" href={matchdayEditorialHref}>EDITORIAL DA JORNADA</a>
           ) : (
