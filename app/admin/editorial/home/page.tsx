@@ -57,6 +57,24 @@ type HomeLatestNews = {
   status: "draft" | "published";
 };
 
+type EditorialArticleOption = {
+  id: string;
+  slug: string;
+  status: string | null;
+  scope: string | null;
+  matchday_id: string | null;
+  competition_id: string | null;
+  title: string | null;
+  label: string | null;
+  published_at: string | null;
+  created_at: string | null;
+};
+
+type ArticleOptionGroup = {
+  label: string;
+  articles: EditorialArticleOption[];
+};
+
 type HomeRoundupItem = {
   id: string;
   site_editorial_id: string;
@@ -885,6 +903,56 @@ async function readFeaturedMatches() {
   ).catch(() => []);
 }
 
+async function readHomeArticleGroups(): Promise<ArticleOptionGroup[]> {
+  const articles = await fetchSupabaseAdminTable<EditorialArticleOption>(
+    "editorial_articles?select=id,slug,status,scope,matchday_id,competition_id,title,label,published_at,created_at&status=eq.published&order=published_at.desc&limit=300"
+  ).catch(() => []);
+
+  const globalArticles = articles.filter(
+    (article) => article.matchday_id === null && (!article.competition_id || article.scope === "general" || article.scope === "home")
+  );
+  const competitionArticles = articles.filter(
+    (article) => article.matchday_id === null && Boolean(article.competition_id) && article.scope !== "general" && article.scope !== "home"
+  );
+  const matchdayArticles = articles.filter((article) => article.matchday_id !== null);
+
+  return [
+    { label: "Artigos globais", articles: globalArticles },
+    { label: "Artigos de competição", articles: competitionArticles },
+    { label: "Artigos de jornada", articles: matchdayArticles }
+  ].filter((group) => group.articles.length > 0);
+}
+
+function articleOptionLabel(article: EditorialArticleOption) {
+  const label = article.label?.trim();
+  const title = article.title?.trim() || article.slug;
+  return label ? `${label} - ${title}` : title;
+}
+
+function ArticleLinkPicker({ inputId, groups }: { inputId: string; groups: ArticleOptionGroup[] }) {
+  if (groups.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="editorial-admin-field">
+      <label htmlFor={`${inputId}-article-picker`}>Escolher artigo</label>
+      <select data-article-link-picker data-target-input={inputId} defaultValue="" id={`${inputId}-article-picker`}>
+        <option value="">Preencher link com artigo publicado</option>
+        {groups.map((group) => (
+          <optgroup key={group.label} label={group.label}>
+            {group.articles.map((article) => (
+              <option key={article.id} value={`/noticias/${article.slug}`}>
+                {articleOptionLabel(article)}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 async function readFirstAvailableMatchdayId() {
   const rows = await fetchSupabaseAdminTable<{ id: string }>(
     "matchdays?select=id&order=starts_on.asc.nullslast,number.asc&limit=1"
@@ -1057,9 +1125,10 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
   const highlights = editorial ? await readHighlights(editorial.id) : new Map<number, HomeHighlight>();
   const roundupItems = editorial ? await readRoundupItems(editorial.id) : new Map<number, HomeRoundupItem>();
   const latestNews = editorial ? await readLatestNews(editorial.id) : new Map<number, HomeLatestNews>();
-  const [featuredMatches, availableMatchesByCompetition] = await Promise.all([
+  const [featuredMatches, availableMatchesByCompetition, articleGroups] = await Promise.all([
     readFeaturedMatches(),
-    readAvailableMatchesByCompetition()
+    readAvailableMatchesByCompetition(),
+    readHomeArticleGroups()
   ]);
   const selectedFeaturedMatchIds = new Set(featuredMatches.map((match) => match.match_id));
   const message = feedbackMessage(oneParam(query, "created"), oneParam(query, "error"));
@@ -1143,6 +1212,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
                 <label htmlFor={`highlight-${sortOrder}-link-url`}>Link</label>
                 <input form={highlightsFormId} id={`highlight-${sortOrder}-link-url`} name={`highlight_${sortOrder}_link_url`} defaultValue={item?.link_url ?? ""} />
               </div>
+              <ArticleLinkPicker groups={articleGroups} inputId={`highlight-${sortOrder}-link-url`} />
               {item?.image_url ? (
                 <div className="editorial-admin-preview">
                   <img alt="" src={item.image_url} />
@@ -1246,6 +1316,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
                 <label htmlFor={`latest-${sortOrder}-link-url`}>Link</label>
                 <input id={`latest-${sortOrder}-link-url`} name={`latest_${sortOrder}_link_url`} defaultValue={item?.link_url ?? ""} />
               </div>
+              <ArticleLinkPicker groups={articleGroups} inputId={`latest-${sortOrder}-link-url`} />
               <div className="editorial-admin-field">
                 <label htmlFor={`latest-${sortOrder}-image-url`}>Imagem URL opcional</label>
                 <input id={`latest-${sortOrder}-image-url`} name={`latest_${sortOrder}_image_url`} defaultValue={item?.image_url ?? ""} />
@@ -1438,6 +1509,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
               <label htmlFor="side-block-link-url">Link opcional</label>
               <input id="side-block-link-url" name="side_block_link_url" defaultValue={editorial.side_block_link_url ?? ""} />
             </div>
+            <ArticleLinkPicker groups={articleGroups} inputId="side-block-link-url" />
             <button className="editorial-admin-button" type="submit">Guardar bloco lateral</button>
           </form>
         </aside>
@@ -1565,6 +1637,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
                       <label htmlFor="complementary-link-url">Link da noticia completa</label>
                       <input id="complementary-link-url" name="complementary_link_url" defaultValue={editorial.complementary_link_url ?? ""} />
                     </div>
+                    <ArticleLinkPicker groups={articleGroups} inputId="complementary-link-url" />
                   </div>
                   <button className="editorial-admin-button" type="submit">Guardar bloco complementar</button>
                 </form>
@@ -1583,6 +1656,19 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
           dangerouslySetInnerHTML={{
             __html: `
               (function () {
+                document.addEventListener('change', function (event) {
+                  var select = event.target;
+                  if (!select || !select.matches || !select.matches('[data-article-link-picker]')) return;
+                  var targetInputId = select.getAttribute('data-target-input');
+                  if (!targetInputId || !select.value) return;
+                  var input = document.getElementById(targetInputId);
+                  if (!input) return;
+                  input.value = select.value;
+                  input.dispatchEvent(new Event('input', { bubbles: true }));
+                  input.dispatchEvent(new Event('change', { bubbles: true }));
+                  select.value = '';
+                });
+
                 var form = document.querySelector('[data-composition-form]');
                 if (!form) return;
                 var belowSelect = form.querySelector('[name="below_headline_mode"]');
