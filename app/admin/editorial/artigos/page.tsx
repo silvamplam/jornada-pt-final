@@ -17,6 +17,7 @@ type EditorialArticle = {
   label: string | null;
   author: string | null;
   image_url: string | null;
+  image_caption: string | null;
   body: string | null;
   published_at: string | null;
   created_at: string;
@@ -139,6 +140,11 @@ const styles = `
     border: 1px solid #cfd7e1;
     background: #ffffff;
     color: #10151b;
+  }
+
+  .articles-admin-button.disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 
   .articles-admin-grid {
@@ -304,7 +310,7 @@ function feedbackMessage(created?: string, error?: string) {
 
 async function readArticles() {
   return fetchSupabaseAdminTable<EditorialArticle>(
-    "editorial_articles?select=id,slug,status,scope,matchday_id,competition_id,title,subtitle,label,author,image_url,body,published_at,created_at,updated_at&order=updated_at.desc&limit=200"
+    "editorial_articles?select=id,slug,status,scope,matchday_id,competition_id,title,subtitle,label,author,image_url,image_caption,body,published_at,created_at,updated_at&order=updated_at.desc&limit=200"
   ).catch(() => []);
 }
 
@@ -428,6 +434,10 @@ function ArticleForm({
           <label htmlFor="article-image-url">Imagem URL</label>
           <input id="article-image-url" name="image_url" defaultValue={article?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
         </div>
+        <div className="articles-admin-field wide">
+          <label htmlFor="article-image-caption">Legenda da imagem</label>
+          <input id="article-image-caption" name="image_caption" defaultValue={article?.image_caption ?? ""} placeholder="Legenda discreta da imagem principal" />
+        </div>
         <div className="articles-admin-field">
           <label htmlFor="article-published-at">Data/hora de publicacao</label>
           <input id="article-published-at" name="published_at" type="datetime-local" defaultValue={formatDateTimeLocal(article?.published_at ?? null)} />
@@ -445,9 +455,12 @@ function ArticleForm({
 export default async function ArticlesAdminPage({ searchParams }: ArticlesAdminPageProps) {
   const query = searchParams ? await searchParams : {};
   const selectedArticleId = oneParam(query, "artigo");
+  const selectedMatchdayId = oneParam(query, "jornada");
   const [articles, competitions] = await Promise.all([readArticles(), readCompetitions()]);
   const matchdays = await readMatchdayOptions(competitions);
   const selectedArticle = selectedArticleId ? articles.find((article) => article.id === selectedArticleId) ?? null : null;
+  const fallbackMatchdayId = selectedMatchdayId || matchdays[0]?.id || null;
+  const matchdayEditorialHref = fallbackMatchdayId ? `/admin/editorial/jornada/${encodeURIComponent(fallbackMatchdayId)}` : null;
   const message = feedbackMessage(oneParam(query, "created"), oneParam(query, "error"));
 
   return (
@@ -464,7 +477,15 @@ export default async function ArticlesAdminPage({ searchParams }: ArticlesAdminP
         </div>
         <div className="articles-admin-actions">
           <a className="articles-admin-button secondary" href="/admin">Voltar ao backoffice</a>
+          <a className="articles-admin-button secondary" href="/admin/gestor">CENTRO DE GESTÃO</a>
           <a className="articles-admin-button secondary" href="/admin/editorial/home">Home editorial</a>
+          {matchdayEditorialHref ? (
+            <a className="articles-admin-button secondary" href={matchdayEditorialHref}>EDITORIAL DA JORNADA</a>
+          ) : (
+            <span aria-disabled="true" className="articles-admin-button secondary disabled" title="Sem jornada disponivel">
+              SEM JORNADA DISPONIVEL
+            </span>
+          )}
           <a className="articles-admin-button" href="/admin/editorial/artigos">Novo artigo</a>
         </div>
       </section>

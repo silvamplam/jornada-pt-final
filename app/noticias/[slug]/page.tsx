@@ -22,6 +22,7 @@ type EditorialArticle = {
   label: string | null;
   author: string | null;
   image_url: string | null;
+  image_caption: string | null;
   body: string | null;
   published_at: string | null;
   created_at: string | null;
@@ -136,6 +137,14 @@ const articleStyles = `
     max-height: 430px;
     object-fit: cover;
     border-radius: 0;
+  }
+
+  .public-article-image figcaption {
+    margin-top: 7px;
+    color: #727272;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
   }
 
   .public-article-body {
@@ -446,7 +455,7 @@ function bodyBlocks(body: string | null) {
 
 async function readArticle(slug: string) {
   const rows = await fetchSupabaseAdminTable<EditorialArticle>(
-    `editorial_articles?select=id,slug,status,scope,matchday_id,competition_id,title,subtitle,label,author,image_url,body,published_at,created_at&slug=eq.${encodeURIComponent(slug)}&status=eq.published&limit=1`
+    `editorial_articles?select=id,slug,status,scope,matchday_id,competition_id,title,subtitle,label,author,image_url,image_caption,body,published_at,created_at&slug=eq.${encodeURIComponent(slug)}&status=eq.published&limit=1`
   ).catch(() => []);
 
   return rows[0] ?? null;
@@ -593,6 +602,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const title = article ? cleanText(article.title) || article.slug : null;
   const subtitle = cleanText(article?.subtitle);
   const imageUrl = cleanText(article?.image_url);
+  const imageCaption = cleanText(article?.image_caption);
   const author = cleanText(article?.author);
   const publishedAtSource = article?.published_at ?? article?.created_at ?? null;
   const publishedAt = formatPublishedAt(publishedAtSource);
@@ -631,6 +641,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                   {imageUrl ? (
                     <figure className="public-article-image">
                       <img alt="" src={imageUrl} />
+                      {imageCaption ? <figcaption>{imageCaption}</figcaption> : null}
                     </figure>
                   ) : null}
 

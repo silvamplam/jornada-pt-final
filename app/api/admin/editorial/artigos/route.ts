@@ -75,6 +75,7 @@ async function saveArticle(formData: FormData) {
     label: cleanText(formData.get("label")),
     author: cleanText(formData.get("author")),
     image_url: cleanText(formData.get("image_url")),
+    image_caption: cleanText(formData.get("image_caption")),
     body: cleanText(formData.get("body")),
     published_at: cleanPublishedAt(formData.get("published_at")),
     updated_at: new Date().toISOString()
