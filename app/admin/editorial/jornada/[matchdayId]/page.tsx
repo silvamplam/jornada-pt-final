@@ -26,6 +26,14 @@ type MatchdayContext = {
   country: SupabaseCountry | null;
 };
 
+type MatchdayHighlightWithLink = SupabaseMatchdayHighlight & {
+  link_url?: string | null;
+};
+
+type MatchdayLatestNewsWithLink = SupabaseMatchdayLatestNews & {
+  link_url?: string | null;
+};
+
 const ROUNDUP_EDITOR_SORT_ORDERS = Array.from({ length: 10 }, (_, index) => index + 1);
 const LATEST_NEWS_EDITOR_SORT_ORDERS = Array.from({ length: 8 }, (_, index) => index + 1);
 
@@ -424,9 +432,9 @@ async function readMatchdayEditorial(matchdayId: string): Promise<SupabaseMatchd
   ).catch(() => null);
 }
 
-async function readMatchdayHighlights(matchdayId: string): Promise<SupabaseMatchdayHighlight[]> {
-  return fetchSupabaseAdminTable<SupabaseMatchdayHighlight>(
-    `matchday_highlights?select=id,matchday_id,label,title,image_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+async function readMatchdayHighlights(matchdayId: string): Promise<MatchdayHighlightWithLink[]> {
+  return fetchSupabaseAdminTable<MatchdayHighlightWithLink>(
+    `matchday_highlights?select=id,matchday_id,label,title,image_url,link_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
       matchdayId
     )}&order=sort_order.asc&limit=3`
   ).catch(() => []);
@@ -440,9 +448,9 @@ async function readMatchdayRoundupItems(matchdayId: string): Promise<SupabaseMat
   ).catch(() => []);
 }
 
-async function readMatchdayLatestNews(matchdayId: string): Promise<SupabaseMatchdayLatestNews[]> {
-  return fetchSupabaseAdminTable<SupabaseMatchdayLatestNews>(
-    `matchday_latest_news?select=id,matchday_id,time_label,title,image_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+async function readMatchdayLatestNews(matchdayId: string): Promise<MatchdayLatestNewsWithLink[]> {
+  return fetchSupabaseAdminTable<MatchdayLatestNewsWithLink>(
+    `matchday_latest_news?select=id,matchday_id,time_label,title,image_url,link_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
       matchdayId
     )}&order=sort_order.asc&limit=8`
   ).catch(() => []);
@@ -612,6 +620,10 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 <label htmlFor={`highlight-${order}-image-url`}>Imagem URL</label>
                 <input form={highlightsFormId} id={`highlight-${order}-image-url`} name={`highlight_${order}_image_url`} defaultValue={highlight?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
               </div>
+              <div className="editorial-admin-field">
+                <label htmlFor={`highlight-${order}-link-url`}>Link</label>
+                <input form={highlightsFormId} id={`highlight-${order}-link-url`} name={`highlight_${order}_link_url`} defaultValue={highlight?.link_url ?? ""} placeholder="/noticias/a-culpa-e-do-var" />
+              </div>
               {highlight?.image_url ? (
                 <div className="editorial-admin-preview">
                   <img alt="" src={highlight.image_url} />
@@ -736,6 +748,10 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               <div className="editorial-admin-field">
                 <label htmlFor={`latest-news-${order}-image-url`}>Imagem URL opcional</label>
                 <input id={`latest-news-${order}-image-url`} name={`latest_news_${order}_image_url`} defaultValue={item?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
+              </div>
+              <div className="editorial-admin-field">
+                <label htmlFor={`latest-news-${order}-link-url`}>Link</label>
+                <input id={`latest-news-${order}-link-url`} name={`latest_news_${order}_link_url`} defaultValue={item?.link_url ?? ""} placeholder="/noticias/a-culpa-e-do-var" />
               </div>
               {item?.image_url ? (
                 <div className="editorial-admin-preview">

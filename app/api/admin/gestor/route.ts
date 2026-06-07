@@ -968,6 +968,7 @@ async function saveMatchdayHighlights(formData: FormData) {
     const label = cleanText(formData.get(`highlight_${sortOrder}_label`));
     const title = cleanText(formData.get(`highlight_${sortOrder}_title`));
     const imageUrl = cleanText(formData.get(`highlight_${sortOrder}_image_url`));
+    const linkUrl = cleanText(formData.get(`highlight_${sortOrder}_link_url`));
     const statusValue = cleanText(formData.get(`highlight_${sortOrder}_status`)) ?? "draft";
     const status = statusValue === "published" ? "published" : "draft";
 
@@ -980,6 +981,7 @@ async function saveMatchdayHighlights(formData: FormData) {
       label,
       title,
       image_url: imageUrl,
+      link_url: linkUrl,
       sort_order: sortOrder,
       status,
       updated_at: new Date().toISOString()
@@ -1005,7 +1007,7 @@ async function saveMatchdayHighlights(formData: FormData) {
         method: "PATCH",
         body: JSON.stringify(payload)
       });
-    } else if (label || title || imageUrl || status === "published") {
+    } else if (label || title || imageUrl || linkUrl || status === "published") {
       await writeSupabaseAdmin("matchday_highlights", {
         method: "POST",
         body: JSON.stringify(payload)
@@ -1107,9 +1109,10 @@ async function saveMatchdayLatestNews(formData: FormData) {
     const timeLabel = cleanText(formData.get(`latest_news_${sortOrder}_time_label`));
     const title = cleanText(formData.get(`latest_news_${sortOrder}_title`));
     const imageUrl = cleanText(formData.get(`latest_news_${sortOrder}_image_url`));
+    const linkUrl = cleanText(formData.get(`latest_news_${sortOrder}_link_url`));
     const statusValue = cleanText(formData.get(`latest_news_${sortOrder}_status`)) ?? "draft";
     const status = statusValue === "published" ? "published" : "draft";
-    const hasContent = Boolean(timeLabel || title || imageUrl);
+    const hasContent = Boolean(timeLabel || title || imageUrl || linkUrl);
 
     if (status === "published" && !title) {
       throw new Error("latest-news-title-required");
@@ -1124,6 +1127,7 @@ async function saveMatchdayLatestNews(formData: FormData) {
       time_label: timeLabel,
       title,
       image_url: imageUrl,
+      link_url: linkUrl,
       sort_order: sortOrder,
       status,
       updated_at: new Date().toISOString()

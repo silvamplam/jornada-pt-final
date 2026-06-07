@@ -3,6 +3,7 @@ import { getPublicMatchdayDiagnostic, seasonLabelToUrlSegment, type PublicMatchd
 import PublicTeamBadge from "@/components/public/PublicTeamBadge";
 import { publicEditorialStyles as publicMatchdayStyles } from "@/components/public/publicEditorialStyles";
 import { PublicEditorialLayout, type PublicEditorialHighlight, type PublicEditorialLatestNews } from "@/components/public/PublicEditorialLayout";
+import { fetchSupabaseAdminTable } from "@/lib/supabase";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,11 @@ type PublicMatchdayPageProps = {
   searchParams?: Promise<{
     debug_logos?: string;
   }>;
+};
+
+type EditorialLinkUrlRow = {
+  id: string;
+  link_url: string | null;
 };
 
 const PUBLIC_STAT_COLUMNS: Array<{ key: keyof ClassificationSplit; label: string }> = [
@@ -35,6 +41,22 @@ function signedNumber(value: number) {
 
 function goalDifferenceClass(value: number) {
   return value > 0 ? "public-gd-positive" : value < 0 ? "public-gd-negative" : "public-gd-neutral";
+}
+
+function inFilter(values: string[]) {
+  return `in.(${values.map((value) => encodeURIComponent(value)).join(",")})`;
+}
+
+async function readEditorialLinkUrls(table: "matchday_highlights" | "matchday_latest_news", ids: string[]) {
+  if (ids.length === 0) {
+    return new Map<string, string | null>();
+  }
+
+  const rows = await fetchSupabaseAdminTable<EditorialLinkUrlRow>(
+    `${table}?select=id,link_url&id=${inFilter(ids)}`
+  ).catch(() => []);
+
+  return new Map(rows.map((row) => [row.id, row.link_url?.trim() || null]));
 }
 
 function formatKickoff(value: string) {
@@ -550,32 +572,43 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
     editorial?.side_block_status === "published" &&
     Boolean(sideBlockImageUrl || explicitSideBlockLabel || sideBlockTitle || sideBlockText);
   const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
+  const [highlightLinkUrls, latestNewsLinkUrls] = await Promise.all([
+    readEditorialLinkUrls("matchday_highlights", context.highlights.map((highlight) => highlight.id)),
+    readEditorialLinkUrls("matchday_latest_news", context.latestNews.map((item) => item.id))
+  ]);
   const latestNewsItems =
     context.latestNews.length > 0
       ? context.latestNews.map((item) => ({
           id: item.id,
           timeLabel: item.time_label || "",
           title: item.title || "Noticia da jornada",
-          imageUrl: item.image_url?.trim() || null
+          imageUrl: item.image_url?.trim() || null,
+          linkUrl:
+            latestNewsLinkUrls.get(item.id) ??
+            (item as typeof item & { link_url?: string | null }).link_url?.trim() ??
+            null
         }))
       : [
           {
             id: "placeholder-news-market",
             timeLabel: "12:30",
             title: "Mercado aquece antes da jornada europeia",
-            imageUrl: null
+            imageUrl: null,
+            linkUrl: null
           },
           {
             id: "placeholder-news-lineup",
             timeLabel: "12:45",
             title: "Treinador confirma alterações no onze",
-            imageUrl: null
+            imageUrl: null,
+            linkUrl: null
           },
           {
             id: "placeholder-news-tickets",
             timeLabel: "13:10",
             title: "Adeptos esgotam bilhetes para o clássico",
-            imageUrl: null
+            imageUrl: null,
+            linkUrl: null
           }
         ];
   const publicHighlights: PublicEditorialHighlight[] =
@@ -584,26 +617,33 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
           id: highlight.id,
           label: highlight.label,
           title: highlight.title,
-          imageUrl: highlight.image_url?.trim() || null
+          imageUrl: highlight.image_url?.trim() || null,
+          linkUrl:
+            highlightLinkUrls.get(highlight.id) ??
+            (highlight as typeof highlight & { link_url?: string | null }).link_url?.trim() ??
+            null
         }))
       : [
           {
             id: "placeholder-highlight-preview",
             label: "Antevisão",
             title: "Os pontos de atenção antes da bola rolar",
-            imageUrl: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80"
+            imageUrl: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=80",
+            linkUrl: null
           },
           {
             id: "placeholder-highlight-stand",
             label: "Ambiente",
             title: "A jornada vista pelas bancadas e pelos protagonistas",
-            imageUrl: "https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=700&q=80"
+            imageUrl: "https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=700&q=80",
+            linkUrl: null
           },
           {
             id: "placeholder-highlight-context",
             label: "Contexto",
             title: "O que pode mudar na tabela depois dos resultados",
-            imageUrl: "https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=700&q=80"
+            imageUrl: "https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=700&q=80",
+            linkUrl: null
           }
         ];
   const publicLatestNews: PublicEditorialLatestNews[] = latestNewsItems;
