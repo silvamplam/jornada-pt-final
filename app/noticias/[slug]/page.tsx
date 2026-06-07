@@ -538,7 +538,7 @@ function formatShortDate(value: string | null) {
 function formatMatchdayDateContext(matches: PublicMatchStripMatch[]) {
   const kickoffDates = matches
     .map((match) => (match.kickoff_at ? new Date(match.kickoff_at) : null))
-    .filter((date): date is Date => Boolean(date) && !Number.isNaN(date.getTime()))
+    .filter((date): date is Date => date !== null && !Number.isNaN(date.getTime()))
     .sort((firstDate, secondDate) => firstDate.getTime() - secondDate.getTime());
 
   if (kickoffDates.length === 0) return "Data por definir";
