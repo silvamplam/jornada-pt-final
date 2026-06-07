@@ -871,6 +871,9 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           <a className="editorial-admin-button secondary" href="/admin/editorial/home">
             HOME EDITORIAL
           </a>
+          <a className="editorial-admin-button secondary" href="/admin/editorial/artigos">
+            ARTIGOS/NOTÍCIAS
+          </a>
           <a className="editorial-admin-button secondary" href="/admin">
             VOLTAR AO BACKOFFICE
           </a>

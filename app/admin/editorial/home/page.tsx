@@ -1186,6 +1186,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
           <div className="home-admin-hero-actions">
             <a className="home-admin-button secondary" href="/admin">VOLTAR AO BACKOFFICE</a>
             <a className="home-admin-button secondary" href="/admin/gestor">CENTRO DE GESTÃO</a>
+            <a className="home-admin-button secondary" href="/admin/editorial/artigos">ARTIGOS/NOTÍCIAS</a>
             {matchdayEditorialHref ? (
               <a className="home-admin-button secondary" href={matchdayEditorialHref}>EDITORIAL DA JORNADA</a>
             ) : (
@@ -1372,6 +1373,7 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
         <div className="editorial-admin-hero-actions">
           <a className="editorial-admin-button secondary" href="/admin">VOLTAR AO BACKOFFICE</a>
           <a className="editorial-admin-button secondary" href="/admin/gestor">CENTRO DE GESTÃO</a>
+          <a className="editorial-admin-button secondary" href="/admin/editorial/artigos">ARTIGOS/NOTÍCIAS</a>
           {matchdayEditorialHref ? (
             <a className="editorial-admin-button secondary" href={matchdayEditorialHref}>EDITORIAL DA JORNADA</a>
           ) : (

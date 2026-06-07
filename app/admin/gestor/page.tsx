@@ -1702,6 +1702,18 @@ async function readMatchdaysForSeason(seasonId?: string): Promise<SeasonMatchday
   }
 }
 
+async function readFirstAvailableMatchdayId(): Promise<string | null> {
+  try {
+    const rows = await fetchSupabaseAdminTable<{ id: string }>(
+      "matchdays?select=id&order=starts_on.asc.nullslast,number.asc&limit=1"
+    );
+
+    return rows[0]?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function readMatchesForMatchday(matchdayId?: string): Promise<SeasonAgendaMatch[]> {
   if (!matchdayId) {
     return [];
@@ -2308,11 +2320,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     epoca: selectedSeason?.id ?? "",
     jornada: selectedMatchday?.id ?? ""
   };
-  const homeEditorialHref = selectedMatchday
-    ? `/admin/editorial/home?jornada=${encodeURIComponent(selectedMatchday.id)}`
+  const fallbackMatchdayId = selectedMatchday?.id ?? (await readFirstAvailableMatchdayId());
+  const homeEditorialHref = fallbackMatchdayId
+    ? `/admin/editorial/home?jornada=${encodeURIComponent(fallbackMatchdayId)}`
     : "/admin/editorial/home";
-  const matchdayEditorialHref = selectedMatchday
-    ? `/admin/editorial/jornada/${encodeURIComponent(selectedMatchday.id)}`
+  const matchdayEditorialHref = fallbackMatchdayId
+    ? `/admin/editorial/jornada/${encodeURIComponent(fallbackMatchdayId)}`
     : null;
 
   return (
@@ -2494,11 +2507,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
         <div className="manager-hero-actions">
           <a href="/admin">Voltar ao backoffice</a>
           <a href={homeEditorialHref}>Home editorial</a>
+          <a href="/admin/editorial/artigos">ARTIGOS/NOTÍCIAS</a>
           {matchdayEditorialHref ? (
             <a href={matchdayEditorialHref}>Editorial da jornada</a>
           ) : (
-            <span aria-disabled="true" className="manager-disabled-link" title="Selecione uma jornada primeiro">
-              Selecione uma jornada primeiro
+            <span aria-disabled="true" className="manager-disabled-link" title="Sem jornada disponivel">
+              Sem jornada disponivel
             </span>
           )}
         </div>
