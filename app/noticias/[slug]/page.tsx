@@ -68,19 +68,6 @@ const articleStyles = `
     min-width: 0;
   }
 
-  .public-article-back {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 18px;
-    color: #607086;
-    font-size: 12px;
-    font-weight: 900;
-    letter-spacing: 0.04em;
-    text-decoration: none;
-    text-transform: uppercase;
-  }
-
   .public-article-card {
     background: #ffffff;
   }
@@ -91,7 +78,7 @@ const articleStyles = `
 
   .public-article-label {
     display: inline-block;
-    margin-bottom: 8px;
+    margin: 4px 0 8px;
     color: #e5252a;
     font-size: 12px;
     font-weight: 950;
@@ -105,9 +92,9 @@ const articleStyles = `
     color: #121212;
     font-family: Georgia, "Times New Roman", Times, serif;
     font-size: clamp(27px, 3.05vw, 39px);
-    font-weight: 700;
+    font-weight: 680;
     letter-spacing: 0;
-    line-height: 1.04;
+    line-height: 1.05;
   }
 
   .public-article-subtitle {
@@ -139,7 +126,7 @@ const articleStyles = `
   }
 
   .public-article-image {
-    margin: 18px 0 0;
+    margin: 24px 0 0;
   }
 
   .public-article-image img {
@@ -254,8 +241,7 @@ const articleStyles = `
   }
 
   .public-article-side-link:hover .public-article-side-title,
-  .public-article-related-title:hover,
-  .public-article-back:hover {
+  .public-article-related-title:hover {
     text-decoration: underline;
   }
 
@@ -378,13 +364,7 @@ const articleStyles = `
   }
 
   .public-article-empty a {
-    display: inline-block;
-    margin-top: 22px;
     color: #10151b;
-    font-size: 12px;
-    font-weight: 900;
-    text-decoration: none;
-    text-transform: uppercase;
   }
 
   @media (max-width: 760px) {
@@ -523,7 +503,6 @@ function NotFoundArticle() {
       <p>Noticia</p>
       <h1>Noticia nao encontrada</h1>
       <p>O artigo pode ainda estar em rascunho, nao existir ou ter sido retirado da leitura publica.</p>
-      <Link href="/">Voltar ao Jornada.pt</Link>
     </section>
   );
 }
@@ -632,7 +611,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           <>
             <div className="public-article-layout">
               <article className="public-article-reading">
-                <Link className="public-article-back" href="/">Voltar ao Jornada.pt</Link>
                 <div className="public-article-card">
                   <header className="public-article-header">
                     <span className="public-article-label">{label}</span>
