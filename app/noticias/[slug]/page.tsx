@@ -280,6 +280,15 @@ const articleStyles = `
     text-transform: uppercase;
   }
 
+  .public-article-sidebar .public-article-ad-slot:first-child {
+    min-height: 360px;
+    background: #edf1f5;
+  }
+
+  .public-article-sidebar .public-article-ad-slot:last-child {
+    min-height: 180px;
+  }
+
   .public-article-horizontal-ad {
     min-height: 76px;
     margin-top: 42px;
@@ -400,6 +409,11 @@ const articleStyles = `
     .public-article-sidebar {
       position: static;
       margin-top: 36px;
+    }
+
+    .public-article-sidebar .public-article-ad-slot:first-child,
+    .public-article-sidebar .public-article-ad-slot:last-child {
+      min-height: 96px;
     }
 
     .public-article-related-grid {
@@ -599,6 +613,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const imageUrl = cleanText(article?.image_url);
   const author = cleanText(article?.author);
   const publishedAt = formatPublishedAt(article?.published_at ?? null);
+  const sidebarArticles = relatedArticles.slice(0, 5);
+  const moreArticles = relatedArticles.length > 5 ? relatedArticles.slice(5, 11) : relatedArticles.slice(0, 6);
 
   return (
     <main className="public-matchday-shell">
@@ -651,14 +667,14 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 </div>
               </article>
 
-              <ArticleSidebar articles={relatedArticles.slice(0, 5)} />
+              <ArticleSidebar articles={sidebarArticles} />
             </div>
 
             <div className="public-article-horizontal-ad" aria-label="Espaco reservado">
               PUBLICIDADE
             </div>
 
-            <MoreArticles articles={relatedArticles.slice(0, 6)} />
+            <MoreArticles articles={moreArticles} />
           </>
         )}
       </div>
