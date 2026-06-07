@@ -31,7 +31,10 @@ type RelatedArticle = {
   slug: string;
   title: string | null;
   label: string | null;
+  image_url: string | null;
   published_at: string | null;
+  matchday_id: string | null;
+  competition_id: string | null;
 };
 
 const competitionLinks = [
@@ -48,16 +51,16 @@ const topMenuLinks = [
 
 const articleStyles = `
   .public-article-page {
-    max-width: 1180px;
-    margin: 30px auto 72px;
-    padding: 0 20px;
+    max-width: 1220px;
+    margin: 34px auto 78px;
+    padding: 0 22px;
   }
 
   .public-article-layout {
     display: grid;
-    grid-template-columns: minmax(0, 760px) minmax(260px, 320px);
+    grid-template-columns: minmax(0, 780px) minmax(280px, 340px);
     align-items: start;
-    gap: 54px;
+    gap: 58px;
   }
 
   .public-article-reading {
@@ -78,41 +81,41 @@ const articleStyles = `
   }
 
   .public-article-card {
-    border-top: 4px solid #10151b;
+    border-top: 5px solid #10151b;
     background: #ffffff;
   }
 
   .public-article-header {
-    padding: 0 0 24px;
+    padding: 0 0 26px;
     border-bottom: 1px solid #dfe5ec;
   }
 
   .public-article-label {
     display: inline-block;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     color: #e5252a;
     font-size: 13px;
-    font-weight: 900;
-    letter-spacing: 0.04em;
+    font-weight: 950;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
   }
 
   .public-article-title {
-    max-width: 760px;
+    max-width: 780px;
     margin: 0;
     color: #10151b;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: clamp(42px, 6vw, 70px);
-    font-weight: 900;
+    font-size: clamp(46px, 6.2vw, 82px);
+    font-weight: 950;
     letter-spacing: 0;
-    line-height: 0.96;
+    line-height: 0.92;
   }
 
   .public-article-subtitle {
     max-width: 700px;
-    margin: 18px 0 0;
+    margin: 20px 0 0;
     color: #526174;
-    font-size: 20px;
+    font-size: 21px;
     line-height: 1.35;
   }
 
@@ -120,7 +123,7 @@ const articleStyles = `
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    margin-top: 18px;
+    margin-top: 20px;
     color: #607086;
     font-size: 13px;
     font-weight: 800;
@@ -133,51 +136,51 @@ const articleStyles = `
   }
 
   .public-article-image {
-    margin: 24px 0 0;
+    margin: 26px 0 0;
   }
 
   .public-article-image img {
     display: block;
     width: 100%;
-    max-height: 560px;
+    aspect-ratio: 16 / 9;
+    max-height: 440px;
     object-fit: cover;
     border-radius: 6px;
   }
 
   .public-article-body {
-    max-width: 700px;
-    margin: 30px 0 0;
+    max-width: 680px;
+    margin: 34px 0 0;
     color: #18212c;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: 21px;
-    line-height: 1.62;
+    font-size: 22px;
+    line-height: 1.66;
   }
 
   .public-article-body p {
-    margin: 0 0 22px;
+    margin: 0 0 24px;
   }
 
   .public-article-sidebar {
     position: sticky;
     top: 22px;
     display: grid;
-    gap: 18px;
+    gap: 22px;
   }
 
-  .public-article-side-block,
-  .public-article-ad-slot {
-    border-top: 4px solid #10151b;
+  .public-article-side-block {
+    border-top: 5px solid #10151b;
     background: #ffffff;
     padding-top: 14px;
   }
 
   .public-article-side-block h2,
   .public-article-more h2 {
-    margin: 0 0 12px;
+    margin: 0 0 14px;
     color: #10151b;
     font-size: 13px;
     font-weight: 950;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.07em;
     line-height: 1;
     text-transform: uppercase;
   }
@@ -192,12 +195,40 @@ const articleStyles = `
 
   .public-article-side-item {
     border-top: 1px solid #dfe5ec;
-    padding: 12px 0;
+    padding: 13px 0;
   }
 
   .public-article-side-item:first-child {
     border-top: 0;
     padding-top: 0;
+  }
+
+  .public-article-side-link {
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr);
+    gap: 12px;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .public-article-side-link:not(.has-image) {
+    display: block;
+  }
+
+  .public-article-side-thumb {
+    display: block;
+    width: 74px;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #eef2f6;
+  }
+
+  .public-article-side-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .public-article-side-label,
@@ -212,14 +243,14 @@ const articleStyles = `
   }
 
   .public-article-side-title {
+    display: block;
     color: #10151b;
     font-size: 16px;
     font-weight: 900;
-    line-height: 1.16;
-    text-decoration: none;
+    line-height: 1.14;
   }
 
-  .public-article-side-title:hover,
+  .public-article-side-link:hover .public-article-side-title,
   .public-article-related-title:hover,
   .public-article-back:hover {
     text-decoration: underline;
@@ -227,47 +258,65 @@ const articleStyles = `
 
   .public-article-side-date {
     display: block;
-    margin-top: 6px;
+    margin-top: 7px;
     color: #607086;
     font-size: 12px;
     font-weight: 800;
   }
 
-  .public-article-context {
-    border-top: 1px solid #dfe5ec;
-    padding-top: 12px;
-    color: #526174;
-    font-size: 13px;
-    font-weight: 800;
-    line-height: 1.35;
-  }
-
-  .public-article-ad-slot {
-    min-height: 96px;
-    border-color: #dfe5ec;
+  .public-article-ad-slot,
+  .public-article-horizontal-ad {
+    display: grid;
+    place-items: center;
+    min-height: 104px;
+    border: 1px solid #dfe5ec;
+    border-radius: 6px;
+    background: #f7f9fb;
     color: #8a98a8;
     font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 0.08em;
+    font-weight: 950;
+    letter-spacing: 0.1em;
     text-align: center;
     text-transform: uppercase;
   }
 
+  .public-article-horizontal-ad {
+    min-height: 76px;
+    margin-top: 42px;
+  }
+
   .public-article-more {
-    margin-top: 56px;
-    border-top: 4px solid #10151b;
+    margin-top: 34px;
+    border-top: 5px solid #10151b;
     padding-top: 16px;
   }
 
   .public-article-related-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 20px;
+    gap: 22px;
   }
 
   .public-article-related-card {
     border-top: 1px solid #dfe5ec;
     padding-top: 12px;
+  }
+
+  .public-article-related-image {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    margin-bottom: 10px;
+    overflow: hidden;
+    border-radius: 5px;
+    background: #eef2f6;
+  }
+
+  .public-article-related-image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .public-article-related-title {
@@ -406,10 +455,26 @@ async function readArticle(slug: string) {
   return rows[0] ?? null;
 }
 
-async function readRelatedArticles(slug: string) {
-  return fetchSupabaseAdminTable<RelatedArticle>(
-    `editorial_articles?select=id,slug,title,label,published_at&status=eq.published&slug=neq.${encodeURIComponent(slug)}&order=published_at.desc&limit=6`
+function relatedPriority(article: EditorialArticle, relatedArticle: RelatedArticle) {
+  if (article.competition_id && relatedArticle.competition_id === article.competition_id) return 0;
+  if (article.matchday_id && relatedArticle.matchday_id === article.matchday_id) return 1;
+  return 2;
+}
+
+async function readRelatedArticles(article: EditorialArticle) {
+  const rows = await fetchSupabaseAdminTable<RelatedArticle>(
+    `editorial_articles?select=id,slug,title,label,image_url,published_at,matchday_id,competition_id&status=eq.published&slug=neq.${encodeURIComponent(article.slug)}&order=published_at.desc&limit=18`
   ).catch(() => []);
+
+  return rows.sort((firstArticle, secondArticle) => {
+    const priorityDifference = relatedPriority(article, firstArticle) - relatedPriority(article, secondArticle);
+    if (priorityDifference !== 0) return priorityDifference;
+
+    const firstTime = firstArticle.published_at ? new Date(firstArticle.published_at).getTime() : 0;
+    const secondTime = secondArticle.published_at ? new Date(secondArticle.published_at).getTime() : 0;
+
+    return secondTime - firstTime;
+  });
 }
 
 function PublicHeader() {
@@ -460,14 +525,22 @@ function ArticleSideList({ articles, title }: { articles: RelatedArticle[]; titl
         {articles.map((article) => {
           const articleLabel = cleanText(article.label) || "Noticia";
           const articleDate = formatShortDate(article.published_at);
+          const imageUrl = cleanText(article.image_url);
 
           return (
             <li className="public-article-side-item" key={article.id}>
-              <span className="public-article-side-label">{articleLabel}</span>
-              <Link className="public-article-side-title" href={`/noticias/${article.slug}`}>
-                {relatedArticleTitle(article)}
+              <Link className={`public-article-side-link${imageUrl ? " has-image" : ""}`} href={`/noticias/${article.slug}`}>
+                {imageUrl ? (
+                  <span className="public-article-side-thumb">
+                    <img alt="" src={imageUrl} />
+                  </span>
+                ) : null}
+                <span>
+                  <span className="public-article-side-label">{articleLabel}</span>
+                  <span className="public-article-side-title">{relatedArticleTitle(article)}</span>
+                  {articleDate ? <span className="public-article-side-date">{articleDate}</span> : null}
+                </span>
               </Link>
-              {articleDate ? <span className="public-article-side-date">{articleDate}</span> : null}
             </li>
           );
         })}
@@ -476,22 +549,15 @@ function ArticleSideList({ articles, title }: { articles: RelatedArticle[]; titl
   );
 }
 
-function ArticleSidebar({ article, articles }: { article: EditorialArticle; articles: RelatedArticle[] }) {
-  const hasContext = Boolean(article.matchday_id || article.competition_id || article.scope !== "general");
-
+function ArticleSidebar({ articles }: { articles: RelatedArticle[] }) {
   return (
     <aside className="public-article-sidebar" aria-label="Mais no Jornada.pt">
-      <ArticleSideList articles={articles} title="Ultimas noticias" />
-      {hasContext ? (
-        <section className="public-article-side-block" aria-label="Contexto editorial">
-          <h2>Contexto</h2>
-          <p className="public-article-context">
-            Este artigo faz parte da cobertura editorial do Jornada.pt e pode estar associado a uma competicao ou jornada.
-          </p>
-        </section>
-      ) : null}
       <div className="public-article-ad-slot" aria-label="Espaco reservado">
-        Publicidade
+        PUBLICIDADE
+      </div>
+      <ArticleSideList articles={articles} title="Mais noticias" />
+      <div className="public-article-ad-slot" aria-label="Espaco reservado">
+        PUBLICIDADE
       </div>
     </aside>
   );
@@ -506,6 +572,11 @@ function MoreArticles({ articles }: { articles: RelatedArticle[] }) {
       <div className="public-article-related-grid">
         {articles.map((article) => (
           <article className="public-article-related-card" key={article.id}>
+            {cleanText(article.image_url) ? (
+              <Link className="public-article-related-image" href={`/noticias/${article.slug}`}>
+                <img alt="" src={cleanText(article.image_url) ?? ""} />
+              </Link>
+            ) : null}
             <span className="public-article-related-label">{cleanText(article.label) || "Noticia"}</span>
             <Link className="public-article-related-title" href={`/noticias/${article.slug}`}>
               {relatedArticleTitle(article)}
@@ -519,7 +590,8 @@ function MoreArticles({ articles }: { articles: RelatedArticle[] }) {
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
-  const [article, relatedArticles] = await Promise.all([readArticle(slug), readRelatedArticles(slug)]);
+  const article = await readArticle(slug);
+  const relatedArticles = article ? await readRelatedArticles(article) : [];
   const blocks = bodyBlocks(article?.body ?? null);
   const label = cleanText(article?.label) || "Noticia";
   const title = article ? cleanText(article.title) || article.slug : null;
@@ -579,10 +651,14 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 </div>
               </article>
 
-              <ArticleSidebar article={article} articles={relatedArticles.slice(0, 3)} />
+              <ArticleSidebar articles={relatedArticles.slice(0, 5)} />
             </div>
 
-            <MoreArticles articles={relatedArticles.slice(3)} />
+            <div className="public-article-horizontal-ad" aria-label="Espaco reservado">
+              PUBLICIDADE
+            </div>
+
+            <MoreArticles articles={relatedArticles.slice(0, 6)} />
           </>
         )}
       </div>
