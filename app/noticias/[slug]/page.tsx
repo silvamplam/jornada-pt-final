@@ -24,6 +24,7 @@ type EditorialArticle = {
   image_url: string | null;
   body: string | null;
   published_at: string | null;
+  created_at: string | null;
 };
 
 type RelatedArticle = {
@@ -101,36 +102,40 @@ const articleStyles = `
   .public-article-title {
     max-width: 680px;
     margin: 0;
-    color: #10151b;
-    font-family: Georgia, "Times New Roman", serif;
+    color: #121212;
+    font-family: Georgia, "Times New Roman", Times, serif;
     font-size: clamp(27px, 3.05vw, 39px);
-    font-weight: 900;
+    font-weight: 700;
     letter-spacing: 0;
-    line-height: 1.08;
+    line-height: 1.04;
   }
 
   .public-article-subtitle {
     max-width: 680px;
     margin: 8px 0 0;
-    color: #526174;
+    color: #343434;
+    font-family: Georgia, "Times New Roman", Times, serif;
     font-size: 17px;
-    line-height: 1.4;
+    line-height: 1.38;
   }
 
   .public-article-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 10px;
-    color: #607086;
+    display: grid;
+    gap: 3px;
+    margin-top: 12px;
+    color: #5f5f5f;
     font-size: 12px;
+    font-weight: 700;
+  }
+
+  .public-article-author {
+    color: #3f3f3f;
     font-weight: 800;
   }
 
-  .public-article-meta span + span::before {
-    content: "/";
-    margin-right: 10px;
-    color: #a7b1bd;
+  .public-article-date {
+    color: #6f6f6f;
+    font-weight: 600;
   }
 
   .public-article-image {
@@ -461,7 +466,7 @@ function bodyBlocks(body: string | null) {
 
 async function readArticle(slug: string) {
   const rows = await fetchSupabaseAdminTable<EditorialArticle>(
-    `editorial_articles?select=id,slug,status,scope,matchday_id,competition_id,title,subtitle,label,author,image_url,body,published_at&slug=eq.${encodeURIComponent(slug)}&status=eq.published&limit=1`
+    `editorial_articles?select=id,slug,status,scope,matchday_id,competition_id,title,subtitle,label,author,image_url,body,published_at,created_at&slug=eq.${encodeURIComponent(slug)}&status=eq.published&limit=1`
   ).catch(() => []);
 
   return rows[0] ?? null;
@@ -610,7 +615,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const subtitle = cleanText(article?.subtitle);
   const imageUrl = cleanText(article?.image_url);
   const author = cleanText(article?.author);
-  const publishedAt = formatPublishedAt(article?.published_at ?? null);
+  const publishedAtSource = article?.published_at ?? article?.created_at ?? null;
+  const publishedAt = formatPublishedAt(publishedAtSource);
   const sidebarArticles = relatedArticles.slice(0, 5);
   const moreArticles = relatedArticles.length > 5 ? relatedArticles.slice(5, 11) : relatedArticles.slice(0, 6);
 
@@ -634,8 +640,12 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                     {subtitle ? <p className="public-article-subtitle">{subtitle}</p> : null}
                     {author || publishedAt ? (
                       <div className="public-article-meta">
-                        {author ? <span>{author}</span> : null}
-                        {publishedAt ? <span>{publishedAt}</span> : null}
+                        {author ? <span className="public-article-author">{author}</span> : null}
+                        {publishedAt ? (
+                          <time className="public-article-date" dateTime={publishedAtSource ?? undefined}>
+                            {publishedAt}
+                          </time>
+                        ) : null}
                       </div>
                     ) : null}
                   </header>
