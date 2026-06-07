@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PublicMatchStrip, { type PublicMatchStripMatch } from "@/components/public/PublicMatchStrip";
 import { publicEditorialStyles } from "@/components/public/publicEditorialStyles";
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
@@ -39,16 +40,83 @@ type RelatedArticle = {
   competition_id: string | null;
 };
 
-const competitionLinks = [
-  { label: "Liga Portugal", href: "/competicoes/liga-portugal/2026-27/jornadas/1" },
-  { label: "La Liga", href: "/competicoes/la-liga/2026-27/jornadas/1" },
-  { label: "Premier League", href: "/competicoes/premier-league/2026-27/jornadas/1" }
-];
+type ArticleMatchdayRow = {
+  id: string;
+  number: number | null;
+  season_id: string | null;
+};
 
-const topMenuLinks = [
-  ...competitionLinks,
-  { label: "Jogos", href: "/competicoes/liga-portugal/2026-27/jornadas/1#jogos" },
-  { label: "Classifica\u00e7\u00e3o", href: "/competicoes/liga-portugal/2026-27/jornadas/1#classificacao" }
+type ArticleSeasonRow = {
+  id: string;
+  label: string | null;
+  competition_id: string | null;
+};
+
+type ArticleCompetitionRow = {
+  id: string;
+  name: string | null;
+  slug: string | null;
+};
+
+type ArticleMatchRow = {
+  id: string;
+  home_team_id: string | null;
+  away_team_id: string | null;
+  kickoff_at: string | null;
+  status: string | null;
+  minute: number | string | null;
+  home_score: number | null;
+  away_score: number | null;
+  broadcast_channel_id: string | null;
+};
+
+type ArticleTeamRow = {
+  id: string;
+  name: string | null;
+  short_name: string | null;
+  logo_url: string | null;
+};
+
+type ArticleBroadcastLinkRow = {
+  match_id: string | null;
+  broadcast_channel_id: string | null;
+};
+
+type ArticleBroadcastChannelRow = {
+  id: string;
+  name: string | null;
+  logo_url: string | null;
+};
+
+type ArticleMatchdayFrame = {
+  competition: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  season: {
+    id: string;
+    label: string;
+  };
+  seasons: Array<{
+    id: string;
+    label: string;
+  }>;
+  matchday: {
+    id: string;
+    number: number;
+  };
+  matchdays: Array<{
+    id: string;
+    number: number;
+  }>;
+  matches: PublicMatchStripMatch[];
+};
+
+const competitionLinks = [
+  { label: "Liga Portugal", slug: "liga-portugal", href: "/competicoes/liga-portugal/2026-27/jornadas/1" },
+  { label: "La Liga", slug: "la-liga", href: "/competicoes/la-liga/2026-27/jornadas/1" },
+  { label: "Premier League", slug: "premier-league", href: "/competicoes/premier-league/2026-27/jornadas/1" }
 ];
 
 const articleStyles = `
@@ -419,6 +487,30 @@ function cleanText(value: string | null | undefined) {
   return trimmed ? trimmed : null;
 }
 
+function inFilter(values: string[]) {
+  return `in.(${values.map((value) => encodeURIComponent(value)).join(",")})`;
+}
+
+function uniqueValues(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.filter((value): value is string => Boolean(value))));
+}
+
+async function readRowsById<T extends { id: string }>(table: string, select: string, ids: string[]) {
+  if (ids.length === 0) {
+    return new Map<string, T>();
+  }
+
+  const rows = await fetchSupabaseAdminTable<T>(
+    `${table}?select=${select}&id=${inFilter(ids)}`
+  ).catch(() => []);
+
+  return new Map(rows.map((row) => [row.id, row]));
+}
+
+function seasonLabelToUrlSegment(label: string | null | undefined) {
+  return encodeURIComponent((cleanText(label) || "epoca").replace(/\//g, "-"));
+}
+
 function formatPublishedAt(value: string | null) {
   if (!value) return null;
   const date = new Date(value);
@@ -443,6 +535,46 @@ function formatShortDate(value: string | null) {
   }).format(date);
 }
 
+function formatMatchdayDateContext(matches: PublicMatchStripMatch[]) {
+  const kickoffDates = matches
+    .map((match) => (match.kickoff_at ? new Date(match.kickoff_at) : null))
+    .filter((date): date is Date => Boolean(date) && !Number.isNaN(date.getTime()))
+    .sort((firstDate, secondDate) => firstDate.getTime() - secondDate.getTime());
+
+  if (kickoffDates.length === 0) return "Data por definir";
+
+  const firstDate = kickoffDates[0];
+  const lastDate = kickoffDates[kickoffDates.length - 1];
+  const dateFormatter = new Intl.DateTimeFormat("pt-PT", {
+    day: "numeric",
+    month: "long",
+    timeZone: "Europe/Lisbon"
+  });
+  const dayFormatter = new Intl.DateTimeFormat("pt-PT", {
+    day: "numeric",
+    timeZone: "Europe/Lisbon"
+  });
+  const monthFormatter = new Intl.DateTimeFormat("pt-PT", {
+    month: "long",
+    timeZone: "Europe/Lisbon"
+  });
+  const monthKeyFormatter = new Intl.DateTimeFormat("en-CA", {
+    month: "2-digit",
+    timeZone: "Europe/Lisbon"
+  });
+
+  const firstLabel = dateFormatter.format(firstDate);
+  const lastLabel = dateFormatter.format(lastDate);
+  if (firstLabel === lastLabel) return firstLabel;
+
+  const sameMonth = monthKeyFormatter.format(firstDate) === monthKeyFormatter.format(lastDate);
+  if (sameMonth) {
+    return `${dayFormatter.format(firstDate)}-${dayFormatter.format(lastDate)} ${monthFormatter.format(lastDate)}`;
+  }
+
+  return `${firstLabel} - ${lastLabel}`;
+}
+
 function bodyBlocks(body: string | null) {
   const text = cleanText(body);
   if (!text) return [];
@@ -459,6 +591,143 @@ async function readArticle(slug: string) {
   ).catch(() => []);
 
   return rows[0] ?? null;
+}
+
+async function readBroadcastChannelsByMatchId(matchIds: string[], matches: ArticleMatchRow[] = []) {
+  const channelsByMatchId = new Map<string, ArticleBroadcastChannelRow>();
+  if (matchIds.length === 0) return channelsByMatchId;
+
+  const directChannelIdsByMatchId = new Map(
+    matches
+      .filter((match) => Boolean(match.broadcast_channel_id))
+      .map((match) => [match.id, match.broadcast_channel_id as string])
+  );
+  const directChannelsById = await readRowsById<ArticleBroadcastChannelRow>(
+    "broadcast_channels",
+    "id,name,logo_url",
+    uniqueValues(Array.from(directChannelIdsByMatchId.values()))
+  );
+
+  for (const [matchId, channelId] of directChannelIdsByMatchId) {
+    const channel = directChannelsById.get(channelId);
+    if (channel) {
+      channelsByMatchId.set(matchId, channel);
+    }
+  }
+
+  const matchFilter = inFilter(matchIds);
+  const relationQueries = [
+    `match_broadcast_channels?select=match_id,broadcast_channel_id&match_id=${matchFilter}`,
+    `match_broadcasts?select=match_id,broadcast_channel_id&match_id=${matchFilter}`,
+    `matches_broadcast_channels?select=match_id,broadcast_channel_id&match_id=${matchFilter}`
+  ];
+  let links: ArticleBroadcastLinkRow[] = [];
+
+  for (const query of relationQueries) {
+    links = await fetchSupabaseAdminTable<ArticleBroadcastLinkRow>(query).catch(() => []);
+    if (links.length > 0) break;
+  }
+
+  if (links.length === 0) return channelsByMatchId;
+
+  const channelsById = await readRowsById<ArticleBroadcastChannelRow>(
+    "broadcast_channels",
+    "id,name,logo_url",
+    uniqueValues(links.map((link) => link.broadcast_channel_id))
+  );
+
+  for (const link of links) {
+    if (!link.match_id || !link.broadcast_channel_id || channelsByMatchId.has(link.match_id)) continue;
+    const channel = channelsById.get(link.broadcast_channel_id);
+    if (channel) {
+      channelsByMatchId.set(link.match_id, channel);
+    }
+  }
+
+  return channelsByMatchId;
+}
+
+async function readMatchdayMatches(matchdayId: string): Promise<PublicMatchStripMatch[]> {
+  const matches = await fetchSupabaseAdminTable<ArticleMatchRow>(
+    `matches?select=id,home_team_id,away_team_id,kickoff_at,status,minute,home_score,away_score,broadcast_channel_id&matchday_id=eq.${encodeURIComponent(matchdayId)}&order=kickoff_at.asc&limit=100`
+  ).catch(() => []);
+  const matchIds = matches.map((match) => match.id);
+  const [teamsById, broadcastChannelsByMatchId] = await Promise.all([
+    readRowsById<ArticleTeamRow>(
+      "teams",
+      "id,name,short_name,logo_url",
+      uniqueValues(matches.flatMap((match) => [match.home_team_id, match.away_team_id]))
+    ),
+    readBroadcastChannelsByMatchId(matchIds, matches)
+  ]);
+
+  return matches.map((match) => ({
+    id: match.id,
+    kickoff_at: match.kickoff_at,
+    status: match.status ?? "scheduled",
+    minute: match.minute,
+    home_score: match.home_score,
+    away_score: match.away_score,
+    homeTeam: match.home_team_id ? teamsById.get(match.home_team_id) ?? null : null,
+    awayTeam: match.away_team_id ? teamsById.get(match.away_team_id) ?? null : null,
+    broadcastChannel: broadcastChannelsByMatchId.get(match.id) ?? null
+  }));
+}
+
+async function readArticleMatchdayFrame(matchdayId: string | null): Promise<ArticleMatchdayFrame | null> {
+  if (!matchdayId) return null;
+
+  const matchdayRows = await fetchSupabaseAdminTable<ArticleMatchdayRow>(
+    `matchdays?select=id,number,season_id&id=eq.${encodeURIComponent(matchdayId)}&limit=1`
+  ).catch(() => []);
+  const matchday = matchdayRows[0];
+  if (!matchday?.season_id) return null;
+
+  const seasonRows = await fetchSupabaseAdminTable<ArticleSeasonRow>(
+    `seasons?select=id,label,competition_id&id=eq.${encodeURIComponent(matchday.season_id)}&limit=1`
+  ).catch(() => []);
+  const season = seasonRows[0];
+  if (!season?.competition_id) return null;
+
+  const competitionRows = await fetchSupabaseAdminTable<ArticleCompetitionRow>(
+    `competitions?select=id,name,slug&id=eq.${encodeURIComponent(season.competition_id)}&limit=1`
+  ).catch(() => []);
+  const competition = competitionRows[0];
+  const competitionSlug = cleanText(competition?.slug);
+  if (!competition?.id || !competitionSlug) return null;
+
+  const [seasonRowsForCompetition, matchdayRowsForSeason, matches] = await Promise.all([
+    fetchSupabaseAdminTable<ArticleSeasonRow>(
+      `seasons?select=id,label,competition_id&competition_id=eq.${encodeURIComponent(competition.id)}&order=label.desc&limit=100`
+    ).catch(() => []),
+    fetchSupabaseAdminTable<ArticleMatchdayRow>(
+      `matchdays?select=id,number,season_id&season_id=eq.${encodeURIComponent(season.id)}&order=number.asc&limit=200`
+    ).catch(() => []),
+    readMatchdayMatches(matchday.id)
+  ]);
+
+  return {
+    competition: {
+      id: competition.id,
+      name: cleanText(competition.name) || competitionSlug,
+      slug: competitionSlug
+    },
+    season: {
+      id: season.id,
+      label: cleanText(season.label) || "Epoca"
+    },
+    seasons: seasonRowsForCompetition
+      .filter((row) => row.id && cleanText(row.label))
+      .map((row) => ({ id: row.id, label: cleanText(row.label) || "Epoca" })),
+    matchday: {
+      id: matchday.id,
+      number: matchday.number ?? 1
+    },
+    matchdays: matchdayRowsForSeason
+      .filter((row) => row.id)
+      .map((row) => ({ id: row.id, number: row.number ?? 1 })),
+    matches
+  };
 }
 
 function relatedPriority(article: EditorialArticle, relatedArticle: RelatedArticle) {
@@ -483,26 +752,125 @@ async function readRelatedArticles(article: EditorialArticle) {
   });
 }
 
-function PublicHeader() {
+function PublicHeader({ frame }: { frame?: ArticleMatchdayFrame | null }) {
+  const seasonSegment = frame ? seasonLabelToUrlSegment(frame.season.label) : null;
+  const currentMatchdayNumber = frame?.matchday.number ?? 1;
+  const competitionMenu = frame
+    ? competitionLinks.map((link) =>
+        link.slug === frame.competition.slug
+          ? {
+              ...link,
+              label: frame.competition.name,
+              href: `/competicoes/${frame.competition.slug}/${seasonSegment}/jornadas/${currentMatchdayNumber}`
+            }
+          : link
+      )
+    : competitionLinks;
+  const jogosHref = frame ? "#jogos" : "/competicoes/liga-portugal/2026-27/jornadas/1#jogos";
+  const classificacaoHref = frame
+    ? `/competicoes/${frame.competition.slug}/${seasonSegment}/jornadas/${currentMatchdayNumber}#classificacao`
+    : "/competicoes/liga-portugal/2026-27/jornadas/1#classificacao";
+
+  return (
+    <header className="public-site-topbar" aria-label="Topo do Jornada.pt">
+      <Link className="public-site-brand" href="/" aria-label="Jornada.pt">
+        Jornada<span>.pt</span>
+      </Link>
+      <nav className="public-site-menu" aria-label="Competicoes principais">
+        {competitionMenu.map((link) => (
+          <Link
+            aria-current={frame && link.slug === frame.competition.slug ? "page" : undefined}
+            href={link.href}
+            key={link.slug}
+          >
+            {link.label}
+          </Link>
+        ))}
+        <Link href={jogosHref}>Jogos</Link>
+        <Link href={classificacaoHref}>Classifica\u00e7\u00e3o</Link>
+      </nav>
+      <div className="public-site-actions" aria-label="Acoes">
+        <span className="public-site-search" aria-label="Pesquisar">Pesquisar</span>
+        <Link href="/admin/login">Entrar</Link>
+      </div>
+    </header>
+  );
+}
+
+function ArticleGlobalHeader() {
   return (
     <div className="public-top-stack">
-      <header className="public-site-topbar" aria-label="Topo do Jornada.pt">
-        <Link className="public-site-brand" href="/" aria-label="Jornada.pt">
-          Jornada<span>.pt</span>
-        </Link>
-        <nav className="public-site-menu" aria-label="Competicoes principais">
-          {topMenuLinks.map((link) => (
-            <Link href={link.href} key={link.label}>
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="public-site-actions" aria-label="Acoes">
-          <span className="public-site-search" aria-label="Pesquisar">Pesquisar</span>
-          <Link href="/admin/login">Entrar</Link>
-        </div>
-      </header>
+      <PublicHeader />
     </div>
+  );
+}
+
+function ArticleMatchdayContextFrame({ frame }: { frame: ArticleMatchdayFrame }) {
+  const seasonSegment = seasonLabelToUrlSegment(frame.season.label);
+  const currentSeasonHref = `/competicoes/${frame.competition.slug}/${seasonSegment}/jornadas/1`;
+  const seasons = frame.seasons.length > 0 ? frame.seasons : [frame.season];
+  const matchdays = frame.matchdays.length > 0 ? frame.matchdays : [frame.matchday];
+  const selectedMatchdayDateContext = formatMatchdayDateContext(frame.matches);
+  const matchdayHref = (matchdayNumber: number) =>
+    `/competicoes/${frame.competition.slug}/${seasonSegment}/jornadas/${matchdayNumber}`;
+
+  return (
+    <>
+      <div className="public-top-stack">
+        <PublicHeader frame={frame} />
+        <section className="public-season-nav-bar" aria-label="Navegacao de jornadas">
+          <div className="public-hidden-heading">
+            <h2>Jornadas</h2>
+            <p>Navegacao principal da epoca {frame.season.label}.</p>
+          </div>
+          <div className="public-season-nav-inner">
+            <label className="public-season-select-wrap">
+              <span>Epoca</span>
+              <select className="public-season-select" data-article-season-select defaultValue={currentSeasonHref}>
+                {seasons.map((season) => (
+                  <option
+                    key={season.id}
+                    value={`/competicoes/${frame.competition.slug}/${seasonLabelToUrlSegment(season.label)}/jornadas/1`}
+                  >
+                    {season.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <nav className="public-matchday-nav">
+              {matchdays.map((matchday) => (
+                <a
+                  aria-current={matchday.id === frame.matchday.id ? "page" : undefined}
+                  href={matchdayHref(matchday.number)}
+                  key={matchday.id}
+                >
+                  J{String(matchday.number).padStart(2, "0")}
+                </a>
+              ))}
+            </nav>
+            <div className="public-matchday-date-row" aria-label="Data da jornada selecionada">
+              <span className="public-matchday-date-context">{selectedMatchdayDateContext}</span>
+            </div>
+          </div>
+        </section>
+      </div>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            document.addEventListener("DOMContentLoaded", function () {
+              var select = document.querySelector("[data-article-season-select]");
+              if (!select) return;
+              select.addEventListener("change", function () {
+                if (select.value) window.location.href = select.value;
+              });
+            });
+          `
+        }}
+      />
+      <div id="jogos">
+        <PublicMatchStrip matches={frame.matches} />
+      </div>
+    </>
   );
 }
 
@@ -596,7 +964,9 @@ function MoreArticles({ articles }: { articles: RelatedArticle[] }) {
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
   const article = await readArticle(slug);
-  const relatedArticles = article ? await readRelatedArticles(article) : [];
+  const [relatedArticles, matchdayFrame]: [RelatedArticle[], ArticleMatchdayFrame | null] = article
+    ? await Promise.all([readRelatedArticles(article), readArticleMatchdayFrame(article.matchday_id)])
+    : [[], null];
   const blocks = bodyBlocks(article?.body ?? null);
   const label = cleanText(article?.label) || "Noticia";
   const title = article ? cleanText(article.title) || article.slug : null;
@@ -612,7 +982,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   return (
     <main className="public-matchday-shell">
       <style>{`${publicEditorialStyles}\n${articleStyles}`}</style>
-      <PublicHeader />
+      {matchdayFrame ? <ArticleMatchdayContextFrame frame={matchdayFrame} /> : <ArticleGlobalHeader />}
 
       <div className="public-article-page">
         {!article || !title ? (
