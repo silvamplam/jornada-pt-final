@@ -39,6 +39,7 @@ type EditorialArticleOption = {
   slug: string;
   status: string | null;
   scope: string | null;
+  season_id: string | null;
   matchday_id: string | null;
   competition_id: string | null;
   title: string | null;
@@ -474,20 +475,20 @@ async function readMatchdayLatestNews(matchdayId: string): Promise<MatchdayLates
   ).catch(() => []);
 }
 
-async function readEditorialArticleGroups(matchdayId: string, competitionId: string | null): Promise<ArticleOptionGroup[]> {
+async function readEditorialArticleGroups(matchdayId: string, competitionId: string | null, seasonId: string | null): Promise<ArticleOptionGroup[]> {
   const articles = await fetchSupabaseAdminTable<EditorialArticleOption>(
-    "editorial_articles?select=id,slug,status,scope,matchday_id,competition_id,title,label,published_at,created_at&status=eq.published&order=published_at.desc&limit=300"
+    "editorial_articles?select=id,slug,status,scope,season_id,matchday_id,competition_id,title,label,published_at,created_at&status=eq.published&order=published_at.desc&limit=300"
   ).catch(() => []);
 
   const currentMatchdayArticles = articles.filter((article) => article.matchday_id === matchdayId);
-  const sameCompetitionArticles = competitionId
+  const sameCompetitionArticles = competitionId && seasonId
     ? articles.filter(
         (article) =>
-          article.matchday_id === null && article.competition_id === competitionId && article.scope !== "general"
+          article.matchday_id === null && article.competition_id === competitionId && article.season_id === seasonId
       )
     : [];
   const globalArticles = articles.filter(
-    (article) => article.matchday_id === null && (!article.competition_id || article.scope === "general")
+    (article) => article.matchday_id === null && article.competition_id === null && article.season_id === seasonId
   );
 
   return [
@@ -640,7 +641,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const highlights = await readMatchdayHighlights(matchday.id);
   const roundupItems = await readMatchdayRoundupItems(matchday.id);
   const latestNews = await readMatchdayLatestNews(matchday.id);
-  const articleGroups = await readEditorialArticleGroups(matchday.id, competition.id);
+  const articleGroups = await readEditorialArticleGroups(matchday.id, competition.id, season.id);
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = editorial?.complementary_mode ?? "none";
   const belowHeadlineHeadingFallback = `Jornada ${String(matchday.number).padStart(2, "0")}`;

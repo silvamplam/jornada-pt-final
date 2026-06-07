@@ -5,6 +5,16 @@ type EditorialArticleIdRow = {
   id: string;
 };
 
+type SeasonContextRow = {
+  id: string;
+  competition_id: string | null;
+};
+
+type MatchdayContextRow = {
+  id: string;
+  season_id: string | null;
+};
+
 function cleanText(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") {
     return null;
@@ -56,20 +66,72 @@ async function assertArticleExists(articleId: string) {
   }
 }
 
+async function readSeasonContext(seasonId: string) {
+  const rows = await fetchSupabaseAdminTable<SeasonContextRow>(
+    `seasons?select=id,competition_id&id=eq.${encodeURIComponent(seasonId)}&limit=1`
+  );
+  const season = rows[0];
+
+  if (!season) {
+    throw new Error("season-invalid");
+  }
+
+  return season;
+}
+
+async function readMatchdayArticleContext(matchdayId: string) {
+  const rows = await fetchSupabaseAdminTable<MatchdayContextRow>(
+    `matchdays?select=id,season_id&id=eq.${encodeURIComponent(matchdayId)}&limit=1`
+  );
+  const matchday = rows[0];
+
+  if (!matchday?.season_id) {
+    throw new Error("matchday-invalid");
+  }
+
+  const season = await readSeasonContext(matchday.season_id);
+
+  return {
+    matchday_id: matchday.id,
+    season_id: season.id,
+    competition_id: season.competition_id
+  };
+}
+
 async function saveArticle(formData: FormData) {
   const articleId = cleanText(formData.get("article_id"));
   const slug = cleanText(formData.get("slug"));
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  let seasonId = cleanText(formData.get("season_id"));
+  let competitionId = cleanText(formData.get("competition_id"));
 
   if (!slug) {
     throw new Error("slug-required");
+  }
+
+  if (matchdayId) {
+    const matchdayContext = await readMatchdayArticleContext(matchdayId);
+    seasonId = matchdayContext.season_id;
+    competitionId = matchdayContext.competition_id;
+  }
+
+  if (!seasonId) {
+    throw new Error("season-required");
+  }
+
+  const season = await readSeasonContext(seasonId);
+
+  if (competitionId && season.competition_id !== competitionId) {
+    throw new Error("article-season-competition-mismatch");
   }
 
   const payload = {
     slug,
     status: cleanStatus(formData.get("status")),
     scope: cleanScope(formData.get("scope")),
-    matchday_id: cleanText(formData.get("matchday_id")),
-    competition_id: cleanText(formData.get("competition_id")),
+    season_id: seasonId,
+    matchday_id: matchdayId,
+    competition_id: competitionId,
     title: cleanText(formData.get("title")),
     subtitle: cleanText(formData.get("subtitle")),
     label: cleanText(formData.get("label")),

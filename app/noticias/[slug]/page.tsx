@@ -16,6 +16,7 @@ type EditorialArticle = {
   slug: string;
   status: "draft" | "published";
   scope: "home" | "matchday" | "competition" | "general";
+  season_id: string | null;
   matchday_id: string | null;
   competition_id: string | null;
   title: string | null;
@@ -36,6 +37,7 @@ type RelatedArticle = {
   label: string | null;
   image_url: string | null;
   published_at: string | null;
+  season_id: string | null;
   matchday_id: string | null;
   competition_id: string | null;
 };
@@ -587,7 +589,7 @@ function bodyBlocks(body: string | null) {
 
 async function readArticle(slug: string) {
   const rows = await fetchSupabaseAdminTable<EditorialArticle>(
-    `editorial_articles?select=id,slug,status,scope,matchday_id,competition_id,title,subtitle,label,author,image_url,image_caption,body,published_at,created_at&slug=eq.${encodeURIComponent(slug)}&status=eq.published&limit=1`
+    `editorial_articles?select=id,slug,status,scope,season_id,matchday_id,competition_id,title,subtitle,label,author,image_url,image_caption,body,published_at,created_at&slug=eq.${encodeURIComponent(slug)}&status=eq.published&limit=1`
   ).catch(() => []);
 
   return rows[0] ?? null;
@@ -738,7 +740,7 @@ function relatedPriority(article: EditorialArticle, relatedArticle: RelatedArtic
 
 async function readRelatedArticles(article: EditorialArticle) {
   const rows = await fetchSupabaseAdminTable<RelatedArticle>(
-    `editorial_articles?select=id,slug,title,label,image_url,published_at,matchday_id,competition_id&status=eq.published&slug=neq.${encodeURIComponent(article.slug)}&order=published_at.desc&limit=18`
+    `editorial_articles?select=id,slug,title,label,image_url,published_at,season_id,matchday_id,competition_id&status=eq.published&slug=neq.${encodeURIComponent(article.slug)}&order=published_at.desc&limit=18`
   ).catch(() => []);
 
   return rows.sort((firstArticle, secondArticle) => {

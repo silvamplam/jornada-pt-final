@@ -10,6 +10,7 @@ type EditorialArticle = {
   slug: string;
   status: ArticleStatus;
   scope: ArticleScope;
+  season_id: string | null;
   matchday_id: string | null;
   competition_id: string | null;
   title: string | null;
@@ -45,6 +46,8 @@ type MatchdayRow = {
 type MatchdayOption = {
   id: string;
   label: string;
+  season_id: string | null;
+  competition_id: string | null;
 };
 
 type ArticlesAdminPageProps = {
@@ -310,7 +313,7 @@ function feedbackMessage(created?: string, error?: string) {
 
 async function readArticles() {
   return fetchSupabaseAdminTable<EditorialArticle>(
-    "editorial_articles?select=id,slug,status,scope,matchday_id,competition_id,title,subtitle,label,author,image_url,image_caption,body,published_at,created_at,updated_at&order=updated_at.desc&limit=200"
+    "editorial_articles?select=id,slug,status,scope,season_id,matchday_id,competition_id,title,subtitle,label,author,image_url,image_caption,body,published_at,created_at,updated_at&order=updated_at.desc&limit=200"
   ).catch(() => []);
 }
 
@@ -332,8 +335,8 @@ async function readMatchdays() {
   ).catch(() => []);
 }
 
-async function readMatchdayOptions(competitions: CompetitionRow[]) {
-  const [seasons, matchdays] = await Promise.all([readSeasons(), readMatchdays()]);
+async function readMatchdayOptions(competitions: CompetitionRow[], seasons: SeasonRow[]) {
+  const matchdays = await readMatchdays();
   const competitionsById = new Map(competitions.map((competition) => [competition.id, competition]));
   const seasonsById = new Map(seasons.map((season) => [season.id, season]));
 
@@ -347,6 +350,8 @@ async function readMatchdayOptions(competitions: CompetitionRow[]) {
 
       return {
         id: matchday.id,
+        season_id: matchday.season_id,
+        competition_id: season?.competition_id ?? null,
         label: `${competitionName} / ${seasonLabel} / ${number}`
       };
     })
@@ -356,10 +361,12 @@ async function readMatchdayOptions(competitions: CompetitionRow[]) {
 function ArticleForm({
   article,
   competitions,
+  seasons,
   matchdays
 }: {
   article: EditorialArticle | null;
   competitions: CompetitionRow[];
+  seasons: SeasonRow[];
   matchdays: MatchdayOption[];
 }) {
   const returnTo = article
@@ -367,7 +374,7 @@ function ArticleForm({
     : "/admin/editorial/artigos";
 
   return (
-    <form action="/api/admin/editorial/artigos" className="articles-admin-form" method="post">
+    <form action="/api/admin/editorial/artigos" className="articles-admin-form" data-article-form method="post">
       <input type="hidden" name="action_type" value="save_article" />
       <input type="hidden" name="article_id" value={article?.id ?? ""} />
       <input type="hidden" name="return_to" value={returnTo} />
@@ -393,6 +400,17 @@ function ArticleForm({
           <input id="article-slug" name="slug" defaultValue={article?.slug ?? ""} placeholder="a-culpa-e-do-var" required />
         </div>
         <div className="articles-admin-field">
+          <label htmlFor="article-season">Época</label>
+          <select id="article-season" name="season_id" defaultValue={article?.season_id ?? ""} required>
+            <option value="">Escolher época</option>
+            {seasons.map((season) => (
+              <option data-competition-id={season.competition_id ?? ""} key={season.id} value={season.id}>
+                {season.label || season.id}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="articles-admin-field">
           <label htmlFor="article-competition">Competicao opcional</label>
           <select id="article-competition" name="competition_id" defaultValue={article?.competition_id ?? ""}>
             <option value="">Sem competicao</option>
@@ -408,7 +426,7 @@ function ArticleForm({
           <select id="article-matchday" name="matchday_id" defaultValue={article?.matchday_id ?? ""}>
             <option value="">Sem jornada</option>
             {matchdays.map((matchday) => (
-              <option key={matchday.id} value={matchday.id}>
+              <option data-competition-id={matchday.competition_id ?? ""} data-season-id={matchday.season_id ?? ""} key={matchday.id} value={matchday.id}>
                 {matchday.label}
               </option>
             ))}
@@ -448,6 +466,60 @@ function ArticleForm({
         </div>
       </div>
       <button className="articles-admin-button" type="submit">Guardar artigo</button>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function () {
+              var form = document.querySelector('[data-article-form]');
+              if (!form) return;
+              var seasonSelect = form.querySelector('#article-season');
+              var competitionSelect = form.querySelector('#article-competition');
+              var matchdaySelect = form.querySelector('#article-matchday');
+              if (!seasonSelect || !competitionSelect || !matchdaySelect) return;
+
+              function syncMatchdayOptions() {
+                var seasonId = seasonSelect.value;
+                var competitionId = competitionSelect.value;
+                var selectedOption = matchdaySelect.selectedOptions && matchdaySelect.selectedOptions[0];
+                var selectedStillVisible = true;
+
+                Array.prototype.forEach.call(matchdaySelect.options, function (option) {
+                  if (!option.value) {
+                    option.hidden = false;
+                    return;
+                  }
+                  var optionSeasonId = option.getAttribute('data-season-id') || '';
+                  var optionCompetitionId = option.getAttribute('data-competition-id') || '';
+                  var visible = (!seasonId || optionSeasonId === seasonId) && (!competitionId || optionCompetitionId === competitionId);
+                  option.hidden = !visible;
+                  if (selectedOption === option && !visible) selectedStillVisible = false;
+                });
+
+                if (!selectedStillVisible) matchdaySelect.value = '';
+              }
+
+              function syncContextFromMatchday() {
+                var option = matchdaySelect.selectedOptions && matchdaySelect.selectedOptions[0];
+                if (!option || !option.value) {
+                  syncMatchdayOptions();
+                  return;
+                }
+                var seasonId = option.getAttribute('data-season-id') || '';
+                var competitionId = option.getAttribute('data-competition-id') || '';
+                if (seasonId) seasonSelect.value = seasonId;
+                if (competitionId) competitionSelect.value = competitionId;
+                syncMatchdayOptions();
+              }
+
+              seasonSelect.addEventListener('change', syncMatchdayOptions);
+              competitionSelect.addEventListener('change', syncMatchdayOptions);
+              matchdaySelect.addEventListener('change', syncContextFromMatchday);
+              syncContextFromMatchday();
+              syncMatchdayOptions();
+            })();
+          `
+        }}
+      />
     </form>
   );
 }
@@ -456,8 +528,8 @@ export default async function ArticlesAdminPage({ searchParams }: ArticlesAdminP
   const query = searchParams ? await searchParams : {};
   const selectedArticleId = oneParam(query, "artigo");
   const selectedMatchdayId = oneParam(query, "jornada");
-  const [articles, competitions] = await Promise.all([readArticles(), readCompetitions()]);
-  const matchdays = await readMatchdayOptions(competitions);
+  const [articles, competitions, seasons] = await Promise.all([readArticles(), readCompetitions(), readSeasons()]);
+  const matchdays = await readMatchdayOptions(competitions, seasons);
   const selectedArticle = selectedArticleId ? articles.find((article) => article.id === selectedArticleId) ?? null : null;
   const fallbackMatchdayId = selectedMatchdayId || matchdays[0]?.id || null;
   const matchdayEditorialHref = fallbackMatchdayId ? `/admin/editorial/jornada/${encodeURIComponent(fallbackMatchdayId)}` : null;
@@ -519,9 +591,9 @@ export default async function ArticlesAdminPage({ searchParams }: ArticlesAdminP
         <section className="articles-admin-panel">
           <header>
             <h2>{selectedArticle ? "Editar artigo" : "Criar artigo"}</h2>
-            <p>matchday_id e competition_id sao opcionais. Esta area nao depende de uma jornada.</p>
+            <p>A epoca e obrigatoria. Competicao e jornada continuam opcionais, mas devem ser coerentes quando escolhidas.</p>
           </header>
-          <ArticleForm article={selectedArticle} competitions={competitions} matchdays={matchdays} />
+          <ArticleForm article={selectedArticle} competitions={competitions} seasons={seasons} matchdays={matchdays} />
         </section>
       </div>
     </main>

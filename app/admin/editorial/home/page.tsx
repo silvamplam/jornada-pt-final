@@ -62,6 +62,7 @@ type EditorialArticleOption = {
   slug: string;
   status: string | null;
   scope: string | null;
+  season_id: string | null;
   matchday_id: string | null;
   competition_id: string | null;
   title: string | null;
@@ -903,18 +904,35 @@ async function readFeaturedMatches() {
   ).catch(() => []);
 }
 
-async function readHomeArticleGroups(): Promise<ArticleOptionGroup[]> {
-  const articles = await fetchSupabaseAdminTable<EditorialArticleOption>(
-    "editorial_articles?select=id,slug,status,scope,matchday_id,competition_id,title,label,published_at,created_at&status=eq.published&order=published_at.desc&limit=300"
+async function readCurrentSeasonIds() {
+  const rows = await fetchSupabaseAdminTable<{ id: string }>(
+    "seasons?select=id&is_current=is.true&limit=500"
   ).catch(() => []);
 
-  const globalArticles = articles.filter(
-    (article) => article.matchday_id === null && (!article.competition_id || article.scope === "general" || article.scope === "home")
+  return new Set(rows.map((season) => season.id));
+}
+
+async function readHomeArticleGroups(): Promise<ArticleOptionGroup[]> {
+  const currentSeasonIds = await readCurrentSeasonIds();
+
+  if (currentSeasonIds.size === 0) {
+    return [];
+  }
+
+  const articles = await fetchSupabaseAdminTable<EditorialArticleOption>(
+    "editorial_articles?select=id,slug,status,scope,season_id,matchday_id,competition_id,title,label,published_at,created_at&status=eq.published&order=published_at.desc&limit=300"
+  ).catch(() => []);
+  const currentSeasonArticles = articles.filter(
+    (article) => article.season_id !== null && currentSeasonIds.has(article.season_id)
   );
-  const competitionArticles = articles.filter(
-    (article) => article.matchday_id === null && Boolean(article.competition_id) && article.scope !== "general" && article.scope !== "home"
+
+  const globalArticles = currentSeasonArticles.filter(
+    (article) => article.matchday_id === null && article.competition_id === null
   );
-  const matchdayArticles = articles.filter((article) => article.matchday_id !== null);
+  const competitionArticles = currentSeasonArticles.filter(
+    (article) => article.matchday_id === null && article.competition_id !== null
+  );
+  const matchdayArticles = currentSeasonArticles.filter((article) => article.matchday_id !== null);
 
   return [
     { label: "Artigos globais", articles: globalArticles },
