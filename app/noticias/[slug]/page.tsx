@@ -81,12 +81,11 @@ const articleStyles = `
   }
 
   .public-article-card {
-    border-top: 5px solid #10151b;
     background: #ffffff;
   }
 
   .public-article-header {
-    padding: 0 0 26px;
+    padding: 0 0 22px;
     border-bottom: 1px solid #dfe5ec;
   }
 
@@ -101,31 +100,31 @@ const articleStyles = `
   }
 
   .public-article-title {
-    max-width: 780px;
+    max-width: 740px;
     margin: 0;
     color: #10151b;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: clamp(46px, 6.2vw, 82px);
-    font-weight: 950;
+    font-size: clamp(34px, 4.2vw, 54px);
+    font-weight: 900;
     letter-spacing: 0;
-    line-height: 0.92;
+    line-height: 1.04;
   }
 
   .public-article-subtitle {
     max-width: 700px;
-    margin: 20px 0 0;
+    margin: 14px 0 0;
     color: #526174;
-    font-size: 21px;
-    line-height: 1.35;
+    font-size: 19px;
+    line-height: 1.42;
   }
 
   .public-article-meta {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    margin-top: 20px;
+    margin-top: 16px;
     color: #607086;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 800;
   }
 
@@ -136,29 +135,29 @@ const articleStyles = `
   }
 
   .public-article-image {
-    margin: 26px 0 0;
+    margin: 22px 0 0;
   }
 
   .public-article-image img {
     display: block;
     width: 100%;
     aspect-ratio: 16 / 9;
-    max-height: 440px;
+    max-height: 430px;
     object-fit: cover;
     border-radius: 6px;
   }
 
   .public-article-body {
-    max-width: 680px;
-    margin: 34px 0 0;
+    max-width: 670px;
+    margin: 30px 0 0;
     color: #18212c;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: 22px;
-    line-height: 1.66;
+    font-size: 20px;
+    line-height: 1.68;
   }
 
   .public-article-body p {
-    margin: 0 0 24px;
+    margin: 0 0 22px;
   }
 
   .public-article-sidebar {
@@ -281,12 +280,12 @@ const articleStyles = `
   }
 
   .public-article-sidebar .public-article-ad-slot:first-child {
-    min-height: 360px;
+    min-height: 320px;
     background: #edf1f5;
   }
 
   .public-article-sidebar .public-article-ad-slot:last-child {
-    min-height: 180px;
+    min-height: 150px;
   }
 
   .public-article-horizontal-ad {
