@@ -571,7 +571,7 @@ function ArticleForm({
                   }
                   var optionSeasonLabel = option.getAttribute('data-season-label') || '';
                   var optionCompetitionId = option.getAttribute('data-competition-id') || '';
-                  var visible = (!selectedSeasonLabel || optionSeasonLabel === selectedSeasonLabel) && (!competitionId || optionCompetitionId === competitionId);
+                  var visible = Boolean(selectedSeasonLabel && competitionId) && optionSeasonLabel === selectedSeasonLabel && optionCompetitionId === competitionId;
                   option.hidden = !visible;
                   if (selectedOption === option && !visible) selectedStillVisible = false;
                 });

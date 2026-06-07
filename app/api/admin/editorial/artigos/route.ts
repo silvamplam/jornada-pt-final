@@ -69,7 +69,7 @@ async function assertArticleExists(articleId: string) {
 
 async function readSeasonContext(seasonId: string) {
   const rows = await fetchSupabaseAdminTable<SeasonContextRow>(
-    `seasons?select=id,competition_id&id=eq.${encodeURIComponent(seasonId)}&limit=1`
+    `seasons?select=id,competition_id,label&id=eq.${encodeURIComponent(seasonId)}&limit=1`
   );
   const season = rows[0];
 
@@ -109,6 +109,7 @@ async function readMatchdayArticleContext(matchdayId: string) {
   return {
     matchday_id: matchday.id,
     season_id: season.id,
+    season_label: season.label ?? null,
     competition_id: season.competition_id
   };
 }
@@ -127,6 +128,18 @@ async function saveArticle(formData: FormData) {
 
   if (matchdayId) {
     const matchdayContext = await readMatchdayArticleContext(matchdayId);
+    if (!competitionId) {
+      throw new Error("article-matchday-competition-required");
+    }
+    if (seasonLabel && matchdayContext.season_label !== seasonLabel) {
+      throw new Error("article-matchday-season-mismatch");
+    }
+    if (seasonId && !seasonLabel && seasonId !== matchdayContext.season_id) {
+      throw new Error("article-matchday-season-mismatch");
+    }
+    if (competitionId && matchdayContext.competition_id !== competitionId) {
+      throw new Error("article-matchday-competition-mismatch");
+    }
     seasonId = matchdayContext.season_id;
     competitionId = matchdayContext.competition_id;
   } else if (seasonLabel && (!seasonId || competitionId)) {
