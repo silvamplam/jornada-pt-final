@@ -34,6 +34,24 @@ type MatchdayLatestNewsWithLink = SupabaseMatchdayLatestNews & {
   link_url?: string | null;
 };
 
+type EditorialArticleOption = {
+  id: string;
+  slug: string;
+  status: string | null;
+  scope: string | null;
+  matchday_id: string | null;
+  competition_id: string | null;
+  title: string | null;
+  label: string | null;
+  published_at: string | null;
+  created_at: string | null;
+};
+
+type ArticleOptionGroup = {
+  label: string;
+  articles: EditorialArticleOption[];
+};
+
 const ROUNDUP_EDITOR_SORT_ORDERS = Array.from({ length: 10 }, (_, index) => index + 1);
 const LATEST_NEWS_EDITOR_SORT_ORDERS = Array.from({ length: 8 }, (_, index) => index + 1);
 
@@ -456,6 +474,59 @@ async function readMatchdayLatestNews(matchdayId: string): Promise<MatchdayLates
   ).catch(() => []);
 }
 
+async function readEditorialArticleGroups(matchdayId: string, competitionId: string | null): Promise<ArticleOptionGroup[]> {
+  const articles = await fetchSupabaseAdminTable<EditorialArticleOption>(
+    "editorial_articles?select=id,slug,status,scope,matchday_id,competition_id,title,label,published_at,created_at&status=eq.published&order=published_at.desc&limit=300"
+  ).catch(() => []);
+
+  const currentMatchdayArticles = articles.filter((article) => article.matchday_id === matchdayId);
+  const sameCompetitionArticles = competitionId
+    ? articles.filter(
+        (article) =>
+          article.matchday_id === null && article.competition_id === competitionId && article.scope !== "general"
+      )
+    : [];
+  const globalArticles = articles.filter(
+    (article) => article.matchday_id === null && (!article.competition_id || article.scope === "general")
+  );
+
+  return [
+    { label: "Artigos desta jornada", articles: currentMatchdayArticles },
+    { label: "Artigos da mesma competição sem jornada", articles: sameCompetitionArticles },
+    { label: "Artigos globais", articles: globalArticles }
+  ].filter((group) => group.articles.length > 0);
+}
+
+function articleOptionLabel(article: EditorialArticleOption) {
+  const label = article.label?.trim();
+  const title = article.title?.trim() || article.slug;
+  return label ? `${label} - ${title}` : title;
+}
+
+function ArticleLinkPicker({ inputId, groups }: { inputId: string; groups: ArticleOptionGroup[] }) {
+  if (groups.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="editorial-admin-field">
+      <label htmlFor={`${inputId}-article-picker`}>Escolher artigo</label>
+      <select data-article-link-picker data-target-input={inputId} defaultValue="" id={`${inputId}-article-picker`}>
+        <option value="">Preencher link com artigo publicado</option>
+        {groups.map((group) => (
+          <optgroup key={group.label} label={group.label}>
+            {group.articles.map((article) => (
+              <option key={article.id} value={`/noticias/${article.slug}`}>
+                {articleOptionLabel(article)}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 type FeedbackScope = "manchete" | "bloco-lateral" | "composicao" | "destaques" | "resumo-jornada" | "bloco-complementar" | "ultimas-noticias";
 
 function messageFor(created?: string, error?: string, scope?: FeedbackScope) {
@@ -569,6 +640,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const highlights = await readMatchdayHighlights(matchday.id);
   const roundupItems = await readMatchdayRoundupItems(matchday.id);
   const latestNews = await readMatchdayLatestNews(matchday.id);
+  const articleGroups = await readEditorialArticleGroups(matchday.id, competition.id);
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = editorial?.complementary_mode ?? "none";
   const belowHeadlineHeadingFallback = `Jornada ${String(matchday.number).padStart(2, "0")}`;
@@ -624,6 +696,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 <label htmlFor={`highlight-${order}-link-url`}>Link</label>
                 <input form={highlightsFormId} id={`highlight-${order}-link-url`} name={`highlight_${order}_link_url`} defaultValue={highlight?.link_url ?? ""} placeholder="/noticias/a-culpa-e-do-var" />
               </div>
+              <ArticleLinkPicker groups={articleGroups} inputId={`highlight-${order}-link-url`} />
               {highlight?.image_url ? (
                 <div className="editorial-admin-preview">
                   <img alt="" src={highlight.image_url} />
@@ -753,6 +826,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 <label htmlFor={`latest-news-${order}-link-url`}>Link</label>
                 <input id={`latest-news-${order}-link-url`} name={`latest_news_${order}_link_url`} defaultValue={item?.link_url ?? ""} placeholder="/noticias/a-culpa-e-do-var" />
               </div>
+              <ArticleLinkPicker groups={articleGroups} inputId={`latest-news-${order}-link-url`} />
               {item?.image_url ? (
                 <div className="editorial-admin-preview">
                   <img alt="" src={item.image_url} />
@@ -967,6 +1041,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               <label htmlFor="side-block-link-url">Link opcional</label>
               <input id="side-block-link-url" name="side_block_link_url" defaultValue={editorial?.side_block_link_url ?? ""} placeholder="/competicoes/liga/2026-27/jornadas/1/noticias/slug" />
             </div>
+            <ArticleLinkPicker groups={articleGroups} inputId="side-block-link-url" />
             <button className="editorial-admin-button" type="submit">
               Guardar bloco lateral
             </button>
@@ -1117,6 +1192,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                       <label htmlFor="complementary-link-url">Link da noticia completa</label>
                       <input id="complementary-link-url" name="complementary_link_url" defaultValue={editorial?.complementary_link_url ?? ""} placeholder="/competicoes/liga/2026-27/jornadas/1/noticias/slug" />
                     </div>
+                    <ArticleLinkPicker groups={articleGroups} inputId="complementary-link-url" />
                     <div className="editorial-admin-field">
                       <label htmlFor="complementary-status">Estado</label>
                       <select id="complementary-status" name="complementary_status" defaultValue={editorial?.complementary_status ?? "draft"}>
@@ -1144,6 +1220,19 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           dangerouslySetInnerHTML={{
             __html: `
               (function () {
+                document.addEventListener('change', function (event) {
+                  var select = event.target;
+                  if (!select || !select.matches || !select.matches('[data-article-link-picker]')) return;
+                  var targetInputId = select.getAttribute('data-target-input');
+                  if (!targetInputId || !select.value) return;
+                  var input = document.getElementById(targetInputId);
+                  if (!input) return;
+                  input.value = select.value;
+                  input.dispatchEvent(new Event('input', { bubbles: true }));
+                  input.dispatchEvent(new Event('change', { bubbles: true }));
+                  select.value = '';
+                });
+
                 var form = document.querySelector('[data-composition-form]');
                 if (!form) return;
                 var belowSelect = form.querySelector('[name="below_headline_mode"]');

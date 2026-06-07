@@ -787,7 +787,7 @@ function PublicHeader({ frame }: { frame?: ArticleMatchdayFrame | null }) {
           </Link>
         ))}
         <Link href={jogosHref}>Jogos</Link>
-        <Link href={classificacaoHref}>Classifica\u00e7\u00e3o</Link>
+        <Link href={classificacaoHref}>Classificação</Link>
       </nav>
       <div className="public-site-actions" aria-label="Acoes">
         <span className="public-site-search" aria-label="Pesquisar">Pesquisar</span>
