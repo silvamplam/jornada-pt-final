@@ -13,6 +13,7 @@ type SiteEditorial = {
   headline_title: string | null;
   headline_subtitle: string | null;
   headline_image_url: string | null;
+  headline_link_url: string | null;
   headline_title_color: string | null;
   below_headline_mode: "highlights" | "roundup" | null;
   below_headline_heading: string | null;
@@ -181,7 +182,7 @@ function sideBlockTypeLabel(type: string | null | undefined) {
 
 async function readHomeEditorial() {
   const editorials = await fetchSupabaseAdminTable<SiteEditorial>(
-    "site_editorials?select=id,slug,status,headline_title,headline_subtitle,headline_image_url,headline_title_color,below_headline_mode,below_headline_heading,below_headline_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color&slug=eq.home&limit=1"
+    "site_editorials?select=id,slug,status,headline_title,headline_subtitle,headline_image_url,headline_link_url,headline_title_color,below_headline_mode,below_headline_heading,below_headline_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color&slug=eq.home&limit=1"
   ).catch(() => []);
 
   return editorials[0] ?? null;
@@ -329,6 +330,7 @@ export default async function HomePage() {
   const headlineTitle = headlineIsPublished ? cleanText(editorial.headline_title) : null;
   const headlineSubtitle = headlineIsPublished ? cleanText(editorial.headline_subtitle) : null;
   const headlineImageUrl = headlineIsPublished ? cleanText(editorial.headline_image_url) : null;
+  const headlineLinkUrl = headlineIsPublished ? cleanText(editorial.headline_link_url) : null;
   const headlineTitleColor = headlineIsPublished ? cleanText(editorial.headline_title_color) : null;
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const belowHeadlineHeading =
@@ -408,6 +410,7 @@ export default async function HomePage() {
           title: headlineTitle,
           subtitle: headlineSubtitle,
           imageUrl: headlineImageUrl,
+          linkUrl: headlineLinkUrl,
           titleColor: headlineTitleColor,
           fallbackTitle: "Jornada.pt",
           fallbackSubtitle: "A capa editorial do futebol, pronta para acompanhar os grandes temas antes, durante e depois dos jogos."

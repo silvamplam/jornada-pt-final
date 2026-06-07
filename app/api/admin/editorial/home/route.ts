@@ -133,6 +133,7 @@ async function saveHomeEditorial(formData: FormData) {
   assignText("headline_title");
   assignText("headline_subtitle");
   assignText("headline_image_url");
+  assignText("headline_link_url");
   assignText("headline_title_color");
 
   if (hasBelowHeadlineMode) {

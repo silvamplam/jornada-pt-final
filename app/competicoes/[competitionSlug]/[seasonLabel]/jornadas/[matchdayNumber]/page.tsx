@@ -24,6 +24,10 @@ type EditorialLinkUrlRow = {
   link_url: string | null;
 };
 
+type MatchdayHeadlineLinkRow = {
+  headline_link_url: string | null;
+};
+
 const PUBLIC_STAT_COLUMNS: Array<{ key: keyof ClassificationSplit; label: string }> = [
   { key: "played", label: "J" },
   { key: "wins", label: "V" },
@@ -57,6 +61,14 @@ async function readEditorialLinkUrls(table: "matchday_highlights" | "matchday_la
   ).catch(() => []);
 
   return new Map(rows.map((row) => [row.id, row.link_url?.trim() || null]));
+}
+
+async function readMatchdayHeadlineLinkUrl(matchdayId: string) {
+  const rows = await fetchSupabaseAdminTable<MatchdayHeadlineLinkRow>(
+    `matchday_editorials?select=headline_link_url&matchday_id=eq.${encodeURIComponent(matchdayId)}&limit=1`
+  ).catch(() => []);
+
+  return rows[0]?.headline_link_url?.trim() || null;
 }
 
 function formatKickoff(value: string) {
@@ -572,7 +584,8 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
     editorial?.side_block_status === "published" &&
     Boolean(sideBlockImageUrl || explicitSideBlockLabel || sideBlockTitle || sideBlockText);
   const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
-  const [highlightLinkUrls, latestNewsLinkUrls] = await Promise.all([
+  const [headlineLinkUrl, highlightLinkUrls, latestNewsLinkUrls] = await Promise.all([
+    readMatchdayHeadlineLinkUrl(context.matchday.id),
     readEditorialLinkUrls("matchday_highlights", context.highlights.map((highlight) => highlight.id)),
     readEditorialLinkUrls("matchday_latest_news", context.latestNews.map((item) => item.id))
   ]);
@@ -781,6 +794,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
           title: publishedHeadline?.title ?? null,
           subtitle: publishedHeadline?.summary ?? null,
           imageUrl: publishedHeadline?.image_url ?? null,
+          linkUrl: publishedHeadline ? headlineLinkUrl : null,
           titleColor: publishedHeadline?.title_color ?? null,
           fallbackTitle: "Manchete da jornada",
           fallbackSubtitle: "Espaço reservado para a leitura editorial desta jornada."

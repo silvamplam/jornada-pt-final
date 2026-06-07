@@ -9,6 +9,7 @@ type HomeEditorial = {
   headline_title: string | null;
   headline_subtitle: string | null;
   headline_image_url: string | null;
+  headline_link_url: string | null;
   headline_title_color: string | null;
   below_headline_mode: "highlights" | "roundup";
   below_headline_heading: string | null;
@@ -845,7 +846,7 @@ async function readRowsById<T extends { id: string }>(table: string, select: str
 
 async function readHomeEditorial() {
   const rows = await fetchSupabaseAdminTable<HomeEditorial>(
-    "site_editorials?select=id,slug,status,headline_title,headline_subtitle,headline_image_url,headline_title_color,below_headline_mode,below_headline_heading,below_headline_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color&slug=eq.home&limit=1"
+    "site_editorials?select=id,slug,status,headline_title,headline_subtitle,headline_image_url,headline_link_url,headline_title_color,below_headline_mode,below_headline_heading,below_headline_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color&slug=eq.home&limit=1"
   ).catch(() => []);
 
   if (rows[0]) {
@@ -869,7 +870,7 @@ async function readHomeEditorial() {
 
   return (
     await fetchSupabaseAdminTable<HomeEditorial>(
-      "site_editorials?select=id,slug,status,headline_title,headline_subtitle,headline_image_url,headline_title_color,below_headline_mode,below_headline_heading,below_headline_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color&slug=eq.home&limit=1"
+      "site_editorials?select=id,slug,status,headline_title,headline_subtitle,headline_image_url,headline_link_url,headline_title_color,below_headline_mode,below_headline_heading,below_headline_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color&slug=eq.home&limit=1"
     ).catch(() => [])
   )[0] ?? null;
 }
@@ -1446,6 +1447,11 @@ export default async function HomeEditorialAdminPage({ searchParams }: HomeEdito
               <label htmlFor="headline-image-url">Imagem da manchete URL</label>
               <input id="headline-image-url" name="headline_image_url" defaultValue={editorial.headline_image_url ?? ""} />
             </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="headline-link-url">Link</label>
+              <input id="headline-link-url" name="headline_link_url" defaultValue={editorial.headline_link_url ?? ""} placeholder="/noticias/a-culpa-e-do-var" />
+            </div>
+            <ArticleLinkPicker groups={articleGroups} inputId="headline-link-url" />
             {editorial.headline_image_url ? (
               <div className="editorial-admin-preview">
                 <img alt="" src={editorial.headline_image_url} />

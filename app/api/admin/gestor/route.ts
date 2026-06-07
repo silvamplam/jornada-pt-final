@@ -817,6 +817,7 @@ async function saveMatchdayEditorial(formData: FormData) {
   const summary = cleanText(formData.get("summary"));
   const titleColor = cleanText(formData.get("title_color"));
   const imageUrl = cleanText(formData.get("image_url"));
+  const headlineLinkUrl = cleanText(formData.get("headline_link_url"));
   const belowHeadlineModeValue = cleanText(formData.get("below_headline_mode")) ?? "highlights";
   const belowHeadlineMode = belowHeadlineModeValue === "roundup" ? "roundup" : "highlights";
   const belowHeadlineHeading = cleanText(formData.get("below_headline_heading"));
@@ -887,6 +888,10 @@ async function saveMatchdayEditorial(formData: FormData) {
     status,
     updated_at: new Date().toISOString()
   };
+
+  if (formData.has("headline_link_url")) {
+    editorialPayload.headline_link_url = headlineLinkUrl;
+  }
 
   if (formData.has("roundup_video_heading")) {
     editorialPayload.roundup_video_heading = roundupVideoHeading;

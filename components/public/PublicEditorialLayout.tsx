@@ -33,6 +33,7 @@ export type PublicHeadlineData = {
   title?: string | null;
   subtitle?: string | null;
   imageUrl?: string | null;
+  linkUrl?: string | null;
   titleColor?: string | null;
   fallbackTitle: string;
   fallbackSubtitle: string;
@@ -148,21 +149,31 @@ export function PublicSideBlock({ data, ariaLabel = "Bloco editorial lateral da 
 export function PublicHeadlineBlock({ data }: { data: PublicHeadlineData }) {
   const title = data.title || data.fallbackTitle;
   const subtitle = data.subtitle || data.fallbackSubtitle;
+  const linkUrl = data.linkUrl?.trim();
   const TitleTag = data.titleTag ?? "h2";
+  const content = (
+    <>
+      {data.imageUrl ? (
+        <div className="public-editorial-main-image">
+          <img src={data.imageUrl} alt="" />
+        </div>
+      ) : null}
+      <div>
+        <TitleTag style={data.titleColor ? { color: data.titleColor } : undefined}>{title}</TitleTag>
+        <p>{subtitle}</p>
+      </div>
+    </>
+  );
 
   return (
     <article className="public-matchday-editorial">
-      <div className="public-cover-headline">
-        {data.imageUrl ? (
-          <div className="public-editorial-main-image">
-            <img src={data.imageUrl} alt="" />
-          </div>
-        ) : null}
-        <div>
-          <TitleTag style={data.titleColor ? { color: data.titleColor } : undefined}>{title}</TitleTag>
-          <p>{subtitle}</p>
-        </div>
-      </div>
+      {linkUrl ? (
+        <a className="public-cover-headline public-cover-headline-link" href={linkUrl} style={{ color: "inherit", textDecoration: "none" }}>
+          {content}
+        </a>
+      ) : (
+        <div className="public-cover-headline">{content}</div>
+      )}
     </article>
   );
 }

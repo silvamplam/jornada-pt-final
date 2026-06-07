@@ -34,6 +34,10 @@ type MatchdayLatestNewsWithLink = SupabaseMatchdayLatestNews & {
   link_url?: string | null;
 };
 
+type MatchdayEditorialWithHeadlineLink = SupabaseMatchdayEditorial & {
+  headline_link_url?: string | null;
+};
+
 type EditorialArticleOption = {
   id: string;
   slug: string;
@@ -443,9 +447,9 @@ async function readMatchdayContext(matchdayId: string): Promise<MatchdayContext 
   return { matchday, season, competition, country };
 }
 
-async function readMatchdayEditorial(matchdayId: string): Promise<SupabaseMatchdayEditorial | null> {
-  return readFirst<SupabaseMatchdayEditorial>(
-    `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+async function readMatchdayEditorial(matchdayId: string): Promise<MatchdayEditorialWithHeadlineLink | null> {
+  return readFirst<MatchdayEditorialWithHeadlineLink>(
+    `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,headline_link_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
       matchdayId
     )}`
   ).catch(() => null);
@@ -935,6 +939,16 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 placeholder="https://exemplo.com/imagem.jpg"
               />
             </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="matchday-editorial-headline-link-url">Link</label>
+              <input
+                id="matchday-editorial-headline-link-url"
+                name="headline_link_url"
+                defaultValue={editorial?.headline_link_url ?? ""}
+                placeholder="/noticias/a-culpa-e-do-var"
+              />
+            </div>
+            <ArticleLinkPicker groups={articleGroups} inputId="matchday-editorial-headline-link-url" />
             <input type="hidden" name="below_headline_mode" value={belowHeadlineMode} />
             {editorial?.image_url ? (
               <div className="editorial-admin-preview">
