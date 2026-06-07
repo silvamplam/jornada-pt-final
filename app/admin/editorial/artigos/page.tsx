@@ -37,6 +37,11 @@ type SeasonRow = {
   competition_id: string | null;
 };
 
+type SeasonOption = {
+  label: string;
+  representative_id: string;
+};
+
 type MatchdayRow = {
   id: string;
   number: number | null;
@@ -299,6 +304,25 @@ function articleTitle(article: EditorialArticle) {
   return article.title?.trim() || article.slug;
 }
 
+function seasonLabel(season?: Pick<SeasonRow, "id" | "label"> | null) {
+  return season?.label?.trim() || season?.id || "";
+}
+
+function uniqueSeasonOptions(seasons: SeasonRow[]) {
+  const optionsByLabel = new Map<string, SeasonOption>();
+
+  for (const season of seasons) {
+    const label = seasonLabel(season);
+    if (!label || optionsByLabel.has(label)) continue;
+    optionsByLabel.set(label, {
+      label,
+      representative_id: season.id
+    });
+  }
+
+  return Array.from(optionsByLabel.values()).sort((first, second) => second.label.localeCompare(first.label));
+}
+
 function feedbackMessage(created?: string, error?: string) {
   if (created === "save_article") {
     return { type: "success" as const, text: "Artigo guardado." };
@@ -369,6 +393,9 @@ function ArticleForm({
   seasons: SeasonRow[];
   matchdays: MatchdayOption[];
 }) {
+  const seasonsById = new Map(seasons.map((season) => [season.id, season]));
+  const selectedSeasonLabel = article?.season_id ? seasonLabel(seasonsById.get(article.season_id)) : "";
+  const seasonOptions = uniqueSeasonOptions(seasons);
   const returnTo = article
     ? `/admin/editorial/artigos?artigo=${encodeURIComponent(article.id)}`
     : "/admin/editorial/artigos";
@@ -401,12 +428,24 @@ function ArticleForm({
         </div>
         <div className="articles-admin-field">
           <label htmlFor="article-season">Época</label>
-          <select id="article-season" name="season_id" defaultValue={article?.season_id ?? ""} required>
+          <input id="article-season-id" name="season_id" type="hidden" defaultValue={article?.season_id ?? ""} />
+          <select id="article-season" name="season_label" defaultValue={selectedSeasonLabel} required>
             <option value="">Escolher época</option>
-            {seasons.map((season) => (
-              <option data-competition-id={season.competition_id ?? ""} key={season.id} value={season.id}>
-                {season.label || season.id}
+            {seasonOptions.map((season) => (
+              <option data-representative-season-id={season.representative_id} key={season.label} value={season.label}>
+                {season.label}
               </option>
+            ))}
+          </select>
+          <select aria-hidden="true" data-season-registry hidden tabIndex={-1}>
+            {seasons.map((season) => (
+              <option
+                data-competition-id={season.competition_id ?? ""}
+                data-season-id={season.id}
+                data-season-label={seasonLabel(season)}
+                key={season.id}
+                value={season.id}
+              />
             ))}
           </select>
         </div>
@@ -426,7 +465,13 @@ function ArticleForm({
           <select id="article-matchday" name="matchday_id" defaultValue={article?.matchday_id ?? ""}>
             <option value="">Sem jornada</option>
             {matchdays.map((matchday) => (
-              <option data-competition-id={matchday.competition_id ?? ""} data-season-id={matchday.season_id ?? ""} key={matchday.id} value={matchday.id}>
+              <option
+                data-competition-id={matchday.competition_id ?? ""}
+                data-season-id={matchday.season_id ?? ""}
+                data-season-label={seasonLabel(matchday.season_id ? seasonsById.get(matchday.season_id) : null)}
+                key={matchday.id}
+                value={matchday.id}
+              >
                 {matchday.label}
               </option>
             ))}
@@ -472,13 +517,49 @@ function ArticleForm({
             (function () {
               var form = document.querySelector('[data-article-form]');
               if (!form) return;
+              var seasonIdInput = form.querySelector('#article-season-id');
               var seasonSelect = form.querySelector('#article-season');
               var competitionSelect = form.querySelector('#article-competition');
               var matchdaySelect = form.querySelector('#article-matchday');
-              if (!seasonSelect || !competitionSelect || !matchdaySelect) return;
+              var seasonRegistry = Array.prototype.slice.call(form.querySelectorAll('[data-season-registry] option')).map(function (option) {
+                return {
+                  id: option.getAttribute('data-season-id') || '',
+                  label: option.getAttribute('data-season-label') || '',
+                  competitionId: option.getAttribute('data-competition-id') || ''
+                };
+              });
+              if (!seasonIdInput || !seasonSelect || !competitionSelect || !matchdaySelect) return;
+
+              function seasonLabelForId(seasonId) {
+                var entry = seasonRegistry.find(function (season) {
+                  return season.id === seasonId;
+                });
+                return entry ? entry.label : '';
+              }
+
+              function seasonIdForSelection() {
+                var label = seasonSelect.value;
+                var competitionId = competitionSelect.value;
+                if (!label) return '';
+                var exact = competitionId
+                  ? seasonRegistry.find(function (season) {
+                      return season.label === label && season.competitionId === competitionId;
+                    })
+                  : null;
+                var fallback = seasonRegistry.find(function (season) {
+                  return season.label === label;
+                });
+
+                return (exact || fallback || {}).id || '';
+              }
+
+              function syncSeasonIdFromSelection() {
+                seasonIdInput.value = seasonIdForSelection();
+                syncMatchdayOptions();
+              }
 
               function syncMatchdayOptions() {
-                var seasonId = seasonSelect.value;
+                var selectedSeasonLabel = seasonSelect.value;
                 var competitionId = competitionSelect.value;
                 var selectedOption = matchdaySelect.selectedOptions && matchdaySelect.selectedOptions[0];
                 var selectedStillVisible = true;
@@ -488,9 +569,9 @@ function ArticleForm({
                     option.hidden = false;
                     return;
                   }
-                  var optionSeasonId = option.getAttribute('data-season-id') || '';
+                  var optionSeasonLabel = option.getAttribute('data-season-label') || '';
                   var optionCompetitionId = option.getAttribute('data-competition-id') || '';
-                  var visible = (!seasonId || optionSeasonId === seasonId) && (!competitionId || optionCompetitionId === competitionId);
+                  var visible = (!selectedSeasonLabel || optionSeasonLabel === selectedSeasonLabel) && (!competitionId || optionCompetitionId === competitionId);
                   option.hidden = !visible;
                   if (selectedOption === option && !visible) selectedStillVisible = false;
                 });
@@ -505,16 +586,26 @@ function ArticleForm({
                   return;
                 }
                 var seasonId = option.getAttribute('data-season-id') || '';
+                var selectedSeasonLabel = option.getAttribute('data-season-label') || '';
                 var competitionId = option.getAttribute('data-competition-id') || '';
-                if (seasonId) seasonSelect.value = seasonId;
+                if (selectedSeasonLabel) seasonSelect.value = selectedSeasonLabel;
+                if (seasonId) seasonIdInput.value = seasonId;
                 if (competitionId) competitionSelect.value = competitionId;
                 syncMatchdayOptions();
               }
 
-              seasonSelect.addEventListener('change', syncMatchdayOptions);
-              competitionSelect.addEventListener('change', syncMatchdayOptions);
+              if (seasonIdInput.value && !seasonSelect.value) {
+                seasonSelect.value = seasonLabelForId(seasonIdInput.value);
+              }
+
+              seasonSelect.addEventListener('change', syncSeasonIdFromSelection);
+              competitionSelect.addEventListener('change', syncSeasonIdFromSelection);
               matchdaySelect.addEventListener('change', syncContextFromMatchday);
+              form.addEventListener('submit', function () {
+                if (!seasonIdInput.value) syncSeasonIdFromSelection();
+              });
               syncContextFromMatchday();
+              if (!seasonIdInput.value) syncSeasonIdFromSelection();
               syncMatchdayOptions();
             })();
           `

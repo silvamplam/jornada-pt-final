@@ -8,6 +8,7 @@ type EditorialArticleIdRow = {
 type SeasonContextRow = {
   id: string;
   competition_id: string | null;
+  label?: string | null;
 };
 
 type MatchdayContextRow = {
@@ -79,6 +80,20 @@ async function readSeasonContext(seasonId: string) {
   return season;
 }
 
+async function readSeasonContextByLabel(seasonLabel: string, competitionId: string | null) {
+  const competitionFilter = competitionId ? `&competition_id=eq.${encodeURIComponent(competitionId)}` : "";
+  const rows = await fetchSupabaseAdminTable<SeasonContextRow>(
+    `seasons?select=id,competition_id,label&label=eq.${encodeURIComponent(seasonLabel)}${competitionFilter}&order=id.asc&limit=1`
+  );
+  const season = rows[0];
+
+  if (!season) {
+    throw new Error("season-invalid");
+  }
+
+  return season;
+}
+
 async function readMatchdayArticleContext(matchdayId: string) {
   const rows = await fetchSupabaseAdminTable<MatchdayContextRow>(
     `matchdays?select=id,season_id&id=eq.${encodeURIComponent(matchdayId)}&limit=1`
@@ -102,6 +117,7 @@ async function saveArticle(formData: FormData) {
   const articleId = cleanText(formData.get("article_id"));
   const slug = cleanText(formData.get("slug"));
   const matchdayId = cleanText(formData.get("matchday_id"));
+  const seasonLabel = cleanText(formData.get("season_label"));
   let seasonId = cleanText(formData.get("season_id"));
   let competitionId = cleanText(formData.get("competition_id"));
 
@@ -113,16 +129,24 @@ async function saveArticle(formData: FormData) {
     const matchdayContext = await readMatchdayArticleContext(matchdayId);
     seasonId = matchdayContext.season_id;
     competitionId = matchdayContext.competition_id;
+  } else if (seasonLabel && (!seasonId || competitionId)) {
+    const seasonContext = await readSeasonContextByLabel(seasonLabel, competitionId);
+    seasonId = seasonContext.id;
   }
 
   if (!seasonId) {
     throw new Error("season-required");
   }
 
-  const season = await readSeasonContext(seasonId);
+  let season = await readSeasonContext(seasonId);
 
   if (competitionId && season.competition_id !== competitionId) {
-    throw new Error("article-season-competition-mismatch");
+    if (!seasonLabel) {
+      throw new Error("article-season-competition-mismatch");
+    }
+
+    season = await readSeasonContextByLabel(seasonLabel, competitionId);
+    seasonId = season.id;
   }
 
   const payload = {
