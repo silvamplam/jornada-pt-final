@@ -85,7 +85,7 @@ const articleStyles = `
   }
 
   .public-article-header {
-    padding: 0 0 22px;
+    padding: 0 0 20px;
     border-bottom: 1px solid #dfe5ec;
   }
 
@@ -100,29 +100,29 @@ const articleStyles = `
   }
 
   .public-article-title {
-    max-width: 740px;
+    max-width: 700px;
     margin: 0;
     color: #10151b;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: clamp(34px, 4.2vw, 54px);
+    font-size: clamp(30px, 3.45vw, 44px);
     font-weight: 900;
     letter-spacing: 0;
-    line-height: 1.04;
+    line-height: 1.08;
   }
 
   .public-article-subtitle {
     max-width: 700px;
-    margin: 14px 0 0;
+    margin: 12px 0 0;
     color: #526174;
-    font-size: 19px;
-    line-height: 1.42;
+    font-size: 18px;
+    line-height: 1.44;
   }
 
   .public-article-meta {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    margin-top: 16px;
+    margin-top: 14px;
     color: #607086;
     font-size: 12px;
     font-weight: 800;
