@@ -100,8 +100,10 @@ const roundupVideoListPolishStyles = `
   .public-roundup-video-layout .public-roundup-inline-head-spacer {
     visibility: hidden;
     display: grid;
-    min-height: 0;
-    padding-bottom: 8px !important;
+    height: 24px;
+    min-height: 24px;
+    padding-bottom: 0 !important;
+    overflow: visible;
     pointer-events: none;
   }
 
