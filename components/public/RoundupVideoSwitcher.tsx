@@ -34,17 +34,30 @@ const roundupVideoListPolishStyles = `
     left: 0;
     display: grid;
     gap: 2px;
+    width: min(210px, 36%);
     color: #0b1f3a;
     font-size: 11px;
     font-weight: 900;
-    line-height: 1.05;
+    line-height: 1.08;
     letter-spacing: 0.02em;
     text-transform: uppercase;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
     pointer-events: none;
+  }
+
+  .public-roundup-video-layout .public-roundup-zone-heading span {
+    display: block;
+    min-width: 0;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
   }
 
   .public-roundup-video-layout .public-roundup-zone-heading span + span {
     opacity: 0.72;
+    line-height: 1.18;
   }
 
   .public-roundup-video-layout .public-roundup-video-panel {
@@ -86,8 +99,29 @@ const roundupVideoListPolishStyles = `
 
   .public-roundup-video-layout .public-roundup-inline-head-spacer {
     visibility: hidden;
-    min-height: 22px;
+    display: grid;
+    min-height: 0;
+    padding-bottom: 8px !important;
     pointer-events: none;
+  }
+
+  .public-roundup-video-layout .public-roundup-inline-head-spacer .public-roundup-matchday-label {
+    display: grid;
+    gap: 2px;
+    width: min(210px, 36%);
+    min-width: 0;
+    line-height: 1.08;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .public-roundup-video-layout .public-roundup-inline-head-spacer .public-roundup-matchday-label span {
+    display: block;
+    min-width: 0;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
   }
 
   .public-roundup-video-layout .public-roundup-scroll-window {
@@ -294,7 +328,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
   });
   const headingLines = splitHeadingLines(heading);
   const headingStyle = headingColor?.trim() ? { color: headingColor.trim() } : undefined;
-  const headingSpacerText = headingLines.length > 0 ? headingLines.join(" ") : "Jornada 00 Jogos Video Resumo";
+  const headingSpacerLines = headingLines.length > 0 ? headingLines : ["Jornada 00", "Jogos Video Resumo"];
   const compactListClass = items.length > 0 && items.length < 5 ? " public-roundup-compact-list" : "";
 
   const updateScrollState = useCallback(() => {
@@ -363,7 +397,11 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
         data-editorial-slot="resumo-ou-noticias"
       >
         <div aria-hidden="true" className="public-editorial-block-head public-roundup-inline-head-spacer">
-          <span className="public-roundup-matchday-label">{headingSpacerText}</span>
+          <span className="public-roundup-matchday-label">
+            {headingSpacerLines.map((line, index) => (
+              <span key={`spacer-${line}-${index}`}>{line}</span>
+            ))}
+          </span>
         </div>
         <div className="public-roundup-scroll-frame">
           {hasScrollControls && scrollState.canScrollUp ? (
