@@ -95,11 +95,11 @@ type ArticleMatchdayFrame = {
     id: string;
     name: string;
     slug: string;
-  };
+  } | null;
   season: {
     id: string;
     label: string;
-  };
+  } | null;
   seasons: Array<{
     id: string;
     label: string;
@@ -107,7 +107,7 @@ type ArticleMatchdayFrame = {
   matchday: {
     id: string;
     number: number;
-  };
+  } | null;
   matchdays: Array<{
     id: string;
     number: number;
@@ -676,55 +676,79 @@ async function readMatchdayMatches(matchdayId: string): Promise<PublicMatchStrip
   }));
 }
 
-async function readArticleMatchdayFrame(matchdayId: string | null): Promise<ArticleMatchdayFrame | null> {
-  if (!matchdayId) return null;
+async function readArticleFrame(article: EditorialArticle): Promise<ArticleMatchdayFrame | null> {
+  let matchday: ArticleMatchdayRow | null = null;
+  let seasonId = article.season_id;
+  let competitionId = article.competition_id;
 
-  const matchdayRows = await fetchSupabaseAdminTable<ArticleMatchdayRow>(
-    `matchdays?select=id,number,season_id&id=eq.${encodeURIComponent(matchdayId)}&limit=1`
-  ).catch(() => []);
-  const matchday = matchdayRows[0];
-  if (!matchday?.season_id) return null;
+  if (article.matchday_id) {
+    const matchdayRows = await fetchSupabaseAdminTable<ArticleMatchdayRow>(
+      `matchdays?select=id,number,season_id&id=eq.${encodeURIComponent(article.matchday_id)}&limit=1`
+    ).catch(() => []);
+    matchday = matchdayRows[0] ?? null;
+    if (matchday?.season_id) {
+      seasonId = matchday.season_id;
+    }
+  }
 
-  const seasonRows = await fetchSupabaseAdminTable<ArticleSeasonRow>(
-    `seasons?select=id,label,competition_id&id=eq.${encodeURIComponent(matchday.season_id)}&limit=1`
-  ).catch(() => []);
-  const season = seasonRows[0];
-  if (!season?.competition_id) return null;
+  const seasonRows = seasonId
+    ? await fetchSupabaseAdminTable<ArticleSeasonRow>(
+        `seasons?select=id,label,competition_id&id=eq.${encodeURIComponent(seasonId)}&limit=1`
+      ).catch(() => [])
+    : [];
+  const season = seasonRows[0] ?? null;
 
-  const competitionRows = await fetchSupabaseAdminTable<ArticleCompetitionRow>(
-    `competitions?select=id,name,slug&id=eq.${encodeURIComponent(season.competition_id)}&limit=1`
-  ).catch(() => []);
-  const competition = competitionRows[0];
+  if (matchday && season?.competition_id) {
+    competitionId = season.competition_id;
+  }
+
+  const competitionRows = competitionId
+    ? await fetchSupabaseAdminTable<ArticleCompetitionRow>(
+        `competitions?select=id,name,slug&id=eq.${encodeURIComponent(competitionId)}&limit=1`
+      ).catch(() => [])
+    : [];
+  const competition = competitionRows[0] ?? null;
   const competitionSlug = cleanText(competition?.slug);
-  if (!competition?.id || !competitionSlug) return null;
+
+  if (!season && !competition) return null;
 
   const [seasonRowsForCompetition, matchdayRowsForSeason, matches] = await Promise.all([
-    fetchSupabaseAdminTable<ArticleSeasonRow>(
-      `seasons?select=id,label,competition_id&competition_id=eq.${encodeURIComponent(competition.id)}&order=label.desc&limit=100`
-    ).catch(() => []),
-    fetchSupabaseAdminTable<ArticleMatchdayRow>(
-      `matchdays?select=id,number,season_id&season_id=eq.${encodeURIComponent(season.id)}&order=number.asc&limit=200`
-    ).catch(() => []),
-    readMatchdayMatches(matchday.id)
+    competition?.id
+      ? fetchSupabaseAdminTable<ArticleSeasonRow>(
+          `seasons?select=id,label,competition_id&competition_id=eq.${encodeURIComponent(competition.id)}&order=label.desc&limit=100`
+        ).catch(() => [])
+      : Promise.resolve([]),
+    season?.id && matchday
+      ? fetchSupabaseAdminTable<ArticleMatchdayRow>(
+          `matchdays?select=id,number,season_id&season_id=eq.${encodeURIComponent(season.id)}&order=number.asc&limit=200`
+        ).catch(() => [])
+      : Promise.resolve([]),
+    matchday?.id ? readMatchdayMatches(matchday.id) : Promise.resolve([])
   ]);
 
   return {
-    competition: {
-      id: competition.id,
-      name: cleanText(competition.name) || competitionSlug,
-      slug: competitionSlug
-    },
-    season: {
-      id: season.id,
-      label: cleanText(season.label) || "Epoca"
-    },
+    competition: competition?.id && competitionSlug
+      ? {
+          id: competition.id,
+          name: cleanText(competition.name) || competitionSlug,
+          slug: competitionSlug
+        }
+      : null,
+    season: season?.id
+      ? {
+          id: season.id,
+          label: cleanText(season.label) || "Epoca"
+        }
+      : null,
     seasons: seasonRowsForCompetition
       .filter((row) => row.id && cleanText(row.label))
       .map((row) => ({ id: row.id, label: cleanText(row.label) || "Epoca" })),
-    matchday: {
-      id: matchday.id,
-      number: matchday.number ?? 1
-    },
+    matchday: matchday?.id
+      ? {
+          id: matchday.id,
+          number: matchday.number ?? 1
+        }
+      : null,
     matchdays: matchdayRowsForSeason
       .filter((row) => row.id)
       .map((row) => ({ id: row.id, number: row.number ?? 1 })),
@@ -759,22 +783,26 @@ async function readRelatedArticles(article: EditorialArticle) {
 }
 
 function PublicHeader({ frame }: { frame?: ArticleMatchdayFrame | null }) {
-  const seasonSegment = frame ? seasonLabelToUrlSegment(frame.season.label) : null;
-  const currentMatchdayNumber = frame?.matchday.number ?? 1;
-  const competitionMenu = frame
+  const activeCompetition = frame?.competition ?? null;
+  const seasonSegment = frame?.season ? seasonLabelToUrlSegment(frame.season.label) : null;
+  const currentMatchdayNumber = frame?.matchday?.number ?? 1;
+  const competitionMenu = activeCompetition && seasonSegment
     ? competitionLinks.map((link) =>
-        link.slug === frame.competition.slug
+        link.slug === activeCompetition.slug
           ? {
               ...link,
-              label: frame.competition.name,
-              href: `/competicoes/${frame.competition.slug}/${seasonSegment}/jornadas/${currentMatchdayNumber}`
+              label: activeCompetition.name,
+              href: `/competicoes/${activeCompetition.slug}/${seasonSegment}/jornadas/${currentMatchdayNumber}`
             }
           : link
       )
     : competitionLinks;
-  const jogosHref = frame ? "#jogos" : "/competicoes/liga-portugal/2026-27/jornadas/1#jogos";
-  const classificacaoHref = frame
-    ? `/competicoes/${frame.competition.slug}/${seasonSegment}/jornadas/${currentMatchdayNumber}#classificacao`
+  const contextualMatchdayHref = activeCompetition && seasonSegment
+    ? `/competicoes/${activeCompetition.slug}/${seasonSegment}/jornadas/${currentMatchdayNumber}`
+    : null;
+  const jogosHref = frame?.matchday ? "#jogos" : contextualMatchdayHref ? `${contextualMatchdayHref}#jogos` : "/competicoes/liga-portugal/2026-27/jornadas/1#jogos";
+  const classificacaoHref = activeCompetition && seasonSegment
+    ? `${contextualMatchdayHref}#classificacao`
     : "/competicoes/liga-portugal/2026-27/jornadas/1#classificacao";
 
   return (
@@ -785,7 +813,7 @@ function PublicHeader({ frame }: { frame?: ArticleMatchdayFrame | null }) {
       <nav className="public-site-menu" aria-label="Competicoes principais">
         {competitionMenu.map((link) => (
           <Link
-            aria-current={frame && link.slug === frame.competition.slug ? "page" : undefined}
+            aria-current={activeCompetition && link.slug === activeCompetition.slug ? "page" : undefined}
             href={link.href}
             key={link.slug}
           >
@@ -803,15 +831,19 @@ function PublicHeader({ frame }: { frame?: ArticleMatchdayFrame | null }) {
   );
 }
 
-function ArticleGlobalHeader() {
+function ArticleGlobalHeader({ frame }: { frame?: ArticleMatchdayFrame | null }) {
   return (
     <div className="public-top-stack">
-      <PublicHeader />
+      <PublicHeader frame={frame} />
     </div>
   );
 }
 
 function ArticleMatchdayContextFrame({ frame }: { frame: ArticleMatchdayFrame }) {
+  if (!frame.competition || !frame.season || !frame.matchday) {
+    return <ArticleGlobalHeader frame={frame} />;
+  }
+
   const seasonSegment = seasonLabelToUrlSegment(frame.season.label);
   const currentSeasonHref = `/competicoes/${frame.competition.slug}/${seasonSegment}/jornadas/1`;
   const seasons = frame.seasons.length > 0 ? frame.seasons : [frame.season];
@@ -971,7 +1003,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
   const article = await readArticle(slug);
   const [relatedArticles, matchdayFrame]: [RelatedArticle[], ArticleMatchdayFrame | null] = article
-    ? await Promise.all([readRelatedArticles(article), readArticleMatchdayFrame(article.matchday_id)])
+    ? await Promise.all([readRelatedArticles(article), readArticleFrame(article)])
     : [[], null];
   const blocks = bodyBlocks(article?.body ?? null);
   const label = cleanText(article?.label) || "Noticia";
@@ -988,7 +1020,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   return (
     <main className="public-matchday-shell">
       <style>{`${publicEditorialStyles}\n${articleStyles}`}</style>
-      {matchdayFrame ? <ArticleMatchdayContextFrame frame={matchdayFrame} /> : <ArticleGlobalHeader />}
+      {matchdayFrame?.matchday ? <ArticleMatchdayContextFrame frame={matchdayFrame} /> : <ArticleGlobalHeader frame={matchdayFrame} />}
 
       <div className="public-article-page">
         {!article || !title ? (
