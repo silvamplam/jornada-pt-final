@@ -1,6 +1,7 @@
 import Link from "next/link";
 import PublicMatchStrip, { type PublicMatchStripMatch } from "@/components/public/PublicMatchStrip";
 import { publicEditorialStyles } from "@/components/public/publicEditorialStyles";
+import { readPublicCompetitionMenu, type PublicCompetitionMenuItem } from "@/lib/public-competition-menu";
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -114,12 +115,6 @@ type ArticleMatchdayFrame = {
   }>;
   matches: PublicMatchStripMatch[];
 };
-
-const competitionLinks = [
-  { label: "Liga Portugal", slug: "liga-portugal", href: "/competicoes/liga-portugal/2026-27/jornadas/1" },
-  { label: "La Liga", slug: "la-liga", href: "/competicoes/la-liga/2026-27/jornadas/1" },
-  { label: "Premier League", slug: "premier-league", href: "/competicoes/premier-league/2026-27/jornadas/1" }
-];
 
 const articleStyles = `
   .public-article-page {
@@ -782,11 +777,17 @@ async function readRelatedArticles(article: EditorialArticle) {
   });
 }
 
-function PublicHeader({ frame }: { frame?: ArticleMatchdayFrame | null }) {
+function PublicHeader({
+  frame,
+  competitionLinks
+}: {
+  frame?: ArticleMatchdayFrame | null;
+  competitionLinks: PublicCompetitionMenuItem[];
+}) {
   const activeCompetition = frame?.competition ?? null;
   const seasonSegment = frame?.season ? seasonLabelToUrlSegment(frame.season.label) : null;
   const currentMatchdayNumber = frame?.matchday?.number ?? 1;
-  const competitionMenu = activeCompetition && seasonSegment
+  const competitionMenuBase = activeCompetition && seasonSegment
     ? competitionLinks.map((link) =>
         link.slug === activeCompetition.slug
           ? {
@@ -797,6 +798,17 @@ function PublicHeader({ frame }: { frame?: ArticleMatchdayFrame | null }) {
           : link
       )
     : competitionLinks;
+  const competitionMenu =
+    activeCompetition && !competitionMenuBase.some((link) => link.slug === activeCompetition.slug) && seasonSegment
+      ? [
+          {
+            label: activeCompetition.name,
+            slug: activeCompetition.slug,
+            href: `/competicoes/${activeCompetition.slug}/${seasonSegment}/jornadas/${currentMatchdayNumber}`
+          },
+          ...competitionMenuBase
+        ]
+      : competitionMenuBase;
   const contextualMatchdayHref = activeCompetition && seasonSegment
     ? `/competicoes/${activeCompetition.slug}/${seasonSegment}/jornadas/${currentMatchdayNumber}`
     : null;
@@ -831,17 +843,29 @@ function PublicHeader({ frame }: { frame?: ArticleMatchdayFrame | null }) {
   );
 }
 
-function ArticleGlobalHeader({ frame }: { frame?: ArticleMatchdayFrame | null }) {
+function ArticleGlobalHeader({
+  frame,
+  competitionLinks
+}: {
+  frame?: ArticleMatchdayFrame | null;
+  competitionLinks: PublicCompetitionMenuItem[];
+}) {
   return (
     <div className="public-top-stack">
-      <PublicHeader frame={frame} />
+      <PublicHeader frame={frame} competitionLinks={competitionLinks} />
     </div>
   );
 }
 
-function ArticleMatchdayContextFrame({ frame }: { frame: ArticleMatchdayFrame }) {
+function ArticleMatchdayContextFrame({
+  frame,
+  competitionLinks
+}: {
+  frame: ArticleMatchdayFrame;
+  competitionLinks: PublicCompetitionMenuItem[];
+}) {
   if (!frame.competition || !frame.season || !frame.matchday) {
-    return <ArticleGlobalHeader frame={frame} />;
+    return <ArticleGlobalHeader frame={frame} competitionLinks={competitionLinks} />;
   }
 
   const competition = frame.competition;
@@ -858,7 +882,7 @@ function ArticleMatchdayContextFrame({ frame }: { frame: ArticleMatchdayFrame })
   return (
     <>
       <div className="public-top-stack">
-        <PublicHeader frame={frame} />
+        <PublicHeader frame={frame} competitionLinks={competitionLinks} />
         <section className="public-season-nav-bar" aria-label="Navegacao de jornadas">
           <div className="public-hidden-heading">
             <h2>Jornadas</h2>
@@ -1004,7 +1028,7 @@ function MoreArticles({ articles }: { articles: RelatedArticle[] }) {
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
-  const article = await readArticle(slug);
+  const [article, competitionLinks] = await Promise.all([readArticle(slug), readPublicCompetitionMenu()]);
   const [relatedArticles, matchdayFrame]: [RelatedArticle[], ArticleMatchdayFrame | null] = article
     ? await Promise.all([readRelatedArticles(article), readArticleFrame(article)])
     : [[], null];
@@ -1023,7 +1047,11 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   return (
     <main className="public-matchday-shell">
       <style>{`${publicEditorialStyles}\n${articleStyles}`}</style>
-      {matchdayFrame?.matchday ? <ArticleMatchdayContextFrame frame={matchdayFrame} /> : <ArticleGlobalHeader frame={matchdayFrame} />}
+      {matchdayFrame?.matchday ? (
+        <ArticleMatchdayContextFrame frame={matchdayFrame} competitionLinks={competitionLinks} />
+      ) : (
+        <ArticleGlobalHeader frame={matchdayFrame} competitionLinks={competitionLinks} />
+      )}
 
       <div className="public-article-page">
         {!article || !title ? (

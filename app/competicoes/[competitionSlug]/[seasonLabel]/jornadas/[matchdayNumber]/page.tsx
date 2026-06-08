@@ -3,6 +3,7 @@ import { getPublicMatchdayDiagnostic, seasonLabelToUrlSegment, type PublicMatchd
 import PublicTeamBadge from "@/components/public/PublicTeamBadge";
 import { publicEditorialStyles as publicMatchdayStyles } from "@/components/public/publicEditorialStyles";
 import { PublicEditorialLayout, type PublicEditorialHighlight, type PublicEditorialLatestNews } from "@/components/public/PublicEditorialLayout";
+import { readPublicCompetitionMenu } from "@/lib/public-competition-menu";
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
 import { redirect } from "next/navigation";
 
@@ -533,11 +534,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
     slug: context.competition.slug,
     href: `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/${context.matchday.number}`
   };
-  const publicCompetitionMenuBase = [
-    { label: "Liga Portugal", slug: "liga-portugal", href: "/competicoes/liga-portugal/2026-27/jornadas/1" },
-    { label: "La Liga", slug: "la-liga", href: "/competicoes/la-liga/2026-27/jornadas/1" },
-    { label: "Premier League", slug: "premier-league", href: "/competicoes/premier-league/2026-27/jornadas/1" }
-  ];
+  const publicCompetitionMenuBase = await readPublicCompetitionMenu();
   const publicCompetitionMenu = publicCompetitionMenuBase.map((item) =>
     item.slug === currentCompetitionMenuItem.slug ? currentCompetitionMenuItem : item
   );

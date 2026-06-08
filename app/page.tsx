@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PublicEditorialLayout, type PublicEditorialHighlight, type PublicEditorialLatestNews } from "@/components/public/PublicEditorialLayout";
 import PublicMatchStrip, { type PublicMatchStripMatch } from "@/components/public/PublicMatchStrip";
 import { publicEditorialStyles } from "@/components/public/publicEditorialStyles";
+import { readPublicCompetitionMenu } from "@/lib/public-competition-menu";
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -108,12 +109,6 @@ type HomeBroadcastChannelRow = {
   name: string | null;
   logo_url: string | null;
 };
-
-const competitionLinks = [
-  { label: "Liga Portugal", href: "/competicoes/liga-portugal/2026-27/jornadas/1" },
-  { label: "La Liga", href: "/competicoes/la-liga/2026-27/jornadas/1" },
-  { label: "Premier League", href: "/competicoes/premier-league/2026-27/jornadas/1" }
-];
 
 const fallbackHighlights = [
   {
@@ -318,7 +313,7 @@ async function readBroadcastChannelsByMatchId(matchIds: string[], matches: HomeM
 
 export default async function HomePage() {
   const editorial = await readHomeEditorial();
-  const featuredMatches = await readHomeFeaturedMatches();
+  const [featuredMatches, competitionLinks] = await Promise.all([readHomeFeaturedMatches(), readPublicCompetitionMenu()]);
   const [highlights, roundupItems, latestNews]: [SiteHighlight[], SiteRoundupItem[], SiteLatestNews[]] = editorial
     ? await Promise.all([
         readHomeHighlights(editorial.id),
