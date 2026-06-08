@@ -766,15 +766,12 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 placeholder={order === 1 ? "Girona 0 - 1 Rayo Vallecano" : order === 2 ? "Villarreal 2 - 3 Real Oviedo" : order === 3 ? "Mallorca 0 - 1 FC Barcelona" : "Titulo do item da jornada"}
               />
             </div>
-            <div className="editorial-admin-field">
-              <label htmlFor={`roundup-${order}-subtitle`}>Subtitulo</label>
-              <input id={`roundup-${order}-subtitle`} name={`roundup_${order}_subtitle`} defaultValue={item?.subtitle ?? ""} placeholder={order === 1 ? "Resumo completo" : order === 2 ? "Golos e melhores momentos" : order === 3 ? "Noticia de contexto" : "Descricao curta"} />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor={`roundup-${order}-image-url`}>Imagem URL</label>
-              <input id={`roundup-${order}-image-url`} name={`roundup_${order}_image_url`} defaultValue={item?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
-            </div>
-            <div className="editorial-admin-field">
+              <div className="editorial-admin-field">
+                <label htmlFor={`roundup-${order}-subtitle`}>Subtitulo</label>
+                <input id={`roundup-${order}-subtitle`} name={`roundup_${order}_subtitle`} defaultValue={item?.subtitle ?? ""} placeholder={order === 1 ? "Resumo completo" : order === 2 ? "Golos e melhores momentos" : order === 3 ? "Noticia de contexto" : "Descricao curta"} />
+              </div>
+              <input type="hidden" name={`roundup_${order}_image_url`} defaultValue={item?.image_url ?? ""} />
+              <div className="editorial-admin-field">
               <label htmlFor={`roundup-${order}-video-url`}>Video URL</label>
               <input id={`roundup-${order}-video-url`} name={`roundup_${order}_video_url`} defaultValue={item?.video_url ?? ""} placeholder="https://exemplo.com/video" />
             </div>
