@@ -104,6 +104,7 @@ type ArticleMatchdayFrame = {
   seasons: Array<{
     id: string;
     label: string;
+    href: string;
   }>;
   matchday: {
     id: string;
@@ -720,6 +721,32 @@ async function readArticleFrame(article: EditorialArticle): Promise<ArticleMatch
       : Promise.resolve([]),
     matchday?.id ? readMatchdayMatches(matchday.id) : Promise.resolve([])
   ]);
+  const navSeasonRows = seasonRowsForCompetition.length > 0 ? seasonRowsForCompetition : season ? [season] : [];
+  const navSeasonIds = uniqueValues(navSeasonRows.map((row) => row.id));
+  const navMatchdayRows = navSeasonIds.length > 0
+    ? await fetchSupabaseAdminTable<ArticleMatchdayRow>(
+        `matchdays?select=id,number,season_id&season_id=${inFilter(navSeasonIds)}&order=number.asc&limit=2000`
+      ).catch(() => [])
+    : [];
+  const navMatchdaysBySeasonId = new Map<string, ArticleMatchdayRow[]>();
+
+  for (const navMatchday of navMatchdayRows) {
+    if (!navMatchday.season_id) continue;
+    const current = navMatchdaysBySeasonId.get(navMatchday.season_id) ?? [];
+    current.push(navMatchday);
+    navMatchdaysBySeasonId.set(navMatchday.season_id, current);
+  }
+
+  const selectedMatchdayNumber = matchday?.number ?? 1;
+  const articleSeasonHref = (seasonRow: ArticleSeasonRow) => {
+    if (!competitionSlug) return "";
+    const seasonHref = `/competicoes/${competitionSlug}/${seasonLabelToUrlSegment(seasonRow.label)}`;
+    const seasonMatchdays = navMatchdaysBySeasonId.get(seasonRow.id) ?? [];
+    const targetMatchday =
+      seasonMatchdays.find((seasonMatchday) => seasonMatchday.number === selectedMatchdayNumber) ?? seasonMatchdays[0] ?? null;
+
+    return targetMatchday?.number ? `${seasonHref}/jornadas/${targetMatchday.number}` : seasonHref;
+  };
 
   return {
     competition: competition?.id && competitionSlug
@@ -735,9 +762,9 @@ async function readArticleFrame(article: EditorialArticle): Promise<ArticleMatch
           label: cleanText(season.label) || "Epoca"
         }
       : null,
-    seasons: seasonRowsForCompetition
+    seasons: navSeasonRows
       .filter((row) => row.id && cleanText(row.label))
-      .map((row) => ({ id: row.id, label: cleanText(row.label) || "Epoca" })),
+      .map((row) => ({ id: row.id, label: cleanText(row.label) || "Epoca", href: articleSeasonHref(row) })),
     matchday: matchday?.id
       ? {
           id: matchday.id,
@@ -872,8 +899,9 @@ function ArticleMatchdayContextFrame({
   const season = frame.season;
   const selectedMatchday = frame.matchday;
   const seasonSegment = seasonLabelToUrlSegment(season.label);
-  const currentSeasonHref = `/competicoes/${competition.slug}/${seasonSegment}/jornadas/1`;
-  const seasons = frame.seasons.length > 0 ? frame.seasons : [season];
+  const currentSeasonHref = `/competicoes/${competition.slug}/${seasonSegment}/jornadas/${selectedMatchday.number}`;
+  const currentSeasonOption = { ...season, href: currentSeasonHref };
+  const seasons = frame.seasons.length > 0 ? frame.seasons : [currentSeasonOption];
   const matchdays = frame.matchdays.length > 0 ? frame.matchdays : [selectedMatchday];
   const selectedMatchdayDateContext = formatMatchdayDateContext(frame.matches);
   const matchdayHref = (matchdayNumber: number) =>
@@ -895,7 +923,7 @@ function ArticleMatchdayContextFrame({
                 {seasons.map((season) => (
                   <option
                     key={season.id}
-                    value={`/competicoes/${competition.slug}/${seasonLabelToUrlSegment(season.label)}/jornadas/1`}
+                    value={season.href}
                   >
                     {season.label}
                   </option>

@@ -29,6 +29,12 @@ type MatchdayHeadlineLinkRow = {
   headline_link_url: string | null;
 };
 
+type SeasonSwitchMatchdayRow = {
+  id: string;
+  number: number | null;
+  season_id: string | null;
+};
+
 const PUBLIC_STAT_COLUMNS: Array<{ key: keyof ClassificationSplit; label: string }> = [
   { key: "played", label: "J" },
   { key: "wins", label: "V" },
@@ -70,6 +76,39 @@ async function readMatchdayHeadlineLinkUrl(matchdayId: string) {
   ).catch(() => []);
 
   return rows[0]?.headline_link_url?.trim() || null;
+}
+
+async function readSeasonSwitchOptions(
+  competitionSlug: string,
+  seasons: Array<{ id: string; label: string }>,
+  preferredMatchdayNumber: number
+) {
+  if (seasons.length === 0) return [];
+
+  const rows = await fetchSupabaseAdminTable<SeasonSwitchMatchdayRow>(
+    `matchdays?select=id,number,season_id&season_id=${inFilter(seasons.map((season) => season.id))}&order=number.asc&limit=2000`
+  ).catch(() => []);
+  const matchdaysBySeasonId = new Map<string, SeasonSwitchMatchdayRow[]>();
+
+  for (const matchday of rows) {
+    if (!matchday.season_id) continue;
+    const current = matchdaysBySeasonId.get(matchday.season_id) ?? [];
+    current.push(matchday);
+    matchdaysBySeasonId.set(matchday.season_id, current);
+  }
+
+  return seasons.map((season) => {
+    const seasonMatchdays = matchdaysBySeasonId.get(season.id) ?? [];
+    const targetMatchday =
+      seasonMatchdays.find((matchday) => matchday.number === preferredMatchdayNumber) ?? seasonMatchdays[0] ?? null;
+    const seasonHref = `/competicoes/${competitionSlug}/${seasonLabelToUrlSegment(season.label)}`;
+
+    return {
+      id: season.id,
+      label: season.label,
+      href: targetMatchday?.number ? `${seasonHref}/jornadas/${targetMatchday.number}` : seasonHref
+    };
+  });
 }
 
 function formatKickoff(value: string) {
@@ -523,12 +562,8 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
   const showLogoDiagnostic = query.debug_logos === "1";
 
   const seasonSegment = seasonLabelToUrlSegment(context.season.label);
-  const seasonOptions = context.seasons.map((season) => ({
-    id: season.id,
-    label: season.label,
-    href: `/competicoes/${context.competition.slug}/${seasonLabelToUrlSegment(season.label)}/jornadas/1`
-  }));
-  const currentSeasonHref = `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/1`;
+  const seasonOptions = await readSeasonSwitchOptions(context.competition.slug, context.seasons, context.matchday.number);
+  const currentSeasonHref = `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/${context.matchday.number}`;
   const currentCompetitionMenuItem = {
     label: context.competition.name,
     slug: context.competition.slug,
