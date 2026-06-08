@@ -844,13 +844,16 @@ function ArticleMatchdayContextFrame({ frame }: { frame: ArticleMatchdayFrame })
     return <ArticleGlobalHeader frame={frame} />;
   }
 
-  const seasonSegment = seasonLabelToUrlSegment(frame.season.label);
-  const currentSeasonHref = `/competicoes/${frame.competition.slug}/${seasonSegment}/jornadas/1`;
-  const seasons = frame.seasons.length > 0 ? frame.seasons : [frame.season];
-  const matchdays = frame.matchdays.length > 0 ? frame.matchdays : [frame.matchday];
+  const competition = frame.competition;
+  const season = frame.season;
+  const selectedMatchday = frame.matchday;
+  const seasonSegment = seasonLabelToUrlSegment(season.label);
+  const currentSeasonHref = `/competicoes/${competition.slug}/${seasonSegment}/jornadas/1`;
+  const seasons = frame.seasons.length > 0 ? frame.seasons : [season];
+  const matchdays = frame.matchdays.length > 0 ? frame.matchdays : [selectedMatchday];
   const selectedMatchdayDateContext = formatMatchdayDateContext(frame.matches);
   const matchdayHref = (matchdayNumber: number) =>
-    `/competicoes/${frame.competition.slug}/${seasonSegment}/jornadas/${matchdayNumber}`;
+    `/competicoes/${competition.slug}/${seasonSegment}/jornadas/${matchdayNumber}`;
 
   return (
     <>
@@ -859,7 +862,7 @@ function ArticleMatchdayContextFrame({ frame }: { frame: ArticleMatchdayFrame })
         <section className="public-season-nav-bar" aria-label="Navegacao de jornadas">
           <div className="public-hidden-heading">
             <h2>Jornadas</h2>
-            <p>Navegacao principal da epoca {frame.season.label}.</p>
+            <p>Navegacao principal da epoca {season.label}.</p>
           </div>
           <div className="public-season-nav-inner">
             <label className="public-season-select-wrap">
@@ -868,7 +871,7 @@ function ArticleMatchdayContextFrame({ frame }: { frame: ArticleMatchdayFrame })
                 {seasons.map((season) => (
                   <option
                     key={season.id}
-                    value={`/competicoes/${frame.competition.slug}/${seasonLabelToUrlSegment(season.label)}/jornadas/1`}
+                    value={`/competicoes/${competition.slug}/${seasonLabelToUrlSegment(season.label)}/jornadas/1`}
                   >
                     {season.label}
                   </option>
@@ -878,7 +881,7 @@ function ArticleMatchdayContextFrame({ frame }: { frame: ArticleMatchdayFrame })
             <nav className="public-matchday-nav">
               {matchdays.map((matchday) => (
                 <a
-                  aria-current={matchday.id === frame.matchday.id ? "page" : undefined}
+                  aria-current={matchday.id === selectedMatchday.id ? "page" : undefined}
                   href={matchdayHref(matchday.number)}
                   key={matchday.id}
                 >
