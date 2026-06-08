@@ -397,6 +397,41 @@ const styles = `
     cursor: pointer;
   }
 
+  .articles-admin-delete-card {
+    display: grid;
+    gap: 8px;
+    margin: 0 20px 20px;
+    padding: 14px;
+    border: 1px solid #f1c0c0;
+    border-radius: 6px;
+    background: #fff8f8;
+  }
+
+  .articles-admin-delete-card h3 {
+    margin: 0;
+    color: #8a1d1d;
+    font-size: 14px;
+    text-transform: uppercase;
+  }
+
+  .articles-admin-delete-card p {
+    margin: 0;
+    color: #6f2b2b;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.4;
+  }
+
+  .articles-admin-delete-card form {
+    margin: 0;
+  }
+
+  .articles-admin-button.danger {
+    border: 1px solid #f1c0c0;
+    background: #8a1d1d;
+    color: #ffffff;
+  }
+
   @media (max-width: 980px) {
     .articles-admin-grid,
     .articles-admin-fields {
@@ -445,6 +480,10 @@ function uniqueSeasonOptions(seasons: SeasonRow[]) {
 function feedbackMessage(created?: string, error?: string) {
   if (created === "save_article") {
     return { type: "success" as const, text: "Artigo guardado." };
+  }
+
+  if (created === "delete_article") {
+    return { type: "success" as const, text: "Artigo removido e ligacoes editoriais limpas." };
   }
 
   if (error) {
@@ -698,6 +737,41 @@ function ArticleUsagePanel({ article, usages, usageRemoved }: { article: Editori
               var form = event.target;
               if (!form || !form.matches || !form.matches('[data-remove-usage-link-form]')) return;
               if (!window.confirm('Remover esta ligação deste local?')) {
+                event.preventDefault();
+              }
+            });
+          `
+        }}
+      />
+    </section>
+  );
+}
+
+function ArticleDeletePanel({ article, usageCount }: { article: EditorialArticle; usageCount: number }) {
+  return (
+    <section className="articles-admin-delete-card" aria-label="Remover artigo">
+      <h3>Remover artigo</h3>
+      <p>
+        Remove apenas o artigo completo. Se houver blocos editoriais ligados a /noticias/{article.slug}, apenas esses campos de link serao limpos.
+      </p>
+      <form action="/api/admin/editorial/artigos" data-delete-article-form data-usage-count={usageCount} method="post">
+        <input type="hidden" name="action_type" value="delete_article" />
+        <input type="hidden" name="article_id" value={article.id} />
+        <input type="hidden" name="return_to" value="/admin/editorial/artigos" />
+        <button className="articles-admin-button danger" type="submit">Remover artigo</button>
+      </form>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            document.addEventListener('submit', function (event) {
+              var form = event.target;
+              if (!form || !form.matches || !form.matches('[data-delete-article-form]')) return;
+              var usageCount = Number(form.getAttribute('data-usage-count') || '0');
+              var message = 'Tem a certeza que quer remover este artigo? Esta acao nao pode ser desfeita.';
+              if (usageCount > 0) {
+                message += '\\n\\nEste artigo aparece em blocos editoriais. Ao remove-lo, os links associados serao limpos.';
+              }
+              if (!window.confirm(message)) {
                 event.preventDefault();
               }
             });
@@ -1014,6 +1088,7 @@ export default async function ArticlesAdminPage({ searchParams }: ArticlesAdminP
           </header>
           <ArticleForm article={selectedArticle} competitions={competitions} seasons={seasons} matchdays={matchdays} />
           {selectedArticle ? <ArticleUsagePanel article={selectedArticle} usages={selectedArticleUsages} usageRemoved={usageRemoved} /> : null}
+          {selectedArticle ? <ArticleDeletePanel article={selectedArticle} usageCount={selectedArticleUsages.reduce((total, group) => total + group.items.length, 0)} /> : null}
         </section>
       </div>
     </main>

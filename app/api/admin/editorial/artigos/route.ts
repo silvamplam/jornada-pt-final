@@ -5,6 +5,11 @@ type EditorialArticleIdRow = {
   id: string;
 };
 
+type EditorialArticleDeleteRow = {
+  id: string;
+  slug: string;
+};
+
 type SeasonContextRow = {
   id: string;
   competition_id: string | null;
@@ -249,6 +254,43 @@ async function removeArticleUsageLink(formData: FormData) {
   });
 }
 
+async function clearArticleUsageLinks(articleLink: string) {
+  const encodedArticleLink = encodeURIComponent(articleLink);
+
+  for (const [table, fields] of Object.entries(usageLinkTargets)) {
+    for (const field of fields) {
+      await writeSupabaseAdmin(`${table}?${field}=eq.${encodedArticleLink}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          [field]: null
+        })
+      });
+    }
+  }
+}
+
+async function deleteArticle(formData: FormData) {
+  const articleId = cleanText(formData.get("article_id"));
+
+  if (!articleId) {
+    throw new Error("article-required");
+  }
+
+  const rows = await fetchSupabaseAdminTable<EditorialArticleDeleteRow>(
+    `editorial_articles?select=id,slug&id=eq.${encodeURIComponent(articleId)}&limit=1`
+  );
+  const article = rows[0];
+
+  if (!article?.slug) {
+    throw new Error("article-not-found");
+  }
+
+  await clearArticleUsageLinks(`/noticias/${article.slug}`);
+  await writeSupabaseAdmin(`editorial_articles?id=eq.${encodeURIComponent(article.id)}`, {
+    method: "DELETE"
+  });
+}
+
 export async function POST(request: Request) {
   const formData = await request.formData();
 
@@ -264,6 +306,8 @@ export async function POST(request: Request) {
     } else if (actionType === "remove_article_usage_link") {
       await removeArticleUsageLink(formData);
       return removeUsageReturnUrl(request, formData, cleanText(formData.get("usage_label")) ?? "bloco editorial");
+    } else if (actionType === "delete_article") {
+      await deleteArticle(formData);
     } else {
       throw new Error("invalid-action");
     }
