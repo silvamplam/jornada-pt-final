@@ -93,6 +93,12 @@ type MatchdayEditorialItemUsageRow = {
 type ArticleUsageItem = {
   label: string;
   href?: string;
+  remove?: {
+    table: string;
+    id: string;
+    field: string;
+    articleLink: string;
+  };
 };
 
 type ArticleUsageGroup = {
@@ -352,6 +358,17 @@ const styles = `
     list-style: none;
   }
 
+  .articles-admin-usage-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .articles-admin-usage-list form {
+    margin: 0;
+  }
+
   .articles-admin-usage-list a,
   .articles-admin-usage-list span {
     color: #10151b;
@@ -363,6 +380,21 @@ const styles = `
 
   .articles-admin-usage-list a:hover {
     color: #e5252a;
+  }
+
+  .articles-admin-usage-remove {
+    flex: 0 0 auto;
+    border: 1px solid #f1c0c0;
+    border-radius: 6px;
+    padding: 7px 9px;
+    background: #fff2f2;
+    color: #8a1d1d;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+    cursor: pointer;
   }
 
   @media (max-width: 980px) {
@@ -524,22 +556,42 @@ async function readArticleUsages(article: EditorialArticle, matchdays: MatchdayO
 
   for (const editorial of siteEditorials) {
     if (sameArticleLink(editorial.headline_link_url, articleLink)) {
-      homeItems.push({ label: "Manchete principal", href: "/admin/editorial/home#manchete" });
+      homeItems.push({
+        label: "Manchete principal",
+        href: "/admin/editorial/home#manchete",
+        remove: { table: "site_editorials", id: editorial.id, field: "headline_link_url", articleLink }
+      });
     }
     if (sameArticleLink(editorial.side_block_link_url, articleLink)) {
-      homeItems.push({ label: "Bloco lateral", href: "/admin/editorial/home#bloco-lateral" });
+      homeItems.push({
+        label: "Bloco lateral",
+        href: "/admin/editorial/home#bloco-lateral",
+        remove: { table: "site_editorials", id: editorial.id, field: "side_block_link_url", articleLink }
+      });
     }
     if (sameArticleLink(editorial.complementary_link_url, articleLink)) {
-      homeItems.push({ label: "Bloco complementar", href: "/admin/editorial/home#bloco-complementar" });
+      homeItems.push({
+        label: "Bloco complementar",
+        href: "/admin/editorial/home#bloco-complementar",
+        remove: { table: "site_editorials", id: editorial.id, field: "complementary_link_url", articleLink }
+      });
     }
   }
 
   for (const highlight of siteHighlights) {
-    homeItems.push({ label: usageDetail("Destaque", highlight), href: "/admin/editorial/home#destaques" });
+    homeItems.push({
+      label: usageDetail("Destaque", highlight),
+      href: "/admin/editorial/home#destaques",
+      remove: { table: "site_editorial_highlights", id: highlight.id, field: "link_url", articleLink }
+    });
   }
 
   for (const item of siteLatestNews) {
-    homeItems.push({ label: usageDetail("Ultimas noticias", item), href: "/admin/editorial/home#ultimas-noticias" });
+    homeItems.push({
+      label: usageDetail("Ultimas noticias", item),
+      href: "/admin/editorial/home#ultimas-noticias",
+      remove: { table: "site_editorial_latest_news", id: item.id, field: "link_url", articleLink }
+    });
   }
 
   for (const editorial of matchdayEditorials) {
@@ -547,26 +599,46 @@ async function readArticleUsages(article: EditorialArticle, matchdays: MatchdayO
     const hrefBase = editorial.matchday_id ? `/admin/editorial/jornada/${encodeURIComponent(editorial.matchday_id)}` : undefined;
 
     if (sameArticleLink(editorial.headline_link_url, articleLink)) {
-      matchdayItems.push({ label: `${contextLabel} - Manchete principal`, href: hrefBase ? `${hrefBase}#manchete` : undefined });
+      matchdayItems.push({
+        label: `${contextLabel} - Manchete principal`,
+        href: hrefBase ? `${hrefBase}#manchete` : undefined,
+        remove: { table: "matchday_editorials", id: editorial.id, field: "headline_link_url", articleLink }
+      });
     }
     if (sameArticleLink(editorial.side_block_link_url, articleLink)) {
-      matchdayItems.push({ label: `${contextLabel} - Bloco lateral`, href: hrefBase ? `${hrefBase}#bloco-lateral` : undefined });
+      matchdayItems.push({
+        label: `${contextLabel} - Bloco lateral`,
+        href: hrefBase ? `${hrefBase}#bloco-lateral` : undefined,
+        remove: { table: "matchday_editorials", id: editorial.id, field: "side_block_link_url", articleLink }
+      });
     }
     if (sameArticleLink(editorial.complementary_link_url, articleLink)) {
-      matchdayItems.push({ label: `${contextLabel} - Bloco complementar`, href: hrefBase ? `${hrefBase}#bloco-complementar` : undefined });
+      matchdayItems.push({
+        label: `${contextLabel} - Bloco complementar`,
+        href: hrefBase ? `${hrefBase}#bloco-complementar` : undefined,
+        remove: { table: "matchday_editorials", id: editorial.id, field: "complementary_link_url", articleLink }
+      });
     }
   }
 
   for (const highlight of matchdayHighlights) {
     const contextLabel = matchdayUsageLabel(highlight.matchday_id, matchdayLabels);
     const href = highlight.matchday_id ? `/admin/editorial/jornada/${encodeURIComponent(highlight.matchday_id)}#destaques` : undefined;
-    matchdayItems.push({ label: `${contextLabel} - ${usageDetail("Destaque", highlight)}`, href });
+    matchdayItems.push({
+      label: `${contextLabel} - ${usageDetail("Destaque", highlight)}`,
+      href,
+      remove: { table: "matchday_highlights", id: highlight.id, field: "link_url", articleLink }
+    });
   }
 
   for (const item of matchdayLatestNews) {
     const contextLabel = matchdayUsageLabel(item.matchday_id, matchdayLabels);
     const href = item.matchday_id ? `/admin/editorial/jornada/${encodeURIComponent(item.matchday_id)}#ultimas-noticias` : undefined;
-    matchdayItems.push({ label: `${contextLabel} - ${usageDetail("Ultimas noticias", item)}`, href });
+    matchdayItems.push({
+      label: `${contextLabel} - ${usageDetail("Ultimas noticias", item)}`,
+      href,
+      remove: { table: "matchday_latest_news", id: item.id, field: "link_url", articleLink }
+    });
   }
 
   return [
@@ -575,11 +647,16 @@ async function readArticleUsages(article: EditorialArticle, matchdays: MatchdayO
   ].filter((group) => group.items.length > 0);
 }
 
-function ArticleUsagePanel({ usages }: { usages: ArticleUsageGroup[] }) {
+function ArticleUsagePanel({ article, usages, usageRemoved }: { article: EditorialArticle; usages: ArticleUsageGroup[]; usageRemoved?: string }) {
+  const returnTo = `/admin/editorial/artigos?artigo=${encodeURIComponent(article.id)}#onde-este-artigo-aparece`;
+
   return (
-    <section className="articles-admin-usage" aria-label="Onde este artigo aparece">
+    <section className="articles-admin-usage" id="onde-este-artigo-aparece" aria-label="Onde este artigo aparece">
       <div className="articles-admin-usage-card">
         <h3>Onde este artigo aparece</h3>
+        {usageRemoved ? (
+          <div className="articles-admin-message">Ligacao removida de {usageRemoved}.</div>
+        ) : null}
         {usages.length > 0 ? (
           usages.map((group) => (
             <div key={group.label}>
@@ -588,6 +665,23 @@ function ArticleUsagePanel({ usages }: { usages: ArticleUsageGroup[] }) {
                 {group.items.map((item, index) => (
                   <li key={`${group.label}-${index}`}>
                     {item.href ? <a href={item.href}>{item.label}</a> : <span>{item.label}</span>}
+                    {item.remove ? (
+                      <form action="/api/admin/editorial/artigos" data-remove-usage-link-form method="post">
+                        <input type="hidden" name="action_type" value="remove_article_usage_link" />
+                        <input type="hidden" name="return_to" value={returnTo} />
+                        <input type="hidden" name="usage_table" value={item.remove.table} />
+                        <input type="hidden" name="usage_id" value={item.remove.id} />
+                        <input type="hidden" name="usage_field" value={item.remove.field} />
+                        <input type="hidden" name="article_link" value={item.remove.articleLink} />
+                        <input type="hidden" name="usage_label" value={`${group.label} - ${item.label}`} />
+                        <button
+                          className="articles-admin-usage-remove"
+                          type="submit"
+                        >
+                          Apagar ligação
+                        </button>
+                      </form>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -597,6 +691,19 @@ function ArticleUsagePanel({ usages }: { usages: ArticleUsageGroup[] }) {
           <p className="articles-admin-muted">Este artigo ainda nao esta associado a nenhum bloco editorial.</p>
         )}
       </div>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            document.addEventListener('submit', function (event) {
+              var form = event.target;
+              if (!form || !form.matches || !form.matches('[data-remove-usage-link-form]')) return;
+              if (!window.confirm('Remover esta ligação deste local?')) {
+                event.preventDefault();
+              }
+            });
+          `
+        }}
+      />
     </section>
   );
 }
@@ -842,6 +949,7 @@ export default async function ArticlesAdminPage({ searchParams }: ArticlesAdminP
   const matchdays = await readMatchdayOptions(competitions, seasons);
   const selectedArticle = selectedArticleId ? articles.find((article) => article.id === selectedArticleId) ?? null : null;
   const selectedArticleUsages = selectedArticle ? await readArticleUsages(selectedArticle, matchdays) : [];
+  const usageRemoved = oneParam(query, "usage_removed");
   const fallbackMatchdayId = selectedMatchdayId || matchdays[0]?.id || null;
   const matchdayEditorialHref = fallbackMatchdayId ? `/admin/editorial/jornada/${encodeURIComponent(fallbackMatchdayId)}` : null;
   const message = feedbackMessage(oneParam(query, "created"), oneParam(query, "error"));
@@ -905,7 +1013,7 @@ export default async function ArticlesAdminPage({ searchParams }: ArticlesAdminP
             <p>A epoca e obrigatoria. Competicao e jornada continuam opcionais, mas devem ser coerentes quando escolhidas.</p>
           </header>
           <ArticleForm article={selectedArticle} competitions={competitions} seasons={seasons} matchdays={matchdays} />
-          {selectedArticle ? <ArticleUsagePanel usages={selectedArticleUsages} /> : null}
+          {selectedArticle ? <ArticleUsagePanel article={selectedArticle} usages={selectedArticleUsages} usageRemoved={usageRemoved} /> : null}
         </section>
       </div>
     </main>

@@ -16,6 +16,15 @@ type MatchdayContextRow = {
   season_id: string | null;
 };
 
+const usageLinkTargets: Record<string, Set<string>> = {
+  site_editorials: new Set(["headline_link_url", "side_block_link_url", "complementary_link_url"]),
+  site_editorial_highlights: new Set(["link_url"]),
+  site_editorial_latest_news: new Set(["link_url"]),
+  matchday_editorials: new Set(["headline_link_url", "side_block_link_url", "complementary_link_url"]),
+  matchday_highlights: new Set(["link_url"]),
+  matchday_latest_news: new Set(["link_url"])
+};
+
 function cleanText(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") {
     return null;
@@ -52,7 +61,21 @@ function returnUrl(request: Request, formData: FormData, key: "created" | "error
 
   url.searchParams.delete("created");
   url.searchParams.delete("error");
+  url.searchParams.delete("usage_removed");
   url.searchParams.set(key, value);
+
+  return NextResponse.redirect(url, { status: 303 });
+}
+
+function removeUsageReturnUrl(request: Request, formData: FormData, label: string) {
+  const rawReturnTo = cleanText(formData.get("return_to"));
+  const safeReturnTo = rawReturnTo?.startsWith("/admin/editorial/artigos") ? rawReturnTo : "/admin/editorial/artigos";
+  const url = new URL(safeReturnTo, request.url);
+
+  url.searchParams.delete("created");
+  url.searchParams.delete("error");
+  url.searchParams.set("created", "remove_article_usage_link");
+  url.searchParams.set("usage_removed", label);
 
   return NextResponse.redirect(url, { status: 303 });
 }
@@ -195,6 +218,37 @@ async function saveArticle(formData: FormData) {
   });
 }
 
+async function removeArticleUsageLink(formData: FormData) {
+  const table = cleanText(formData.get("usage_table"));
+  const id = cleanText(formData.get("usage_id"));
+  const field = cleanText(formData.get("usage_field"));
+  const articleLink = cleanText(formData.get("article_link"));
+
+  if (!table || !id || !field || !articleLink) {
+    throw new Error("missing-usage-fields");
+  }
+
+  if (!usageLinkTargets[table]?.has(field)) {
+    throw new Error("invalid-usage-target");
+  }
+
+  const rows = await fetchSupabaseAdminTable<Record<string, string | null>>(
+    `${table}?select=${field}&id=eq.${encodeURIComponent(id)}&limit=1`
+  );
+  const currentLink = cleanText(rows[0]?.[field] ?? null);
+
+  if (currentLink !== articleLink) {
+    throw new Error("usage-link-mismatch");
+  }
+
+  await writeSupabaseAdmin(`${table}?id=eq.${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      [field]: null
+    })
+  });
+}
+
 export async function POST(request: Request) {
   const formData = await request.formData();
 
@@ -207,6 +261,9 @@ export async function POST(request: Request) {
   try {
     if (actionType === "save_article") {
       await saveArticle(formData);
+    } else if (actionType === "remove_article_usage_link") {
+      await removeArticleUsageLink(formData);
+      return removeUsageReturnUrl(request, formData, cleanText(formData.get("usage_label")) ?? "bloco editorial");
     } else {
       throw new Error("invalid-action");
     }
