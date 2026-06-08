@@ -733,14 +733,18 @@ async function readArticleMatchdayFrame(matchdayId: string | null): Promise<Arti
 }
 
 function relatedPriority(article: EditorialArticle, relatedArticle: RelatedArticle) {
-  if (article.competition_id && relatedArticle.competition_id === article.competition_id) return 0;
-  if (article.matchday_id && relatedArticle.matchday_id === article.matchday_id) return 1;
-  return 2;
+  if (article.matchday_id && relatedArticle.matchday_id === article.matchday_id) return 0;
+  if (article.season_id && relatedArticle.season_id === article.season_id) return 1;
+  if (article.competition_id && relatedArticle.competition_id === article.competition_id) return 2;
+  return 3;
 }
 
 async function readRelatedArticles(article: EditorialArticle) {
+  const competitionFilter = article.competition_id
+    ? `&competition_id=eq.${encodeURIComponent(article.competition_id)}`
+    : "";
   const rows = await fetchSupabaseAdminTable<RelatedArticle>(
-    `editorial_articles?select=id,slug,title,label,image_url,published_at,season_id,matchday_id,competition_id&status=eq.published&slug=neq.${encodeURIComponent(article.slug)}&order=published_at.desc&limit=18`
+    `editorial_articles?select=id,slug,title,label,image_url,published_at,season_id,matchday_id,competition_id&status=eq.published&slug=neq.${encodeURIComponent(article.slug)}${competitionFilter}&order=published_at.desc&limit=50`
   ).catch(() => []);
 
   return rows.sort((firstArticle, secondArticle) => {
