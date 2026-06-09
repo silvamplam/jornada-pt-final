@@ -263,19 +263,27 @@ const gamesPageStyles = `
 
   .public-game-card-no-context .public-game-team,
   .public-game-card-no-context .public-game-team:last-child {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    display: inline-flex;
+    flex: 0 1 auto;
     width: auto;
     max-width: none;
     text-align: left;
   }
 
   .public-game-card-no-context .public-game-team:last-child {
-    grid-template-columns: minmax(0, 1fr) auto;
+    justify-self: start;
   }
 
   .public-game-card-no-context .public-game-team-name {
     max-width: none;
+  }
+
+  .public-game-card-no-context .public-game-team:last-child .public-game-team-name {
+    order: 1;
+  }
+
+  .public-game-card-no-context .public-game-team:last-child .public-game-team-badge {
+    order: 2;
   }
 
   .public-game-team-name {
