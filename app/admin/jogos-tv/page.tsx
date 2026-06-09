@@ -1,15 +1,84 @@
-import { getAdminMatchesTv } from "@/lib/supabase";
-import { BulkBroadcastTool } from "./BulkBroadcastTool";
+import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
-const matchTvAdminStyles = `
+type SearchParams = Record<string, string | string[] | undefined>;
+
+type CompetitionRow = {
+  id: string;
+  name: string | null;
+  slug: string | null;
+};
+
+type SeasonRow = {
+  id: string;
+  label: string | null;
+};
+
+type MatchdayRow = {
+  id: string;
+  number: number | null;
+  label: string | null;
+};
+
+type TeamRow = {
+  id: string;
+  name: string | null;
+  short_name: string | null;
+  logo_url: string | null;
+};
+
+type BroadcastChannelRow = {
+  id: string;
+  name: string | null;
+  logo_url: string | null;
+  platform: string | null;
+};
+
+type MatchRow = {
+  id: string;
+  competition_id: string | null;
+  season_id: string | null;
+  matchday_id: string | null;
+  home_team_id: string | null;
+  away_team_id: string | null;
+  kickoff_at: string | null;
+  status: string | null;
+  minute: number | null;
+  home_score: number | null;
+  away_score: number | null;
+  broadcast_channel_id: string | null;
+};
+
+type HydratedMatch = MatchRow & {
+  competition: CompetitionRow | null;
+  season: SeasonRow | null;
+  matchday: MatchdayRow | null;
+  homeTeam: TeamRow | null;
+  awayTeam: TeamRow | null;
+  channel: BroadcastChannelRow | null;
+};
+
+type MatchdayGroup = {
+  key: string;
+  label: string;
+  number: number;
+  matches: HydratedMatch[];
+};
+
+type CompetitionGroup = {
+  key: string;
+  label: string;
+  matches: HydratedMatch[];
+};
+
+const pageStyles = `
   body {
     margin: 0;
     background: #eef2f6;
   }
 
-  .match-tv-shell {
+  .tv-admin-shell {
     min-height: 100vh;
     padding: 28px;
     background: #eef2f6;
@@ -17,535 +86,567 @@ const matchTvAdminStyles = `
     font-family: Arial, Helvetica, sans-serif;
   }
 
-  .match-tv-hero {
+  .tv-admin-hero {
     display: flex;
-    align-items: flex-end;
     justify-content: space-between;
-    gap: 20px;
-    padding: 28px;
+    gap: 18px;
+    align-items: flex-end;
+    padding: 26px;
     border-radius: 8px;
     background: linear-gradient(135deg, #10151b, #25303c);
     color: #ffffff;
     box-shadow: 0 18px 40px rgba(8, 15, 24, 0.16);
   }
 
-  .match-tv-hero p,
-  .match-tv-hero h1,
-  .match-tv-hero span {
+  .tv-admin-hero p,
+  .tv-admin-hero h1 {
     margin: 0;
   }
 
-  .match-tv-hero p {
+  .tv-admin-hero p {
     color: #e5252a;
     font-size: 13px;
     font-weight: 900;
     text-transform: uppercase;
   }
 
-  .match-tv-hero h1 {
+  .tv-admin-hero h1 {
     margin-top: 8px;
-    font-size: 42px;
+    font-size: 40px;
     line-height: 1;
   }
 
-  .match-tv-hero span {
-    display: block;
-    margin-top: 10px;
-    color: #cdd5df;
-    font-size: 16px;
+  .tv-admin-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
-  .match-tv-hero a {
-    flex: 0 0 auto;
-    padding: 11px 16px;
+  .tv-admin-actions a,
+  .tv-admin-button,
+  .tv-admin-link-button {
+    display: inline-block;
+    padding: 11px 15px;
     border: 1px solid rgba(255, 255, 255, 0.28);
     border-radius: 6px;
+    background: transparent;
     color: #ffffff;
+    font: inherit;
     font-size: 13px;
     font-weight: 900;
+    line-height: 1;
     text-decoration: none;
-    text-transform: uppercase;
-  }
-
-  .match-tv-message {
-    margin-top: 18px;
-    padding: 16px 18px;
-    border: 1px solid #dce3eb;
-    border-radius: 8px;
-    background: #ffffff;
-    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
-  }
-
-  .match-tv-message.warning {
-    border-color: #ffd3a3;
-    background: #fff8ee;
-    color: #8a3a00;
-  }
-
-  .match-tv-message.success {
-    border-color: #bfe4c9;
-    background: #f0fbf3;
-    color: #146b2c;
-  }
-
-  .match-tv-list {
-    margin-top: 18px;
-    border: 1px solid #dce3eb;
-    border-radius: 8px;
-    background: #ffffff;
-    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
-  }
-
-  .match-tv-bulk {
-    margin-top: 18px;
-    border: 1px solid #dce3eb;
-    border-radius: 8px;
-    background: #ffffff;
-    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
-  }
-
-  .match-tv-bulk header,
-  .match-tv-list header {
-    padding: 18px 20px;
-    border-bottom: 1px solid #e6ebf1;
-  }
-
-  .match-tv-bulk h2,
-  .match-tv-list h2 {
-    margin: 0;
-    font-size: 21px;
-    text-transform: uppercase;
-  }
-
-  .match-tv-bulk small,
-  .match-tv-list small {
-    color: #687380;
-  }
-
-  .match-tv-bulk-body {
-    display: grid;
-    gap: 14px;
-    padding: 18px 20px 20px;
-  }
-
-  .match-tv-bulk-controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: end;
-    justify-content: space-between;
-  }
-
-  .match-tv-bulk-controls label {
-    display: grid;
-    flex: 1 1 280px;
-    gap: 5px;
-  }
-
-  .match-tv-bulk-controls span {
-    color: #687380;
-    font-size: 11px;
-    font-weight: 900;
-    text-transform: uppercase;
-  }
-
-  .match-tv-bulk select,
-  .match-tv-bulk textarea {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 10px 11px;
-    border: 1px solid #cfd8e3;
-    border-radius: 6px;
-    background: #ffffff;
-    font: inherit;
-    font-size: 14px;
-  }
-
-  .match-tv-bulk textarea {
-    min-height: 150px;
-    resize: vertical;
-  }
-
-  .match-tv-bulk-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .match-tv-bulk button {
-    min-height: 39px;
-    padding: 10px 13px;
-    border: 0;
-    border-radius: 6px;
-    background: #e5252a;
-    color: #ffffff;
-    font: inherit;
-    font-size: 12px;
-    font-weight: 900;
     text-transform: uppercase;
     cursor: pointer;
   }
 
-  .match-tv-bulk button.match-tv-secondary {
-    background: #25303c;
+  .tv-admin-button,
+  .tv-admin-link-button {
+    border-color: #e5252a;
+    background: #e5252a;
   }
 
-  .match-tv-bulk button:disabled,
-  .match-tv-bulk select:disabled,
-  .match-tv-bulk textarea:disabled {
-    cursor: not-allowed;
-    opacity: 0.55;
-  }
-
-  .match-tv-bulk-message,
-  .match-tv-bulk-help {
-    margin: 0;
-    color: #607086;
-    font-size: 13px;
-  }
-
-  .match-tv-preview {
-    display: grid;
-    gap: 12px;
-  }
-
-  .match-tv-preview-summary {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .match-tv-preview-summary span {
-    padding: 6px 9px;
-    border-radius: 999px;
-    background: #eef2f6;
-    color: #34404d;
-    font-size: 12px;
-    font-weight: 800;
-  }
-
-  .match-tv-preview-table-wrap {
-    overflow-x: auto;
-    border: 1px solid #e3e9f0;
+  .tv-admin-panel {
+    margin-top: 18px;
+    overflow: hidden;
+    border: 1px solid #dce3eb;
     border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
   }
 
-  .match-tv-preview table {
-    width: 100%;
-    min-width: 920px;
-    border-collapse: collapse;
+  .tv-admin-panel > header,
+  .tv-admin-filter {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    padding: 18px 20px;
+    border-bottom: 1px solid #e3e8ef;
+  }
+
+  .tv-admin-panel h2,
+  .tv-admin-panel h3,
+  .tv-admin-panel h4,
+  .tv-admin-panel p {
+    margin: 0;
+  }
+
+  .tv-admin-panel h2 {
+    font-size: 24px;
+  }
+
+  .tv-admin-panel p {
+    margin-top: 5px;
+    color: #657184;
     font-size: 13px;
+    font-weight: 700;
   }
 
-  .match-tv-preview th,
-  .match-tv-preview td {
-    padding: 10px;
-    border-bottom: 1px solid #e9eef4;
-    text-align: left;
-    vertical-align: top;
-  }
-
-  .match-tv-preview th {
-    background: #f8fafc;
-    color: #536173;
-    font-size: 11px;
+  .tv-admin-filter label {
+    display: grid;
+    gap: 6px;
+    color: #4d5866;
+    font-size: 12px;
     font-weight: 900;
     text-transform: uppercase;
   }
 
-  .match-tv-form {
-    display: grid;
-    grid-template-columns: 150px minmax(260px, 1.6fr) 42px minmax(190px, 1fr) minmax(170px, 0.9fr) 112px;
-    gap: 10px;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid #eef2f6;
-  }
-
-  .match-tv-form:last-child {
-    border-bottom: 0;
-  }
-
-  .match-tv-meta {
-    display: grid;
-    gap: 2px;
-  }
-
-  .match-tv-meta strong,
-  .match-tv-game strong {
-    font-size: 14px;
-  }
-
-  .match-tv-meta small,
-  .match-tv-game small,
-  .match-tv-channel small {
-    color: #687380;
-  }
-
-  .match-tv-game {
-    display: grid;
-    gap: 3px;
-    min-width: 0;
-  }
-
-  .match-tv-score {
-    text-align: center;
-    font-size: 17px;
-    font-weight: 900;
-  }
-
-  .match-tv-channel {
-    display: grid;
-    grid-template-columns: 48px minmax(0, 1fr);
-    gap: 9px;
-    align-items: center;
-    min-width: 0;
-  }
-
-  .match-tv-channel figure {
-    display: grid;
-    place-items: center;
-    width: 42px;
-    height: 34px;
-    margin: 0;
-    overflow: hidden;
-    border: 1px solid #dce3eb;
+  .tv-admin-filter select {
+    min-width: 240px;
+    padding: 10px 12px;
+    border: 1px solid #cfd8e3;
     border-radius: 6px;
-    background: #f8fafc;
-    color: #5e6874;
-    font-size: 11px;
+    background: #ffffff;
+    color: #10151b;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  .tv-admin-filter button {
+    align-self: end;
+  }
+
+  .tv-admin-message {
+    margin: 16px 20px 0;
+    padding: 11px 12px;
+    border-radius: 6px;
+    background: #eaf8ef;
+    color: #176235;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .tv-admin-message.warning {
+    background: #fff3e5;
+    color: #8a4d00;
+  }
+
+  .tv-competition {
+    padding: 20px;
+    border-top: 1px solid #e8edf3;
+  }
+
+  .tv-competition:first-of-type {
+    border-top: 0;
+  }
+
+  .tv-competition > header {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: baseline;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 4px solid #10151b;
+  }
+
+  .tv-competition h3 {
+    font-size: 18px;
+    font-weight: 950;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .tv-matchday {
+    margin-top: 16px;
+    overflow: hidden;
+    border: 1px solid #dde4ec;
+    border-radius: 8px;
+    background: #fbfcfe;
+  }
+
+  .tv-matchday > header {
+    padding: 12px 14px;
+    border-bottom: 1px solid #e4eaf1;
+    background: #f4f7fa;
+  }
+
+  .tv-matchday h4 {
+    font-size: 13px;
+    font-weight: 950;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .tv-match-list {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    background: #ffffff;
+  }
+
+  .tv-match-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(150px, 210px) minmax(230px, 320px);
+    gap: 16px;
+    align-items: center;
+    padding: 14px;
+    border-top: 1px solid #edf1f5;
+  }
+
+  .tv-match-row:first-child {
+    border-top: 0;
+  }
+
+  .tv-match-teams {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    min-width: 0;
+    color: #10151b;
+    font-size: 15px;
     font-weight: 900;
   }
 
-  .match-tv-channel img {
-    display: block;
-    width: 36px !important;
-    max-width: 36px !important;
-    height: 24px !important;
-    max-height: 24px !important;
-    object-fit: contain;
-  }
-
-  .match-tv-channel strong,
-  .match-tv-channel small {
-    display: block;
+  .tv-match-team {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .match-tv-select {
-    display: grid;
-    gap: 5px;
-    min-width: 0;
-  }
-
-  .match-tv-select label {
-    color: #687380;
-    font-size: 11px;
-    font-weight: 900;
+  .tv-match-versus {
+    flex: 0 0 auto;
+    color: #9aa6b4;
+    font-size: 12px;
+    font-weight: 950;
     text-transform: uppercase;
   }
 
-  .match-tv-select select {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 10px 11px;
+  .tv-match-meta {
+    display: grid;
+    gap: 4px;
+    color: #596679;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .tv-match-meta strong {
+    color: #10151b;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+
+  .tv-channel-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .tv-channel-form select {
+    min-width: 170px;
+    padding: 9px 10px;
     border: 1px solid #cfd8e3;
     border-radius: 6px;
     background: #ffffff;
+    color: #10151b;
     font: inherit;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .tv-channel-form button {
+    white-space: nowrap;
+  }
+
+  .tv-empty {
+    padding: 18px 20px;
+    color: #657184;
     font-size: 14px;
+    font-weight: 800;
   }
 
-  .match-tv-select select:focus {
-    outline: 2px solid rgba(229, 37, 42, 0.16);
-    border-color: #e5252a;
-  }
-
-  .match-tv-form button {
-    width: 100%;
-    min-height: 39px;
-    padding: 10px 12px;
-    border: 0;
-    border-radius: 6px;
-    background: #e5252a;
-    color: #ffffff;
-    font: inherit;
-    font-size: 12px;
-    font-weight: 900;
-    text-transform: uppercase;
-    cursor: pointer;
-  }
-
-  .match-tv-form button:disabled,
-  .match-tv-select select:disabled {
-    cursor: not-allowed;
-    opacity: 0.55;
-  }
-
-  @media (max-width: 860px) {
-    .match-tv-form {
-      grid-template-columns: 1fr 1fr;
+  @media (max-width: 900px) {
+    .tv-admin-shell {
+      padding: 18px;
     }
 
-    .match-tv-form button {
-      grid-column: 1 / -1;
-    }
-  }
-
-  @media (max-width: 720px) {
-    .match-tv-shell {
-      padding: 16px;
+    .tv-admin-hero,
+    .tv-admin-panel > header,
+    .tv-admin-filter {
+      align-items: stretch;
+      flex-direction: column;
     }
 
-    .match-tv-hero,
-    .match-tv-form {
-      display: grid;
+    .tv-match-row {
       grid-template-columns: 1fr;
+    }
+
+    .tv-channel-form {
+      justify-content: flex-start;
+      flex-wrap: wrap;
     }
   }
 `;
 
-type MatchesTvPageProps = {
-  searchParams: Promise<{
-    updated?: string;
-    error?: string;
-  }>;
-};
+function textValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
 
-function formatKickoff(value: string): string {
+function cleanText(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function inFilter(values: string[]) {
+  return `in.(${values.map((value) => encodeURIComponent(value)).join(",")})`;
+}
+
+function uniqueValues(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.filter((value): value is string => Boolean(value))));
+}
+
+async function readRowsById<T extends { id: string }>(table: string, select: string, ids: string[]) {
+  if (ids.length === 0) return new Map<string, T>();
+
+  const rows = await fetchSupabaseAdminTable<T>(`${table}?select=${select}&id=${inFilter(ids)}`).catch(() => []);
+
+  return new Map(rows.map((row) => [row.id, row]));
+}
+
+function formatLisbonDateTime(value: string | null) {
+  if (!value) return "Data/hora por definir";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Data/hora por definir";
+
   return new Intl.DateTimeFormat("pt-PT", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
+    year: "numeric",
     hour: "2-digit",
-    minute: "2-digit"
-  })
-    .format(new Date(value))
-    .replace(".", "");
+    minute: "2-digit",
+    timeZone: "Europe/Lisbon"
+  }).format(date);
 }
 
-function formatScore(home: number | null, away: number | null): string {
-  if (home === null || away === null) {
-    return "x";
-  }
+function statusLabel(match: MatchRow) {
+  const normalized = match.status?.trim().toLowerCase();
 
-  return `${home}-${away}`;
-}
+  if (normalized === "finished") return "Finalizado";
+  if (normalized === "live") return match.minute ? `Em direto - ${match.minute}'` : "Em direto";
+  if (normalized === "halftime") return "Intervalo";
 
-function statusLabel(status: string): string {
-  if (status === "live") return "Em direto";
-  if (status === "halftime") return "Intervalo";
-  if (status === "finished") return "Finalizado";
   return "Agendado";
 }
 
-function errorMessage(error?: string) {
-  if (error === "missing-service") {
-    return "Falta configurar SUPABASE_SERVICE_ROLE_KEY na Vercel para gravar alteracoes.";
-  }
+function matchdayLabel(matchday: MatchdayRow | null) {
+  if (!matchday?.number) return "Sem jornada";
 
-  if (error === "save") {
-    return "Nao foi possivel guardar o canal do jogo.";
-  }
-
-  return null;
+  return `Jornada ${String(matchday.number).padStart(2, "0")}`;
 }
 
-export default async function AdminMatchesTvPage({ searchParams }: MatchesTvPageProps) {
-  const params = await searchParams;
-  const overview = await getAdminMatchesTv();
-  const message = errorMessage(params.error);
-  const canWrite = overview.writeConfigured && !overview.error;
+function matchdaySortNumber(matchday: MatchdayRow | null) {
+  return matchday?.number ?? Number.MAX_SAFE_INTEGER;
+}
+
+function sortByKickoff(first: HydratedMatch, second: HydratedMatch) {
+  const firstTime = first.kickoff_at ? new Date(first.kickoff_at).getTime() : Number.MAX_SAFE_INTEGER;
+  const secondTime = second.kickoff_at ? new Date(second.kickoff_at).getTime() : Number.MAX_SAFE_INTEGER;
+
+  if (Number.isNaN(firstTime) && Number.isNaN(secondTime)) return 0;
+  if (Number.isNaN(firstTime)) return 1;
+  if (Number.isNaN(secondTime)) return -1;
+
+  return firstTime - secondTime;
+}
+
+function groupByCompetition(matches: HydratedMatch[]) {
+  const groups = new Map<string, CompetitionGroup>();
+
+  for (const match of matches) {
+    const key = match.competition?.id ?? "sem-competicao";
+    const current = groups.get(key) ?? {
+      key,
+      label: cleanText(match.competition?.name) ?? "Sem competição",
+      matches: []
+    };
+
+    current.matches.push(match);
+    groups.set(key, current);
+  }
+
+  return Array.from(groups.values()).sort((first, second) => first.label.localeCompare(second.label, "pt"));
+}
+
+function groupByMatchday(matches: HydratedMatch[]) {
+  const groups = new Map<string, MatchdayGroup>();
+
+  for (const match of matches) {
+    const key = match.matchday?.id ?? "sem-jornada";
+    const current = groups.get(key) ?? {
+      key,
+      label: matchdayLabel(match.matchday),
+      number: matchdaySortNumber(match.matchday),
+      matches: []
+    };
+
+    current.matches.push(match);
+    groups.set(key, current);
+  }
+
+  return Array.from(groups.values()).sort((first, second) => first.number - second.number);
+}
+
+async function readMatches(selectedCompetitionId: string | null) {
+  const competitionFilter = selectedCompetitionId ? `&competition_id=eq.${encodeURIComponent(selectedCompetitionId)}` : "";
+  const matches = await fetchSupabaseAdminTable<MatchRow>(
+    `matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,kickoff_at,status,minute,home_score,away_score,broadcast_channel_id${competitionFilter}&order=kickoff_at.asc&limit=1200`
+  ).catch(() => []);
+  const [competitionsById, seasonsById, matchdaysById, teamsById, channelsById] = await Promise.all([
+    readRowsById<CompetitionRow>("competitions", "id,name,slug", uniqueValues(matches.map((match) => match.competition_id))),
+    readRowsById<SeasonRow>("seasons", "id,label", uniqueValues(matches.map((match) => match.season_id))),
+    readRowsById<MatchdayRow>("matchdays", "id,number,label", uniqueValues(matches.map((match) => match.matchday_id))),
+    readRowsById<TeamRow>(
+      "teams",
+      "id,name,short_name,logo_url",
+      uniqueValues(matches.flatMap((match) => [match.home_team_id, match.away_team_id]))
+    ),
+    readRowsById<BroadcastChannelRow>("broadcast_channels", "id,name,logo_url,platform", uniqueValues(matches.map((match) => match.broadcast_channel_id)))
+  ]);
+
+  return matches.map((match) => ({
+    ...match,
+    competition: match.competition_id ? competitionsById.get(match.competition_id) ?? null : null,
+    season: match.season_id ? seasonsById.get(match.season_id) ?? null : null,
+    matchday: match.matchday_id ? matchdaysById.get(match.matchday_id) ?? null : null,
+    homeTeam: match.home_team_id ? teamsById.get(match.home_team_id) ?? null : null,
+    awayTeam: match.away_team_id ? teamsById.get(match.away_team_id) ?? null : null,
+    channel: match.broadcast_channel_id ? channelsById.get(match.broadcast_channel_id) ?? null : null
+  }));
+}
+
+async function readCompetitions() {
+  return fetchSupabaseAdminTable<CompetitionRow>("competitions?select=id,name,slug&order=name.asc&limit=200").catch(() => []);
+}
+
+async function readBroadcastChannels() {
+  return fetchSupabaseAdminTable<BroadcastChannelRow>("broadcast_channels?select=id,name,logo_url,platform&order=name.asc&limit=200").catch(() => []);
+}
+
+function MatchRowCard({ channels, match }: { channels: BroadcastChannelRow[]; match: HydratedMatch }) {
+  const returnTo = `/admin/jogos-tv${match.competition_id ? `?competicao=${encodeURIComponent(match.competition_id)}` : ""}#match-${match.id}`;
+  const score =
+    match.home_score !== null && match.away_score !== null
+      ? `${match.home_score}-${match.away_score}`
+      : "vs";
 
   return (
-    <main className="match-tv-shell">
-      <style>{matchTvAdminStyles}</style>
-      <header className="match-tv-hero">
+    <li className="tv-match-row" id={`match-${match.id}`}>
+      <div className="tv-match-teams">
+        <span className="tv-match-team">{match.homeTeam?.name ?? "Casa"}</span>
+        <span className="tv-match-versus">{score}</span>
+        <span className="tv-match-team">{match.awayTeam?.name ?? "Fora"}</span>
+      </div>
+      <div className="tv-match-meta">
+        <strong>{statusLabel(match)}</strong>
+        <span>{formatLisbonDateTime(match.kickoff_at)}</span>
+        <span>{match.channel?.name ? `Canal atual: ${match.channel.name}` : "Sem canal atribuído"}</span>
+      </div>
+      <form className="tv-channel-form" action="/api/admin/jogos-tv" method="post">
+        <input type="hidden" name="match_id" value={match.id} />
+        <input type="hidden" name="return_to" value={returnTo} />
+        <select name="broadcast_channel_id" defaultValue={match.broadcast_channel_id ?? ""} aria-label="Canal TV">
+          <option value="">Sem canal</option>
+          {channels.map((channel) => (
+            <option key={channel.id} value={channel.id}>
+              {channel.name}
+            </option>
+          ))}
+        </select>
+        <button className="tv-admin-link-button" type="submit">
+          Guardar
+        </button>
+      </form>
+    </li>
+  );
+}
+
+export default async function AdminJogosTvPage({
+  searchParams
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+  const selectedCompetitionId = cleanText(textValue(params.competicao)) ?? null;
+  const saved = textValue(params.saved) === "1";
+  const error = cleanText(textValue(params.error));
+  const [competitions, channels, matches] = await Promise.all([
+    readCompetitions(),
+    readBroadcastChannels(),
+    readMatches(selectedCompetitionId)
+  ]);
+  const competitionGroups = groupByCompetition(matches);
+
+  return (
+    <main className="tv-admin-shell">
+      <style>{pageStyles}</style>
+      <section className="tv-admin-hero">
         <div>
-          <p>Jornada.pt</p>
+          <p>Backoffice</p>
           <h1>Jogos e TV</h1>
-          <span>Ligar cada jogo ao canal certo para a agenda mostrar onde se ve com logotipo.</span>
         </div>
-        <a href="/admin">Voltar ao backoffice</a>
-      </header>
+        <div className="tv-admin-actions">
+          <a href="/admin">Voltar ao backoffice</a>
+          <a href="/admin/gestor">Centro de gestão</a>
+        </div>
+      </section>
 
-      {!overview.configured ? <section className="match-tv-message warning">Falta configurar a ligacao ao Supabase.</section> : null}
-      {!overview.writeConfigured ? (
-        <section className="match-tv-message warning">
-          Modo leitura ativo. Para editar, adiciona a variavel SUPABASE_SERVICE_ROLE_KEY na Vercel.
-        </section>
-      ) : null}
-      {overview.error ? <section className="match-tv-message warning">{overview.error}</section> : null}
-      {message ? <section className="match-tv-message warning">{message}</section> : null}
-      {params.updated ? <section className="match-tv-message success">Canal do jogo atualizado.</section> : null}
-
-      <BulkBroadcastTool
-        broadcastChannels={overview.broadcastChannels}
-        canWrite={canWrite}
-        competitions={overview.competitions}
-        seasons={overview.seasons}
-      />
-
-      <section className="match-tv-list">
+      <section className="tv-admin-panel" aria-label="Agenda e Transmissão">
         <header>
-          <h2>Agenda e transmissao</h2>
-          <small>{overview.matches.length} jogos na base de dados</small>
+          <div>
+            <h2>Agenda e Transmissão</h2>
+            <p>Jogos organizados por competição e jornada para gestão dos canais TV.</p>
+          </div>
         </header>
 
-        {overview.matches.length === 0 ? (
-          <section className="match-tv-message">
-            Ainda nao ha jogos na tabela da base de dados. Corre primeiro o SQL de preparacao dos jogos.
-          </section>
-        ) : null}
+        <form className="tv-admin-filter" action="/admin/jogos-tv" method="get">
+          <label>
+            Competição
+            <select name="competicao" defaultValue={selectedCompetitionId ?? ""}>
+              <option value="">Todas as competições</option>
+              {competitions.map((competition) => (
+                <option key={competition.id} value={competition.id}>
+                  {competition.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button className="tv-admin-button" type="submit">
+            Filtrar
+          </button>
+        </form>
 
-        {overview.matches.map((match) => (
-          <form action={`/api/admin/matches/${match.id}/broadcast`} className="match-tv-form" key={match.id} method="post">
-            <div className="match-tv-meta">
-              <strong>{match.competition?.name ?? "Competicao"}</strong>
-              <small>{formatKickoff(match.kickoff_at)}</small>
-              <small>{statusLabel(match.status)}</small>
-            </div>
+        {saved ? <div className="tv-admin-message">Canal TV guardado.</div> : null}
+        {error ? <div className="tv-admin-message warning">Não foi possível guardar o canal TV.</div> : null}
 
-            <div className="match-tv-game">
-              <strong>
-                {match.homeTeam?.name ?? "Equipa casa"} vs {match.awayTeam?.name ?? "Equipa fora"}
-              </strong>
-              <small>{match.venue ?? "Estadio a confirmar"}</small>
-            </div>
-
-            <div className="match-tv-score">{formatScore(match.home_score, match.away_score)}</div>
-
-            <div className="match-tv-channel">
-              <figure>
-                {match.broadcastChannel?.logo_url ? <img alt="" src={match.broadcastChannel.logo_url} /> : "TV"}
-              </figure>
-              <div>
-                <strong>{match.broadcastChannel?.name ?? "Sem canal"}</strong>
-                <small>{match.broadcastChannel?.platform ?? "Por definir"}</small>
-              </div>
-            </div>
-
-            <div className="match-tv-select">
-              <label htmlFor={`broadcast-${match.id}`}>Onde se ve</label>
-              <select
-                disabled={!canWrite}
-                id={`broadcast-${match.id}`}
-                name="broadcast_channel_id"
-                defaultValue={match.broadcast_channel_id ?? ""}
-              >
-                <option value="">Sem canal definido</option>
-                {overview.broadcastChannels.map((channel) => (
-                  <option key={channel.id} value={channel.id}>
-                    {channel.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <button disabled={!canWrite} type="submit">Guardar</button>
-          </form>
-        ))}
+        {competitionGroups.length === 0 ? (
+          <div className="tv-empty">Não há jogos para mostrar com o filtro atual.</div>
+        ) : (
+          competitionGroups.map((competition) => (
+            <section className="tv-competition" key={competition.key}>
+              <header>
+                <h3>{competition.label}</h3>
+              </header>
+              {groupByMatchday(competition.matches).map((matchday) => (
+                <section className="tv-matchday" key={matchday.key}>
+                  <header>
+                    <h4>{matchday.label}</h4>
+                  </header>
+                  <ul className="tv-match-list">
+                    {[...matchday.matches].sort(sortByKickoff).map((match) => (
+                      <MatchRowCard channels={channels} key={match.id} match={match} />
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </section>
+          ))
+        )}
       </section>
     </main>
   );
