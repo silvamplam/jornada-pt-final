@@ -71,6 +71,7 @@ type PublicGame = {
 type PublicGamesPageContentProps = {
   competitionSlug?: string | null;
   seasonLabel?: string | null;
+  matchdayNumber?: string | null;
 };
 
 const gamesPageStyles = `
@@ -166,6 +167,10 @@ const gamesPageStyles = `
     align-items: center;
     padding: 14px 16px;
     border-bottom: 1px solid #e6ebf1;
+  }
+
+  .public-game-card-no-context {
+    grid-template-columns: minmax(0, 1fr) minmax(170px, 230px);
   }
 
   .public-game-card:last-child {
@@ -409,6 +414,19 @@ async function readSeasonByCompetitionAndSegment(competitionId: string | null | 
   return rows[0] ?? null;
 }
 
+async function readMatchdayBySeasonAndNumber(seasonId: string | null | undefined, matchdayNumber?: string | null) {
+  if (!seasonId || !matchdayNumber) return null;
+
+  const number = Number(matchdayNumber);
+  if (!Number.isFinite(number)) return null;
+
+  const rows = await fetchSupabaseAdminTable<MatchdayRow>(
+    `matchdays?select=id,number&season_id=eq.${encodeURIComponent(seasonId)}&number=eq.${encodeURIComponent(String(number))}&limit=1`
+  ).catch(() => []);
+
+  return rows[0] ?? null;
+}
+
 async function readBroadcastChannelsByMatchId(matchIds: string[], matches: MatchRow[] = []) {
   const channelsByMatchId = new Map<string, BroadcastChannelRow>();
   if (matchIds.length === 0) return channelsByMatchId;
@@ -463,10 +481,11 @@ async function readBroadcastChannelsByMatchId(matchIds: string[], matches: Match
   return channelsByMatchId;
 }
 
-async function readPublicGames(filters: { competitionId?: string | null; seasonId?: string | null } = {}): Promise<PublicGame[]> {
+async function readPublicGames(filters: { competitionId?: string | null; seasonId?: string | null; matchdayId?: string | null } = {}): Promise<PublicGame[]> {
   const queryFilters = [
     filters.competitionId ? `competition_id=eq.${encodeURIComponent(filters.competitionId)}` : null,
-    filters.seasonId ? `season_id=eq.${encodeURIComponent(filters.seasonId)}` : null
+    filters.seasonId ? `season_id=eq.${encodeURIComponent(filters.seasonId)}` : null,
+    filters.matchdayId ? `matchday_id=eq.${encodeURIComponent(filters.matchdayId)}` : null
   ].filter(Boolean);
   const query =
     "matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,kickoff_at,status,minute,home_score,away_score,broadcast_channel_id" +
@@ -561,20 +580,22 @@ function GameScore({ game }: { game: PublicGame }) {
   return <span className="public-game-vs">vs</span>;
 }
 
-function GameCard({ game, showCompetition }: { game: PublicGame; showCompetition: boolean }) {
+function GameCard({ game, showCompetition, showContext = true }: { game: PublicGame; showCompetition: boolean; showContext?: boolean }) {
   const kind = statusKind(game.status);
   const channelName = cleanText(game.broadcastChannel?.name);
   const seasonLabel = cleanText(game.season?.label);
   const liveLabel = kind === "halftime" ? "Intervalo" : game.minute ? `Em direto - ${game.minute}'` : "Em direto";
 
   return (
-    <article className="public-game-card">
-      <div className="public-game-context">
-        {showCompetition ? <span className="public-game-competition">{cleanText(game.competition?.name) || "Competicao"}</span> : null}
-        <span className="public-game-matchday">
-          {seasonLabel || "Epoca por definir"}
-        </span>
-      </div>
+    <article className={`public-game-card${showContext ? "" : " public-game-card-no-context"}`}>
+      {showContext ? (
+        <div className="public-game-context">
+          {showCompetition ? <span className="public-game-competition">{cleanText(game.competition?.name) || "Competicao"}</span> : null}
+          <span className="public-game-matchday">
+            {seasonLabel || "Epoca por definir"}
+          </span>
+        </div>
+      ) : null}
       <div className="public-game-main">
         <TeamBlock team={game.homeTeam} side="home" />
         <GameScore game={game} />
@@ -690,7 +711,49 @@ function sortGamesByPublicOrder(first: PublicGame, second: PublicGame) {
   return sortGames(first, second);
 }
 
-function MatchdayGamesBlock({ group, showCompetition }: { group: MatchdayGameGroup; showCompetition: boolean }) {
+function liveGamesFor(games: PublicGame[]) {
+  return games.filter((game) => {
+    const kind = statusKind(game.status);
+    return kind === "live" || kind === "halftime";
+  });
+}
+
+function finishedGamesFor(games: PublicGame[]) {
+  return games.filter((game) => statusKind(game.status) === "finished");
+}
+
+function scheduledGamesFor(games: PublicGame[]) {
+  return games.filter((game) => statusKind(game.status) === "scheduled");
+}
+
+function GamesStateBlock({ title, games, showCompetition, showContext }: { title: string; games: PublicGame[]; showCompetition: boolean; showContext: boolean }) {
+  if (games.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="public-games-state" aria-label={title}>
+      <span className="public-games-state-title">{title}</span>
+      <div className="public-games-list">
+        {games.map((game) => (
+          <GameCard game={game} key={game.id} showCompetition={showCompetition} showContext={showContext} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function MatchdayGamesBlock({
+  group,
+  showCompetition,
+  showStateTitles,
+  showContext
+}: {
+  group: MatchdayGameGroup;
+  showCompetition: boolean;
+  showStateTitles: boolean;
+  showContext: boolean;
+}) {
   const orderedGames = [...group.games].sort(sortGamesByPublicOrder);
 
   return (
@@ -698,38 +761,65 @@ function MatchdayGamesBlock({ group, showCompetition }: { group: MatchdayGameGro
       <header>
         <h3>{group.label}</h3>
       </header>
-      <div className="public-games-list">
-        {orderedGames.map((game) => (
-          <GameCard game={game} key={game.id} showCompetition={showCompetition} />
-        ))}
-      </div>
+      {showStateTitles ? (
+        <>
+          <GamesStateBlock title="Jogos em direto" games={liveGamesFor(orderedGames)} showCompetition={showCompetition} showContext={showContext} />
+          <GamesStateBlock title="Jogos finalizados" games={finishedGamesFor(orderedGames)} showCompetition={showCompetition} showContext={showContext} />
+          <GamesStateBlock title="Jogos em agenda" games={scheduledGamesFor(orderedGames)} showCompetition={showCompetition} showContext={showContext} />
+        </>
+      ) : (
+        <div className="public-games-list">
+          {orderedGames.map((game) => (
+            <GameCard game={game} key={game.id} showCompetition={showCompetition} showContext={showContext} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
 
-function GamesByMatchday({ games, showCompetition }: { games: PublicGame[]; showCompetition: boolean }) {
+function GamesByMatchday({
+  games,
+  showCompetition,
+  showStateTitles,
+  showContext
+}: {
+  games: PublicGame[];
+  showCompetition: boolean;
+  showStateTitles: boolean;
+  showContext: boolean;
+}) {
   const matchdayGroups = groupedByMatchday(games);
 
   return (
     <>
       {matchdayGroups.map((group) => (
-        <MatchdayGamesBlock group={group} key={group.id} showCompetition={showCompetition} />
+        <MatchdayGamesBlock
+          group={group}
+          key={group.id}
+          showCompetition={showCompetition}
+          showContext={showContext}
+          showStateTitles={showStateTitles}
+        />
       ))}
     </>
   );
 }
 
-export default async function PublicGamesPageContent({ competitionSlug, seasonLabel }: PublicGamesPageContentProps) {
+export default async function PublicGamesPageContent({ competitionSlug, seasonLabel, matchdayNumber }: PublicGamesPageContentProps) {
   const competition = await readCompetitionBySlug(competitionSlug);
   const season = await readSeasonByCompetitionAndSegment(competition?.id, seasonLabel);
+  const selectedMatchday = await readMatchdayBySeasonAndNumber(season?.id, matchdayNumber);
   const isContextual = Boolean(competitionSlug);
+  const isMatchdayContext = Boolean(competitionSlug && seasonLabel && matchdayNumber);
   const [competitionLinks, games] = await Promise.all([
     readPublicCompetitionMenu(),
-    isContextual && (!competition || !season)
+    isContextual && (!competition || !season || (matchdayNumber && !selectedMatchday))
       ? Promise.resolve<PublicGame[]>([])
       : readPublicGames({
           competitionId: competition?.id ?? null,
-          seasonId: season?.id ?? null
+          seasonId: season?.id ?? null,
+          matchdayId: selectedMatchday?.id ?? null
         })
   ]);
   const menuOrder = competitionLinks.map((link) => link.slug);
@@ -737,12 +827,11 @@ export default async function PublicGamesPageContent({ competitionSlug, seasonLa
   const activeCompetitionSlug = cleanText(competition?.slug);
   const activeCompetitionName = cleanText(competition?.name) || activeCompetitionSlug || "Competicao";
   const gamesHref = isContextual && activeCompetitionSlug && seasonLabel
-    ? `/competicoes/${activeCompetitionSlug}/${seasonLabel}/jogos`
+    ? matchdayNumber
+      ? `/competicoes/${activeCompetitionSlug}/${seasonLabel}/jornadas/${matchdayNumber}/jogos`
+      : `/competicoes/${activeCompetitionSlug}/${seasonLabel}/jogos`
     : "/jogos";
   const title = competition ? `Jogos - ${activeCompetitionName}` : "Jogos";
-  const subtitle = competition
-    ? `Jogos da ${activeCompetitionName}${season ? ` na epoca ${cleanText(season.label) || ""}` : ""}, organizados por jornada.`
-    : "Todos os jogos acompanhados pelo Jornada.pt, separados por competicao e organizados por jornada.";
 
   return (
     <main className="public-matchday-shell">
@@ -778,12 +867,15 @@ export default async function PublicGamesPageContent({ competitionSlug, seasonLa
         <section className="public-games-heading" aria-label="Jogos">
           <span className="public-games-kicker">Agenda</span>
           <h1>{title}</h1>
-          <p>{subtitle}</p>
         </section>
 
-        {isContextual ? (
+        {isMatchdayContext ? (
           games.length > 0 ? (
-            <GamesByMatchday games={games} showCompetition={false} />
+            <GamesByMatchday games={games} showCompetition={false} showContext={false} showStateTitles />
+          ) : null
+        ) : isContextual ? (
+          games.length > 0 ? (
+            <GamesByMatchday games={games} showCompetition={false} showContext={false} showStateTitles={false} />
           ) : null
         ) : groupedGames.length > 0 ? (
           groupedGames.map((group) => (
@@ -791,7 +883,7 @@ export default async function PublicGamesPageContent({ competitionSlug, seasonLa
               <div className="public-games-competition-title">
                 <h2>{group.label}</h2>
               </div>
-              <GamesByMatchday games={group.games} showCompetition={true} />
+              <GamesByMatchday games={group.games} showCompetition={true} showContext={true} showStateTitles={false} />
             </section>
           ))
         ) : null}

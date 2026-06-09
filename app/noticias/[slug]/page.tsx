@@ -839,9 +839,11 @@ function PublicHeader({
   const contextualMatchdayHref = activeCompetition && seasonSegment
     ? `/competicoes/${activeCompetition.slug}/${seasonSegment}/jornadas/${currentMatchdayNumber}`
     : null;
-  const jogosHref = activeCompetition && seasonSegment
-    ? `/competicoes/${activeCompetition.slug}/${seasonSegment}/jogos`
-    : "/jogos";
+  const jogosHref = activeCompetition && seasonSegment && frame?.matchday?.number
+    ? `/competicoes/${activeCompetition.slug}/${seasonSegment}/jornadas/${frame.matchday.number}/jogos`
+    : activeCompetition && seasonSegment
+      ? `/competicoes/${activeCompetition.slug}/${seasonSegment}/jogos`
+      : "/jogos";
   const classificacaoHref = activeCompetition && seasonSegment
     ? `${contextualMatchdayHref}#classificacao`
     : "/competicoes/liga-portugal/2026-27/jornadas/1#classificacao";
