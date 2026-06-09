@@ -237,7 +237,8 @@ const gamesPageStyles = `
   }
 
   .public-game-card-no-context .public-game-main {
-    display: inline-flex;
+    display: grid;
+    grid-template-columns: minmax(150px, 190px) 70px minmax(150px, 210px);
     width: auto;
     max-width: 100%;
     justify-self: start;
@@ -262,16 +263,19 @@ const gamesPageStyles = `
 
   .public-game-card-no-context .public-game-team,
   .public-game-card-no-context .public-game-team:last-child {
-    display: inline-flex;
-    flex: 0 1 auto;
-    grid-template-columns: none;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
     width: auto;
-    max-width: 190px;
+    max-width: none;
     text-align: left;
   }
 
+  .public-game-card-no-context .public-game-team:last-child {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
   .public-game-card-no-context .public-game-team-name {
-    max-width: 150px;
+    max-width: none;
   }
 
   .public-game-team-name {
@@ -323,7 +327,7 @@ const gamesPageStyles = `
 
   .public-game-card-no-context .public-game-score,
   .public-game-card-no-context .public-game-vs {
-    min-width: auto;
+    min-width: 70px;
     padding: 0 4px;
   }
 
@@ -399,7 +403,8 @@ const gamesPageStyles = `
     }
 
     .public-game-card-no-context .public-game-main {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr);
       max-width: none;
     }
 
