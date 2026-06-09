@@ -117,10 +117,6 @@ const gamesPageStyles = `
   }
 
   .public-games-competition-title {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 14px;
     margin-bottom: 8px;
     padding-bottom: 8px;
     border-bottom: 4px solid #10151b;
@@ -135,15 +131,8 @@ const gamesPageStyles = `
     text-transform: uppercase;
   }
 
-  .public-games-competition-title span {
-    color: #607086;
-    font-size: 12px;
-    font-weight: 900;
-    text-transform: uppercase;
-  }
-
-  .public-games-section {
-    margin-top: 10px;
+  .public-games-matchday {
+    margin-top: 12px;
     border: 1px solid #dde4ec;
     border-radius: 8px;
     background: #ffffff;
@@ -151,29 +140,18 @@ const gamesPageStyles = `
     overflow: hidden;
   }
 
-  .public-games-section header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
+  .public-games-matchday > header {
     padding: 12px 16px;
     border-bottom: 1px solid #e6ebf1;
     background: #f8fafc;
   }
 
-  .public-games-section h3 {
+  .public-games-matchday h3 {
     margin: 0;
     color: #10151b;
     font-size: 13px;
     font-weight: 950;
     letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .public-games-count {
-    color: #607086;
-    font-size: 12px;
-    font-weight: 900;
     text-transform: uppercase;
   }
 
@@ -323,14 +301,6 @@ const gamesPageStyles = `
     object-fit: contain;
   }
 
-  .public-game-empty,
-  .public-games-empty {
-    padding: 18px 16px;
-    color: #607086;
-    font-size: 13px;
-    font-weight: 800;
-  }
-
   @media (max-width: 820px) {
     .public-games-page {
       margin-top: 18px;
@@ -383,16 +353,6 @@ function statusKind(status?: string | null) {
   if (normalized === "live") return "live";
   if (normalized === "halftime") return "halftime";
   return "scheduled";
-}
-
-function statusLabel(match: PublicGame) {
-  const kind = statusKind(match.status);
-  if (kind === "finished") return "Finalizado";
-  if (kind === "halftime") return "Intervalo";
-  if (kind === "live") return match.minute ? `Em direto - ${match.minute}'` : "Em direto";
-  if (match.status?.trim().toLowerCase() === "postponed") return "Adiado";
-  if (match.status?.trim().toLowerCase() === "cancelled") return "Cancelado";
-  return "Agendado";
 }
 
 function formatKickoff(value?: string | null) {
@@ -604,15 +564,15 @@ function GameScore({ game }: { game: PublicGame }) {
 function GameCard({ game, showCompetition }: { game: PublicGame; showCompetition: boolean }) {
   const kind = statusKind(game.status);
   const channelName = cleanText(game.broadcastChannel?.name);
-  const matchdayLabel = game.matchday?.number ? `J${String(game.matchday.number).padStart(2, "0")}` : null;
   const seasonLabel = cleanText(game.season?.label);
+  const liveLabel = kind === "halftime" ? "Intervalo" : game.minute ? `Em direto - ${game.minute}'` : "Em direto";
 
   return (
     <article className="public-game-card">
       <div className="public-game-context">
         {showCompetition ? <span className="public-game-competition">{cleanText(game.competition?.name) || "Competicao"}</span> : null}
         <span className="public-game-matchday">
-          {[seasonLabel, matchdayLabel].filter(Boolean).join(" - ") || "Jornada por definir"}
+          {seasonLabel || "Epoca por definir"}
         </span>
       </div>
       <div className="public-game-main">
@@ -621,36 +581,21 @@ function GameCard({ game, showCompetition }: { game: PublicGame; showCompetition
         <TeamBlock team={game.awayTeam} side="away" />
       </div>
       <div className="public-game-info">
-        <span className={`public-game-status${kind === "live" || kind === "halftime" ? " public-game-status-live" : ""}`}>
-          {statusLabel(game)}
-        </span>
-        {kind === "scheduled" ? <time dateTime={game.kickoff_at ?? undefined}>{formatKickoff(game.kickoff_at)}</time> : null}
-        <span className="public-game-tv">
-          {game.broadcastChannel?.logo_url ? <img alt="" src={game.broadcastChannel.logo_url} /> : null}
-          <span>{channelName || "TV por confirmar"}</span>
-        </span>
+        {kind === "live" || kind === "halftime" ? (
+          <span className="public-game-status public-game-status-live">{liveLabel}</span>
+        ) : kind === "finished" ? (
+          <span className="public-game-status">Finalizado</span>
+        ) : (
+          <time dateTime={game.kickoff_at ?? undefined}>{formatKickoff(game.kickoff_at)}</time>
+        )}
+        {channelName ? (
+          <span className="public-game-tv">
+            {game.broadcastChannel?.logo_url ? <img alt="" src={game.broadcastChannel.logo_url} /> : null}
+            <span>{channelName}</span>
+          </span>
+        ) : null}
       </div>
     </article>
-  );
-}
-
-function GamesSection({ title, games, showCompetition }: { title: string; games: PublicGame[]; showCompetition: boolean }) {
-  return (
-    <section className="public-games-section" aria-label={title}>
-      <header>
-        <h3>{title}</h3>
-        <span className="public-games-count">{games.length} {games.length === 1 ? "jogo" : "jogos"}</span>
-      </header>
-      {games.length > 0 ? (
-        <div className="public-games-list">
-          {games.map((game) => (
-            <GameCard game={game} key={game.id} showCompetition={showCompetition} />
-          ))}
-        </div>
-      ) : (
-        <p className="public-game-empty">Nao ha jogos nesta seccao.</p>
-      )}
-    </section>
   );
 }
 
@@ -662,7 +607,20 @@ function competitionLabel(game: PublicGame) {
   return cleanText(game.competition?.name) || "Competicao por definir";
 }
 
-function groupedByCompetition(games: PublicGame[], menuOrder: string[]) {
+type CompetitionGameGroup = {
+  label: string;
+  slug: string | null;
+  games: PublicGame[];
+};
+
+type MatchdayGameGroup = {
+  id: string;
+  label: string;
+  number: number;
+  games: PublicGame[];
+};
+
+function groupedByCompetition(games: PublicGame[], menuOrder: string[]): CompetitionGameGroup[] {
   const groups = new Map<string, { label: string; slug: string | null; games: PublicGame[] }>();
 
   for (const game of games) {
@@ -688,19 +646,75 @@ function groupedByCompetition(games: PublicGame[], menuOrder: string[]) {
   });
 }
 
-function GamesByState({ games, showCompetition }: { games: PublicGame[]; showCompetition: boolean }) {
-  const liveGames = games.filter((game) => {
-    const kind = statusKind(game.status);
-    return kind === "live" || kind === "halftime";
-  }).sort(sortGames);
-  const finishedGames = games.filter((game) => statusKind(game.status) === "finished").sort(sortGames);
-  const scheduledGames = games.filter((game) => statusKind(game.status) === "scheduled").sort(sortGames);
+function matchdayKey(game: PublicGame) {
+  return game.matchday?.id || "sem-jornada";
+}
+
+function matchdayLabel(game: PublicGame) {
+  return game.matchday?.number ? `Jornada ${String(game.matchday.number).padStart(2, "0")}` : "Jornada por definir";
+}
+
+function matchdayNumber(game: PublicGame) {
+  return game.matchday?.number ?? Number.MAX_SAFE_INTEGER;
+}
+
+function groupedByMatchday(games: PublicGame[]): MatchdayGameGroup[] {
+  const groups = new Map<string, MatchdayGameGroup>();
+
+  for (const game of games) {
+    const key = matchdayKey(game);
+    const current = groups.get(key) ?? {
+      id: key,
+      label: matchdayLabel(game),
+      number: matchdayNumber(game),
+      games: []
+    };
+    current.games.push(game);
+    groups.set(key, current);
+  }
+
+  return Array.from(groups.values()).sort((first, second) => first.number - second.number);
+}
+
+function statusRank(game: PublicGame) {
+  const kind = statusKind(game.status);
+  if (kind === "live" || kind === "halftime") return 0;
+  if (kind === "finished") return 1;
+  return 2;
+}
+
+function sortGamesByPublicOrder(first: PublicGame, second: PublicGame) {
+  const rankDifference = statusRank(first) - statusRank(second);
+  if (rankDifference !== 0) return rankDifference;
+
+  return sortGames(first, second);
+}
+
+function MatchdayGamesBlock({ group, showCompetition }: { group: MatchdayGameGroup; showCompetition: boolean }) {
+  const orderedGames = [...group.games].sort(sortGamesByPublicOrder);
+
+  return (
+    <section className="public-games-matchday" aria-label={group.label}>
+      <header>
+        <h3>{group.label}</h3>
+      </header>
+      <div className="public-games-list">
+        {orderedGames.map((game) => (
+          <GameCard game={game} key={game.id} showCompetition={showCompetition} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function GamesByMatchday({ games, showCompetition }: { games: PublicGame[]; showCompetition: boolean }) {
+  const matchdayGroups = groupedByMatchday(games);
 
   return (
     <>
-      <GamesSection title="Jogos em direto" games={liveGames} showCompetition={showCompetition} />
-      <GamesSection title="Jogos finalizados" games={finishedGames} showCompetition={showCompetition} />
-      <GamesSection title="Jogos agendados" games={scheduledGames} showCompetition={showCompetition} />
+      {matchdayGroups.map((group) => (
+        <MatchdayGamesBlock group={group} key={group.id} showCompetition={showCompetition} />
+      ))}
     </>
   );
 }
@@ -727,8 +741,8 @@ export default async function PublicGamesPageContent({ competitionSlug, seasonLa
     : "/jogos";
   const title = competition ? `Jogos - ${activeCompetitionName}` : "Jogos";
   const subtitle = competition
-    ? `Jogos da ${activeCompetitionName}${season ? ` na epoca ${cleanText(season.label) || ""}` : ""}, separados por estado.`
-    : "Todos os jogos acompanhados pelo Jornada.pt, separados por competicao e organizados por estado.";
+    ? `Jogos da ${activeCompetitionName}${season ? ` na epoca ${cleanText(season.label) || ""}` : ""}, organizados por jornada.`
+    : "Todos os jogos acompanhados pelo Jornada.pt, separados por competicao e organizados por jornada.";
 
   return (
     <main className="public-matchday-shell">
@@ -769,27 +783,18 @@ export default async function PublicGamesPageContent({ competitionSlug, seasonLa
 
         {isContextual ? (
           games.length > 0 ? (
-            <GamesByState games={games} showCompetition={false} />
-          ) : (
-            <section className="public-games-section" aria-label="Sem jogos">
-              <p className="public-games-empty">Nao ha jogos disponiveis para esta competicao e epoca.</p>
-            </section>
-          )
+            <GamesByMatchday games={games} showCompetition={false} />
+          ) : null
         ) : groupedGames.length > 0 ? (
           groupedGames.map((group) => (
             <section className="public-games-competition" key={group.slug || group.label}>
               <div className="public-games-competition-title">
                 <h2>{group.label}</h2>
-                <span>{group.games.length} {group.games.length === 1 ? "jogo" : "jogos"}</span>
               </div>
-              <GamesByState games={group.games} showCompetition={true} />
+              <GamesByMatchday games={group.games} showCompetition={true} />
             </section>
           ))
-        ) : (
-          <section className="public-games-section" aria-label="Sem jogos">
-            <p className="public-games-empty">Nao ha jogos disponiveis.</p>
-          </section>
-        )}
+        ) : null}
       </div>
     </main>
   );
