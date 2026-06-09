@@ -271,7 +271,8 @@ const gamesPageStyles = `
   }
 
   .public-game-card-no-context .public-game-team:last-child {
-    justify-self: start;
+    justify-content: flex-start;
+    place-self: center start;
   }
 
   .public-game-card-no-context .public-game-team-name {
@@ -279,10 +280,13 @@ const gamesPageStyles = `
   }
 
   .public-game-card-no-context .public-game-team:last-child .public-game-team-name {
+    flex: 0 1 auto;
+    min-width: 0;
     order: 1;
   }
 
   .public-game-card-no-context .public-game-team:last-child .public-game-team-badge {
+    flex: 0 0 auto;
     order: 2;
   }
 
