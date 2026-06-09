@@ -712,7 +712,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
               {item.label}
             </a>
           ))}
-          <a href="#jogos">Jogos</a>
+          <a href="/jogos">Jogos</a>
           <a href="#classificacao">Classificação</a>
         </nav>
         <div className="public-site-actions" aria-label="Ações">

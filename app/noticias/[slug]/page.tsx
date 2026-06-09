@@ -839,7 +839,6 @@ function PublicHeader({
   const contextualMatchdayHref = activeCompetition && seasonSegment
     ? `/competicoes/${activeCompetition.slug}/${seasonSegment}/jornadas/${currentMatchdayNumber}`
     : null;
-  const jogosHref = frame?.matchday ? "#jogos" : contextualMatchdayHref ? `${contextualMatchdayHref}#jogos` : "/competicoes/liga-portugal/2026-27/jornadas/1#jogos";
   const classificacaoHref = activeCompetition && seasonSegment
     ? `${contextualMatchdayHref}#classificacao`
     : "/competicoes/liga-portugal/2026-27/jornadas/1#classificacao";
@@ -859,7 +858,7 @@ function PublicHeader({
             {link.label}
           </Link>
         ))}
-        <Link href={jogosHref}>Jogos</Link>
+        <Link href="/jogos">Jogos</Link>
         <Link href={classificacaoHref}>Classificação</Link>
       </nav>
       <div className="public-site-actions" aria-label="Acoes">
