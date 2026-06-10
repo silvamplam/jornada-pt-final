@@ -104,14 +104,24 @@ async function readBroadcastChannels(ids: string[]) {
 async function readMatchdayEditorial(matchdayId: string) {
   try {
     const rows = await fetchSupabaseAdminTable<SupabaseMatchdayEditorial>(
-      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,latest_zone_mode,latest_zone_title,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}&limit=1`
     );
 
     return rows[0] ?? null;
   } catch {
-    return null;
+    try {
+      const rows = await fetchSupabaseAdminTable<SupabaseMatchdayEditorial>(
+        `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+          matchdayId
+        )}&limit=1`
+      );
+
+      return rows[0] ?? null;
+    } catch {
+      return null;
+    }
   }
 }
 
@@ -142,12 +152,20 @@ async function readPublishedMatchdayRoundupItems(matchdayId: string) {
 async function readPublishedMatchdayLatestNews(matchdayId: string) {
   try {
     return fetchSupabaseAdminTable<SupabaseMatchdayLatestNews>(
-      `matchday_latest_news?select=id,matchday_id,time_label,title,image_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+      `matchday_latest_news?select=id,matchday_id,time_label,title,subtitle,image_url,link_url,article_id,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}&status=eq.published&order=sort_order.asc&limit=20`
     );
   } catch {
-    return [];
+    try {
+      return fetchSupabaseAdminTable<SupabaseMatchdayLatestNews>(
+        `matchday_latest_news?select=id,matchday_id,time_label,title,image_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+          matchdayId
+        )}&status=eq.published&order=sort_order.asc&limit=20`
+      );
+    } catch {
+      return [];
+    }
   }
 }
 

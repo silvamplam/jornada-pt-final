@@ -26,37 +26,6 @@ type MatchdayContext = {
   country: SupabaseCountry | null;
 };
 
-type MatchdayHighlightWithLink = SupabaseMatchdayHighlight & {
-  link_url?: string | null;
-};
-
-type MatchdayLatestNewsWithLink = SupabaseMatchdayLatestNews & {
-  link_url?: string | null;
-};
-
-type MatchdayEditorialWithHeadlineLink = SupabaseMatchdayEditorial & {
-  headline_link_url?: string | null;
-};
-
-type EditorialArticleOption = {
-  id: string;
-  slug: string;
-  status: string | null;
-  scope: string | null;
-  season_id: string | null;
-  matchday_id: string | null;
-  competition_id: string | null;
-  title: string | null;
-  label: string | null;
-  published_at: string | null;
-  created_at: string | null;
-};
-
-type ArticleOptionGroup = {
-  label: string;
-  articles: EditorialArticleOption[];
-};
-
 const ROUNDUP_EDITOR_SORT_ORDERS = Array.from({ length: 10 }, (_, index) => index + 1);
 const LATEST_NEWS_EDITOR_SORT_ORDERS = Array.from({ length: 8 }, (_, index) => index + 1);
 
@@ -116,14 +85,6 @@ const editorialPageStyles = `
     margin-top: 10px;
     color: #cdd5df;
     font-size: 15px;
-  }
-
-  .editorial-admin-hero-actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 10px;
-    align-items: flex-start;
   }
 
   .editorial-admin-button {
@@ -394,10 +355,6 @@ const editorialPageStyles = `
     .editorial-admin-hero {
       display: grid;
     }
-
-    .editorial-admin-hero-actions {
-      justify-content: flex-start;
-    }
   }
 `;
 
@@ -447,17 +404,25 @@ async function readMatchdayContext(matchdayId: string): Promise<MatchdayContext 
   return { matchday, season, competition, country };
 }
 
-async function readMatchdayEditorial(matchdayId: string): Promise<MatchdayEditorialWithHeadlineLink | null> {
-  return readFirst<MatchdayEditorialWithHeadlineLink>(
-    `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,headline_link_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
-      matchdayId
-    )}`
-  ).catch(() => null);
+async function readMatchdayEditorial(matchdayId: string): Promise<SupabaseMatchdayEditorial | null> {
+  try {
+    return await readFirst<SupabaseMatchdayEditorial>(
+      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,latest_zone_mode,latest_zone_title,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+        matchdayId
+      )}`
+    );
+  } catch {
+    return readFirst<SupabaseMatchdayEditorial>(
+      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+        matchdayId
+      )}`
+    ).catch(() => null);
+  }
 }
 
-async function readMatchdayHighlights(matchdayId: string): Promise<MatchdayHighlightWithLink[]> {
-  return fetchSupabaseAdminTable<MatchdayHighlightWithLink>(
-    `matchday_highlights?select=id,matchday_id,label,title,image_url,link_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+async function readMatchdayHighlights(matchdayId: string): Promise<SupabaseMatchdayHighlight[]> {
+  return fetchSupabaseAdminTable<SupabaseMatchdayHighlight>(
+    `matchday_highlights?select=id,matchday_id,label,title,image_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
       matchdayId
     )}&order=sort_order.asc&limit=3`
   ).catch(() => []);
@@ -471,65 +436,20 @@ async function readMatchdayRoundupItems(matchdayId: string): Promise<SupabaseMat
   ).catch(() => []);
 }
 
-async function readMatchdayLatestNews(matchdayId: string): Promise<MatchdayLatestNewsWithLink[]> {
-  return fetchSupabaseAdminTable<MatchdayLatestNewsWithLink>(
-    `matchday_latest_news?select=id,matchday_id,time_label,title,image_url,link_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
-      matchdayId
-    )}&order=sort_order.asc&limit=8`
-  ).catch(() => []);
-}
-
-async function readEditorialArticleGroups(matchdayId: string, competitionId: string | null, seasonId: string | null): Promise<ArticleOptionGroup[]> {
-  const articles = await fetchSupabaseAdminTable<EditorialArticleOption>(
-    "editorial_articles?select=id,slug,status,scope,season_id,matchday_id,competition_id,title,label,published_at,created_at&status=eq.published&order=published_at.desc&limit=300"
-  ).catch(() => []);
-
-  const currentMatchdayArticles = articles.filter((article) => article.matchday_id === matchdayId);
-  const sameCompetitionArticles = competitionId && seasonId
-    ? articles.filter(
-        (article) =>
-          article.matchday_id === null && article.competition_id === competitionId && article.season_id === seasonId
-      )
-    : [];
-  const globalArticles = articles.filter(
-    (article) => article.matchday_id === null && article.competition_id === null && article.season_id === seasonId
-  );
-
-  return [
-    { label: "Artigos desta jornada", articles: currentMatchdayArticles },
-    { label: "Artigos da mesma competição sem jornada", articles: sameCompetitionArticles },
-    { label: "Artigos globais", articles: globalArticles }
-  ].filter((group) => group.articles.length > 0);
-}
-
-function articleOptionLabel(article: EditorialArticleOption) {
-  const label = article.label?.trim();
-  const title = article.title?.trim() || article.slug;
-  return label ? `${label} - ${title}` : title;
-}
-
-function ArticleLinkPicker({ inputId, groups }: { inputId: string; groups: ArticleOptionGroup[] }) {
-  if (groups.length === 0) {
-    return null;
+async function readMatchdayLatestNews(matchdayId: string): Promise<SupabaseMatchdayLatestNews[]> {
+  try {
+    return await fetchSupabaseAdminTable<SupabaseMatchdayLatestNews>(
+      `matchday_latest_news?select=id,matchday_id,time_label,title,subtitle,image_url,link_url,article_id,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+        matchdayId
+      )}&order=sort_order.asc&limit=8`
+    );
+  } catch {
+    return fetchSupabaseAdminTable<SupabaseMatchdayLatestNews>(
+      `matchday_latest_news?select=id,matchday_id,time_label,title,image_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+        matchdayId
+      )}&order=sort_order.asc&limit=8`
+    ).catch(() => []);
   }
-
-  return (
-    <div className="editorial-admin-field">
-      <label htmlFor={`${inputId}-article-picker`}>Escolher artigo</label>
-      <select data-article-link-picker data-target-input={inputId} defaultValue="" id={`${inputId}-article-picker`}>
-        <option value="">Preencher link com artigo publicado</option>
-        {groups.map((group) => (
-          <optgroup key={group.label} label={group.label}>
-            {group.articles.map((article) => (
-              <option key={article.id} value={`/noticias/${article.slug}`}>
-                {articleOptionLabel(article)}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
-    </div>
-  );
 }
 
 type FeedbackScope = "manchete" | "bloco-lateral" | "composicao" | "destaques" | "resumo-jornada" | "bloco-complementar" | "ultimas-noticias";
@@ -539,7 +459,7 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope) {
     save_matchday_editorial: "Linha editorial da jornada guardada.",
     save_matchday_highlights: "Destaques guardados e definidos como zona ativa abaixo da manchete.",
     save_matchday_roundup_items: "Resumo da Jornada guardado e definido como zona ativa abaixo da manchete.",
-    save_matchday_latest_news: "Ultimas noticias guardadas.",
+    save_matchday_latest_news: "Zona final da capa guardada.",
     upload_matchday_editorial_image: "Imagem da manchete carregada.",
     upload_matchday_highlight_image: "Imagem do destaque carregada."
   };
@@ -565,7 +485,7 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope) {
       save_matchday_editorial: "Bloco complementar guardado."
     },
     "ultimas-noticias": {
-      save_matchday_latest_news: "Ultimas noticias guardadas."
+      save_matchday_latest_news: "Zona final da capa guardada."
     }
   };
   const errorLabels: Record<string, string> = {
@@ -605,14 +525,15 @@ function gestorReturnUrl(context: MatchdayContext) {
   const params = new URLSearchParams({
     competicao: context.competition.id,
     epoca: context.season.id,
-    jornada: context.matchday.id
+    jornada: context.matchday.id,
+    section: "linha-editorial"
   });
 
   if (context.country) {
     params.set("pais", context.country.id);
   }
 
-  return `/admin/gestor?${params.toString()}`;
+  return `/admin/gestor?${params.toString()}#linha-editorial`;
 }
 
 export default async function AdminMatchdayEditorialPage({ params, searchParams }: EditorialPageProps) {
@@ -645,9 +566,9 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const highlights = await readMatchdayHighlights(matchday.id);
   const roundupItems = await readMatchdayRoundupItems(matchday.id);
   const latestNews = await readMatchdayLatestNews(matchday.id);
-  const articleGroups = await readEditorialArticleGroups(matchday.id, competition.id, season.id);
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = editorial?.complementary_mode ?? "none";
+  const latestZoneMode = editorial?.latest_zone_mode === "editorial_line" ? "editorial_line" : "latest_news";
   const belowHeadlineHeadingFallback = `Jornada ${String(matchday.number).padStart(2, "0")}`;
   const roundupVideoHeadingFallback = `Jornada ${String(matchday.number).padStart(2, "0")} · Jogos Vídeo Resumo`;
   const returnTo = `/admin/editorial/jornada/${matchday.id}`;
@@ -697,11 +618,6 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 <label htmlFor={`highlight-${order}-image-url`}>Imagem URL</label>
                 <input form={highlightsFormId} id={`highlight-${order}-image-url`} name={`highlight_${order}_image_url`} defaultValue={highlight?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
               </div>
-              <div className="editorial-admin-field">
-                <label htmlFor={`highlight-${order}-link-url`}>Link</label>
-                <input form={highlightsFormId} id={`highlight-${order}-link-url`} name={`highlight_${order}_link_url`} defaultValue={highlight?.link_url ?? ""} placeholder="/noticias/a-culpa-e-do-var" />
-              </div>
-              <ArticleLinkPicker groups={articleGroups} inputId={`highlight-${order}-link-url`} />
               {highlight?.image_url ? (
                 <div className="editorial-admin-preview">
                   <img alt="" src={highlight.image_url} />
@@ -766,18 +682,30 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 placeholder={order === 1 ? "Girona 0 - 1 Rayo Vallecano" : order === 2 ? "Villarreal 2 - 3 Real Oviedo" : order === 3 ? "Mallorca 0 - 1 FC Barcelona" : "Titulo do item da jornada"}
               />
             </div>
-              <div className="editorial-admin-field">
-                <label htmlFor={`roundup-${order}-subtitle`}>Subtitulo</label>
-                <input id={`roundup-${order}-subtitle`} name={`roundup_${order}_subtitle`} defaultValue={item?.subtitle ?? ""} placeholder={order === 1 ? "Resumo completo" : order === 2 ? "Golos e melhores momentos" : order === 3 ? "Noticia de contexto" : "Descricao curta"} />
-              </div>
-              <input type="hidden" name={`roundup_${order}_image_url`} defaultValue={item?.image_url ?? ""} />
-              <div className="editorial-admin-field">
+            <div className="editorial-admin-field">
+              <label htmlFor={`roundup-${order}-subtitle`}>Subtitulo</label>
+              <input id={`roundup-${order}-subtitle`} name={`roundup_${order}_subtitle`} defaultValue={item?.subtitle ?? ""} placeholder={order === 1 ? "Resumo completo" : order === 2 ? "Golos e melhores momentos" : order === 3 ? "Noticia de contexto" : "Descricao curta"} />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor={`roundup-${order}-image-url`}>Imagem URL</label>
+              <input id={`roundup-${order}-image-url`} name={`roundup_${order}_image_url`} defaultValue={item?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
+            </div>
+            <div className="editorial-admin-field">
               <label htmlFor={`roundup-${order}-video-url`}>Video URL</label>
               <input id={`roundup-${order}-video-url`} name={`roundup_${order}_video_url`} defaultValue={item?.video_url ?? ""} placeholder="https://exemplo.com/video" />
             </div>
             <div className="editorial-admin-field">
               <label htmlFor={`roundup-${order}-duration`}>Duracao</label>
               <input id={`roundup-${order}-duration`} name={`roundup_${order}_duration`} defaultValue={item?.duration ?? ""} placeholder="5:42" />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor={`roundup-${order}-type`}>Tipo</label>
+              <select id={`roundup-${order}-type`} name={`roundup_${order}_type`} defaultValue={item?.type ?? "resumo"}>
+                <option value="video">Video</option>
+                <option value="golos">Golos</option>
+                <option value="resumo">Resumo</option>
+                <option value="noticia">Noticia</option>
+              </select>
             </div>
             <div className="editorial-admin-field">
               <label htmlFor={`roundup-${order}-status`}>Estado</label>
@@ -800,14 +728,39 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
       <input type="hidden" name="action_type" value="save_matchday_latest_news" />
       <input type="hidden" name="return_to" value={returnToUltimasNoticias} />
       <input type="hidden" name="matchday_id" value={matchday.id} />
+      <fieldset className="editorial-admin-fieldset">
+        <legend>Modo da zona</legend>
+        <div className="editorial-admin-grid two">
+          <div className="editorial-admin-field">
+            <label htmlFor="latest-zone-mode">Modo da zona</label>
+            <select id="latest-zone-mode" name="latest_zone_mode" defaultValue={latestZoneMode}>
+              <option value="latest_news">Ultimas noticias</option>
+              <option value="editorial_line">Linha editorial</option>
+            </select>
+          </div>
+          <div className="editorial-admin-field">
+            <label htmlFor="latest-zone-title">Titulo publico opcional</label>
+            <input
+              id="latest-zone-title"
+              name="latest_zone_title"
+              defaultValue={editorial?.latest_zone_title ?? ""}
+              placeholder={latestZoneMode === "latest_news" ? "Ultimas noticias" : "Pode ficar vazio"}
+            />
+          </div>
+        </div>
+        <p className="editorial-admin-muted">
+          Em Linha editorial, o titulo publico pode ficar vazio. Os cartoes podem ser preenchidos manualmente agora e ficam preparados para ligacao futura a artigos ou conteudos ja usados na jornada.
+        </p>
+      </fieldset>
       <div className="editorial-admin-compact-stack">
         {LATEST_NEWS_EDITOR_SORT_ORDERS.map((order) => {
           const item = latestNews.find((newsItem) => newsItem.sort_order === order);
           return (
             <fieldset className="editorial-admin-fieldset editorial-admin-compact-card" key={order}>
-              <legend>Noticia {order}</legend>
+              <legend>Item {order}</legend>
               <input type="hidden" name={`latest_news_${order}_id`} value={item?.id ?? ""} />
               <input type="hidden" name={`latest_news_${order}_sort_order`} value={order} />
+              <input type="hidden" name={`latest_news_${order}_article_id`} value={item?.article_id ?? ""} />
               <div className="editorial-admin-field">
                 <label htmlFor={`latest-news-${order}-sort-order`}>Ordem</label>
                 <input id={`latest-news-${order}-sort-order`} readOnly value={order} />
@@ -821,14 +774,17 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 <input id={`latest-news-${order}-title`} name={`latest_news_${order}_title`} defaultValue={item?.title ?? ""} placeholder="Titulo curto da noticia" />
               </div>
               <div className="editorial-admin-field">
+                <label htmlFor={`latest-news-${order}-subtitle`}>Subtitulo / resumo</label>
+                <input id={`latest-news-${order}-subtitle`} name={`latest_news_${order}_subtitle`} defaultValue={item?.subtitle ?? ""} placeholder="Resumo curto opcional" />
+              </div>
+              <div className="editorial-admin-field">
                 <label htmlFor={`latest-news-${order}-image-url`}>Imagem URL opcional</label>
                 <input id={`latest-news-${order}-image-url`} name={`latest_news_${order}_image_url`} defaultValue={item?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
               </div>
               <div className="editorial-admin-field">
-                <label htmlFor={`latest-news-${order}-link-url`}>Link</label>
-                <input id={`latest-news-${order}-link-url`} name={`latest_news_${order}_link_url`} defaultValue={item?.link_url ?? ""} placeholder="/noticias/a-culpa-e-do-var" />
+                <label htmlFor={`latest-news-${order}-link-url`}>Link para leitura completa</label>
+                <input id={`latest-news-${order}-link-url`} name={`latest_news_${order}_link_url`} defaultValue={item?.link_url ?? ""} placeholder="/competicoes/liga/2026-27/jornadas/1/noticias/slug" />
               </div>
-              <ArticleLinkPicker groups={articleGroups} inputId={`latest-news-${order}-link-url`} />
               {item?.image_url ? (
                 <div className="editorial-admin-preview">
                   <img alt="" src={item.image_url} />
@@ -846,7 +802,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
         })}
       </div>
       <button className="editorial-admin-button" type="submit">
-        Guardar ultimas noticias
+        Guardar zona
       </button>
     </form>
   );
@@ -861,20 +817,9 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           <h1>Editar editorial</h1>
           <small>{contextLabel}</small>
         </div>
-        <div className="editorial-admin-hero-actions">
-          <a className="editorial-admin-button secondary" href={backToGestor}>
-            Voltar ao gestor
-          </a>
-          <a className="editorial-admin-button secondary" href="/admin/editorial/home">
-            HOME EDITORIAL
-          </a>
-          <a className="editorial-admin-button secondary" href="/admin/editorial/artigos">
-            ARTIGOS/NOTÍCIAS
-          </a>
-          <a className="editorial-admin-button secondary" href="/admin">
-            VOLTAR AO BACKOFFICE
-          </a>
-        </div>
+        <a className="editorial-admin-button secondary" href={backToGestor}>
+          Voltar ao gestor
+        </a>
       </section>
 
       {feedbackScope ? null : messageFor(created, error)}
@@ -939,16 +884,6 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 placeholder="https://exemplo.com/imagem.jpg"
               />
             </div>
-            <div className="editorial-admin-field">
-              <label htmlFor="matchday-editorial-headline-link-url">Link</label>
-              <input
-                id="matchday-editorial-headline-link-url"
-                name="headline_link_url"
-                defaultValue={editorial?.headline_link_url ?? ""}
-                placeholder="/noticias/a-culpa-e-do-var"
-              />
-            </div>
-            <ArticleLinkPicker groups={articleGroups} inputId="matchday-editorial-headline-link-url" />
             <input type="hidden" name="below_headline_mode" value={belowHeadlineMode} />
             {editorial?.image_url ? (
               <div className="editorial-admin-preview">
@@ -1056,7 +991,6 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               <label htmlFor="side-block-link-url">Link opcional</label>
               <input id="side-block-link-url" name="side_block_link_url" defaultValue={editorial?.side_block_link_url ?? ""} placeholder="/competicoes/liga/2026-27/jornadas/1/noticias/slug" />
             </div>
-            <ArticleLinkPicker groups={articleGroups} inputId="side-block-link-url" />
             <button className="editorial-admin-button" type="submit">
               Guardar bloco lateral
             </button>
@@ -1207,7 +1141,6 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                       <label htmlFor="complementary-link-url">Link da noticia completa</label>
                       <input id="complementary-link-url" name="complementary_link_url" defaultValue={editorial?.complementary_link_url ?? ""} placeholder="/competicoes/liga/2026-27/jornadas/1/noticias/slug" />
                     </div>
-                    <ArticleLinkPicker groups={articleGroups} inputId="complementary-link-url" />
                     <div className="editorial-admin-field">
                       <label htmlFor="complementary-status">Estado</label>
                       <select id="complementary-status" name="complementary_status" defaultValue={editorial?.complementary_status ?? "draft"}>
@@ -1223,8 +1156,8 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               </div>
 
               <section className="editorial-admin-composition-card" id="ultimas-noticias">
-                <h3>Ultimas noticias</h3>
-                <p>Edita a coluna direita da primeira pagina. A imagem e opcional: se ficar vazia, a noticia aparece apenas com hora e titulo.</p>
+                <h3>Zona final da capa</h3>
+                <p>Escolhe entre atualidade e Linha editorial. Em Linha editorial, podes publicar cartoes com imagem, titulo, subtitulo e link.</p>
                 {scopedMessageFor(created, error, feedbackScope, "ultimas-noticias")}
                 {latestNewsEditor}
               </section>
@@ -1235,19 +1168,6 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           dangerouslySetInnerHTML={{
             __html: `
               (function () {
-                document.addEventListener('change', function (event) {
-                  var select = event.target;
-                  if (!select || !select.matches || !select.matches('[data-article-link-picker]')) return;
-                  var targetInputId = select.getAttribute('data-target-input');
-                  if (!targetInputId || !select.value) return;
-                  var input = document.getElementById(targetInputId);
-                  if (!input) return;
-                  input.value = select.value;
-                  input.dispatchEvent(new Event('input', { bubbles: true }));
-                  input.dispatchEvent(new Event('change', { bubbles: true }));
-                  select.value = '';
-                });
-
                 var form = document.querySelector('[data-composition-form]');
                 if (!form) return;
                 var belowSelect = form.querySelector('[name="below_headline_mode"]');

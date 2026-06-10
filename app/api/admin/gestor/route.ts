@@ -817,7 +817,6 @@ async function saveMatchdayEditorial(formData: FormData) {
   const summary = cleanText(formData.get("summary"));
   const titleColor = cleanText(formData.get("title_color"));
   const imageUrl = cleanText(formData.get("image_url"));
-  const headlineLinkUrl = cleanText(formData.get("headline_link_url"));
   const belowHeadlineModeValue = cleanText(formData.get("below_headline_mode")) ?? "highlights";
   const belowHeadlineMode = belowHeadlineModeValue === "roundup" ? "roundup" : "highlights";
   const belowHeadlineHeading = cleanText(formData.get("below_headline_heading"));
@@ -888,10 +887,6 @@ async function saveMatchdayEditorial(formData: FormData) {
     status,
     updated_at: new Date().toISOString()
   };
-
-  if (formData.has("headline_link_url")) {
-    editorialPayload.headline_link_url = headlineLinkUrl;
-  }
 
   if (formData.has("roundup_video_heading")) {
     editorialPayload.roundup_video_heading = roundupVideoHeading;
@@ -973,7 +968,6 @@ async function saveMatchdayHighlights(formData: FormData) {
     const label = cleanText(formData.get(`highlight_${sortOrder}_label`));
     const title = cleanText(formData.get(`highlight_${sortOrder}_title`));
     const imageUrl = cleanText(formData.get(`highlight_${sortOrder}_image_url`));
-    const linkUrl = cleanText(formData.get(`highlight_${sortOrder}_link_url`));
     const statusValue = cleanText(formData.get(`highlight_${sortOrder}_status`)) ?? "draft";
     const status = statusValue === "published" ? "published" : "draft";
 
@@ -986,7 +980,6 @@ async function saveMatchdayHighlights(formData: FormData) {
       label,
       title,
       image_url: imageUrl,
-      link_url: linkUrl,
       sort_order: sortOrder,
       status,
       updated_at: new Date().toISOString()
@@ -1012,7 +1005,7 @@ async function saveMatchdayHighlights(formData: FormData) {
         method: "PATCH",
         body: JSON.stringify(payload)
       });
-    } else if (label || title || imageUrl || linkUrl || status === "published") {
+    } else if (label || title || imageUrl || status === "published") {
       await writeSupabaseAdmin("matchday_highlights", {
         method: "POST",
         body: JSON.stringify(payload)
@@ -1043,9 +1036,9 @@ async function saveMatchdayRoundupItems(formData: FormData) {
     const imageUrl = cleanText(formData.get(`roundup_${sortOrder}_image_url`));
     const videoUrl = cleanText(formData.get(`roundup_${sortOrder}_video_url`));
     const duration = cleanText(formData.get(`roundup_${sortOrder}_duration`));
-    const typeValue = cleanText(formData.get(`roundup_${sortOrder}_type`)) ?? "video";
+    const typeValue = cleanText(formData.get(`roundup_${sortOrder}_type`)) ?? "resumo";
     const statusValue = cleanText(formData.get(`roundup_${sortOrder}_status`)) ?? "draft";
-    const type = allowedTypes.has(typeValue) ? typeValue : "video";
+    const type = allowedTypes.has(typeValue) ? typeValue : "resumo";
     const status = statusValue === "published" ? "published" : "draft";
     const hasContent = Boolean(label || title || subtitle || imageUrl || videoUrl || duration);
 
@@ -1100,6 +1093,9 @@ async function saveMatchdayRoundupItems(formData: FormData) {
 
 async function saveMatchdayLatestNews(formData: FormData) {
   const matchdayId = cleanText(formData.get("matchday_id"));
+  const latestZoneModeValue = cleanText(formData.get("latest_zone_mode")) ?? "latest_news";
+  const latestZoneMode = latestZoneModeValue === "editorial_line" ? "editorial_line" : "latest_news";
+  const latestZoneTitle = cleanText(formData.get("latest_zone_title"));
 
   if (!matchdayId) {
     throw new Error("missing-fields");
@@ -1109,15 +1105,30 @@ async function saveMatchdayLatestNews(formData: FormData) {
     throw new Error("matchday-invalid");
   }
 
+  await writeSupabaseAdmin("matchday_editorials?on_conflict=matchday_id", {
+    method: "POST",
+    headers: {
+      Prefer: "resolution=merge-duplicates,return=minimal"
+    },
+    body: JSON.stringify({
+      matchday_id: matchdayId,
+      latest_zone_mode: latestZoneMode,
+      latest_zone_title: latestZoneTitle,
+      updated_at: new Date().toISOString()
+    })
+  });
+
   for (const sortOrder of LATEST_NEWS_EDITOR_SORT_ORDERS) {
     const newsId = cleanText(formData.get(`latest_news_${sortOrder}_id`));
     const timeLabel = cleanText(formData.get(`latest_news_${sortOrder}_time_label`));
     const title = cleanText(formData.get(`latest_news_${sortOrder}_title`));
+    const subtitle = cleanText(formData.get(`latest_news_${sortOrder}_subtitle`));
     const imageUrl = cleanText(formData.get(`latest_news_${sortOrder}_image_url`));
     const linkUrl = cleanText(formData.get(`latest_news_${sortOrder}_link_url`));
+    const articleId = cleanText(formData.get(`latest_news_${sortOrder}_article_id`));
     const statusValue = cleanText(formData.get(`latest_news_${sortOrder}_status`)) ?? "draft";
     const status = statusValue === "published" ? "published" : "draft";
-    const hasContent = Boolean(timeLabel || title || imageUrl || linkUrl);
+    const hasContent = Boolean(timeLabel || title || subtitle || imageUrl || linkUrl || articleId);
 
     if (status === "published" && !title) {
       throw new Error("latest-news-title-required");
@@ -1131,8 +1142,10 @@ async function saveMatchdayLatestNews(formData: FormData) {
       matchday_id: matchdayId,
       time_label: timeLabel,
       title,
+      subtitle,
       image_url: imageUrl,
       link_url: linkUrl,
+      article_id: articleId,
       sort_order: sortOrder,
       status,
       updated_at: new Date().toISOString()
