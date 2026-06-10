@@ -72,3 +72,5 @@ export async function getPublicCompetitionMenu(): Promise<PublicCompetitionMenuI
     .filter((item): item is PublicCompetitionMenuItem => Boolean(item))
     .sort(menuSort);
 }
+
+export const readPublicCompetitionMenu = getPublicCompetitionMenu;
