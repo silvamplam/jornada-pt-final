@@ -494,8 +494,8 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
         <style>{compositionPageStyles}</style>
         <section className="composition-admin-panel">
           <header>
-            <h2>Jornada nao encontrada</h2>
-            <p>A composicao editorial so pode ser visualizada a partir de uma jornada existente.</p>
+            <h2>Jornada não encontrada</h2>
+            <p>A composição editorial só pode ser visualizada a partir de uma jornada existente.</p>
           </header>
         </section>
       </main>
@@ -514,7 +514,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
   const publishedRoundupItems = roundupItems.filter((item) => item.status === "published");
   const publishedLatestNews = latestNews.filter((item) => item.status === "published");
   const publishedArticles = articles.filter((item) => item.status === "published");
-  const latestZoneMode = editorial?.latest_zone_mode === "editorial_line" ? "Linha editorial" : "Ultimas noticias";
+  const latestZoneMode = editorial?.latest_zone_mode === "editorial_line" ? "Linha editorial" : "Últimas notícias";
   const contextLabel = `${country?.name ?? "Pais"} / ${competition.name} / ${season.label} / ${matchday.label}`;
 
   return (
@@ -523,7 +523,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
 
       <section className="composition-admin-hero">
         <div>
-          <p>Composicao editorial da jornada</p>
+          <p>Composição editorial da jornada</p>
           <h1>Jornada {String(matchday.number).padStart(2, "0")}</h1>
           <span>{contextLabel}</span>
         </div>
@@ -541,7 +541,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
         <section className="composition-admin-panel">
           <header>
             <h2>Atualidade</h2>
-            <p>Leitura do estado editorial atual da pagina da jornada. Esta area e apenas de consulta.</p>
+            <p>Leitura do estado editorial atual da página da jornada. Esta área é apenas de consulta.</p>
           </header>
           <div className="composition-admin-stack">
             <Card title="Manchete atual">
@@ -553,14 +553,14 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                   meta={[statusLabel(editorial.status)]}
                 />
               ) : (
-                <EmptyState>Nao existe manchete editorial guardada para esta jornada.</EmptyState>
+                <EmptyState>Não existe manchete editorial guardada para esta jornada.</EmptyState>
               )}
             </Card>
 
             <Card title="Destaques abaixo da manchete">
               <ItemsGrid
                 items={highlights}
-                empty="Nao existem destaques guardados."
+                empty="Não existem destaques guardados."
                 render={(item) => (
                   <ItemCard
                     key={item.id}
@@ -584,7 +584,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                   meta={[editorial?.complementary_mode, statusLabel(editorial?.complementary_status)]}
                 />
               ) : (
-                <EmptyState>O complemento da manchete esta sem modo ativo.</EmptyState>
+                <EmptyState>O complemento da manchete está sem modo ativo.</EmptyState>
               )}
             </Card>
 
@@ -599,14 +599,14 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                   meta={[editorial?.side_block_author ? `Autor: ${editorial.side_block_author}` : null, statusLabel(editorial?.side_block_status)]}
                 />
               ) : (
-                <EmptyState>O bloco lateral ainda nao tem conteudo guardado.</EmptyState>
+                <EmptyState>O bloco lateral ainda não tem conteúdo guardado.</EmptyState>
               )}
             </Card>
 
-            <Card title="Resumo da jornada / videos">
+            <Card title="Resumo da jornada / vídeos">
               <ItemsGrid
                 items={roundupItems}
-                empty="Nao existem itens de resumo ou video."
+                empty="Não existem itens de resumo ou vídeo."
                 render={(item) => (
                   <ItemCard
                     key={item.id}
@@ -628,7 +628,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
               </div>
               <ItemsGrid
                 items={latestNews}
-                empty="Nao existem itens na zona editorial final."
+                empty="Não existem itens na zona editorial final."
                 render={(item) => (
                   <ItemCard
                     key={item.id}
@@ -647,8 +647,8 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
 
         <section className="composition-admin-panel">
           <header>
-            <h2>Arquivo / Memoria historica</h2>
-            <p>Candidatos disponiveis para uma futura composicao historica. Ainda nao existem selecao nem gravacao.</p>
+            <h2>Arquivo / Memória histórica</h2>
+            <p>Candidatos disponíveis para uma futura composição histórica. Ainda não existe seleção nem gravação.</p>
           </header>
           <div className="composition-admin-stack">
             <Card title="Manchete candidata">
@@ -660,7 +660,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                   meta={["Fonte: matchday_editorials", statusLabel(editorial.status)]}
                 />
               ) : (
-                <EmptyState>Nao ha manchete candidata guardada.</EmptyState>
+                <EmptyState>Não há manchete candidata guardada.</EmptyState>
               )}
             </Card>
 
@@ -675,7 +675,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                   meta={["Fonte: matchday_editorials", statusLabel(editorial?.side_block_status)]}
                 />
               ) : (
-                <EmptyState>Nao ha bloco lateral candidato guardado.</EmptyState>
+                <EmptyState>Não há bloco lateral candidato guardado.</EmptyState>
               )}
             </Card>
 
@@ -690,14 +690,14 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                   meta={["Fonte: matchday_editorials", statusLabel(editorial?.complementary_status)]}
                 />
               ) : (
-                <EmptyState>Nao ha complemento candidato guardado.</EmptyState>
+                <EmptyState>Não há complemento candidato guardado.</EmptyState>
               )}
             </Card>
 
             <Card title="Destaques candidatos">
               <ItemsGrid
                 items={publishedHighlights.length > 0 ? publishedHighlights : highlights}
-                empty="Nao ha destaques candidatos."
+                empty="Não há destaques candidatos."
                 render={(item) => (
                   <ItemCard
                     key={item.id}
@@ -710,10 +710,10 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
               />
             </Card>
 
-            <Card title="Cartoes disponiveis da Zona editorial final">
+            <Card title="Cartões disponíveis da Zona editorial final">
               <ItemsGrid
                 items={publishedLatestNews.length > 0 ? publishedLatestNews : latestNews}
-                empty="Nao ha cartoes disponiveis na zona editorial final."
+                empty="Não há cartões disponíveis na zona editorial final."
                 render={(item) => (
                   <ItemCard
                     key={item.id}
@@ -728,10 +728,10 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
               />
             </Card>
 
-            <Card title="Videos / resumo disponiveis">
+            <Card title="Vídeos / resumo disponíveis">
               <ItemsGrid
                 items={publishedRoundupItems.length > 0 ? publishedRoundupItems : roundupItems}
-                empty="Nao ha videos ou resumos disponiveis."
+                empty="Não há vídeos ou resumos disponíveis."
                 render={(item) => (
                   <ItemCard
                     key={item.id}
@@ -746,10 +746,10 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
               />
             </Card>
 
-            <Card title="Artigos / noticias relacionados">
+            <Card title="Artigos / notícias relacionados">
               <ItemsGrid
                 items={publishedArticles.length > 0 ? publishedArticles : articles}
-                empty="Nao ha artigos relacionados de forma direta com esta jornada."
+                empty="Não há artigos relacionados de forma direta com esta jornada."
                 render={(item) => (
                   <ItemCard
                     key={item.id}
