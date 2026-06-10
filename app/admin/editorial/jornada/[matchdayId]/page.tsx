@@ -116,14 +116,6 @@ const editorialPageStyles = `
     color: #ffffff;
   }
 
-  .editorial-admin-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: flex-end;
-    align-items: center;
-  }
-
   .editorial-admin-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
@@ -825,14 +817,9 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           <h1>Editar editorial</h1>
           <small>{contextLabel}</small>
         </div>
-        <nav className="editorial-admin-actions" aria-label="Navegação editorial da jornada">
-          <a className="editorial-admin-button" href={`/admin/editorial/composicao/${matchday.id}`}>
-            COMPOSIÇÃO EDITORIAL
-          </a>
-          <a className="editorial-admin-button secondary" href={backToGestor}>
-            Voltar ao gestor
-          </a>
-        </nav>
+        <a className="editorial-admin-button secondary" href={backToGestor}>
+          Voltar ao gestor
+        </a>
       </section>
 
       {feedbackScope ? null : messageFor(created, error)}

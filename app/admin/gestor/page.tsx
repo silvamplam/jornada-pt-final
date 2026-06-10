@@ -3554,11 +3554,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     <small>Total nesta jornada</small>
                   </article>
                 </div>
-                {selectedMatchday ? (
-                  <a className="manager-link-button" href={`/admin/editorial/composicao/${selectedMatchday.id}`}>
-                    COMPOSIÇÃO EDITORIAL
-                  </a>
-                ) : null}
               </article>
 
               <details
@@ -3848,9 +3843,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                       </header>
                       <a className="manager-link-button" href={`/admin/editorial/jornada/${selectedMatchday.id}`}>
                         Editar 1.ª página editorial desta jornada
-                      </a>
-                      <a className="manager-link-button" href={`/admin/editorial/composicao/${selectedMatchday.id}`}>
-                        COMPOSIÇÃO EDITORIAL
                       </a>
                     </section>
                     <section className="manager-editorial-block">
