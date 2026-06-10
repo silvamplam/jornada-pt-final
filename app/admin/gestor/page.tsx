@@ -193,6 +193,14 @@ const managerStyles = `
     background: transparent;
   }
 
+  .manager-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    flex: 0 0 auto;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
   .manager-subtle-button {
     display: inline-block;
     align-self: flex-start;
@@ -1129,6 +1137,11 @@ const managerStyles = `
     .manager-button {
       width: 100%;
       text-align: center;
+    }
+
+    .manager-hero-actions {
+      display: grid;
+      grid-template-columns: 1fr;
     }
 
     .manager-card-heading-row {
@@ -2466,7 +2479,11 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             Resultados - Classificacao. As acoes de suporte ficam separadas em manutencao.
           </span>
         </div>
-        <a href="/admin">Voltar ao backoffice</a>
+        <nav className="manager-hero-actions" aria-label="Navegação do Centro de Gestão">
+          <a href="/admin">Home editorial</a>
+          {selectedMatchday ? <a href={`/admin/editorial/jornada/${selectedMatchday.id}`}>Editorial da Jornada</a> : null}
+          <a href="/admin">Voltar ao backoffice</a>
+        </nav>
       </header>
 
       {!messageSection && created && createdLabels[created] ? <div className="manager-message">{createdLabels[created]}</div> : null}
