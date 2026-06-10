@@ -1026,8 +1026,8 @@ export default async function ArticlesAdminPage({ searchParams }: ArticlesAdminP
   const usageRemoved = oneParam(query, "usage_removed");
   const fallbackMatchdayId = selectedMatchdayId || matchdays[0]?.id || null;
   const matchdayEditorialHref = fallbackMatchdayId ? `/admin/editorial/jornada/${encodeURIComponent(fallbackMatchdayId)}` : null;
-  const selectedArticleCompositionHref = selectedArticle?.matchday_id
-    ? `/admin/editorial/composicao/${encodeURIComponent(selectedArticle.matchday_id)}`
+  const matchdayCompositionHref = fallbackMatchdayId
+    ? `/admin/editorial/composicao/${encodeURIComponent(fallbackMatchdayId)}`
     : null;
   const message = feedbackMessage(oneParam(query, "created"), oneParam(query, "error"));
 
@@ -1054,8 +1054,8 @@ export default async function ArticlesAdminPage({ searchParams }: ArticlesAdminP
               SEM JORNADA DISPONIVEL
             </span>
           )}
-          {selectedArticleCompositionHref ? (
-            <a className="articles-admin-button secondary" href={selectedArticleCompositionHref}>COMPOSIÇÃO EDITORIAL DA JORNADA</a>
+          {matchdayCompositionHref ? (
+            <a className="articles-admin-button secondary" href={matchdayCompositionHref}>COMPOSIÇÃO EDITORIAL</a>
           ) : null}
           <a className="articles-admin-button" href="/admin/editorial/artigos">Novo artigo</a>
         </div>
