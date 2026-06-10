@@ -2324,6 +2324,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const matchdayEditorialHref = fallbackMatchdayId
     ? `/admin/editorial/jornada/${encodeURIComponent(fallbackMatchdayId)}`
     : null;
+  const matchdayCompositionHref = fallbackMatchdayId
+    ? `/admin/editorial/composicao/${encodeURIComponent(fallbackMatchdayId)}`
+    : null;
 
   return (
     <main className="manager-shell">
@@ -2511,6 +2514,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
               Sem jornada disponivel
             </span>
           )}
+          {matchdayCompositionHref ? <a href={matchdayCompositionHref}>COMPOSIÇÃO EDITORIAL</a> : null}
           <a href="/admin">VOLTAR AO BACKOFFICE</a>
         </div>
       </header>

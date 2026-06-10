@@ -416,6 +416,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const overview = await getAdminOverview();
   const selectedMatchdayId = requestedMatchdayId ?? overview.matchdays[0]?.id ?? null;
   const matchdayEditorialHref = selectedMatchdayId ? `/admin/editorial/jornada/${encodeURIComponent(selectedMatchdayId)}` : null;
+  const matchdayCompositionHref = selectedMatchdayId ? `/admin/editorial/composicao/${encodeURIComponent(selectedMatchdayId)}` : null;
   const countriesById = new Map(overview.countries.map((country) => [country.id, country]));
   const competitionsById = new Map(overview.competitions.map((competition) => [competition.id, competition]));
 
@@ -439,6 +440,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               SEM JORNADA DISPONIVEL
             </span>
           )}
+          {matchdayCompositionHref ? <a href={matchdayCompositionHref}>COMPOSIÇÃO EDITORIAL</a> : null}
           <a href="/">Voltar ao site</a>
           <form action="/api/admin/logout" method="post">
             <button type="submit">Sair</button>
