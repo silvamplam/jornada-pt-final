@@ -169,7 +169,17 @@ const managerStyles = `
     font-size: 16px;
   }
 
+  .manager-hero-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
   .manager-hero a,
+  .manager-hero .manager-disabled-link,
   .manager-button,
   .manager-link-button {
     display: inline-block;
@@ -193,12 +203,12 @@ const managerStyles = `
     background: transparent;
   }
 
-  .manager-hero-actions {
-    display: flex;
-    flex-wrap: wrap;
-    flex: 0 0 auto;
-    gap: 10px;
-    justify-content: flex-end;
+  .manager-hero .manager-disabled-link {
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: transparent;
+    opacity: 0.52;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 
   .manager-subtle-button {
@@ -1134,14 +1144,10 @@ const managerStyles = `
     }
 
     .manager-hero a,
+    .manager-hero .manager-disabled-link,
     .manager-button {
       width: 100%;
       text-align: center;
-    }
-
-    .manager-hero-actions {
-      display: grid;
-      grid-template-columns: 1fr;
     }
 
     .manager-card-heading-row {
@@ -1693,6 +1699,18 @@ async function readMatchdaysForSeason(seasonId?: string): Promise<SeasonMatchday
     );
   } catch {
     return [];
+  }
+}
+
+async function readFirstAvailableMatchdayId(): Promise<string | null> {
+  try {
+    const rows = await fetchSupabaseAdminTable<{ id: string }>(
+      "matchdays?select=id&order=starts_on.asc.nullslast,number.asc&limit=1"
+    );
+
+    return rows[0]?.id ?? null;
+  } catch {
+    return null;
   }
 }
 
@@ -2302,6 +2320,10 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     epoca: selectedSeason?.id ?? "",
     jornada: selectedMatchday?.id ?? ""
   };
+  const fallbackMatchdayId = selectedMatchday?.id ?? (await readFirstAvailableMatchdayId());
+  const matchdayEditorialHref = fallbackMatchdayId
+    ? `/admin/editorial/jornada/${encodeURIComponent(fallbackMatchdayId)}`
+    : null;
 
   return (
     <main className="manager-shell">
@@ -2479,11 +2501,18 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             Resultados - Classificacao. As acoes de suporte ficam separadas em manutencao.
           </span>
         </div>
-        <nav className="manager-hero-actions" aria-label="Navegação do Centro de Gestão">
-          <a href="/admin">Home editorial</a>
-          {selectedMatchday ? <a href={`/admin/editorial/jornada/${selectedMatchday.id}`}>Editorial da Jornada</a> : null}
-          <a href="/admin">Voltar ao backoffice</a>
-        </nav>
+        <div className="manager-hero-actions">
+          <a href="/admin/editorial/home">HOME EDITORIAL</a>
+          <a href="/admin/editorial/artigos">ARTIGOS / NOTÍCIAS</a>
+          {matchdayEditorialHref ? (
+            <a href={matchdayEditorialHref}>EDITORIAL DA JORNADA</a>
+          ) : (
+            <span aria-disabled="true" className="manager-disabled-link" title="Sem jornada disponivel">
+              Sem jornada disponivel
+            </span>
+          )}
+          <a href="/admin">VOLTAR AO BACKOFFICE</a>
+        </div>
       </header>
 
       {!messageSection && created && createdLabels[created] ? <div className="manager-message">{createdLabels[created]}</div> : null}
