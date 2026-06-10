@@ -168,7 +168,7 @@ export function PublicHeadlineBlock({ data }: { data: PublicHeadlineData }) {
   return (
     <article className="public-matchday-editorial">
       {linkUrl ? (
-        <a className="public-cover-headline public-cover-headline-link" href={linkUrl} style={{ color: "inherit", textDecoration: "none" }}>
+        <a aria-label={`Abrir ${title}`} className="public-cover-headline public-cover-headline-link" href={linkUrl} style={{ color: "inherit", textDecoration: "none" }}>
           {content}
         </a>
       ) : (
