@@ -1156,7 +1156,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               </div>
 
               <section className="editorial-admin-composition-card" id="ultimas-noticias">
-                <h3>Zona final da capa</h3>
+                <h3>Zona editorial final</h3>
                 <p>Escolhe entre atualidade e Linha editorial. Em Linha editorial, podes publicar cartoes com imagem, titulo, subtitulo e link.</p>
                 {scopedMessageFor(created, error, feedbackScope, "ultimas-noticias")}
                 {latestNewsEditor}
