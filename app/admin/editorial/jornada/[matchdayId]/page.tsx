@@ -987,6 +987,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             <input type="hidden" name="summary" value={editorial?.summary ?? ""} />
             <input type="hidden" name="title_color" value={editorial?.title_color ?? ""} />
             <input type="hidden" name="image_url" value={editorial?.image_url ?? ""} />
+            <input type="hidden" name="headline_link_url" value={editorial?.headline_link_url ?? ""} />
             <input type="hidden" name="status" value={editorial?.status ?? "draft"} />
             <input type="hidden" name="below_headline_mode" value={belowHeadlineMode} />
             <input type="hidden" name="complementary_mode" value={complementaryMode} />
@@ -1071,6 +1072,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 <input type="hidden" name="summary" value={editorial?.summary ?? ""} />
                 <input type="hidden" name="title_color" value={editorial?.title_color ?? ""} />
                 <input type="hidden" name="image_url" value={editorial?.image_url ?? ""} />
+                <input type="hidden" name="headline_link_url" value={editorial?.headline_link_url ?? ""} />
                 <input type="hidden" name="status" value={editorial?.status ?? "draft"} />
                 <input type="hidden" name="complementary_mode" value={complementaryMode} data-suggested-complement />
                 <input type="hidden" name="complementary_roundup_item_id" value={editorial?.complementary_roundup_item_id ?? ""} />
@@ -1134,6 +1136,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                   <input type="hidden" name="summary" value={editorial?.summary ?? ""} />
                   <input type="hidden" name="title_color" value={editorial?.title_color ?? ""} />
                   <input type="hidden" name="image_url" value={editorial?.image_url ?? ""} />
+                  <input type="hidden" name="headline_link_url" value={editorial?.headline_link_url ?? ""} />
                   <input type="hidden" name="below_headline_mode" value={belowHeadlineMode} />
                   <input type="hidden" name="below_headline_heading" value={editorial?.below_headline_heading ?? ""} />
                   <input type="hidden" name="below_headline_heading_color" value={editorial?.below_headline_heading_color ?? ""} />
