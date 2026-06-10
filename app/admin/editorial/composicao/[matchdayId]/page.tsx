@@ -72,6 +72,10 @@ type ReferenceCompositionItem = {
   updated_at: string;
 };
 
+type MatchdayEditorialWithHeadlineLink = SupabaseMatchdayEditorial & {
+  headline_link_url?: string | null;
+};
+
 const compositionPageStyles = `
   body {
     margin: 0;
@@ -418,16 +422,16 @@ async function readMatchdayContext(matchdayId: string): Promise<MatchdayContext 
   return { matchday, season, competition, country };
 }
 
-async function readMatchdayEditorial(matchdayId: string): Promise<SupabaseMatchdayEditorial | null> {
+async function readMatchdayEditorial(matchdayId: string): Promise<MatchdayEditorialWithHeadlineLink | null> {
   try {
-    return await readFirst<SupabaseMatchdayEditorial>(
-      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,latest_zone_mode,latest_zone_title,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+    return await readFirst<MatchdayEditorialWithHeadlineLink>(
+      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,headline_link_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,latest_zone_mode,latest_zone_title,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}`
     );
   } catch {
-    return readFirst<SupabaseMatchdayEditorial>(
-      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+    return readFirst<MatchdayEditorialWithHeadlineLink>(
+      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,headline_link_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}`
     ).catch(() => null);
@@ -970,6 +974,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                   imageUrl={editorial.image_url}
                   title={editorial.title}
                   subtitle={editorial.summary}
+                  linkUrl={editorial.headline_link_url}
                   meta={["Fonte: matchday_editorials", statusLabel(editorial.status)]}
                 >
                   <AddCandidateForm
@@ -983,6 +988,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                     title={editorial.title}
                     subtitle={editorial.summary}
                     imageUrl={editorial.image_url}
+                    linkUrl={editorial.headline_link_url}
                     label="Manchete"
                   />
                 </ItemCard>
