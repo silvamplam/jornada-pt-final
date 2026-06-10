@@ -169,17 +169,7 @@ const managerStyles = `
     font-size: 16px;
   }
 
-  .manager-hero-actions {
-    display: flex;
-    flex: 0 0 auto;
-    gap: 10px;
-    align-items: center;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-  }
-
   .manager-hero a,
-  .manager-hero .manager-disabled-link,
   .manager-button,
   .manager-link-button {
     display: inline-block;
@@ -201,14 +191,6 @@ const managerStyles = `
   .manager-hero a {
     border: 1px solid rgba(255, 255, 255, 0.28);
     background: transparent;
-  }
-
-  .manager-hero .manager-disabled-link {
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    background: transparent;
-    opacity: 0.52;
-    cursor: not-allowed;
-    pointer-events: none;
   }
 
   .manager-subtle-button {
@@ -1144,7 +1126,6 @@ const managerStyles = `
     }
 
     .manager-hero a,
-    .manager-hero .manager-disabled-link,
     .manager-button {
       width: 100%;
       text-align: center;
@@ -1699,18 +1680,6 @@ async function readMatchdaysForSeason(seasonId?: string): Promise<SeasonMatchday
     );
   } catch {
     return [];
-  }
-}
-
-async function readFirstAvailableMatchdayId(): Promise<string | null> {
-  try {
-    const rows = await fetchSupabaseAdminTable<{ id: string }>(
-      "matchdays?select=id&order=starts_on.asc.nullslast,number.asc&limit=1"
-    );
-
-    return rows[0]?.id ?? null;
-  } catch {
-    return null;
   }
 }
 
@@ -2320,13 +2289,6 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     epoca: selectedSeason?.id ?? "",
     jornada: selectedMatchday?.id ?? ""
   };
-  const fallbackMatchdayId = selectedMatchday?.id ?? (await readFirstAvailableMatchdayId());
-  const homeEditorialHref = fallbackMatchdayId
-    ? `/admin/editorial/home?jornada=${encodeURIComponent(fallbackMatchdayId)}`
-    : "/admin/editorial/home";
-  const matchdayEditorialHref = fallbackMatchdayId
-    ? `/admin/editorial/jornada/${encodeURIComponent(fallbackMatchdayId)}`
-    : null;
 
   return (
     <main className="manager-shell">
@@ -2504,18 +2466,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             Resultados - Classificacao. As acoes de suporte ficam separadas em manutencao.
           </span>
         </div>
-        <div className="manager-hero-actions">
-          <a href="/admin">Voltar ao backoffice</a>
-          <a href={homeEditorialHref}>Home editorial</a>
-          <a href="/admin/editorial/artigos">ARTIGOS/NOTÍCIAS</a>
-          {matchdayEditorialHref ? (
-            <a href={matchdayEditorialHref}>Editorial da jornada</a>
-          ) : (
-            <span aria-disabled="true" className="manager-disabled-link" title="Sem jornada disponivel">
-              Sem jornada disponivel
-            </span>
-          )}
-        </div>
+        <a href="/admin">Voltar ao backoffice</a>
       </header>
 
       {!messageSection && created && createdLabels[created] ? <div className="manager-message">{createdLabels[created]}</div> : null}
@@ -3603,6 +3554,11 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                     <small>Total nesta jornada</small>
                   </article>
                 </div>
+                {selectedMatchday ? (
+                  <a className="manager-link-button" href={`/admin/editorial/composicao/${selectedMatchday.id}`}>
+                    COMPOSIÇÃO EDITORIAL
+                  </a>
+                ) : null}
               </article>
 
               <details
@@ -3892,6 +3848,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                       </header>
                       <a className="manager-link-button" href={`/admin/editorial/jornada/${selectedMatchday.id}`}>
                         Editar 1.ª página editorial desta jornada
+                      </a>
+                      <a className="manager-link-button" href={`/admin/editorial/composicao/${selectedMatchday.id}`}>
+                        COMPOSIÇÃO EDITORIAL
                       </a>
                     </section>
                     <section className="manager-editorial-block">
