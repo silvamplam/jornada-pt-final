@@ -116,19 +116,6 @@ const editorialPageStyles = `
     color: #ffffff;
   }
 
-  .editorial-admin-actions {
-    display: flex;
-    flex-wrap: wrap;
-    flex: 0 0 auto;
-    gap: 10px;
-    align-items: center;
-    justify-content: flex-end;
-  }
-
-  .editorial-admin-actions form {
-    margin: 0;
-  }
-
   .editorial-admin-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
@@ -367,16 +354,6 @@ const editorialPageStyles = `
 
     .editorial-admin-hero {
       display: grid;
-    }
-
-    .editorial-admin-actions {
-      display: grid;
-      grid-template-columns: 1fr;
-    }
-
-    .editorial-admin-actions .editorial-admin-button {
-      width: 100%;
-      text-align: center;
     }
   }
 `;
@@ -840,25 +817,9 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           <h1>Editar editorial</h1>
           <small>{contextLabel}</small>
         </div>
-        <nav className="editorial-admin-actions" aria-label="Navegação do backoffice editorial">
-          <a className="editorial-admin-button secondary" href={backToGestor}>
-            Voltar ao gestor
-          </a>
-          <a className="editorial-admin-button secondary" href="/admin">
-            Home editorial
-          </a>
-          <a className="editorial-admin-button" href={`/admin/editorial/composicao/${matchday.id}`}>
-            Composição editorial
-          </a>
-          <a className="editorial-admin-button secondary" href="/">
-            Voltar ao site
-          </a>
-          <form action="/api/admin/logout" method="post">
-            <button className="editorial-admin-button secondary" type="submit">
-              Sair
-            </button>
-          </form>
-        </nav>
+        <a className="editorial-admin-button secondary" href={backToGestor}>
+          Voltar ao gestor
+        </a>
       </section>
 
       {feedbackScope ? null : messageFor(created, error)}

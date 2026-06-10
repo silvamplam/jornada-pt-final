@@ -170,7 +170,6 @@ const managerStyles = `
   }
 
   .manager-hero a,
-  .manager-hero button,
   .manager-button,
   .manager-link-button {
     display: inline-block;
@@ -189,23 +188,9 @@ const managerStyles = `
     cursor: pointer;
   }
 
-  .manager-hero a,
-  .manager-hero button {
+  .manager-hero a {
     border: 1px solid rgba(255, 255, 255, 0.28);
     background: transparent;
-  }
-
-  .manager-hero-actions {
-    display: flex;
-    flex-wrap: wrap;
-    flex: 0 0 auto;
-    gap: 10px;
-    align-items: center;
-    justify-content: flex-end;
-  }
-
-  .manager-hero-actions form {
-    margin: 0;
   }
 
   .manager-subtle-button {
@@ -1140,13 +1125,7 @@ const managerStyles = `
       grid-template-columns: 1fr;
     }
 
-    .manager-hero-actions {
-      display: grid;
-      grid-template-columns: 1fr;
-    }
-
     .manager-hero a,
-    .manager-hero button,
     .manager-button {
       width: 100%;
       text-align: center;
@@ -2487,15 +2466,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             Resultados - Classificacao. As acoes de suporte ficam separadas em manutencao.
           </span>
         </div>
-        <nav className="manager-hero-actions" aria-label="Navegação do backoffice">
-          <a href="/admin">Home editorial</a>
-          <a href="#linha-editorial">Editorial da Jornada</a>
-          <a href="/">Voltar ao site</a>
-          <a href="/admin">Voltar ao backoffice</a>
-          <form action="/api/admin/logout" method="post">
-            <button type="submit">Sair</button>
-          </form>
-        </nav>
+        <a href="/admin">Voltar ao backoffice</a>
       </header>
 
       {!messageSection && created && createdLabels[created] ? <div className="manager-message">{createdLabels[created]}</div> : null}
