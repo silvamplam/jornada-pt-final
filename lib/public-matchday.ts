@@ -11,6 +11,34 @@ export type PublicSeasonMatch = SupabaseMatch & {
   broadcastChannel: SupabaseBroadcastChannel | null;
 };
 
+export type PublicReferenceComposition = {
+  id: string;
+  matchday_id: string;
+  status: "draft" | "published";
+  is_current: boolean;
+  internal_name: string | null;
+  use_roundup_items: boolean | null;
+  published_at: string | null;
+};
+
+export type PublicReferenceCompositionItem = {
+  id: string;
+  composition_id: string;
+  slot_type: string;
+  source_type: string | null;
+  source_id: string | null;
+  article_id: string | null;
+  sort_order: number;
+  title_snapshot: string | null;
+  subtitle_snapshot: string | null;
+  image_url_snapshot: string | null;
+  link_url_snapshot: string | null;
+  label_snapshot: string | null;
+  status: string | null;
+};
+
+export type PublicReferenceCompositionSlots = Record<string, PublicReferenceCompositionItem[]>;
+
 export type PublicMatchdayContext = {
   competition: SupabaseCompetition;
   season: SupabaseSeason;
@@ -24,6 +52,10 @@ export type PublicMatchdayContext = {
   highlights: SupabaseMatchdayHighlight[];
   roundupItems: SupabaseMatchdayRoundupItem[];
   latestNews: SupabaseMatchdayLatestNews[];
+  referenceComposition: PublicReferenceComposition | null;
+  referenceCompositionItems: PublicReferenceCompositionItem[];
+  referenceSlots: PublicReferenceCompositionSlots;
+  hasPublishedReferenceComposition: boolean;
 };
 
 export type PublicMatchdayDiagnostic = {
@@ -166,6 +198,54 @@ async function readPublishedMatchdayLatestNews(matchdayId: string) {
     } catch {
       return [];
     }
+  }
+}
+
+function groupReferenceCompositionSlots(items: PublicReferenceCompositionItem[]) {
+  return items.reduce<PublicReferenceCompositionSlots>((slots, item) => {
+    const slotType = item.slot_type || "unknown";
+    slots[slotType] = [...(slots[slotType] ?? []), item];
+    return slots;
+  }, {});
+}
+
+async function readPublishedReferenceCompositionBundle(matchdayId: string) {
+  try {
+    const compositions = await fetchSupabaseAdminTable<PublicReferenceComposition>(
+      `matchday_reference_compositions?select=id,matchday_id,status,is_current,internal_name,use_roundup_items,published_at&matchday_id=eq.${encodeURIComponent(
+        matchdayId
+      )}&status=eq.published&is_current=is.true&order=published_at.desc.nullslast&limit=1`
+    );
+    const referenceComposition = compositions[0] ?? null;
+
+    if (!referenceComposition) {
+      return {
+        referenceComposition: null,
+        referenceCompositionItems: [],
+        referenceSlots: {},
+        hasPublishedReferenceComposition: false
+      };
+    }
+
+    const referenceCompositionItems = await fetchSupabaseAdminTable<PublicReferenceCompositionItem>(
+      `matchday_reference_composition_items?select=id,composition_id,slot_type,source_type,source_id,article_id,sort_order,title_snapshot,subtitle_snapshot,image_url_snapshot,link_url_snapshot,label_snapshot,status&composition_id=eq.${encodeURIComponent(
+        referenceComposition.id
+      )}&order=sort_order.asc&limit=200`
+    );
+
+    return {
+      referenceComposition,
+      referenceCompositionItems,
+      referenceSlots: groupReferenceCompositionSlots(referenceCompositionItems),
+      hasPublishedReferenceComposition: true
+    };
+  } catch {
+    return {
+      referenceComposition: null,
+      referenceCompositionItems: [],
+      referenceSlots: {},
+      hasPublishedReferenceComposition: false
+    };
   }
 }
 
@@ -356,12 +436,13 @@ export async function getPublicMatchdayDiagnostic({
       ...manualParticipants.map((participant) => participant.team_id),
       ...matches.flatMap((match) => [match.home_team_id, match.away_team_id])
     ]);
-    const [broadcastChannels, editorial, highlights, roundupItems, latestNews] = await Promise.all([
+    const [broadcastChannels, editorial, highlights, roundupItems, latestNews, referenceCompositionBundle] = await Promise.all([
       readBroadcastChannels(matches.map((match) => match.broadcast_channel_id ?? "")),
       readMatchdayEditorial(matchday.id),
       readPublishedMatchdayHighlights(matchday.id),
       readPublishedMatchdayRoundupItems(matchday.id),
-      readPublishedMatchdayLatestNews(matchday.id)
+      readPublishedMatchdayLatestNews(matchday.id),
+      readPublishedReferenceCompositionBundle(matchday.id)
     ]);
     const teamsById = byId(teams);
     const broadcastChannelsById = byId(broadcastChannels);
@@ -390,7 +471,11 @@ export async function getPublicMatchdayDiagnostic({
         editorial,
         highlights,
         roundupItems,
-        latestNews
+        latestNews,
+        referenceComposition: referenceCompositionBundle.referenceComposition,
+        referenceCompositionItems: referenceCompositionBundle.referenceCompositionItems,
+        referenceSlots: referenceCompositionBundle.referenceSlots,
+        hasPublishedReferenceComposition: referenceCompositionBundle.hasPublishedReferenceComposition
       },
       diagnostic: {
         ...baseDiagnostic,
