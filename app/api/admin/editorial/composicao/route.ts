@@ -96,6 +96,17 @@ type CompositionSnapshot = {
   label_snapshot: string | null;
 };
 
+type CompositionPublicationItem = {
+  slot_type: string | null;
+};
+
+class CompositionPublicationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CompositionPublicationError";
+  }
+}
+
 async function readFirst<T>(path: string): Promise<T | null> {
   const rows = await fetchSupabaseAdminTable<T>(`${path}&limit=1`);
   return rows[0] ?? null;
@@ -120,6 +131,28 @@ function hasContent(...values: Array<string | null | undefined>) {
 
 function isPublished(status?: string | null) {
   return status === "published";
+}
+
+function validatePublishableCompositionItems(items: CompositionPublicationItem[]) {
+  const counts = items.reduce<Record<string, number>>((result, item) => {
+    const slotType = item.slot_type ?? "";
+    result[slotType] = (result[slotType] ?? 0) + 1;
+    return result;
+  }, {});
+
+  const headlineCount = counts.headline ?? 0;
+  if (headlineCount === 0) {
+    throw new CompositionPublicationError("Adiciona uma manchete antes de publicar.");
+  }
+  if (headlineCount > 1) {
+    throw new CompositionPublicationError("A composição só pode ter uma manchete. Remove as manchetes extra antes de publicar.");
+  }
+  if ((counts.complement ?? 0) > 1) {
+    throw new CompositionPublicationError("A composição só pode ter um complemento da manchete.");
+  }
+  if ((counts.side_block ?? 0) > 1) {
+    throw new CompositionPublicationError("A composição só pode ter um bloco lateral.");
+  }
 }
 
 async function readDraftComposition(compositionId: string, matchdayId: string) {
@@ -369,10 +402,10 @@ async function publishReferenceComposition(formData: FormData) {
   if (composition.status === "published") return;
   if (composition.status !== "draft") throw new Error("composition-invalid");
 
-  const hasItems = await hasRows(
-    `matchday_reference_composition_items?select=id&composition_id=eq.${encodeURIComponent(composition.id)}`
+  const compositionItems = await fetchSupabaseAdminTable<CompositionPublicationItem>(
+    `matchday_reference_composition_items?select=slot_type&composition_id=eq.${encodeURIComponent(composition.id)}&limit=500`
   );
-  if (!hasItems) throw new Error("composition-empty");
+  validatePublishableCompositionItems(compositionItems);
 
   await writeSupabaseAdmin(
     `matchday_reference_compositions?matchday_id=eq.${encodeURIComponent(matchdayId)}&id=neq.${encodeURIComponent(
@@ -399,6 +432,32 @@ async function publishReferenceComposition(formData: FormData) {
   );
 }
 
+async function reopenReferenceComposition(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const compositionId = cleanText(formData.get("composition_id"));
+  if (!matchdayId || !compositionId) throw new Error("composition-invalid");
+
+  const composition = await readReferenceCompositionState(compositionId, matchdayId);
+  if (!composition) throw new Error("composition-invalid");
+  if (composition.status !== "published" || !composition.is_current) throw new Error("composition-invalid");
+
+  const now = new Date().toISOString();
+  await writeSupabaseAdmin(
+    `matchday_reference_compositions?id=eq.${encodeURIComponent(composition.id)}&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&status=eq.published&is_current=is.true`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        status: "draft",
+        is_current: false,
+        published_at: null,
+        updated_at: now
+      })
+    }
+  );
+}
+
 export async function POST(request: Request) {
   if (!getSupabaseServiceConfig()) return redirectTo(request, "/admin?error=missing-service");
   const formData = await request.formData();
@@ -414,9 +473,11 @@ export async function POST(request: Request) {
     else if (actionType === "remove_item") await removeItem(formData);
     else if (actionType === "save_current_page_state") await saveCurrentPageState(formData);
     else if (actionType === "publish_reference_composition") await publishReferenceComposition(formData);
+    else if (actionType === "reopen_reference_composition") await reopenReferenceComposition(formData);
     else throw new Error("unknown-action");
-  } catch {
-    return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}composition_error=1`);
+  } catch (error) {
+    const errorValue = error instanceof CompositionPublicationError ? encodeURIComponent(error.message) : "1";
+    return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}composition_error=${errorValue}`);
   }
 
   return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}composition_saved=1`);

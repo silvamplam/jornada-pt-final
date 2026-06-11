@@ -129,6 +129,66 @@ function groupCompositionItemsBySection(items: ReferenceCompositionItem[]) {
   return sections;
 }
 
+function countCompositionSlots(items: ReferenceCompositionItem[]) {
+  return items.reduce<Record<string, number>>((counts, item) => {
+    const slotType = item.slot_type ?? "";
+    counts[slotType] = (counts[slotType] ?? 0) + 1;
+    return counts;
+  }, {});
+}
+
+function getCompositionPublicationValidation(items: ReferenceCompositionItem[]) {
+  const counts = countCompositionSlots(items);
+  const headlineCount = counts.headline ?? 0;
+  const complementCount = counts.complement ?? 0;
+  const sideBlockCount = counts.side_block ?? 0;
+  const warnings: string[] = [];
+
+  if (headlineCount === 0) {
+    warnings.push("A composição ainda não tem manchete.");
+  } else if (headlineCount > 1) {
+    warnings.push(`A composição tem ${headlineCount} manchetes. Remove ${headlineCount === 2 ? "uma" : "as manchetes extra"} antes de publicar.`);
+  }
+
+  if (complementCount > 1) {
+    warnings.push("A composição só pode ter um complemento da manchete.");
+  }
+
+  if (sideBlockCount > 1) {
+    warnings.push("A composição só pode ter um bloco lateral.");
+  }
+
+  return {
+    canPublish: items.length > 0 && warnings.length === 0,
+    warnings,
+  };
+}
+
+function getPublishedCompositionProblemMessage(items: ReferenceCompositionItem[]) {
+  const counts = countCompositionSlots(items);
+  const headlineCount = counts.headline ?? 0;
+  const complementCount = counts.complement ?? 0;
+  const sideBlockCount = counts.side_block ?? 0;
+
+  if (headlineCount === 0) {
+    return "Esta composição publicada tem um problema estrutural: a zona Manchete não tem itens. Reabre como rascunho, adiciona uma manchete e publica novamente.";
+  }
+
+  if (headlineCount > 1) {
+    return `Esta composição publicada tem um problema estrutural: a zona Manchete tem ${headlineCount} itens. Reabre como rascunho, remove uma manchete e publica novamente.`;
+  }
+
+  if (complementCount > 1) {
+    return "Esta composição publicada tem um problema estrutural: a zona Complemento da manchete tem mais de um item. Reabre como rascunho, remove o complemento extra e publica novamente.";
+  }
+
+  if (sideBlockCount > 1) {
+    return "Esta composição publicada tem um problema estrutural: a zona Bloco lateral tem mais de um item. Reabre como rascunho, remove o bloco lateral extra e publica novamente.";
+  }
+
+  return null;
+}
+
 const compositionPageStyles = `
   body {
     margin: 0;
@@ -944,6 +1004,31 @@ function PublishCompositionForm({
   );
 }
 
+function ReopenCompositionForm({
+  composition,
+  matchdayId,
+  returnTo
+}: {
+  composition: ReferenceComposition;
+  matchdayId: string;
+  returnTo: string;
+}) {
+  return (
+    <form className="composition-admin-form" action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="reopen_reference_composition" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="composition_id" value={composition.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <p className="composition-admin-note">
+        Esta composição está publicada. Para alterar itens, reabre como rascunho, corrige e publica novamente.
+      </p>
+      <button className="composition-admin-small-button secondary" type="submit">
+        Reabrir para edição
+      </button>
+    </form>
+  );
+}
+
 function AddCandidateForm({
   composition,
   matchdayId,
@@ -1062,11 +1147,13 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
   const returnTo = `/admin/editorial/composicao/${matchday.id}`;
   const nextSortOrder = compositionItems.length + 1;
   const groupedCompositionItems = groupCompositionItemsBySection(compositionItems);
+  const publicationValidation = getCompositionPublicationValidation(compositionItems);
   const addedCandidateKeys = new Set(compositionItems.map(makeCompositionItemKey));
   const isCandidateAdded = (slotType: string, sourceType: string, sourceId?: string | null, articleId?: string | null) =>
     addedCandidateKeys.has(makeCandidateKey({ slotType, sourceType, sourceId, articleId }));
   const isDraftComposition = draftComposition?.status === "draft";
   const isPublishedComposition = draftComposition?.status === "published";
+  const publishedCompositionProblemMessage = isPublishedComposition ? getPublishedCompositionProblemMessage(compositionItems) : null;
   const publishedAtLabel = formatPublishedAt(draftComposition?.published_at);
   const latestZoneMode = editorial?.latest_zone_mode === "editorial_line" ? "Linha editorial" : "Últimas notícias";
   const contextLabel = `${country?.name ?? "Pais"} / ${competition.name} / ${season.label} / ${matchday.label}`;
@@ -1221,15 +1308,26 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                     <>
                       <UpdateDraftForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
                       <SaveCurrentPageStateForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
-                      {compositionItems.length > 0 ? (
+                      {publicationValidation.warnings.length > 0 ? (
+                        <div className="composition-admin-note">
+                          {publicationValidation.warnings.map((warning) => (
+                            <p key={warning}>{warning}</p>
+                          ))}
+                        </div>
+                      ) : null}
+                      {publicationValidation.canPublish ? (
                         <PublishCompositionForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
-                      ) : (
-                        <p className="composition-admin-note">Adiciona pelo menos um item antes de publicar.</p>
-                      )}
+                      ) : null}
                     </>
                   ) : null}
                   {isPublishedComposition && draftComposition.is_current ? (
-                    <p className="composition-admin-note">Esta é a composição ativa desta jornada.</p>
+                    <>
+                      {publishedCompositionProblemMessage ? (
+                        <p className="composition-admin-note">{publishedCompositionProblemMessage}</p>
+                      ) : null}
+                      <p className="composition-admin-note">Esta é a composição ativa desta jornada.</p>
+                      <ReopenCompositionForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
+                    </>
                   ) : null}
                 </>
               ) : (
