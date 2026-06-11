@@ -83,6 +83,10 @@ type MatchdayEditorialWithHeadlineLink = SupabaseMatchdayEditorial & {
   headline_link_url?: string | null;
 };
 
+type MatchdayHighlightWithLink = SupabaseMatchdayHighlight & {
+  link_url?: string | null;
+};
+
 function makeCandidateKey({ slotType, sourceType, sourceId, articleId }: CandidateKeyInput) {
   return [slotType, sourceType, sourceId ?? "", articleId ?? ""].join("|");
 }
@@ -650,9 +654,9 @@ async function readMatchdayEditorial(matchdayId: string): Promise<MatchdayEditor
   }
 }
 
-function readMatchdayHighlights(matchdayId: string): Promise<SupabaseMatchdayHighlight[]> {
-  return fetchSupabaseAdminTable<SupabaseMatchdayHighlight>(
-    `matchday_highlights?select=id,matchday_id,label,title,image_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+function readMatchdayHighlights(matchdayId: string): Promise<MatchdayHighlightWithLink[]> {
+  return fetchSupabaseAdminTable<MatchdayHighlightWithLink>(
+    `matchday_highlights?select=id,matchday_id,label,title,image_url,link_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
       matchdayId
     )}&order=sort_order.asc&limit=20`
   ).catch(() => []);
@@ -1510,6 +1514,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         imageUrl={item.image_url}
                         label={item.label}
                         title={item.title}
+                        linkUrl={item.link_url}
                         alreadyAdded={isCandidateAdded("highlight", "matchday_highlight", item.id)}
                         meta={["Fonte: matchday_highlights", `Posicao ${item.sort_order}`, statusLabel(item.status)]}
                       >
@@ -1523,6 +1528,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           sourceId={item.id}
                           title={item.title}
                           imageUrl={item.image_url}
+                          linkUrl={item.link_url}
                           label={item.label}
                           alreadyAdded={isCandidateAdded("highlight", "matchday_highlight", item.id)}
                         />

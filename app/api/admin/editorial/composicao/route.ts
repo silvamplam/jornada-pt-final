@@ -56,6 +56,7 @@ type CurrentHighlight = {
   label: string | null;
   title: string | null;
   image_url: string | null;
+  link_url: string | null;
   sort_order: number;
   status: string | null;
 };
@@ -188,7 +189,7 @@ async function buildCurrentPageSnapshots(matchdayId: string, useRoundupItems: bo
       )}`
     ),
     fetchSupabaseAdminTable<CurrentHighlight>(
-      `matchday_highlights?select=id,label,title,image_url,sort_order,status&matchday_id=eq.${encodeURIComponent(
+      `matchday_highlights?select=id,label,title,image_url,link_url,sort_order,status&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}&status=eq.published&order=sort_order.asc&limit=50`
     ).catch(() => []),
@@ -265,7 +266,7 @@ async function buildCurrentPageSnapshots(matchdayId: string, useRoundupItems: bo
       title_snapshot: item.title,
       subtitle_snapshot: null,
       image_url_snapshot: item.image_url,
-      link_url_snapshot: null,
+      link_url_snapshot: item.link_url,
       label_snapshot: item.label
     });
   });
