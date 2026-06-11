@@ -1152,8 +1152,8 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                 <>
                   <div className="composition-admin-meta">
                     <span>{statusLabel(draftComposition.status)}</span>
-                    <span>{draftComposition.is_current ? "Marcada como atual" : "Não publicada no site"}</span>
-                    <span>{draftComposition.use_roundup_items ? "Usa resumo/vídeos" : "Não usa resumo/vídeos"}</span>
+                  <span>{draftComposition.is_current ? "Marcada como atual" : "Não publicado no site"}</span>
+                  <span>{draftComposition.use_roundup_items ? "Inclui resumo/vídeos" : "Não inclui resumo/vídeos"}</span>
                   </div>
                   <UpdateDraftForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
                   <SaveCurrentPageStateForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
