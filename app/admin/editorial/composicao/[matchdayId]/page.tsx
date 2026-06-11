@@ -72,13 +72,6 @@ type ReferenceCompositionItem = {
   updated_at: string;
 };
 
-type CandidateKeyInput = {
-  slotType: string;
-  sourceType: string;
-  sourceId?: string | null;
-  articleId?: string | null;
-};
-
 type MatchdayEditorialWithHeadlineLink = SupabaseMatchdayEditorial & {
   headline_link_url?: string | null;
 };
@@ -87,29 +80,16 @@ type MatchdayHighlightWithLink = SupabaseMatchdayHighlight & {
   link_url?: string | null;
 };
 
-function makeCandidateKey({ slotType, sourceType, sourceId, articleId }: CandidateKeyInput) {
-  return [slotType, sourceType, sourceId ?? "", articleId ?? ""].join("|");
-}
-
-function makeCompositionItemKey(item: ReferenceCompositionItem) {
-  return makeCandidateKey({
-    slotType: item.slot_type,
-    sourceType: item.source_type,
-    sourceId: item.source_id,
-    articleId: item.article_id
-  });
-}
-
 const referenceCompositionSections = [
   { slotType: "headline", title: "Manchete" },
   { slotType: "complement", title: "Complemento da manchete" },
   { slotType: "side_block", title: "Bloco lateral" },
-  { slotType: "highlight", title: "Destaques" },
+  { slotType: "highlight", title: "Destaques abaixo da manchete" },
   { slotType: "important_item", title: "Mais notícias da jornada" },
   { slotType: "editorial_line_item", title: "Zona editorial final" },
-  { slotType: "related_article", title: "Artigos / notícias relacionados" },
-  { slotType: "roundup", title: "Resumo / vídeos" },
-  { slotType: "custom_card", title: "Cartões manuais" }
+  { slotType: "related_article", title: "Artigos relacionados" },
+  { slotType: "roundup", title: "Resumo / Vídeos" },
+  { slotType: "custom_card", title: "Cartão personalizado" }
 ];
 
 function groupCompositionItemsBySection(items: ReferenceCompositionItem[]) {
@@ -132,6 +112,77 @@ function groupCompositionItemsBySection(items: ReferenceCompositionItem[]) {
   }
 
   return sections;
+}
+
+function compositionSectionTitle(slotType?: string | null) {
+  return referenceCompositionSections.find((section) => section.slotType === slotType)?.title ?? "Outros itens";
+}
+
+function normalizeCandidateText(value?: string | null) {
+  return textOrEmpty(value).toLowerCase();
+}
+
+function normalizeCandidateLink(value?: string | null) {
+  return textOrEmpty(value).toLowerCase();
+}
+
+function compositionItemMatchesCandidate(
+  item: ReferenceCompositionItem,
+  {
+    sourceType,
+    sourceId,
+    articleId,
+    linkUrl,
+    title
+  }: {
+    sourceType: string;
+    sourceId?: string | null;
+    articleId?: string | null;
+    linkUrl?: string | null;
+    title?: string | null;
+  }
+) {
+  if (articleId && item.article_id === articleId) {
+    return true;
+  }
+
+  const itemLinkUrl = normalizeCandidateLink(item.link_url_snapshot);
+  const candidateLinkUrl = normalizeCandidateLink(linkUrl);
+
+  if (itemLinkUrl && candidateLinkUrl && itemLinkUrl === candidateLinkUrl) {
+    return true;
+  }
+
+  if (item.source_type !== sourceType || (item.source_id ?? null) !== (sourceId ?? null)) {
+    return false;
+  }
+
+  const itemTitle = normalizeCandidateText(item.title_snapshot);
+  const candidateTitle = normalizeCandidateText(title);
+
+  if (itemTitle && candidateTitle) {
+    return itemTitle === candidateTitle;
+  }
+
+  return true;
+}
+
+function candidatePlacementLabel(
+  items: ReferenceCompositionItem[],
+  candidate: {
+    sourceType: string;
+    sourceId?: string | null;
+    articleId?: string | null;
+    linkUrl?: string | null;
+    title?: string | null;
+  }
+) {
+  const slotTitles = items
+    .filter((item) => compositionItemMatchesCandidate(item, candidate))
+    .map((item) => compositionSectionTitle(item.slot_type));
+  const uniqueSlotTitles = Array.from(new Set(slotTitles));
+
+  return uniqueSlotTitles.length > 0 ? uniqueSlotTitles.join(", ") : null;
 }
 
 function countCompositionSlots(items: ReferenceCompositionItem[]) {
@@ -792,7 +843,7 @@ function ItemCard({
   subtitle,
   imageUrl,
   linkUrl,
-  alreadyAdded,
+  addedInLabel,
   meta,
   children
 }: {
@@ -801,7 +852,7 @@ function ItemCard({
   subtitle?: string | null;
   imageUrl?: string | null;
   linkUrl?: string | null;
-  alreadyAdded?: boolean;
+  addedInLabel?: string | null;
   meta?: Array<string | null | undefined>;
   children?: ReactNode;
 }) {
@@ -811,7 +862,9 @@ function ItemCard({
     <article className="composition-admin-item">
       <ImagePreview src={imageUrl} />
       {textOrEmpty(label) ? <span className="composition-admin-label">{label}</span> : null}
-      {alreadyAdded ? <span className="composition-admin-added-badge">Já adicionada à composição</span> : null}
+      {addedInLabel ? (
+        <span className="composition-admin-added-badge">Já adicionada em: {addedInLabel}</span>
+      ) : null}
       {textOrEmpty(title) ? <strong className="composition-admin-title">{title}</strong> : null}
       {textOrEmpty(subtitle) ? <p className="composition-admin-copy">{subtitle}</p> : null}
       {visibleMeta.length > 0 ? (
@@ -832,7 +885,7 @@ function RoundupItemCard({
   title,
   subtitle,
   linkUrl,
-  alreadyAdded,
+  addedInLabel,
   meta,
   children
 }: {
@@ -840,7 +893,7 @@ function RoundupItemCard({
   title?: string | null;
   subtitle?: string | null;
   linkUrl?: string | null;
-  alreadyAdded?: boolean;
+  addedInLabel?: string | null;
   meta?: Array<string | null | undefined>;
   children?: ReactNode;
 }) {
@@ -849,7 +902,9 @@ function RoundupItemCard({
   return (
     <article className="composition-admin-video-item">
       {textOrEmpty(label) ? <span className="composition-admin-label">{label}</span> : null}
-      {alreadyAdded ? <span className="composition-admin-added-badge">Já adicionada à composição</span> : null}
+      {addedInLabel ? (
+        <span className="composition-admin-added-badge">Já adicionada em: {addedInLabel}</span>
+      ) : null}
       {textOrEmpty(title) ? <strong className="composition-admin-title">{title}</strong> : null}
       {textOrEmpty(subtitle) ? <p className="composition-admin-copy">{subtitle}</p> : null}
       {visibleMeta.length > 0 ? (
@@ -1065,7 +1120,7 @@ function AddCandidateForm({
   label?: string | null;
   alreadyAdded?: boolean;
 }) {
-  if (!composition || composition.status !== "draft") {
+  if (!composition || composition.status !== "draft" || alreadyAdded) {
     return null;
   }
 
@@ -1086,7 +1141,7 @@ function AddCandidateForm({
       <HiddenField name="link_url_snapshot" value={linkUrl} />
       <HiddenField name="label_snapshot" value={label} />
       <button className="composition-admin-small-button" type="submit">
-        {alreadyAdded ? "Adicionar novamente" : "Adicionar à composição"}
+        Adicionar à composição
       </button>
     </form>
   );
@@ -1121,7 +1176,7 @@ function AddImportantItemForm({
   label?: string | null;
   alreadyAdded?: boolean;
 }) {
-  if (!composition || composition.status !== "draft") {
+  if (!composition || composition.status !== "draft" || alreadyAdded) {
     return null;
   }
 
@@ -1142,7 +1197,7 @@ function AddImportantItemForm({
       <HiddenField name="link_url_snapshot" value={linkUrl} />
       <HiddenField name="label_snapshot" value={label} />
       <button className="composition-admin-small-button secondary" type="submit">
-        {alreadyAdded ? "Adicionar novamente a Mais notícias da jornada" : "Adicionar a Mais notícias da jornada"}
+        Adicionar a Mais notícias da jornada
       </button>
     </form>
   );
@@ -1209,18 +1264,13 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
   const nextSortOrder = compositionItems.length + 1;
   const groupedCompositionItems = groupCompositionItemsBySection(compositionItems);
   const publicationValidation = getCompositionPublicationValidation(compositionItems);
-  const addedCandidateKeys = new Set(compositionItems.map(makeCompositionItemKey));
-  const isCandidateAdded = (slotType: string, sourceType: string, sourceId?: string | null, articleId?: string | null) =>
-    addedCandidateKeys.has(makeCandidateKey({ slotType, sourceType, sourceId, articleId }));
-  const isImportantCandidateAdded = (sourceType: string, sourceId?: string | null, articleId?: string | null, title?: string | null) =>
-    compositionItems.some(
-      (item) =>
-        item.slot_type === "important_item" &&
-        item.source_type === sourceType &&
-        (item.source_id ?? null) === (sourceId ?? null) &&
-        (item.article_id ?? null) === (articleId ?? null) &&
-        (item.title_snapshot ?? null) === (title ?? null)
-    );
+  const getCandidateAddedInLabel = (
+    sourceType: string,
+    sourceId?: string | null,
+    articleId?: string | null,
+    title?: string | null,
+    linkUrl?: string | null
+  ) => candidatePlacementLabel(compositionItems, { sourceType, sourceId, articleId, title, linkUrl });
   const isDraftComposition = draftComposition?.status === "draft";
   const isPublishedComposition = draftComposition?.status === "published";
   const publishedCompositionProblemMessage = isPublishedComposition ? getPublishedCompositionProblemMessage(compositionItems) : null;
@@ -1485,7 +1535,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                       title={editorial.title}
                       subtitle={editorial.summary}
                       linkUrl={editorial.headline_link_url}
-                      alreadyAdded={isCandidateAdded("headline", "matchday_editorial", editorial.id)}
+                      addedInLabel={getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.title, editorial.headline_link_url)}
                       meta={["Fonte: matchday_editorials", statusLabel(editorial.status)]}
                     >
                       <AddCandidateForm
@@ -1501,7 +1551,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         imageUrl={editorial.image_url}
                         linkUrl={editorial.headline_link_url}
                         label="Manchete"
-                        alreadyAdded={isCandidateAdded("headline", "matchday_editorial", editorial.id)}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.title, editorial.headline_link_url))}
                       />
                       <AddImportantItemForm
                         composition={draftComposition}
@@ -1515,7 +1565,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         imageUrl={editorial.image_url}
                         linkUrl={editorial.headline_link_url}
                         label="Manchete"
-                        alreadyAdded={isImportantCandidateAdded("matchday_editorial", editorial.id, null, editorial.title)}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.title, editorial.headline_link_url))}
                       />
                     </ItemCard>
                   ) : (
@@ -1531,7 +1581,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                       title={editorial?.side_block_title}
                       subtitle={editorial?.side_block_text}
                       linkUrl={editorial?.side_block_link_url}
-                      alreadyAdded={isCandidateAdded("side_block", "matchday_editorial", editorial.id)}
+                      addedInLabel={getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.side_block_title, editorial.side_block_link_url)}
                       meta={["Fonte: matchday_editorials", statusLabel(editorial?.side_block_status)]}
                     >
                       <AddCandidateForm
@@ -1547,7 +1597,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         imageUrl={editorial.side_block_image_url}
                         linkUrl={editorial.side_block_link_url}
                         label={editorial.side_block_label || editorial.side_block_type}
-                        alreadyAdded={isCandidateAdded("side_block", "matchday_editorial", editorial.id)}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.side_block_title, editorial.side_block_link_url))}
                       />
                       <AddImportantItemForm
                         composition={draftComposition}
@@ -1561,7 +1611,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         imageUrl={editorial.side_block_image_url}
                         linkUrl={editorial.side_block_link_url}
                         label={editorial.side_block_label || editorial.side_block_type}
-                        alreadyAdded={isImportantCandidateAdded("matchday_editorial", editorial.id, null, editorial.side_block_title)}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.side_block_title, editorial.side_block_link_url))}
                       />
                     </ItemCard>
                   ) : (
@@ -1577,7 +1627,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                       title={editorial?.complementary_title}
                       subtitle={editorial?.complementary_text}
                       linkUrl={editorial?.complementary_link_url}
-                      alreadyAdded={isCandidateAdded("complement", "matchday_editorial", editorial.id)}
+                      addedInLabel={getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.complementary_title, editorial.complementary_link_url)}
                       meta={["Fonte: matchday_editorials", statusLabel(editorial?.complementary_status)]}
                     >
                       <AddCandidateForm
@@ -1593,7 +1643,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         imageUrl={editorial.complementary_image_url}
                         linkUrl={editorial.complementary_link_url}
                         label={editorial.complementary_label}
-                        alreadyAdded={isCandidateAdded("complement", "matchday_editorial", editorial.id)}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.complementary_title, editorial.complementary_link_url))}
                       />
                       <AddImportantItemForm
                         composition={draftComposition}
@@ -1607,7 +1657,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         imageUrl={editorial.complementary_image_url}
                         linkUrl={editorial.complementary_link_url}
                         label={editorial.complementary_label}
-                        alreadyAdded={isImportantCandidateAdded("matchday_editorial", editorial.id, null, editorial.complementary_title)}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.complementary_title, editorial.complementary_link_url))}
                       />
                     </ItemCard>
                   ) : (
@@ -1626,7 +1676,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         label={item.label}
                         title={item.title}
                         linkUrl={item.link_url}
-                        alreadyAdded={isCandidateAdded("highlight", "matchday_highlight", item.id)}
+                        addedInLabel={getCandidateAddedInLabel("matchday_highlight", item.id, null, item.title, item.link_url)}
                         meta={["Fonte: matchday_highlights", `Posicao ${item.sort_order}`, statusLabel(item.status)]}
                       >
                         <AddCandidateForm
@@ -1641,7 +1691,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           imageUrl={item.image_url}
                           linkUrl={item.link_url}
                           label={item.label}
-                          alreadyAdded={isCandidateAdded("highlight", "matchday_highlight", item.id)}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_highlight", item.id, null, item.title, item.link_url))}
                         />
                         <AddImportantItemForm
                           composition={draftComposition}
@@ -1654,7 +1704,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           imageUrl={item.image_url}
                           linkUrl={item.link_url}
                           label={item.label}
-                          alreadyAdded={isImportantCandidateAdded("matchday_highlight", item.id, null, item.title)}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_highlight", item.id, null, item.title, item.link_url))}
                         />
                       </ItemCard>
                     )}
@@ -1673,7 +1723,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         title={item.title}
                         subtitle={item.subtitle}
                         linkUrl={item.link_url}
-                        alreadyAdded={isCandidateAdded("editorial_line_item", "matchday_latest_news", item.id, item.article_id)}
+                        addedInLabel={getCandidateAddedInLabel("matchday_latest_news", item.id, item.article_id, item.title, item.link_url)}
                         meta={["Fonte: matchday_latest_news", `Posicao ${item.sort_order}`, item.article_id ? `Artigo: ${item.article_id}` : null, statusLabel(item.status)]}
                       >
                         <AddCandidateForm
@@ -1690,7 +1740,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           imageUrl={item.image_url}
                           linkUrl={item.link_url}
                           label={item.time_label}
-                          alreadyAdded={isCandidateAdded("editorial_line_item", "matchday_latest_news", item.id, item.article_id)}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_latest_news", item.id, item.article_id, item.title, item.link_url))}
                         />
                         <AddImportantItemForm
                           composition={draftComposition}
@@ -1705,7 +1755,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           imageUrl={item.image_url}
                           linkUrl={item.link_url}
                           label={item.time_label}
-                          alreadyAdded={isImportantCandidateAdded("matchday_latest_news", item.id, item.article_id, item.title)}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_latest_news", item.id, item.article_id, item.title, item.link_url))}
                         />
                       </ItemCard>
                     )}
@@ -1723,7 +1773,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         title={item.title}
                         subtitle={item.subtitle}
                         linkUrl={item.video_url}
-                        alreadyAdded={isCandidateAdded("roundup", "matchday_roundup_item", item.id)}
+                        addedInLabel={getCandidateAddedInLabel("matchday_roundup_item", item.id, null, item.title, item.video_url)}
                         meta={["Fonte: matchday_roundup_items", `Posicao ${item.sort_order}`, item.duration, statusLabel(item.status)]}
                       >
                         <AddCandidateForm
@@ -1739,7 +1789,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           imageUrl={item.image_url}
                           linkUrl={item.video_url}
                           label={item.label || item.type}
-                          alreadyAdded={isCandidateAdded("roundup", "matchday_roundup_item", item.id)}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_roundup_item", item.id, null, item.title, item.video_url))}
                         />
                       </RoundupItemCard>
                     )}
@@ -1757,7 +1807,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         title={item.title}
                         subtitle={item.summary}
                         linkUrl={item.source_url}
-                        alreadyAdded={isCandidateAdded("related_article", "article", item.id, item.id)}
+                        addedInLabel={getCandidateAddedInLabel("article", item.id, item.id, item.title, item.source_url)}
                         meta={["Fonte: articles", statusLabel(item.status), item.published_at ? `Publicado: ${new Date(item.published_at).toLocaleDateString("pt-PT")}` : null]}
                       >
                         <AddCandidateForm
@@ -1774,7 +1824,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           imageUrl={item.image_url}
                           linkUrl={item.source_url}
                           label="Artigo / notícia"
-                          alreadyAdded={isCandidateAdded("related_article", "article", item.id, item.id)}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("article", item.id, item.id, item.title, item.source_url))}
                         />
                         <AddImportantItemForm
                           composition={draftComposition}
@@ -1789,7 +1839,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           imageUrl={item.image_url}
                           linkUrl={item.source_url}
                           label="Artigo / notícia"
-                          alreadyAdded={isImportantCandidateAdded("article", item.id, item.id, item.title)}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("article", item.id, item.id, item.title, item.source_url))}
                         />
                       </ItemCard>
                     )}
