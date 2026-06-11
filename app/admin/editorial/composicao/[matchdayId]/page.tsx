@@ -772,6 +772,34 @@ function UpdateDraftForm({
   );
 }
 
+function SaveCurrentPageStateForm({
+  composition,
+  matchdayId,
+  returnTo
+}: {
+  composition: ReferenceComposition;
+  matchdayId: string;
+  returnTo: string;
+}) {
+  return (
+    <form className="composition-admin-form" action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="save_current_page_state" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="composition_id" value={composition.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <p className="composition-admin-note">
+        Adiciona à composição os blocos atualmente publicados, sem publicar nem alterar a página pública.
+      </p>
+      <label className="composition-admin-check">
+        <input type="checkbox" required /> Isto vai adicionar à composição os blocos atualmente publicados. Não altera a página pública.
+      </label>
+      <button className="composition-admin-small-button" type="submit">
+        GUARDAR ESTADO ATUAL DA PÁGINA
+      </button>
+    </form>
+  );
+}
+
 function AddCandidateForm({
   composition,
   matchdayId,
@@ -1039,6 +1067,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                     <span>{draftComposition.use_roundup_items ? "Usa resumo/vídeos" : "Não usa resumo/vídeos"}</span>
                   </div>
                   <UpdateDraftForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
+                  <SaveCurrentPageStateForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
                 </>
               ) : (
                 <CreateDraftForm matchdayId={matchday.id} returnTo={returnTo} />
