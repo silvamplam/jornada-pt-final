@@ -118,10 +118,6 @@ function compositionSectionTitle(slotType?: string | null) {
   return referenceCompositionSections.find((section) => section.slotType === slotType)?.title ?? "Outros itens";
 }
 
-function normalizeCandidateText(value?: string | null) {
-  return textOrEmpty(value).toLowerCase();
-}
-
 function normalizeCandidateLink(value?: string | null) {
   return textOrEmpty(value).toLowerCase();
 }
@@ -132,17 +128,15 @@ function compositionItemMatchesCandidate(
     sourceType,
     sourceId,
     articleId,
-    linkUrl,
-    title
+    linkUrl
   }: {
     sourceType: string;
     sourceId?: string | null;
     articleId?: string | null;
     linkUrl?: string | null;
-    title?: string | null;
   }
 ) {
-  if (articleId && item.article_id === articleId) {
+  if (articleId && item.article_id && item.article_id === articleId) {
     return true;
   }
 
@@ -153,18 +147,11 @@ function compositionItemMatchesCandidate(
     return true;
   }
 
-  if (item.source_type !== sourceType || (item.source_id ?? null) !== (sourceId ?? null)) {
-    return false;
+  if (sourceType && sourceId && item.source_type && item.source_id) {
+    return item.source_type === sourceType && item.source_id === sourceId;
   }
 
-  const itemTitle = normalizeCandidateText(item.title_snapshot);
-  const candidateTitle = normalizeCandidateText(title);
-
-  if (itemTitle && candidateTitle) {
-    return itemTitle === candidateTitle;
-  }
-
-  return true;
+  return false;
 }
 
 function candidatePlacementLabel(
