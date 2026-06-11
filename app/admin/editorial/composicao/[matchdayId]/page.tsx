@@ -105,6 +105,7 @@ const referenceCompositionSections = [
   { slotType: "complement", title: "Complemento da manchete" },
   { slotType: "side_block", title: "Bloco lateral" },
   { slotType: "highlight", title: "Destaques" },
+  { slotType: "important_item", title: "Mais notícias da jornada" },
   { slotType: "editorial_line_item", title: "Zona editorial final" },
   { slotType: "related_article", title: "Artigos / notícias relacionados" },
   { slotType: "roundup", title: "Resumo / vídeos" },
@@ -1091,6 +1092,62 @@ function AddCandidateForm({
   );
 }
 
+function AddImportantItemForm({
+  composition,
+  matchdayId,
+  returnTo,
+  sortOrder,
+  sourceType,
+  sourceId,
+  articleId,
+  title,
+  subtitle,
+  imageUrl,
+  linkUrl,
+  label,
+  alreadyAdded
+}: {
+  composition: ReferenceComposition | null;
+  matchdayId: string;
+  returnTo: string;
+  sortOrder: number;
+  sourceType: string;
+  sourceId?: string | null;
+  articleId?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  imageUrl?: string | null;
+  linkUrl?: string | null;
+  label?: string | null;
+  alreadyAdded?: boolean;
+}) {
+  if (!composition || composition.status !== "draft") {
+    return null;
+  }
+
+  return (
+    <form action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="add_item" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="composition_id" value={composition.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <HiddenField name="slot_type" value="important_item" />
+      <HiddenField name="source_type" value={sourceType} />
+      <HiddenField name="source_id" value={sourceId} />
+      <HiddenField name="article_id" value={articleId} />
+      <HiddenField name="sort_order" value={sortOrder} />
+      <HiddenField name="title_snapshot" value={title} />
+      <HiddenField name="subtitle_snapshot" value={subtitle} />
+      <HiddenField name="image_url_snapshot" value={imageUrl} />
+      <HiddenField name="link_url_snapshot" value={linkUrl} />
+      <HiddenField name="label_snapshot" value={label} />
+      <button className="composition-admin-small-button secondary" type="submit">
+        {alreadyAdded ? "Adicionar novamente a Mais notícias da jornada" : "Adicionar a Mais notícias da jornada"}
+      </button>
+    </form>
+  );
+}
+
 function RemoveItemForm({
   composition,
   item,
@@ -1155,6 +1212,15 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
   const addedCandidateKeys = new Set(compositionItems.map(makeCompositionItemKey));
   const isCandidateAdded = (slotType: string, sourceType: string, sourceId?: string | null, articleId?: string | null) =>
     addedCandidateKeys.has(makeCandidateKey({ slotType, sourceType, sourceId, articleId }));
+  const isImportantCandidateAdded = (sourceType: string, sourceId?: string | null, articleId?: string | null, title?: string | null) =>
+    compositionItems.some(
+      (item) =>
+        item.slot_type === "important_item" &&
+        item.source_type === sourceType &&
+        (item.source_id ?? null) === (sourceId ?? null) &&
+        (item.article_id ?? null) === (articleId ?? null) &&
+        (item.title_snapshot ?? null) === (title ?? null)
+    );
   const isDraftComposition = draftComposition?.status === "draft";
   const isPublishedComposition = draftComposition?.status === "published";
   const publishedCompositionProblemMessage = isPublishedComposition ? getPublishedCompositionProblemMessage(compositionItems) : null;
@@ -1434,6 +1500,20 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         label="Manchete"
                         alreadyAdded={isCandidateAdded("headline", "matchday_editorial", editorial.id)}
                       />
+                      <AddImportantItemForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.title}
+                        subtitle={editorial.summary}
+                        imageUrl={editorial.image_url}
+                        linkUrl={editorial.headline_link_url}
+                        label="Manchete"
+                        alreadyAdded={isImportantCandidateAdded("matchday_editorial", editorial.id, null, editorial.title)}
+                      />
                     </ItemCard>
                   ) : (
                     <EmptyState>Não há manchete candidata guardada.</EmptyState>
@@ -1466,6 +1546,20 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         label={editorial.side_block_label || editorial.side_block_type}
                         alreadyAdded={isCandidateAdded("side_block", "matchday_editorial", editorial.id)}
                       />
+                      <AddImportantItemForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.side_block_title}
+                        subtitle={editorial.side_block_text}
+                        imageUrl={editorial.side_block_image_url}
+                        linkUrl={editorial.side_block_link_url}
+                        label={editorial.side_block_label || editorial.side_block_type}
+                        alreadyAdded={isImportantCandidateAdded("matchday_editorial", editorial.id, null, editorial.side_block_title)}
+                      />
                     </ItemCard>
                   ) : (
                     <EmptyState>Não há bloco lateral candidato guardado.</EmptyState>
@@ -1497,6 +1591,20 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         linkUrl={editorial.complementary_link_url}
                         label={editorial.complementary_label}
                         alreadyAdded={isCandidateAdded("complement", "matchday_editorial", editorial.id)}
+                      />
+                      <AddImportantItemForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.complementary_title}
+                        subtitle={editorial.complementary_text}
+                        imageUrl={editorial.complementary_image_url}
+                        linkUrl={editorial.complementary_link_url}
+                        label={editorial.complementary_label}
+                        alreadyAdded={isImportantCandidateAdded("matchday_editorial", editorial.id, null, editorial.complementary_title)}
                       />
                     </ItemCard>
                   ) : (
@@ -1531,6 +1639,19 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           linkUrl={item.link_url}
                           label={item.label}
                           alreadyAdded={isCandidateAdded("highlight", "matchday_highlight", item.id)}
+                        />
+                        <AddImportantItemForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          sourceType="matchday_highlight"
+                          sourceId={item.id}
+                          title={item.title}
+                          imageUrl={item.image_url}
+                          linkUrl={item.link_url}
+                          label={item.label}
+                          alreadyAdded={isImportantCandidateAdded("matchday_highlight", item.id, null, item.title)}
                         />
                       </ItemCard>
                     )}
@@ -1567,6 +1688,21 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           linkUrl={item.link_url}
                           label={item.time_label}
                           alreadyAdded={isCandidateAdded("editorial_line_item", "matchday_latest_news", item.id, item.article_id)}
+                        />
+                        <AddImportantItemForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          sourceType="matchday_latest_news"
+                          sourceId={item.id}
+                          articleId={item.article_id}
+                          title={item.title}
+                          subtitle={item.subtitle}
+                          imageUrl={item.image_url}
+                          linkUrl={item.link_url}
+                          label={item.time_label}
+                          alreadyAdded={isImportantCandidateAdded("matchday_latest_news", item.id, item.article_id, item.title)}
                         />
                       </ItemCard>
                     )}
@@ -1636,6 +1772,21 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           linkUrl={item.source_url}
                           label="Artigo / notícia"
                           alreadyAdded={isCandidateAdded("related_article", "article", item.id, item.id)}
+                        />
+                        <AddImportantItemForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          sourceType="article"
+                          sourceId={item.id}
+                          articleId={item.id}
+                          title={item.title}
+                          subtitle={item.summary}
+                          imageUrl={item.image_url}
+                          linkUrl={item.source_url}
+                          label="Artigo / notícia"
+                          alreadyAdded={isImportantCandidateAdded("article", item.id, item.id, item.title)}
                         />
                       </ItemCard>
                     )}
