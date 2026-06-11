@@ -120,7 +120,7 @@ function groupCompositionItemsBySection(items: ReferenceCompositionItem[]) {
       ...section,
       items: orderedItems.filter((item) => item.slot_type === section.slotType)
     }))
-    .filter((section) => section.items.length > 0);
+    .filter((section) => section.items.length > 0 || section.slotType === "important_item");
   const otherItems = orderedItems.filter((item) => !knownSlotTypes.has(item.slot_type));
 
   if (otherItems.length > 0) {
@@ -1417,6 +1417,9 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         </span>
                       </div>
                       <div className="composition-admin-grid">
+                        {section.items.length === 0 && section.slotType === "important_item" ? (
+                          <EmptyState>Sem notícias adicionadas nesta zona.</EmptyState>
+                        ) : null}
                         {section.items.map((item) => {
                           const itemMeta = [
                             `Ordem ${item.sort_order}`,
