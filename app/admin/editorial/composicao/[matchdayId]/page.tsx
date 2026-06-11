@@ -638,6 +638,20 @@ function readDraftReferenceComposition(matchdayId: string): Promise<ReferenceCom
   ).catch(() => null);
 }
 
+async function readReferenceCompositionForBackoffice(matchdayId: string): Promise<ReferenceComposition | null> {
+  const draftComposition = await readDraftReferenceComposition(matchdayId);
+
+  if (draftComposition) {
+    return draftComposition;
+  }
+
+  return readFirst<ReferenceComposition>(
+    `matchday_reference_compositions?select=id,matchday_id,status,is_current,internal_name,use_roundup_items,created_at,updated_at,published_at&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&status=eq.published&is_current=is.true&order=published_at.desc.nullslast`
+  ).catch(() => null);
+}
+
 function readReferenceCompositionItems(compositionId?: string | null): Promise<ReferenceCompositionItem[]> {
   if (!compositionId) {
     return Promise.resolve([]);
@@ -654,6 +668,21 @@ function statusLabel(status?: string | null) {
   if (status === "published") return "Publicado";
   if (status === "draft") return "Rascunho";
   return status || "Sem estado";
+}
+
+function compositionStatusLabel(status?: string | null) {
+  if (status === "published") return "publicada";
+  if (status === "draft") return "rascunho";
+  return status || "sem estado";
+}
+
+function formatPublishedAt(value?: string | null) {
+  if (!value) return null;
+  return new Date(value).toLocaleString("pt-PT", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Europe/Lisbon"
+  });
 }
 
 function textOrEmpty(value?: string | null) {
@@ -890,6 +919,31 @@ function SaveCurrentPageStateForm({
   );
 }
 
+function PublishCompositionForm({
+  composition,
+  matchdayId,
+  returnTo
+}: {
+  composition: ReferenceComposition;
+  matchdayId: string;
+  returnTo: string;
+}) {
+  return (
+    <form className="composition-admin-form" action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="publish_reference_composition" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="composition_id" value={composition.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <p className="composition-admin-note">
+        Publica internamente esta composição como versão ativa da jornada. Não altera a página pública.
+      </p>
+      <button className="composition-admin-small-button" type="submit">
+        Publicar composição
+      </button>
+    </form>
+  );
+}
+
 function AddCandidateForm({
   composition,
   matchdayId,
@@ -921,7 +975,7 @@ function AddCandidateForm({
   label?: string | null;
   alreadyAdded?: boolean;
 }) {
-  if (!composition) {
+  if (!composition || composition.status !== "draft") {
     return null;
   }
 
@@ -1003,7 +1057,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
   const publishedRoundupItems = roundupItems.filter((item) => item.status === "published");
   const publishedLatestNews = latestNews.filter((item) => item.status === "published");
   const publishedArticles = articles.filter((item) => item.status === "published");
-  const draftComposition = await readDraftReferenceComposition(matchday.id);
+  const draftComposition = await readReferenceCompositionForBackoffice(matchday.id);
   const compositionItems = await readReferenceCompositionItems(draftComposition?.id);
   const returnTo = `/admin/editorial/composicao/${matchday.id}`;
   const nextSortOrder = compositionItems.length + 1;
@@ -1011,6 +1065,9 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
   const addedCandidateKeys = new Set(compositionItems.map(makeCompositionItemKey));
   const isCandidateAdded = (slotType: string, sourceType: string, sourceId?: string | null, articleId?: string | null) =>
     addedCandidateKeys.has(makeCandidateKey({ slotType, sourceType, sourceId, articleId }));
+  const isDraftComposition = draftComposition?.status === "draft";
+  const isPublishedComposition = draftComposition?.status === "published";
+  const publishedAtLabel = formatPublishedAt(draftComposition?.published_at);
   const latestZoneMode = editorial?.latest_zone_mode === "editorial_line" ? "Linha editorial" : "Últimas notícias";
   const contextLabel = `${country?.name ?? "Pais"} / ${competition.name} / ${season.label} / ${matchday.label}`;
 
@@ -1147,16 +1204,33 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
             <p>Candidatos disponíveis e composição histórica em rascunho. Esta área não altera a página pública.</p>
           </header>
           <div className="composition-admin-stack">
-            <Card title="Composição em rascunho">
+            <Card title={isPublishedComposition ? "Composição publicada" : "Composição em rascunho"}>
               {draftComposition ? (
                 <>
                   <div className="composition-admin-meta">
-                    <span>{statusLabel(draftComposition.status)}</span>
-                  <span>{draftComposition.is_current ? "Marcada como atual" : "Não publicado no site"}</span>
-                  <span>{draftComposition.use_roundup_items ? "Inclui resumo/vídeos" : "Não inclui resumo/vídeos"}</span>
+                    <span>Estado: {compositionStatusLabel(draftComposition.status)}</span>
+                    {isPublishedComposition ? (
+                      <span>Versão ativa: {draftComposition.is_current ? "sim" : "não"}</span>
+                    ) : (
+                      <span>Não publicado no site</span>
+                    )}
+                    <span>{draftComposition.use_roundup_items ? "Inclui resumo/vídeos" : "Não inclui resumo/vídeos"}</span>
+                    {publishedAtLabel ? <span>Publicado em: {publishedAtLabel}</span> : null}
                   </div>
-                  <UpdateDraftForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
-                  <SaveCurrentPageStateForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
+                  {isDraftComposition ? (
+                    <>
+                      <UpdateDraftForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
+                      <SaveCurrentPageStateForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
+                      {compositionItems.length > 0 ? (
+                        <PublishCompositionForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
+                      ) : (
+                        <p className="composition-admin-note">Adiciona pelo menos um item antes de publicar.</p>
+                      )}
+                    </>
+                  ) : null}
+                  {isPublishedComposition && draftComposition.is_current ? (
+                    <p className="composition-admin-note">Esta é a composição ativa desta jornada.</p>
+                  ) : null}
                 </>
               ) : (
                 <CreateDraftForm matchdayId={matchday.id} returnTo={returnTo} />
@@ -1194,7 +1268,9 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                                 linkUrl={item.link_url_snapshot}
                                 meta={itemMeta}
                               >
-                                <RemoveItemForm composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
+                                {isDraftComposition ? (
+                                  <RemoveItemForm composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
+                                ) : null}
                               </RoundupItemCard>
                             );
                           }
@@ -1209,7 +1285,9 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                               linkUrl={item.link_url_snapshot}
                               meta={itemMeta}
                             >
-                              <RemoveItemForm composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
+                              {isDraftComposition ? (
+                                <RemoveItemForm composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
+                              ) : null}
                             </ItemCard>
                           );
                         })}

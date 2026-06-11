@@ -24,6 +24,11 @@ type DraftComposition = {
   use_roundup_items: boolean;
 };
 
+type ReferenceCompositionState = DraftComposition & {
+  is_current: boolean;
+  published_at: string | null;
+};
+
 type CurrentEditorial = {
   id: string;
   title: string | null;
@@ -122,6 +127,14 @@ async function readDraftComposition(compositionId: string, matchdayId: string) {
     `matchday_reference_compositions?select=id,matchday_id,status,use_roundup_items&id=eq.${encodeURIComponent(
       compositionId
     )}&matchday_id=eq.${encodeURIComponent(matchdayId)}&status=eq.draft`
+  );
+}
+
+async function readReferenceCompositionState(compositionId: string, matchdayId: string) {
+  return readFirst<ReferenceCompositionState>(
+    `matchday_reference_compositions?select=id,matchday_id,status,use_roundup_items,is_current,published_at&id=eq.${encodeURIComponent(
+      compositionId
+    )}&matchday_id=eq.${encodeURIComponent(matchdayId)}`
   );
 }
 
@@ -346,6 +359,46 @@ async function saveCurrentPageState(formData: FormData) {
   }
 }
 
+async function publishReferenceComposition(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const compositionId = cleanText(formData.get("composition_id"));
+  if (!matchdayId || !compositionId) throw new Error("composition-invalid");
+
+  const composition = await readReferenceCompositionState(compositionId, matchdayId);
+  if (!composition) throw new Error("composition-invalid");
+  if (composition.status === "published") return;
+  if (composition.status !== "draft") throw new Error("composition-invalid");
+
+  const hasItems = await hasRows(
+    `matchday_reference_composition_items?select=id&composition_id=eq.${encodeURIComponent(composition.id)}`
+  );
+  if (!hasItems) throw new Error("composition-empty");
+
+  await writeSupabaseAdmin(
+    `matchday_reference_compositions?matchday_id=eq.${encodeURIComponent(matchdayId)}&id=neq.${encodeURIComponent(
+      composition.id
+    )}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ is_current: false })
+    }
+  );
+
+  const now = new Date().toISOString();
+  await writeSupabaseAdmin(
+    `matchday_reference_compositions?id=eq.${encodeURIComponent(composition.id)}&matchday_id=eq.${encodeURIComponent(matchdayId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        status: "published",
+        is_current: true,
+        published_at: now,
+        updated_at: now
+      })
+    }
+  );
+}
+
 export async function POST(request: Request) {
   if (!getSupabaseServiceConfig()) return redirectTo(request, "/admin?error=missing-service");
   const formData = await request.formData();
@@ -360,6 +413,7 @@ export async function POST(request: Request) {
     else if (actionType === "add_item") await addItem(formData);
     else if (actionType === "remove_item") await removeItem(formData);
     else if (actionType === "save_current_page_state") await saveCurrentPageState(formData);
+    else if (actionType === "publish_reference_composition") await publishReferenceComposition(formData);
     else throw new Error("unknown-action");
   } catch {
     return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}composition_error=1`);
