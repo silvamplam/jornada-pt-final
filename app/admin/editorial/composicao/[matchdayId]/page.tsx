@@ -96,6 +96,39 @@ function makeCompositionItemKey(item: ReferenceCompositionItem) {
   });
 }
 
+const referenceCompositionSections = [
+  { slotType: "headline", title: "Manchete" },
+  { slotType: "complement", title: "Complemento da manchete" },
+  { slotType: "side_block", title: "Bloco lateral" },
+  { slotType: "highlight", title: "Destaques" },
+  { slotType: "editorial_line_item", title: "Zona editorial final" },
+  { slotType: "related_article", title: "Artigos / notícias relacionados" },
+  { slotType: "roundup", title: "Resumo / vídeos" },
+  { slotType: "custom_card", title: "Cartões manuais" }
+];
+
+function groupCompositionItemsBySection(items: ReferenceCompositionItem[]) {
+  const orderedItems = [...items].sort((a, b) => a.sort_order - b.sort_order);
+  const knownSlotTypes = new Set(referenceCompositionSections.map((section) => section.slotType));
+  const sections = referenceCompositionSections
+    .map((section) => ({
+      ...section,
+      items: orderedItems.filter((item) => item.slot_type === section.slotType)
+    }))
+    .filter((section) => section.items.length > 0);
+  const otherItems = orderedItems.filter((item) => !knownSlotTypes.has(item.slot_type));
+
+  if (otherItems.length > 0) {
+    sections.push({
+      slotType: "other",
+      title: "Outros itens",
+      items: otherItems
+    });
+  }
+
+  return sections;
+}
+
 const compositionPageStyles = `
   body {
     margin: 0;
@@ -246,6 +279,42 @@ const compositionPageStyles = `
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+  }
+
+  .composition-admin-section-list {
+    display: grid;
+    gap: 14px;
+  }
+
+  .composition-admin-section {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid #e3e9f0;
+    border-radius: 6px;
+    background: #f8fafc;
+  }
+
+  .composition-admin-section-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .composition-admin-section-heading h4 {
+    margin: 0;
+    color: #10151b;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .composition-admin-section-heading span {
+    color: #607086;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
   }
 
   .composition-admin-item {
@@ -820,6 +889,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
   const compositionItems = await readReferenceCompositionItems(draftComposition?.id);
   const returnTo = `/admin/editorial/composicao/${matchday.id}`;
   const nextSortOrder = compositionItems.length + 1;
+  const groupedCompositionItems = groupCompositionItemsBySection(compositionItems);
   const addedCandidateKeys = new Set(compositionItems.map(makeCompositionItemKey));
   const isCandidateAdded = (slotType: string, sourceType: string, sourceId?: string | null, articleId?: string | null) =>
     addedCandidateKeys.has(makeCandidateKey({ slotType, sourceType, sourceId, articleId }));
@@ -977,25 +1047,37 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
 
             <Card title="Itens já adicionados">
               {draftComposition && compositionItems.length > 0 ? (
-                <div className="composition-admin-grid">
-                  {compositionItems.map((item) => (
-                    <ItemCard
-                      key={item.id}
-                      imageUrl={item.image_url_snapshot}
-                      label={item.label_snapshot || item.slot_type}
-                      title={item.title_snapshot}
-                      subtitle={item.subtitle_snapshot}
-                      linkUrl={item.link_url_snapshot}
-                      meta={[
-                        `Ordem ${item.sort_order}`,
-                        `Bloco: ${item.slot_type}`,
-                        `Fonte: ${item.source_type}`,
-                        item.article_id ? `Artigo: ${item.article_id}` : null,
-                        statusLabel(item.status)
-                      ]}
-                    >
-                      <RemoveItemForm composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
-                    </ItemCard>
+                <div className="composition-admin-section-list">
+                  {groupedCompositionItems.map((section) => (
+                    <section className="composition-admin-section" key={section.slotType}>
+                      <div className="composition-admin-section-heading">
+                        <h4>{section.title}</h4>
+                        <span>
+                          {section.items.length} {section.items.length === 1 ? "item" : "itens"}
+                        </span>
+                      </div>
+                      <div className="composition-admin-grid">
+                        {section.items.map((item) => (
+                          <ItemCard
+                            key={item.id}
+                            imageUrl={item.image_url_snapshot}
+                            label={item.label_snapshot || item.slot_type}
+                            title={item.title_snapshot}
+                            subtitle={item.subtitle_snapshot}
+                            linkUrl={item.link_url_snapshot}
+                            meta={[
+                              `Ordem ${item.sort_order}`,
+                              `Bloco: ${item.slot_type}`,
+                              `Fonte: ${item.source_type}`,
+                              item.article_id ? `Artigo: ${item.article_id}` : null,
+                              statusLabel(item.status)
+                            ]}
+                          >
+                            <RemoveItemForm composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
+                          </ItemCard>
+                        ))}
+                      </div>
+                    </section>
                   ))}
                 </div>
               ) : (
