@@ -172,6 +172,14 @@ function compositionItemMatchesCandidate(
     originSlotType?: string | null;
   }
 ) {
+  if (isMatchdayEditorialSource(sourceType)) {
+    if (!sourceId || !originSlotType || !isMatchdayEditorialSource(item.source_type) || !item.source_id) {
+      return false;
+    }
+
+    return item.source_id === sourceId && matchdayEditorialOriginSlot(item) === originSlotType;
+  }
+
   if (articleId && item.article_id && item.article_id === articleId) {
     return true;
   }
@@ -184,16 +192,8 @@ function compositionItemMatchesCandidate(
   }
 
   if (sourceType && sourceId && item.source_type && item.source_id) {
-    if (isMatchdayEditorialSource(sourceType) || isMatchdayEditorialSource(item.source_type)) {
-      const itemOriginSlotType = matchdayEditorialOriginSlot(item);
-
-      return (
-        isMatchdayEditorialSource(sourceType) &&
-        isMatchdayEditorialSource(item.source_type) &&
-        item.source_id === sourceId &&
-        Boolean(originSlotType) &&
-        itemOriginSlotType === originSlotType
-      );
+    if (isMatchdayEditorialSource(item.source_type)) {
+      return false;
     }
 
     return item.source_type === sourceType && item.source_id === sourceId;
