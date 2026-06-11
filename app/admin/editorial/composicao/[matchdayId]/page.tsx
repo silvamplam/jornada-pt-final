@@ -317,6 +317,48 @@ const compositionPageStyles = `
     text-transform: uppercase;
   }
 
+  .composition-admin-candidates {
+    overflow: hidden;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #ffffff;
+  }
+
+  .composition-admin-candidates summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid #edf1f5;
+    cursor: pointer;
+    color: #10151b;
+    font-size: 15px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .composition-admin-candidates summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .composition-admin-candidates summary::after {
+    content: "Abrir";
+    color: #607086;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .composition-admin-candidates[open] summary::after {
+    content: "Fechar";
+  }
+
+  .composition-admin-candidates-body {
+    display: grid;
+    gap: 14px;
+    padding: 14px;
+  }
+
   .composition-admin-item {
     display: grid;
     gap: 8px;
@@ -1118,237 +1160,242 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
               )}
             </Card>
 
-            <Card title="Manchete candidata">
-              {editorial ? (
-                <ItemCard
-                  imageUrl={editorial.image_url}
-                  title={editorial.title}
-                  subtitle={editorial.summary}
-                  linkUrl={editorial.headline_link_url}
-                  alreadyAdded={isCandidateAdded("headline", "matchday_editorial", editorial.id)}
-                  meta={["Fonte: matchday_editorials", statusLabel(editorial.status)]}
-                >
-                  <AddCandidateForm
-                    composition={draftComposition}
-                    matchdayId={matchday.id}
-                    returnTo={returnTo}
-                    sortOrder={nextSortOrder}
-                    slotType="headline"
-                    sourceType="matchday_editorial"
-                    sourceId={editorial.id}
-                    title={editorial.title}
-                    subtitle={editorial.summary}
-                    imageUrl={editorial.image_url}
-                    linkUrl={editorial.headline_link_url}
-                    label="Manchete"
-                    alreadyAdded={isCandidateAdded("headline", "matchday_editorial", editorial.id)}
+            <details className="composition-admin-candidates" open={compositionItems.length === 0}>
+              <summary>Candidatos disponíveis</summary>
+              <div className="composition-admin-candidates-body">
+                <Card title="Manchete candidata">
+                  {editorial ? (
+                    <ItemCard
+                      imageUrl={editorial.image_url}
+                      title={editorial.title}
+                      subtitle={editorial.summary}
+                      linkUrl={editorial.headline_link_url}
+                      alreadyAdded={isCandidateAdded("headline", "matchday_editorial", editorial.id)}
+                      meta={["Fonte: matchday_editorials", statusLabel(editorial.status)]}
+                    >
+                      <AddCandidateForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        slotType="headline"
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.title}
+                        subtitle={editorial.summary}
+                        imageUrl={editorial.image_url}
+                        linkUrl={editorial.headline_link_url}
+                        label="Manchete"
+                        alreadyAdded={isCandidateAdded("headline", "matchday_editorial", editorial.id)}
+                      />
+                    </ItemCard>
+                  ) : (
+                    <EmptyState>Não há manchete candidata guardada.</EmptyState>
+                  )}
+                </Card>
+
+                <Card title="Bloco lateral candidato">
+                  {editorial?.side_block_title || editorial?.side_block_text || editorial?.side_block_image_url ? (
+                    <ItemCard
+                      imageUrl={editorial?.side_block_image_url}
+                      label={editorial?.side_block_label || editorial?.side_block_type}
+                      title={editorial?.side_block_title}
+                      subtitle={editorial?.side_block_text}
+                      linkUrl={editorial?.side_block_link_url}
+                      alreadyAdded={isCandidateAdded("side_block", "matchday_editorial", editorial.id)}
+                      meta={["Fonte: matchday_editorials", statusLabel(editorial?.side_block_status)]}
+                    >
+                      <AddCandidateForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        slotType="side_block"
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.side_block_title}
+                        subtitle={editorial.side_block_text}
+                        imageUrl={editorial.side_block_image_url}
+                        linkUrl={editorial.side_block_link_url}
+                        label={editorial.side_block_label || editorial.side_block_type}
+                        alreadyAdded={isCandidateAdded("side_block", "matchday_editorial", editorial.id)}
+                      />
+                    </ItemCard>
+                  ) : (
+                    <EmptyState>Não há bloco lateral candidato guardado.</EmptyState>
+                  )}
+                </Card>
+
+                <Card title="Complemento candidato">
+                  {editorial?.complementary_title || editorial?.complementary_text || editorial?.complementary_image_url ? (
+                    <ItemCard
+                      imageUrl={editorial?.complementary_image_url}
+                      label={editorial?.complementary_label}
+                      title={editorial?.complementary_title}
+                      subtitle={editorial?.complementary_text}
+                      linkUrl={editorial?.complementary_link_url}
+                      alreadyAdded={isCandidateAdded("complement", "matchday_editorial", editorial.id)}
+                      meta={["Fonte: matchday_editorials", statusLabel(editorial?.complementary_status)]}
+                    >
+                      <AddCandidateForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        slotType="complement"
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.complementary_title}
+                        subtitle={editorial.complementary_text}
+                        imageUrl={editorial.complementary_image_url}
+                        linkUrl={editorial.complementary_link_url}
+                        label={editorial.complementary_label}
+                        alreadyAdded={isCandidateAdded("complement", "matchday_editorial", editorial.id)}
+                      />
+                    </ItemCard>
+                  ) : (
+                    <EmptyState>Não há complemento candidato guardado.</EmptyState>
+                  )}
+                </Card>
+
+                <Card title="Destaques candidatos">
+                  <ItemsGrid
+                    items={publishedHighlights.length > 0 ? publishedHighlights : highlights}
+                    empty="Não há destaques candidatos."
+                    render={(item) => (
+                      <ItemCard
+                        key={item.id}
+                        imageUrl={item.image_url}
+                        label={item.label}
+                        title={item.title}
+                        alreadyAdded={isCandidateAdded("highlight", "matchday_highlight", item.id)}
+                        meta={["Fonte: matchday_highlights", `Posicao ${item.sort_order}`, statusLabel(item.status)]}
+                      >
+                        <AddCandidateForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          slotType="highlight"
+                          sourceType="matchday_highlight"
+                          sourceId={item.id}
+                          title={item.title}
+                          imageUrl={item.image_url}
+                          label={item.label}
+                          alreadyAdded={isCandidateAdded("highlight", "matchday_highlight", item.id)}
+                        />
+                      </ItemCard>
+                    )}
                   />
-                </ItemCard>
-              ) : (
-                <EmptyState>Não há manchete candidata guardada.</EmptyState>
-              )}
-            </Card>
+                </Card>
 
-            <Card title="Bloco lateral candidato">
-              {editorial?.side_block_title || editorial?.side_block_text || editorial?.side_block_image_url ? (
-                <ItemCard
-                  imageUrl={editorial?.side_block_image_url}
-                  label={editorial?.side_block_label || editorial?.side_block_type}
-                  title={editorial?.side_block_title}
-                  subtitle={editorial?.side_block_text}
-                  linkUrl={editorial?.side_block_link_url}
-                  alreadyAdded={isCandidateAdded("side_block", "matchday_editorial", editorial.id)}
-                  meta={["Fonte: matchday_editorials", statusLabel(editorial?.side_block_status)]}
-                >
-                  <AddCandidateForm
-                    composition={draftComposition}
-                    matchdayId={matchday.id}
-                    returnTo={returnTo}
-                    sortOrder={nextSortOrder}
-                    slotType="side_block"
-                    sourceType="matchday_editorial"
-                    sourceId={editorial.id}
-                    title={editorial.side_block_title}
-                    subtitle={editorial.side_block_text}
-                    imageUrl={editorial.side_block_image_url}
-                    linkUrl={editorial.side_block_link_url}
-                    label={editorial.side_block_label || editorial.side_block_type}
-                    alreadyAdded={isCandidateAdded("side_block", "matchday_editorial", editorial.id)}
+                <Card title="Cartões disponíveis da Zona editorial final">
+                  <ItemsGrid
+                    items={publishedLatestNews.length > 0 ? publishedLatestNews : latestNews}
+                    empty="Não há cartões disponíveis na zona editorial final."
+                    render={(item) => (
+                      <ItemCard
+                        key={item.id}
+                        imageUrl={item.image_url}
+                        label={item.time_label}
+                        title={item.title}
+                        subtitle={item.subtitle}
+                        linkUrl={item.link_url}
+                        alreadyAdded={isCandidateAdded("editorial_line_item", "matchday_latest_news", item.id, item.article_id)}
+                        meta={["Fonte: matchday_latest_news", `Posicao ${item.sort_order}`, item.article_id ? `Artigo: ${item.article_id}` : null, statusLabel(item.status)]}
+                      >
+                        <AddCandidateForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          slotType="editorial_line_item"
+                          sourceType="matchday_latest_news"
+                          sourceId={item.id}
+                          articleId={item.article_id}
+                          title={item.title}
+                          subtitle={item.subtitle}
+                          imageUrl={item.image_url}
+                          linkUrl={item.link_url}
+                          label={item.time_label}
+                          alreadyAdded={isCandidateAdded("editorial_line_item", "matchday_latest_news", item.id, item.article_id)}
+                        />
+                      </ItemCard>
+                    )}
                   />
-                </ItemCard>
-              ) : (
-                <EmptyState>Não há bloco lateral candidato guardado.</EmptyState>
-              )}
-            </Card>
+                </Card>
 
-            <Card title="Complemento candidato">
-              {editorial?.complementary_title || editorial?.complementary_text || editorial?.complementary_image_url ? (
-                <ItemCard
-                  imageUrl={editorial?.complementary_image_url}
-                  label={editorial?.complementary_label}
-                  title={editorial?.complementary_title}
-                  subtitle={editorial?.complementary_text}
-                  linkUrl={editorial?.complementary_link_url}
-                  alreadyAdded={isCandidateAdded("complement", "matchday_editorial", editorial.id)}
-                  meta={["Fonte: matchday_editorials", statusLabel(editorial?.complementary_status)]}
-                >
-                  <AddCandidateForm
-                    composition={draftComposition}
-                    matchdayId={matchday.id}
-                    returnTo={returnTo}
-                    sortOrder={nextSortOrder}
-                    slotType="complement"
-                    sourceType="matchday_editorial"
-                    sourceId={editorial.id}
-                    title={editorial.complementary_title}
-                    subtitle={editorial.complementary_text}
-                    imageUrl={editorial.complementary_image_url}
-                    linkUrl={editorial.complementary_link_url}
-                    label={editorial.complementary_label}
-                    alreadyAdded={isCandidateAdded("complement", "matchday_editorial", editorial.id)}
+                <Card title="Vídeos / resumo disponíveis">
+                  <ItemsGrid
+                    items={publishedRoundupItems.length > 0 ? publishedRoundupItems : roundupItems}
+                    empty="Não há vídeos ou resumos disponíveis."
+                    render={(item) => (
+                      <ItemCard
+                        key={item.id}
+                        imageUrl={item.image_url}
+                        label={item.label || item.type}
+                        title={item.title}
+                        subtitle={item.subtitle}
+                        linkUrl={item.video_url}
+                        alreadyAdded={isCandidateAdded("roundup", "matchday_roundup_item", item.id)}
+                        meta={["Fonte: matchday_roundup_items", `Posicao ${item.sort_order}`, item.duration, statusLabel(item.status)]}
+                      >
+                        <AddCandidateForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          slotType="roundup"
+                          sourceType="matchday_roundup_item"
+                          sourceId={item.id}
+                          title={item.title}
+                          subtitle={item.subtitle}
+                          imageUrl={item.image_url}
+                          linkUrl={item.video_url}
+                          label={item.label || item.type}
+                          alreadyAdded={isCandidateAdded("roundup", "matchday_roundup_item", item.id)}
+                        />
+                      </ItemCard>
+                    )}
                   />
-                </ItemCard>
-              ) : (
-                <EmptyState>Não há complemento candidato guardado.</EmptyState>
-              )}
-            </Card>
+                </Card>
 
-            <Card title="Destaques candidatos">
-              <ItemsGrid
-                items={publishedHighlights.length > 0 ? publishedHighlights : highlights}
-                empty="Não há destaques candidatos."
-                render={(item) => (
-                  <ItemCard
-                    key={item.id}
-                    imageUrl={item.image_url}
-                    label={item.label}
-                    title={item.title}
-                    alreadyAdded={isCandidateAdded("highlight", "matchday_highlight", item.id)}
-                    meta={["Fonte: matchday_highlights", `Posicao ${item.sort_order}`, statusLabel(item.status)]}
-                  >
-                    <AddCandidateForm
-                      composition={draftComposition}
-                      matchdayId={matchday.id}
-                      returnTo={returnTo}
-                      sortOrder={nextSortOrder}
-                      slotType="highlight"
-                      sourceType="matchday_highlight"
-                      sourceId={item.id}
-                      title={item.title}
-                      imageUrl={item.image_url}
-                      label={item.label}
-                      alreadyAdded={isCandidateAdded("highlight", "matchday_highlight", item.id)}
-                    />
-                  </ItemCard>
-                )}
-              />
-            </Card>
-
-            <Card title="Cartões disponíveis da Zona editorial final">
-              <ItemsGrid
-                items={publishedLatestNews.length > 0 ? publishedLatestNews : latestNews}
-                empty="Não há cartões disponíveis na zona editorial final."
-                render={(item) => (
-                  <ItemCard
-                    key={item.id}
-                    imageUrl={item.image_url}
-                    label={item.time_label}
-                    title={item.title}
-                    subtitle={item.subtitle}
-                    linkUrl={item.link_url}
-                    alreadyAdded={isCandidateAdded("editorial_line_item", "matchday_latest_news", item.id, item.article_id)}
-                    meta={["Fonte: matchday_latest_news", `Posicao ${item.sort_order}`, item.article_id ? `Artigo: ${item.article_id}` : null, statusLabel(item.status)]}
-                  >
-                    <AddCandidateForm
-                      composition={draftComposition}
-                      matchdayId={matchday.id}
-                      returnTo={returnTo}
-                      sortOrder={nextSortOrder}
-                      slotType="editorial_line_item"
-                      sourceType="matchday_latest_news"
-                      sourceId={item.id}
-                      articleId={item.article_id}
-                      title={item.title}
-                      subtitle={item.subtitle}
-                      imageUrl={item.image_url}
-                      linkUrl={item.link_url}
-                      label={item.time_label}
-                      alreadyAdded={isCandidateAdded("editorial_line_item", "matchday_latest_news", item.id, item.article_id)}
-                    />
-                  </ItemCard>
-                )}
-              />
-            </Card>
-
-            <Card title="Vídeos / resumo disponíveis">
-              <ItemsGrid
-                items={publishedRoundupItems.length > 0 ? publishedRoundupItems : roundupItems}
-                empty="Não há vídeos ou resumos disponíveis."
-                render={(item) => (
-                  <ItemCard
-                    key={item.id}
-                    imageUrl={item.image_url}
-                    label={item.label || item.type}
-                    title={item.title}
-                    subtitle={item.subtitle}
-                    linkUrl={item.video_url}
-                    alreadyAdded={isCandidateAdded("roundup", "matchday_roundup_item", item.id)}
-                    meta={["Fonte: matchday_roundup_items", `Posicao ${item.sort_order}`, item.duration, statusLabel(item.status)]}
-                  >
-                    <AddCandidateForm
-                      composition={draftComposition}
-                      matchdayId={matchday.id}
-                      returnTo={returnTo}
-                      sortOrder={nextSortOrder}
-                      slotType="roundup"
-                      sourceType="matchday_roundup_item"
-                      sourceId={item.id}
-                      title={item.title}
-                      subtitle={item.subtitle}
-                      imageUrl={item.image_url}
-                      linkUrl={item.video_url}
-                      label={item.label || item.type}
-                      alreadyAdded={isCandidateAdded("roundup", "matchday_roundup_item", item.id)}
-                    />
-                  </ItemCard>
-                )}
-              />
-            </Card>
-
-            <Card title="Artigos / notícias relacionados">
-              <ItemsGrid
-                items={publishedArticles.length > 0 ? publishedArticles : articles}
-                empty="Não há artigos relacionados de forma direta com esta jornada."
-                render={(item) => (
-                  <ItemCard
-                    key={item.id}
-                    imageUrl={item.image_url}
-                    title={item.title}
-                    subtitle={item.summary}
-                    linkUrl={item.source_url}
-                    alreadyAdded={isCandidateAdded("related_article", "article", item.id, item.id)}
-                    meta={["Fonte: articles", statusLabel(item.status), item.published_at ? `Publicado: ${new Date(item.published_at).toLocaleDateString("pt-PT")}` : null]}
-                  >
-                    <AddCandidateForm
-                      composition={draftComposition}
-                      matchdayId={matchday.id}
-                      returnTo={returnTo}
-                      sortOrder={nextSortOrder}
-                      slotType="related_article"
-                      sourceType="article"
-                      sourceId={item.id}
-                      articleId={item.id}
-                      title={item.title}
-                      subtitle={item.summary}
-                      imageUrl={item.image_url}
-                      linkUrl={item.source_url}
-                      label="Artigo / notícia"
-                      alreadyAdded={isCandidateAdded("related_article", "article", item.id, item.id)}
-                    />
-                  </ItemCard>
-                )}
-              />
-            </Card>
+                <Card title="Artigos / notícias relacionados">
+                  <ItemsGrid
+                    items={publishedArticles.length > 0 ? publishedArticles : articles}
+                    empty="Não há artigos relacionados de forma direta com esta jornada."
+                    render={(item) => (
+                      <ItemCard
+                        key={item.id}
+                        imageUrl={item.image_url}
+                        title={item.title}
+                        subtitle={item.summary}
+                        linkUrl={item.source_url}
+                        alreadyAdded={isCandidateAdded("related_article", "article", item.id, item.id)}
+                        meta={["Fonte: articles", statusLabel(item.status), item.published_at ? `Publicado: ${new Date(item.published_at).toLocaleDateString("pt-PT")}` : null]}
+                      >
+                        <AddCandidateForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          slotType="related_article"
+                          sourceType="article"
+                          sourceId={item.id}
+                          articleId={item.id}
+                          title={item.title}
+                          subtitle={item.summary}
+                          imageUrl={item.image_url}
+                          linkUrl={item.source_url}
+                          label="Artigo / notícia"
+                          alreadyAdded={isCandidateAdded("related_article", "article", item.id, item.id)}
+                        />
+                      </ItemCard>
+                    )}
+                  />
+                </Card>
+              </div>
+            </details>
           </div>
         </section>
       </div>
