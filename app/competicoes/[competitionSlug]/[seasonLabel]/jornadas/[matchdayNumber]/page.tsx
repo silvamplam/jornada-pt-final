@@ -1188,6 +1188,20 @@ const publicMatchdayStyles = `
     text-underline-offset: 3px;
   }
 
+  .public-cover-story-open-link {
+    color: #c40012;
+    font-size: 11px;
+    font-weight: 900;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .public-cover-story-open-link:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+
   .public-matchday-main-lower:has(.public-below-headline-highlights) .public-below-headline-side {
     padding-top: 22px;
   }
@@ -2849,6 +2863,11 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                         ) : (
                           <strong>{highlight.title}</strong>
                         )}
+                        {highlightLinkUrl ? (
+                          <a className="public-cover-story-open-link" href={highlightLinkUrl}>
+                            Abrir link
+                          </a>
+                        ) : null}
                       </article>
                     );
                   })
