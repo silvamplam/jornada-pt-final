@@ -369,6 +369,16 @@ const compositionPageStyles = `
     background: #ffffff;
   }
 
+  .composition-admin-video-item {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #d9e1ea;
+    border-radius: 6px;
+    background: #fbfcfe;
+  }
+
   .composition-admin-image {
     width: 100%;
     aspect-ratio: 16 / 9;
@@ -723,6 +733,44 @@ function ItemCard({
   );
 }
 
+function RoundupItemCard({
+  label,
+  title,
+  subtitle,
+  linkUrl,
+  alreadyAdded,
+  meta,
+  children
+}: {
+  label?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  linkUrl?: string | null;
+  alreadyAdded?: boolean;
+  meta?: Array<string | null | undefined>;
+  children?: ReactNode;
+}) {
+  const visibleMeta = meta?.filter((item): item is string => Boolean(item)) ?? [];
+
+  return (
+    <article className="composition-admin-video-item">
+      {textOrEmpty(label) ? <span className="composition-admin-label">{label}</span> : null}
+      {alreadyAdded ? <span className="composition-admin-added-badge">Já adicionada à composição</span> : null}
+      {textOrEmpty(title) ? <strong className="composition-admin-title">{title}</strong> : null}
+      {textOrEmpty(subtitle) ? <p className="composition-admin-copy">{subtitle}</p> : null}
+      {visibleMeta.length > 0 ? (
+        <div className="composition-admin-meta">
+          {visibleMeta.map((item) => (
+            <span key={item}>{item}</span>
+          ))}
+        </div>
+      ) : null}
+      <FieldLink href={linkUrl} />
+      {children}
+    </article>
+  );
+}
+
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="composition-admin-card">
@@ -1057,9 +1105,8 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                 items={roundupItems}
                 empty="Não existem itens de resumo ou vídeo."
                 render={(item) => (
-                  <ItemCard
+                  <RoundupItemCard
                     key={item.id}
-                    imageUrl={item.image_url}
                     label={item.label || item.type}
                     title={item.title}
                     subtitle={item.subtitle}
@@ -1128,25 +1175,44 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         </span>
                       </div>
                       <div className="composition-admin-grid">
-                        {section.items.map((item) => (
-                          <ItemCard
-                            key={item.id}
-                            imageUrl={item.image_url_snapshot}
-                            label={item.label_snapshot || item.slot_type}
-                            title={item.title_snapshot}
-                            subtitle={item.subtitle_snapshot}
-                            linkUrl={item.link_url_snapshot}
-                            meta={[
-                              `Ordem ${item.sort_order}`,
-                              `Bloco: ${item.slot_type}`,
-                              `Fonte: ${item.source_type}`,
-                              item.article_id ? `Artigo: ${item.article_id}` : null,
-                              statusLabel(item.status)
-                            ]}
-                          >
-                            <RemoveItemForm composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
-                          </ItemCard>
-                        ))}
+                        {section.items.map((item) => {
+                          const itemMeta = [
+                            `Ordem ${item.sort_order}`,
+                            `Bloco: ${item.slot_type}`,
+                            `Fonte: ${item.source_type}`,
+                            item.article_id ? `Artigo: ${item.article_id}` : null,
+                            statusLabel(item.status)
+                          ];
+
+                          if (item.slot_type === "roundup") {
+                            return (
+                              <RoundupItemCard
+                                key={item.id}
+                                label={item.label_snapshot || item.slot_type}
+                                title={item.title_snapshot}
+                                subtitle={item.subtitle_snapshot}
+                                linkUrl={item.link_url_snapshot}
+                                meta={itemMeta}
+                              >
+                                <RemoveItemForm composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
+                              </RoundupItemCard>
+                            );
+                          }
+
+                          return (
+                            <ItemCard
+                              key={item.id}
+                              imageUrl={item.image_url_snapshot}
+                              label={item.label_snapshot || item.slot_type}
+                              title={item.title_snapshot}
+                              subtitle={item.subtitle_snapshot}
+                              linkUrl={item.link_url_snapshot}
+                              meta={itemMeta}
+                            >
+                              <RemoveItemForm composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
+                            </ItemCard>
+                          );
+                        })}
                       </div>
                     </section>
                   ))}
@@ -1330,9 +1396,8 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                     items={publishedRoundupItems.length > 0 ? publishedRoundupItems : roundupItems}
                     empty="Não há vídeos ou resumos disponíveis."
                     render={(item) => (
-                      <ItemCard
+                      <RoundupItemCard
                         key={item.id}
-                        imageUrl={item.image_url}
                         label={item.label || item.type}
                         title={item.title}
                         subtitle={item.subtitle}
@@ -1355,7 +1420,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           label={item.label || item.type}
                           alreadyAdded={isCandidateAdded("roundup", "matchday_roundup_item", item.id)}
                         />
-                      </ItemCard>
+                      </RoundupItemCard>
                     )}
                   />
                 </Card>
