@@ -39,6 +39,10 @@ export type PublicReferenceCompositionItem = {
 
 export type PublicReferenceCompositionSlots = Record<string, PublicReferenceCompositionItem[]>;
 
+export type PublicMatchdayHighlight = SupabaseMatchdayHighlight & {
+  link_url?: string | null;
+};
+
 export type PublicMatchdayContext = {
   competition: SupabaseCompetition;
   season: SupabaseSeason;
@@ -49,13 +53,15 @@ export type PublicMatchdayContext = {
   matchesForSeason: PublicSeasonMatch[];
   matchesForMatchday: PublicSeasonMatch[];
   editorial: SupabaseMatchdayEditorial | null;
-  highlights: SupabaseMatchdayHighlight[];
+  highlights: PublicMatchdayHighlight[];
   roundupItems: SupabaseMatchdayRoundupItem[];
   latestNews: SupabaseMatchdayLatestNews[];
   referenceComposition: PublicReferenceComposition | null;
   referenceCompositionItems: PublicReferenceCompositionItem[];
   referenceSlots: PublicReferenceCompositionSlots;
+  referenceRoundupItems: SupabaseMatchdayRoundupItem[];
   hasPublishedReferenceComposition: boolean;
+  hasReferenceRoundupItems: boolean;
 };
 
 export type PublicMatchdayDiagnostic = {
@@ -159,8 +165,8 @@ async function readMatchdayEditorial(matchdayId: string) {
 
 async function readPublishedMatchdayHighlights(matchdayId: string) {
   try {
-    return fetchSupabaseAdminTable<SupabaseMatchdayHighlight>(
-      `matchday_highlights?select=id,matchday_id,label,title,image_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+    return fetchSupabaseAdminTable<PublicMatchdayHighlight>(
+      `matchday_highlights?select=id,matchday_id,label,title,image_url,link_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}&status=eq.published&order=sort_order.asc&limit=3`
     );
@@ -209,6 +215,68 @@ function groupReferenceCompositionSlots(items: PublicReferenceCompositionItem[])
   }, {});
 }
 
+function cleanReferenceSnapshotText(value?: string | null) {
+  const trimmed = value?.trim();
+  return trimmed || null;
+}
+
+function normalizeRoundupType(value?: string | null): SupabaseMatchdayRoundupItem["type"] {
+  if (value === "video" || value === "golos" || value === "resumo" || value === "noticia") {
+    return value;
+  }
+
+  return "video";
+}
+
+async function readRoundupItemsByIds(matchdayId: string, ids: string[]) {
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+
+  if (uniqueIds.length === 0) {
+    return [];
+  }
+
+  try {
+    return fetchSupabaseAdminTable<SupabaseMatchdayRoundupItem>(
+      `matchday_roundup_items?select=id,matchday_id,label,title,subtitle,image_url,video_url,duration,type,sort_order,status,created_at,updated_at&id=in.(${idList(
+        uniqueIds
+      )})&matchday_id=eq.${encodeURIComponent(matchdayId)}&limit=200`
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function buildReferenceRoundupItems(matchdayId: string, referenceItems: PublicReferenceCompositionItem[]) {
+  const roundupReferenceItems = referenceItems
+    .filter((item) => item.slot_type === "roundup")
+    .sort((a, b) => a.sort_order - b.sort_order);
+  const sourceIds = roundupReferenceItems
+    .filter((item) => item.source_type === "matchday_roundup_item" && Boolean(item.source_id))
+    .map((item) => item.source_id as string);
+  const sourceRoundupItems = await readRoundupItemsByIds(matchdayId, sourceIds);
+  const sourceRoundupItemsById = byId(sourceRoundupItems);
+
+  return roundupReferenceItems.map((item): SupabaseMatchdayRoundupItem => {
+    const sourceItem = item.source_id ? sourceRoundupItemsById.get(item.source_id) ?? null : null;
+
+    return {
+      id: item.source_id || item.id,
+      matchday_id: sourceItem?.matchday_id ?? matchdayId,
+      label: cleanReferenceSnapshotText(item.label_snapshot) ?? sourceItem?.label ?? null,
+      title: cleanReferenceSnapshotText(item.title_snapshot) ?? sourceItem?.title ?? null,
+      subtitle: cleanReferenceSnapshotText(item.subtitle_snapshot) ?? sourceItem?.subtitle ?? null,
+      image_url: cleanReferenceSnapshotText(item.image_url_snapshot) ?? sourceItem?.image_url ?? null,
+      video_url: cleanReferenceSnapshotText(item.link_url_snapshot) ?? sourceItem?.video_url ?? null,
+      duration: sourceItem?.duration ?? null,
+      type: normalizeRoundupType(sourceItem?.type ?? item.label_snapshot),
+      sort_order: item.sort_order,
+      status: sourceItem?.status ?? "published",
+      created_at: sourceItem?.created_at ?? "",
+      updated_at: sourceItem?.updated_at ?? ""
+    };
+  });
+}
+
 async function readPublishedReferenceCompositionBundle(matchdayId: string) {
   try {
     const compositions = await fetchSupabaseAdminTable<PublicReferenceComposition>(
@@ -223,7 +291,9 @@ async function readPublishedReferenceCompositionBundle(matchdayId: string) {
         referenceComposition: null,
         referenceCompositionItems: [],
         referenceSlots: {},
-        hasPublishedReferenceComposition: false
+        referenceRoundupItems: [],
+        hasPublishedReferenceComposition: false,
+        hasReferenceRoundupItems: false
       };
     }
 
@@ -232,19 +302,25 @@ async function readPublishedReferenceCompositionBundle(matchdayId: string) {
         referenceComposition.id
       )}&order=sort_order.asc&limit=200`
     );
+    const referenceSlots = groupReferenceCompositionSlots(referenceCompositionItems);
+    const referenceRoundupItems = await buildReferenceRoundupItems(matchdayId, referenceSlots.roundup ?? []);
 
     return {
       referenceComposition,
       referenceCompositionItems,
-      referenceSlots: groupReferenceCompositionSlots(referenceCompositionItems),
-      hasPublishedReferenceComposition: true
+      referenceSlots,
+      referenceRoundupItems,
+      hasPublishedReferenceComposition: true,
+      hasReferenceRoundupItems: referenceRoundupItems.length > 0
     };
   } catch {
     return {
       referenceComposition: null,
       referenceCompositionItems: [],
       referenceSlots: {},
-      hasPublishedReferenceComposition: false
+      referenceRoundupItems: [],
+      hasPublishedReferenceComposition: false,
+      hasReferenceRoundupItems: false
     };
   }
 }
@@ -475,7 +551,9 @@ export async function getPublicMatchdayDiagnostic({
         referenceComposition: referenceCompositionBundle.referenceComposition,
         referenceCompositionItems: referenceCompositionBundle.referenceCompositionItems,
         referenceSlots: referenceCompositionBundle.referenceSlots,
-        hasPublishedReferenceComposition: referenceCompositionBundle.hasPublishedReferenceComposition
+        referenceRoundupItems: referenceCompositionBundle.referenceRoundupItems,
+        hasPublishedReferenceComposition: referenceCompositionBundle.hasPublishedReferenceComposition,
+        hasReferenceRoundupItems: referenceCompositionBundle.hasReferenceRoundupItems
       },
       diagnostic: {
         ...baseDiagnostic,

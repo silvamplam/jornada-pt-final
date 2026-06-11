@@ -1172,6 +1172,22 @@ const publicMatchdayStyles = `
     line-height: 1.15;
   }
 
+  .public-highlight-image-link,
+  .public-cover-story-title-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .public-highlight-image-link {
+    display: block;
+  }
+
+  .public-cover-story-title-link:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+
   .public-matchday-main-lower:has(.public-below-headline-highlights) .public-below-headline-side {
     padding-top: 22px;
   }
@@ -2523,6 +2539,12 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
   const referenceComplement = usePublishedReferenceComposition ? firstReferenceSlotItem(context.referenceSlots.complement) : null;
   const referenceSideBlock = usePublishedReferenceComposition ? firstReferenceSlotItem(context.referenceSlots.side_block) : null;
   const referenceEditorialLineItems = usePublishedReferenceComposition ? context.referenceSlots.editorial_line_item ?? [] : [];
+  const useReferenceRoundupItems = usePublishedReferenceComposition && context.hasReferenceRoundupItems;
+  const effectiveRoundupItems = useReferenceRoundupItems
+    ? context.referenceRoundupItems
+    : usePublishedReferenceComposition
+      ? []
+      : context.roundupItems;
   const headlineTitle = referenceHeadline
     ? cleanReferenceSnapshotText(referenceHeadline.title_snapshot) || "Manchete da jornada"
     : publishedHeadline?.title || "Manchete da jornada";
@@ -2560,7 +2582,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
   const complementaryLinkUrl = usePublishedReferenceComposition
     ? cleanReferenceSnapshotText(referenceComplement?.link_url_snapshot)
     : editorial?.complementary_link_url?.trim() || null;
-  const hasRoundupVideoComplement = complementaryMode === "roundup_video" && context.roundupItems.length > 0;
+  const hasRoundupVideoComplement = complementaryMode === "roundup_video" && effectiveRoundupItems.length > 0;
   const sideBlockImageUrl = usePublishedReferenceComposition
     ? cleanReferenceSnapshotText(referenceSideBlock?.image_url_snapshot)
     : editorial?.side_block_image_url?.trim() || null;
@@ -2599,6 +2621,8 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
         linkUrl: item.link_url?.trim() || null
       }));
   const showLatestZone = latestNewsItems.length > 0;
+  const showBelowHeadlineEditorialStrip =
+    belowHeadlineMode === "highlights" || effectiveRoundupItems.length > 0 || !usePublishedReferenceComposition;
 
   return (
     <main className="public-matchday-shell">
@@ -2779,7 +2803,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
             <div className="public-matchday-main-lower">
               {hasRoundupVideoComplement ? (
                 <RoundupVideoSwitcher
-                  items={context.roundupItems}
+                  items={effectiveRoundupItems}
                   initialItemId={editorial?.complementary_roundup_item_id ?? null}
                   heading={editorial?.roundup_video_heading ?? null}
                   headingColor={editorial?.roundup_video_heading_color ?? null}
@@ -2787,6 +2811,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                 />
               ) : (
                 <>
+              {showBelowHeadlineEditorialStrip ? (
               <section
                 className={`public-matchday-roundup public-below-headline-${belowHeadlineMode} public-editorial-flex-block`}
                 data-editorial-slot="videos-ou-noticias"
@@ -2802,13 +2827,28 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                 context.highlights.length > 0 ? (
                   context.highlights.map((highlight) => {
                     const imageUrl = highlight.image_url?.trim();
+                    const highlightLinkUrl = highlight.link_url?.trim() || null;
                     return (
                       <article className="public-cover-story" key={highlight.id}>
-                        <div className="public-highlight-image">
-                          {imageUrl ? <img src={imageUrl} alt="" /> : null}
-                        </div>
+                        {highlightLinkUrl ? (
+                          <a className="public-highlight-image-link" href={highlightLinkUrl}>
+                            <div className="public-highlight-image">
+                              {imageUrl ? <img src={imageUrl} alt="" /> : null}
+                            </div>
+                          </a>
+                        ) : (
+                          <div className="public-highlight-image">
+                            {imageUrl ? <img src={imageUrl} alt="" /> : null}
+                          </div>
+                        )}
                         {highlight.label ? <span>{highlight.label}</span> : null}
-                        <strong>{highlight.title}</strong>
+                        {highlightLinkUrl ? (
+                          <a className="public-cover-story-title-link" href={highlightLinkUrl}>
+                            <strong>{highlight.title}</strong>
+                          </a>
+                        ) : (
+                          <strong>{highlight.title}</strong>
+                        )}
                       </article>
                     );
                   })
@@ -2846,8 +2886,8 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                     </article>
                   </>
                 )
-              ) : context.roundupItems.length > 0 ? (
-                context.roundupItems.map((item) => {
+              ) : effectiveRoundupItems.length > 0 ? (
+                effectiveRoundupItems.map((item) => {
                   const showPlay = Boolean(item.video_url) || item.type === "video" || item.type === "golos" || item.type === "resumo";
                   const imageUrl = item.image_url?.trim();
                   return (
@@ -2918,6 +2958,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
               )}
                 </div>
               </section>
+              ) : null}
               <aside className="public-matchday-cover-side public-editorial-flex-block public-below-headline-side" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar da jornada">
                 {hasPublishedComplementaryStory ? (
                   <>
