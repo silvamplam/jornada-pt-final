@@ -149,6 +149,10 @@ function canMoveToFreeNewsSlot(item: ReferenceCompositionItem) {
   return item.slot_type !== "roundup" && normalizeSourceType(item.source_type) !== "matchday_roundup_item";
 }
 
+function compositionItemDisplayLabel(item: ReferenceCompositionItem) {
+  return isFreeNewsSlot(item.slot_type) ? null : item.label_snapshot || item.slot_type;
+}
+
 function matchdayEditorialOriginSlot(item: ReferenceCompositionItem) {
   if (!isMatchdayEditorialSource(item.source_type)) {
     return null;
@@ -1731,7 +1735,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                             return (
                               <RoundupItemCard
                                 key={item.id}
-                                label={item.label_snapshot || item.slot_type}
+                                label={compositionItemDisplayLabel(item)}
                                 title={item.title_snapshot}
                                 subtitle={item.subtitle_snapshot}
                                 linkUrl={item.link_url_snapshot}
@@ -1748,7 +1752,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                             <ItemCard
                               key={item.id}
                               imageUrl={item.image_url_snapshot}
-                              label={item.label_snapshot || item.slot_type}
+                              label={compositionItemDisplayLabel(item)}
                               title={item.title_snapshot}
                               subtitle={item.subtitle_snapshot}
                               linkUrl={item.link_url_snapshot}

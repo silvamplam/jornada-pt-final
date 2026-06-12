@@ -2683,7 +2683,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
   const latestNewsItems = usePublishedReferenceComposition
     ? referenceEditorialLineItems.map((item) => ({
         id: item.id,
-        timeLabel: cleanReferenceSnapshotText(item.label_snapshot) || "",
+        timeLabel: "",
         title: cleanReferenceSnapshotText(item.title_snapshot) || "Notícia da jornada",
         subtitle: cleanReferenceSnapshotText(item.subtitle_snapshot) || "",
         imageUrl: cleanReferenceSnapshotText(item.image_url_snapshot),
@@ -2704,7 +2704,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((item) => ({
           id: item.id,
-          label: cleanReferenceSnapshotText(item.label_snapshot),
+          label: "",
           title: cleanReferenceSnapshotText(item.title_snapshot) || "Notícia da jornada",
           subtitle: cleanReferenceSnapshotText(item.subtitle_snapshot),
           imageUrl: cleanReferenceSnapshotText(item.image_url_snapshot),
