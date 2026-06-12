@@ -3122,9 +3122,6 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
 
       {showImportantNews ? (
         <section className="public-matchday-panel public-important-news" aria-label="Mais notícias da jornada">
-          <div className="public-important-news-head">
-            <h2>Mais notícias da jornada</h2>
-          </div>
           <div className="public-important-news-grid">
             {importantNewsItems.map((item) => (
                 <article className="public-important-news-card" key={item.id}>
