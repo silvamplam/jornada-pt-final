@@ -149,8 +149,28 @@ function canMoveToFreeNewsSlot(item: ReferenceCompositionItem) {
   return item.slot_type !== "roundup" && normalizeSourceType(item.source_type) !== "matchday_roundup_item";
 }
 
+function isArtificialFreeZoneLabel(label?: string | null, sourceType?: string | null) {
+  const normalizedLabel = normalizeCandidateValue(label);
+  const normalizedSourceType = normalizeSourceType(sourceType);
+
+  if (!normalizedLabel) return false;
+  if (normalizedLabel === "zona editorial final" || normalizedLabel === "mais noticias da jornada" || normalizedLabel === "mais notícias da jornada") return true;
+  if (normalizedSourceType === "matchday_editorial") {
+    return normalizedLabel === "manchete" || normalizedLabel === "complemento" || normalizedLabel === "complemento da manchete" || normalizedLabel === "bloco lateral";
+  }
+  if (normalizedSourceType === "article") {
+    return normalizedLabel === "artigo / noticia" || normalizedLabel === "artigo / notícia";
+  }
+
+  return false;
+}
+
 function compositionItemDisplayLabel(item: ReferenceCompositionItem) {
-  return isFreeNewsSlot(item.slot_type) ? null : item.label_snapshot || item.slot_type;
+  if (isFreeNewsSlot(item.slot_type) && isArtificialFreeZoneLabel(item.label_snapshot, item.source_type)) {
+    return null;
+  }
+
+  return item.label_snapshot || item.slot_type;
 }
 
 function matchdayEditorialOriginSlot(item: ReferenceCompositionItem) {
@@ -1816,7 +1836,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         subtitle={editorial.summary}
                         imageUrl={editorial.image_url}
                         linkUrl={editorial.headline_link_url}
-                        label="Manchete"
+                        label={null}
                         alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.headline_link_url, "headline", editorial.title, editorial.summary, editorial.image_url))}
                       />
                       <AddCandidateForm
@@ -1831,7 +1851,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         subtitle={editorial.summary}
                         imageUrl={editorial.image_url}
                         linkUrl={editorial.headline_link_url}
-                        label="Manchete"
+                        label={null}
                         alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.headline_link_url, "headline", editorial.title, editorial.summary, editorial.image_url))}
                         buttonLabel="Adicionar à Zona editorial final"
                       />
@@ -2155,7 +2175,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           subtitle={item.summary}
                           imageUrl={item.image_url}
                           linkUrl={item.source_url}
-                          label="Artigo / notícia"
+                          label={null}
                           alreadyAdded={Boolean(getCandidateAddedInLabel("article", item.id, item.id, item.source_url, null, item.title, item.summary, item.image_url))}
                           buttonLabel="Adicionar à Zona editorial final"
                         />
@@ -2171,7 +2191,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           subtitle={item.summary}
                           imageUrl={item.image_url}
                           linkUrl={item.source_url}
-                          label="Artigo / notícia"
+                          label={null}
                           alreadyAdded={Boolean(getCandidateAddedInLabel("article", item.id, item.id, item.source_url, null, item.title, item.summary, item.image_url))}
                         />
                       </ItemCard>

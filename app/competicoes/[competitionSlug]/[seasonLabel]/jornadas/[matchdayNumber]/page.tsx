@@ -2266,6 +2266,41 @@ function cleanReferenceSnapshotText(value?: string | null) {
   return trimmed || null;
 }
 
+function normalizeReferenceLabel(value?: string | null) {
+  return cleanReferenceSnapshotText(value)?.toLowerCase() ?? "";
+}
+
+function normalizeReferenceSourceType(sourceType?: string | null) {
+  const normalized = normalizeReferenceLabel(sourceType);
+
+  if (normalized === "matchday_editorials") return "matchday_editorial";
+  if (normalized === "matchday_highlights") return "matchday_highlight";
+  if (normalized === "matchday_roundup_items") return "matchday_roundup_item";
+  if (normalized === "articles") return "article";
+
+  return normalized;
+}
+
+function isArtificialFreeZoneReferenceLabel(item: PublicReferenceCompositionItem) {
+  const label = normalizeReferenceLabel(item.label_snapshot);
+  const sourceType = normalizeReferenceSourceType(item.source_type);
+
+  if (!label) return false;
+  if (label === "zona editorial final" || label === "mais noticias da jornada" || label === "mais notícias da jornada") return true;
+  if (sourceType === "matchday_editorial") {
+    return label === "manchete" || label === "complemento" || label === "complemento da manchete" || label === "bloco lateral";
+  }
+  if (sourceType === "article") {
+    return label === "artigo / noticia" || label === "artigo / notícia";
+  }
+
+  return false;
+}
+
+function publicFreeZoneReferenceLabel(item: PublicReferenceCompositionItem) {
+  return isArtificialFreeZoneReferenceLabel(item) ? "" : cleanReferenceSnapshotText(item.label_snapshot) || "";
+}
+
 function firstReferenceSlotItem(items?: PublicReferenceCompositionItem[]) {
   return items?.[0] ?? null;
 }
@@ -2683,7 +2718,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
   const latestNewsItems = usePublishedReferenceComposition
     ? referenceEditorialLineItems.map((item) => ({
         id: item.id,
-        timeLabel: "",
+        timeLabel: publicFreeZoneReferenceLabel(item),
         title: cleanReferenceSnapshotText(item.title_snapshot) || "Notícia da jornada",
         subtitle: cleanReferenceSnapshotText(item.subtitle_snapshot) || "",
         imageUrl: cleanReferenceSnapshotText(item.image_url_snapshot),
@@ -2704,7 +2739,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((item) => ({
           id: item.id,
-          label: "",
+          label: publicFreeZoneReferenceLabel(item),
           title: cleanReferenceSnapshotText(item.title_snapshot) || "Notícia da jornada",
           subtitle: cleanReferenceSnapshotText(item.subtitle_snapshot),
           imageUrl: cleanReferenceSnapshotText(item.image_url_snapshot),
