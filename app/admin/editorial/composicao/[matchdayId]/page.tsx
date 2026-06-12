@@ -1436,7 +1436,7 @@ function MoveItemForm({
   item: ReferenceCompositionItem;
   matchdayId: string;
   returnTo: string;
-  targetSlotType: "important_item" | "editorial_line_item";
+  targetSlotType: "headline" | "important_item" | "editorial_line_item";
   label: string;
 }) {
   return (
@@ -1469,6 +1469,16 @@ function CompositionItemActions({
 
   return (
     <div className="composition-admin-form">
+      {canMove && item.slot_type !== "headline" ? (
+        <MoveItemForm
+          composition={composition}
+          item={item}
+          matchdayId={matchdayId}
+          returnTo={returnTo}
+          targetSlotType="headline"
+          label="Definir como Manchete"
+        />
+      ) : null}
       {canMove && item.slot_type !== "important_item" ? (
         <MoveItemForm
           composition={composition}
@@ -1822,8 +1832,9 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         subtitle={editorial.summary}
                         imageUrl={editorial.image_url}
                         linkUrl={editorial.headline_link_url}
-                        label="Manchete"
+                        label={null}
                         alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.headline_link_url, "headline", editorial.title, editorial.summary, editorial.image_url))}
+                        buttonLabel="Adicionar como Manchete"
                       />
                       <AddImportantItemForm
                         composition={draftComposition}
@@ -1887,6 +1898,22 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         label={editorial.side_block_label || editorial.side_block_type}
                         alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.side_block_link_url, "side_block", editorial.side_block_title, editorial.side_block_text, editorial.side_block_image_url))}
                       />
+                      <AddCandidateForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        slotType="headline"
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.side_block_title}
+                        subtitle={editorial.side_block_text}
+                        imageUrl={editorial.side_block_image_url}
+                        linkUrl={editorial.side_block_link_url}
+                        label={editorial.side_block_label || editorial.side_block_type}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.side_block_link_url, "side_block", editorial.side_block_title, editorial.side_block_text, editorial.side_block_image_url))}
+                        buttonLabel="Adicionar como Manchete"
+                      />
                       <AddImportantItemForm
                         composition={draftComposition}
                         matchdayId={matchday.id}
@@ -1948,6 +1975,22 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                         linkUrl={editorial.complementary_link_url}
                         label={editorial.complementary_label}
                         alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.complementary_link_url, "complement", editorial.complementary_title, editorial.complementary_text, editorial.complementary_image_url))}
+                      />
+                      <AddCandidateForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        slotType="headline"
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.complementary_title}
+                        subtitle={editorial.complementary_text}
+                        imageUrl={editorial.complementary_image_url}
+                        linkUrl={editorial.complementary_link_url}
+                        label={editorial.complementary_label}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.complementary_link_url, "complement", editorial.complementary_title, editorial.complementary_text, editorial.complementary_image_url))}
+                        buttonLabel="Adicionar como Manchete"
                       />
                       <AddImportantItemForm
                         composition={draftComposition}
@@ -2013,6 +2056,21 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           label={item.label}
                           alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_highlight", item.id, null, item.link_url, null, item.title, null, item.image_url))}
                         />
+                        <AddCandidateForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          slotType="headline"
+                          sourceType="matchday_highlight"
+                          sourceId={item.id}
+                          title={item.title}
+                          imageUrl={item.image_url}
+                          linkUrl={item.link_url}
+                          label={item.label}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_highlight", item.id, null, item.link_url, null, item.title, null, item.image_url))}
+                          buttonLabel="Adicionar como Manchete"
+                        />
                         <AddImportantItemForm
                           composition={draftComposition}
                           matchdayId={matchday.id}
@@ -2077,6 +2135,23 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           label={item.time_label}
                           alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_latest_news", item.id, item.article_id, item.link_url, null, item.title, item.subtitle, item.image_url))}
                           buttonLabel="Adicionar à Zona editorial final"
+                        />
+                        <AddCandidateForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          slotType="headline"
+                          sourceType="matchday_latest_news"
+                          sourceId={item.id}
+                          articleId={item.article_id}
+                          title={item.title}
+                          subtitle={item.subtitle}
+                          imageUrl={item.image_url}
+                          linkUrl={item.link_url}
+                          label={item.time_label}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_latest_news", item.id, item.article_id, item.link_url, null, item.title, item.subtitle, item.image_url))}
+                          buttonLabel="Adicionar como Manchete"
                         />
                         <AddImportantItemForm
                           composition={draftComposition}
@@ -2161,6 +2236,23 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                           linkUrl={item.source_url}
                           label="Artigo / notícia"
                           alreadyAdded={Boolean(getCandidateAddedInLabel("article", item.id, item.id, item.source_url, null, item.title, item.summary, item.image_url))}
+                        />
+                        <AddCandidateForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          slotType="headline"
+                          sourceType="article"
+                          sourceId={item.id}
+                          articleId={item.id}
+                          title={item.title}
+                          subtitle={item.summary}
+                          imageUrl={item.image_url}
+                          linkUrl={item.source_url}
+                          label={null}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("article", item.id, item.id, item.source_url, null, item.title, item.summary, item.image_url))}
+                          buttonLabel="Adicionar como Manchete"
                         />
                         <AddCandidateForm
                           composition={draftComposition}

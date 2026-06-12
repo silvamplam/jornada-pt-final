@@ -498,7 +498,7 @@ async function moveCompositionItem(formData: FormData) {
   const compositionId = cleanText(formData.get("composition_id"));
   const itemId = cleanText(formData.get("item_id"));
   const targetSlotType = cleanText(formData.get("target_slot_type"));
-  const allowedTargetSlots = new Set(["important_item", "editorial_line_item"]);
+  const allowedTargetSlots = new Set(["headline", "important_item", "editorial_line_item"]);
 
   if (
     !matchdayId ||
