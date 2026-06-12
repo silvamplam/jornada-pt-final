@@ -141,6 +141,10 @@ function isMatchdayEditorialSource(sourceType?: string | null) {
   return normalizeSourceType(sourceType) === "matchday_editorial";
 }
 
+function isFreeNewsSlot(slotType?: string | null) {
+  return slotType === "important_item" || slotType === "editorial_line_item";
+}
+
 function matchdayEditorialOriginSlot(item: ReferenceCompositionItem) {
   if (!isMatchdayEditorialSource(item.source_type)) {
     return null;
@@ -167,6 +171,50 @@ function matchdayEditorialOriginSlot(item: ReferenceCompositionItem) {
   return null;
 }
 
+function concreteContentMatches(
+  item: ReferenceCompositionItem,
+  {
+    articleId,
+    linkUrl,
+    title,
+    subtitle,
+    imageUrl
+  }: {
+    articleId?: string | null;
+    linkUrl?: string | null;
+    title?: string | null;
+    subtitle?: string | null;
+    imageUrl?: string | null;
+  }
+) {
+  const itemTitle = normalizeCandidateValue(item.title_snapshot);
+  const candidateTitle = normalizeCandidateValue(title);
+
+  if (!itemTitle || !candidateTitle || itemTitle !== candidateTitle) {
+    return false;
+  }
+
+  if (articleId && item.article_id && item.article_id === articleId) {
+    return true;
+  }
+
+  const itemLinkUrl = normalizeCandidateLink(item.link_url_snapshot);
+  const candidateLinkUrl = normalizeCandidateLink(linkUrl);
+
+  if (itemLinkUrl && candidateLinkUrl && itemLinkUrl === candidateLinkUrl) {
+    return true;
+  }
+
+  const itemImageUrl = normalizeCandidateLink(item.image_url_snapshot);
+  const candidateImageUrl = normalizeCandidateLink(imageUrl);
+  const itemSubtitle = normalizeCandidateValue(item.subtitle_snapshot);
+  const candidateSubtitle = normalizeCandidateValue(subtitle);
+  const canCompareImage = Boolean(itemImageUrl && candidateImageUrl);
+  const canCompareSubtitle = Boolean(itemSubtitle && candidateSubtitle);
+
+  return (canCompareImage && itemImageUrl === candidateImageUrl) || (canCompareSubtitle && itemSubtitle === candidateSubtitle);
+}
+
 function compositionItemMatchesCandidate(
   item: ReferenceCompositionItem,
   {
@@ -190,11 +238,17 @@ function compositionItemMatchesCandidate(
   }
 ) {
   if (isMatchdayEditorialSource(sourceType)) {
-    if (!sourceId || !originSlotType || !isMatchdayEditorialSource(item.source_type) || !item.source_id) {
+    if (!sourceId || !isMatchdayEditorialSource(item.source_type) || !item.source_id || item.source_id !== sourceId) {
       return false;
     }
 
-    if (item.source_id !== sourceId || matchdayEditorialOriginSlot(item) !== originSlotType) {
+    const originMatches = Boolean(originSlotType && matchdayEditorialOriginSlot(item) === originSlotType);
+
+    if (!originMatches && isFreeNewsSlot(item.slot_type)) {
+      return concreteContentMatches(item, { articleId, linkUrl, title, subtitle, imageUrl });
+    }
+
+    if (!originMatches) {
       return false;
     }
 
