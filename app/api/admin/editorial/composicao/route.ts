@@ -13,6 +13,21 @@ function cleanInteger(value: FormDataEntryValue | null): number {
   return Number.isNaN(parsed) ? 1 : parsed;
 }
 
+function normalizeIdentityValue(value?: string | null) {
+  return value?.trim().toLowerCase() ?? "";
+}
+
+function normalizeSourceType(sourceType?: string | null) {
+  const normalized = normalizeIdentityValue(sourceType);
+
+  if (normalized === "matchday_editorials") return "matchday_editorial";
+  if (normalized === "matchday_highlights") return "matchday_highlight";
+  if (normalized === "matchday_roundup_items") return "matchday_roundup_item";
+  if (normalized === "articles") return "article";
+
+  return normalized;
+}
+
 function redirectTo(request: Request, path: string) {
   return NextResponse.redirect(new URL(path, request.url), { status: 303 });
 }
@@ -101,6 +116,16 @@ type CompositionPublicationItem = {
   slot_type: string | null;
 };
 
+type CompositionIdentityItem = {
+  source_type: string | null;
+  source_id: string | null;
+  article_id: string | null;
+  title_snapshot: string | null;
+  subtitle_snapshot: string | null;
+  image_url_snapshot: string | null;
+  link_url_snapshot: string | null;
+};
+
 class CompositionPublicationError extends Error {
   constructor(message: string) {
     super(message);
@@ -154,6 +179,54 @@ function validatePublishableCompositionItems(items: CompositionPublicationItem[]
   if ((counts.side_block ?? 0) > 1) {
     throw new CompositionPublicationError("A composição só pode ter um bloco lateral.");
   }
+}
+
+function compositionIdentityMatches(item: CompositionIdentityItem, candidate: CompositionIdentityItem) {
+  const itemTitle = normalizeIdentityValue(item.title_snapshot);
+  const candidateTitle = normalizeIdentityValue(candidate.title_snapshot);
+
+  if (itemTitle && candidateTitle && itemTitle !== candidateTitle) {
+    return false;
+  }
+
+  if (item.article_id && candidate.article_id && item.article_id === candidate.article_id) {
+    return true;
+  }
+
+  const itemLinkUrl = normalizeIdentityValue(item.link_url_snapshot);
+  const candidateLinkUrl = normalizeIdentityValue(candidate.link_url_snapshot);
+
+  if (itemLinkUrl && candidateLinkUrl && itemLinkUrl === candidateLinkUrl) {
+    return true;
+  }
+
+  const itemSourceType = normalizeSourceType(item.source_type);
+  const candidateSourceType = normalizeSourceType(candidate.source_type);
+
+  if (
+    itemSourceType &&
+    candidateSourceType &&
+    itemSourceType === candidateSourceType &&
+    item.source_id &&
+    candidate.source_id &&
+    item.source_id === candidate.source_id &&
+    itemSourceType !== "matchday_editorial"
+  ) {
+    return true;
+  }
+
+  if (itemTitle && candidateTitle && itemTitle === candidateTitle) {
+    const itemImageUrl = normalizeIdentityValue(item.image_url_snapshot);
+    const candidateImageUrl = normalizeIdentityValue(candidate.image_url_snapshot);
+    const itemSubtitle = normalizeIdentityValue(item.subtitle_snapshot);
+    const candidateSubtitle = normalizeIdentityValue(candidate.subtitle_snapshot);
+    const canCompareImage = Boolean(itemImageUrl && candidateImageUrl);
+    const canCompareSubtitle = Boolean(itemSubtitle && candidateSubtitle);
+
+    return (canCompareImage && itemImageUrl === candidateImageUrl) || (canCompareSubtitle && itemSubtitle === candidateSubtitle);
+  }
+
+  return false;
 }
 
 async function readDraftComposition(compositionId: string, matchdayId: string) {
@@ -339,20 +412,35 @@ async function addItem(formData: FormData) {
   const matchdayId = cleanText(formData.get("matchday_id"));
   const compositionId = cleanText(formData.get("composition_id"));
   if (!matchdayId || !compositionId || !(await compositionBelongsToMatchday(compositionId, matchdayId))) throw new Error("composition-invalid");
+
+  const nextItem: CompositionIdentityItem & { slot_type: string | null; sort_order: number; label_snapshot: string | null } = {
+    slot_type: cleanText(formData.get("slot_type")),
+    source_type: cleanText(formData.get("source_type")),
+    source_id: cleanText(formData.get("source_id")),
+    article_id: cleanText(formData.get("article_id")),
+    sort_order: cleanInteger(formData.get("sort_order")),
+    title_snapshot: cleanText(formData.get("title_snapshot")),
+    subtitle_snapshot: cleanText(formData.get("subtitle_snapshot")),
+    image_url_snapshot: cleanText(formData.get("image_url_snapshot")),
+    link_url_snapshot: cleanText(formData.get("link_url_snapshot")),
+    label_snapshot: cleanText(formData.get("label_snapshot"))
+  };
+
+  const existingItems = await fetchSupabaseAdminTable<CompositionIdentityItem>(
+    `matchday_reference_composition_items?select=source_type,source_id,article_id,title_snapshot,subtitle_snapshot,image_url_snapshot,link_url_snapshot&composition_id=eq.${encodeURIComponent(
+      compositionId
+    )}&limit=500`
+  );
+
+  if (existingItems.some((item) => compositionIdentityMatches(item, nextItem))) {
+    throw new CompositionPublicationError("Esta notícia já está adicionada à composição.");
+  }
+
   await writeSupabaseAdmin("matchday_reference_composition_items", {
     method: "POST",
     body: JSON.stringify({
       composition_id: compositionId,
-      slot_type: cleanText(formData.get("slot_type")),
-      source_type: cleanText(formData.get("source_type")),
-      source_id: cleanText(formData.get("source_id")),
-      article_id: cleanText(formData.get("article_id")),
-      sort_order: cleanInteger(formData.get("sort_order")),
-      title_snapshot: cleanText(formData.get("title_snapshot")),
-      subtitle_snapshot: cleanText(formData.get("subtitle_snapshot")),
-      image_url_snapshot: cleanText(formData.get("image_url_snapshot")),
-      link_url_snapshot: cleanText(formData.get("link_url_snapshot")),
-      label_snapshot: cleanText(formData.get("label_snapshot")),
+      ...nextItem,
       status: "draft"
     })
   });

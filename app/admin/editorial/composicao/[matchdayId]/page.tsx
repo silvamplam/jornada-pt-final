@@ -126,8 +126,19 @@ function normalizeCandidateValue(value?: string | null) {
   return textOrEmpty(value).toLowerCase();
 }
 
+function normalizeSourceType(sourceType?: string | null) {
+  const normalized = normalizeCandidateValue(sourceType);
+
+  if (normalized === "matchday_editorials") return "matchday_editorial";
+  if (normalized === "matchday_highlights") return "matchday_highlight";
+  if (normalized === "matchday_roundup_items") return "matchday_roundup_item";
+  if (normalized === "articles") return "article";
+
+  return normalized;
+}
+
 function isMatchdayEditorialSource(sourceType?: string | null) {
-  return sourceType === "matchday_editorial" || sourceType === "matchday_editorials";
+  return normalizeSourceType(sourceType) === "matchday_editorial";
 }
 
 function matchdayEditorialOriginSlot(item: ReferenceCompositionItem) {
@@ -246,7 +257,20 @@ function compositionItemMatchesCandidate(
       return false;
     }
 
-    return item.source_type === sourceType && item.source_id === sourceId;
+    if (normalizeSourceType(item.source_type) === normalizeSourceType(sourceType) && item.source_id === sourceId) {
+      return true;
+    }
+  }
+
+  if (itemTitle && candidateTitle && itemTitle === candidateTitle) {
+    const itemImageUrl = normalizeCandidateLink(item.image_url_snapshot);
+    const candidateImageUrl = normalizeCandidateLink(imageUrl);
+    const itemSubtitle = normalizeCandidateValue(item.subtitle_snapshot);
+    const candidateSubtitle = normalizeCandidateValue(subtitle);
+    const canCompareImage = Boolean(itemImageUrl && candidateImageUrl);
+    const canCompareSubtitle = Boolean(itemSubtitle && candidateSubtitle);
+
+    return (canCompareImage && itemImageUrl === candidateImageUrl) || (canCompareSubtitle && itemSubtitle === candidateSubtitle);
   }
 
   return false;
