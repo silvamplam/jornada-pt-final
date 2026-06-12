@@ -236,6 +236,30 @@ function compositionIdentityMatches(item: CompositionIdentityItem, candidate: Co
   return false;
 }
 
+async function readCompositionIdentityItems(compositionId: string) {
+  return fetchSupabaseAdminTable<CompositionIdentityItem>(
+    `matchday_reference_composition_items?select=source_type,source_id,article_id,title_snapshot,subtitle_snapshot,image_url_snapshot,link_url_snapshot&composition_id=eq.${encodeURIComponent(
+      compositionId
+    )}&limit=500`
+  );
+}
+
+function filterNewCompositionSnapshots(snapshots: CompositionSnapshot[], existingItems: CompositionIdentityItem[]) {
+  const knownItems: CompositionIdentityItem[] = [...existingItems];
+  const newSnapshots: CompositionSnapshot[] = [];
+
+  for (const snapshot of snapshots) {
+    if (knownItems.some((item) => compositionIdentityMatches(item, snapshot))) {
+      continue;
+    }
+
+    newSnapshots.push(snapshot);
+    knownItems.push(snapshot);
+  }
+
+  return newSnapshots;
+}
+
 async function readDraftComposition(compositionId: string, matchdayId: string) {
   return readFirst<DraftComposition>(
     `matchday_reference_compositions?select=id,matchday_id,status,use_roundup_items&id=eq.${encodeURIComponent(
@@ -442,11 +466,7 @@ async function addItem(formData: FormData) {
     label_snapshot: cleanText(formData.get("label_snapshot"))
   };
 
-  const existingItems = await fetchSupabaseAdminTable<CompositionIdentityItem>(
-    `matchday_reference_composition_items?select=source_type,source_id,article_id,title_snapshot,subtitle_snapshot,image_url_snapshot,link_url_snapshot&composition_id=eq.${encodeURIComponent(
-      compositionId
-    )}&limit=500`
-  );
+  const existingItems = await readCompositionIdentityItems(compositionId);
 
   if (existingItems.some((item) => compositionIdentityMatches(item, nextItem))) {
     throw new CompositionPublicationError("Esta notícia já está adicionada à composição.");
@@ -526,8 +546,12 @@ async function saveCurrentPageState(formData: FormData) {
   const snapshots = await buildCurrentPageSnapshots(matchdayId, composition.use_roundup_items);
   if (snapshots.length === 0) return;
 
+  const existingItems = await readCompositionIdentityItems(composition.id);
+  const newSnapshots = filterNewCompositionSnapshots(snapshots, existingItems);
+  if (newSnapshots.length === 0) return;
+
   const maxSortOrder = await readMaxSortOrder(composition.id);
-  for (const [index, snapshot] of snapshots.entries()) {
+  for (const [index, snapshot] of newSnapshots.entries()) {
     await writeSupabaseAdmin("matchday_reference_composition_items", {
       method: "POST",
       body: JSON.stringify({
