@@ -116,6 +116,18 @@ const editorialPageStyles = `
     color: #ffffff;
   }
 
+  .editorial-admin-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+    align-content: flex-start;
+  }
+
+  .editorial-admin-actions .editorial-admin-button {
+    white-space: nowrap;
+  }
+
   .editorial-admin-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
@@ -355,6 +367,15 @@ const editorialPageStyles = `
     .editorial-admin-hero {
       display: grid;
     }
+
+    .editorial-admin-actions {
+      justify-content: stretch;
+    }
+
+    .editorial-admin-actions .editorial-admin-button {
+      width: 100%;
+      text-align: center;
+    }
   }
 `;
 
@@ -521,21 +542,6 @@ function scopedMessageFor(created: string | undefined, error: string | undefined
   return messageFor(created, error, scope);
 }
 
-function gestorReturnUrl(context: MatchdayContext) {
-  const params = new URLSearchParams({
-    competicao: context.competition.id,
-    epoca: context.season.id,
-    jornada: context.matchday.id,
-    section: "linha-editorial"
-  });
-
-  if (context.country) {
-    params.set("pais", context.country.id);
-  }
-
-  return `/admin/gestor?${params.toString()}#linha-editorial`;
-}
-
 export default async function AdminMatchdayEditorialPage({ params, searchParams }: EditorialPageProps) {
   const { matchdayId } = await params;
   const query = (await searchParams) ?? {};
@@ -580,7 +586,6 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const returnToResumo = scopedReturnTo("resumo-jornada");
   const returnToComplementar = scopedReturnTo("bloco-complementar");
   const returnToUltimasNoticias = scopedReturnTo("ultimas-noticias");
-  const backToGestor = gestorReturnUrl(context);
   const contextLabel = `${country?.name ?? "Pais"} · ${competition.name} · ${season.label} · ${matchday.label}`;
   const highlightsFormId = "matchday-highlights-form";
   const belowHeadlineSettingsFormId = "below-headline-settings-form";
@@ -817,9 +822,20 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           <h1>Editar editorial</h1>
           <small>{contextLabel}</small>
         </div>
-        <a className="editorial-admin-button secondary" href={backToGestor}>
-          Voltar ao gestor
-        </a>
+        <nav className="editorial-admin-actions" aria-label="Navegação do Editorial da Jornada">
+          <a className="editorial-admin-button secondary" href="/admin/editorial/home">
+            Home Editorial
+          </a>
+          <a className="editorial-admin-button secondary" href="/admin/editorial/artigos">
+            Artigos / Notícias
+          </a>
+          <a className="editorial-admin-button secondary" href={`/admin/editorial/composicao/${encodeURIComponent(matchday.id)}`}>
+            Composição Editorial
+          </a>
+          <a className="editorial-admin-button secondary" href="/admin">
+            Voltar ao Backoffice
+          </a>
+        </nav>
       </section>
 
       {feedbackScope ? null : messageFor(created, error)}
