@@ -832,6 +832,9 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           <a className="editorial-admin-button secondary" href={`/admin/editorial/composicao/${encodeURIComponent(matchday.id)}`}>
             Composição Editorial
           </a>
+          <a className="editorial-admin-button secondary" href="/admin/gestor">
+            Gestor
+          </a>
           <a className="editorial-admin-button secondary" href="/admin">
             Voltar ao Backoffice
           </a>
