@@ -126,6 +126,13 @@ type CompositionIdentityItem = {
   link_url_snapshot: string | null;
 };
 
+type CompositionMoveItem = {
+  id: string;
+  composition_id: string;
+  slot_type: string;
+  source_type: string | null;
+};
+
 class CompositionPublicationError extends Error {
   constructor(message: string) {
     super(message);
@@ -250,6 +257,15 @@ async function readMaxSortOrder(compositionId: string) {
     `matchday_reference_composition_items?select=sort_order&composition_id=eq.${encodeURIComponent(
       compositionId
     )}&order=sort_order.desc`
+  );
+  return row?.sort_order ?? 0;
+}
+
+async function readMaxSortOrderForSlot(compositionId: string, slotType: string) {
+  const row = await readFirst<{ sort_order: number | null }>(
+    `matchday_reference_composition_items?select=sort_order&composition_id=eq.${encodeURIComponent(
+      compositionId
+    )}&slot_type=eq.${encodeURIComponent(slotType)}&order=sort_order.desc`
   );
   return row?.sort_order ?? 0;
 }
@@ -457,6 +473,49 @@ async function removeItem(formData: FormData) {
   );
 }
 
+async function moveCompositionItem(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const compositionId = cleanText(formData.get("composition_id"));
+  const itemId = cleanText(formData.get("item_id"));
+  const targetSlotType = cleanText(formData.get("target_slot_type"));
+  const allowedTargetSlots = new Set(["important_item", "editorial_line_item"]);
+
+  if (
+    !matchdayId ||
+    !compositionId ||
+    !itemId ||
+    !targetSlotType ||
+    !allowedTargetSlots.has(targetSlotType) ||
+    !(await compositionBelongsToMatchday(compositionId, matchdayId))
+  ) {
+    throw new Error("composition-invalid");
+  }
+
+  const item = await readFirst<CompositionMoveItem>(
+    `matchday_reference_composition_items?select=id,composition_id,slot_type,source_type&id=eq.${encodeURIComponent(
+      itemId
+    )}&composition_id=eq.${encodeURIComponent(compositionId)}`
+  );
+
+  if (!item) throw new Error("composition-invalid");
+  if (item.slot_type === "roundup" || normalizeSourceType(item.source_type) === "matchday_roundup_item") {
+    throw new Error("composition-invalid");
+  }
+
+  const nextSortOrder = (await readMaxSortOrderForSlot(compositionId, targetSlotType)) + 1;
+  await writeSupabaseAdmin(
+    `matchday_reference_composition_items?id=eq.${encodeURIComponent(itemId)}&composition_id=eq.${encodeURIComponent(compositionId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        slot_type: targetSlotType,
+        sort_order: nextSortOrder,
+        updated_at: new Date().toISOString()
+      })
+    }
+  );
+}
+
 async function saveCurrentPageState(formData: FormData) {
   const matchdayId = cleanText(formData.get("matchday_id"));
   const compositionId = cleanText(formData.get("composition_id"));
@@ -560,6 +619,7 @@ export async function POST(request: Request) {
     else if (actionType === "update_draft") await updateDraft(formData);
     else if (actionType === "add_item") await addItem(formData);
     else if (actionType === "remove_item") await removeItem(formData);
+    else if (actionType === "move_composition_item") await moveCompositionItem(formData);
     else if (actionType === "save_current_page_state") await saveCurrentPageState(formData);
     else if (actionType === "publish_reference_composition") await publishReferenceComposition(formData);
     else if (actionType === "reopen_reference_composition") await reopenReferenceComposition(formData);

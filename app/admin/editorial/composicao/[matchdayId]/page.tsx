@@ -145,6 +145,10 @@ function isFreeNewsSlot(slotType?: string | null) {
   return slotType === "important_item" || slotType === "editorial_line_item";
 }
 
+function canMoveToFreeNewsSlot(item: ReferenceCompositionItem) {
+  return item.slot_type !== "roundup" && normalizeSourceType(item.source_type) !== "matchday_roundup_item";
+}
+
 function matchdayEditorialOriginSlot(item: ReferenceCompositionItem) {
   if (!isMatchdayEditorialSource(item.source_type)) {
     return null;
@@ -1396,6 +1400,79 @@ function RemoveItemForm({
   );
 }
 
+function MoveItemForm({
+  composition,
+  item,
+  matchdayId,
+  returnTo,
+  targetSlotType,
+  label
+}: {
+  composition: ReferenceComposition;
+  item: ReferenceCompositionItem;
+  matchdayId: string;
+  returnTo: string;
+  targetSlotType: "important_item" | "editorial_line_item";
+  label: string;
+}) {
+  return (
+    <form action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="move_composition_item" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="composition_id" value={composition.id} />
+      <HiddenField name="item_id" value={item.id} />
+      <HiddenField name="target_slot_type" value={targetSlotType} />
+      <HiddenField name="return_to" value={returnTo} />
+      <button className="composition-admin-small-button secondary" type="submit">
+        {label}
+      </button>
+    </form>
+  );
+}
+
+function CompositionItemActions({
+  composition,
+  item,
+  matchdayId,
+  returnTo
+}: {
+  composition: ReferenceComposition;
+  item: ReferenceCompositionItem;
+  matchdayId: string;
+  returnTo: string;
+}) {
+  const canMove = canMoveToFreeNewsSlot(item);
+
+  return (
+    <div className="composition-admin-form">
+      {canMove && item.slot_type !== "important_item" ? (
+        <MoveItemForm
+          composition={composition}
+          item={item}
+          matchdayId={matchdayId}
+          returnTo={returnTo}
+          targetSlotType="important_item"
+          label="Mover para Mais notícias da jornada"
+        />
+      ) : null}
+      {canMove && item.slot_type !== "editorial_line_item" ? (
+        <MoveItemForm
+          composition={composition}
+          item={item}
+          matchdayId={matchdayId}
+          returnTo={returnTo}
+          targetSlotType="editorial_line_item"
+          label="Mover para Zona editorial final"
+        />
+      ) : null}
+      {canMove ? (
+        <p className="composition-admin-note">Se quiseres reaproveitar esta notícia noutra zona, usa Mover em vez de Remover.</p>
+      ) : null}
+      <RemoveItemForm composition={composition} item={item} matchdayId={matchdayId} returnTo={returnTo} />
+    </div>
+  );
+}
+
 export default async function AdminEditorialCompositionPage({ params }: CompositionPageProps) {
   const { matchdayId } = await params;
   const context = await readMatchdayContext(matchdayId);
@@ -1658,10 +1735,10 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                                 title={item.title_snapshot}
                                 subtitle={item.subtitle_snapshot}
                                 linkUrl={item.link_url_snapshot}
-                                meta={itemMeta}
-                              >
-                                {isDraftComposition ? (
-                                  <RemoveItemForm composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
+                              meta={itemMeta}
+                            >
+                              {isDraftComposition ? (
+                                  <CompositionItemActions composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
                                 ) : null}
                               </RoundupItemCard>
                             );
@@ -1678,7 +1755,7 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
                               meta={itemMeta}
                             >
                               {isDraftComposition ? (
-                                <RemoveItemForm composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
+                                <CompositionItemActions composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
                               ) : null}
                             </ItemCard>
                           );
