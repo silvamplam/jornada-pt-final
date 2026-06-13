@@ -465,16 +465,20 @@ async function readMatchdayContext(matchdayId: string): Promise<MatchdayContext 
   return { matchday, season, competition, country };
 }
 
-async function readMatchdayEditorial(matchdayId: string): Promise<SupabaseMatchdayEditorial | null> {
+type MatchdayEditorialForAdmin = SupabaseMatchdayEditorial & {
+  headline_link_url?: string | null;
+};
+
+async function readMatchdayEditorial(matchdayId: string): Promise<MatchdayEditorialForAdmin | null> {
   try {
-    return await readFirst<SupabaseMatchdayEditorial>(
-      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,latest_zone_mode,latest_zone_title,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+    return await readFirst<MatchdayEditorialForAdmin>(
+      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,headline_link_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,latest_zone_mode,latest_zone_title,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}`
     );
   } catch {
-    return readFirst<SupabaseMatchdayEditorial>(
-      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+    return readFirst<MatchdayEditorialForAdmin>(
+      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,headline_link_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}`
     ).catch(() => null);
@@ -898,7 +902,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             <p>Campos existentes de matchday_editorials ligados a esta jornada.</p>
           </header>
           {scopedMessageFor(created, error, feedbackScope, "manchete")}
-          <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
+          <form className="editorial-admin-form" action="/api/admin/gestor" data-headline-form method="post">
             <input type="hidden" name="action_type" value="save_matchday_editorial" />
             <input type="hidden" name="return_to" value={returnToManchete} />
             <input type="hidden" name="matchday_id" value={matchday.id} />
@@ -951,6 +955,39 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 placeholder="https://exemplo.com/imagem.jpg"
               />
             </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="matchday-editorial-headline-link-url">Link da manchete</label>
+              <input
+                id="matchday-editorial-headline-link-url"
+                name="headline_link_url"
+                defaultValue={editorial?.headline_link_url ?? ""}
+                placeholder="/noticias/slug-do-artigo"
+              />
+            </div>
+            <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
+              <legend>Ligar artigo publicado à manchete</legend>
+              <div className="editorial-admin-field">
+                <label htmlFor="headline-article-source">Preencher manchete com artigo publicado</label>
+                <select id="headline-article-source" data-headline-article-select defaultValue="">
+                  <option value="">Escolher artigo publicado</option>
+                  {sideBlockArticleOptions.map((article) => (
+                    <option
+                      key={article.id}
+                      value={article.id}
+                      data-headline-title={article.title ?? ""}
+                      data-headline-summary={sideBlockTextFromArticle(article)}
+                      data-headline-image-url={article.image_url ?? ""}
+                      data-headline-link-url={articlePublicHref(article)}
+                    >
+                      {article.title} {article.label ? `- ${article.label}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="editorial-admin-muted">
+                Ao escolher um artigo, a manchete, o resumo, a imagem e o link interno sao preenchidos. Pode ajustar manualmente antes de guardar.
+              </p>
+            </fieldset>
             <input type="hidden" name="below_headline_mode" value={belowHeadlineMode} />
             {editorial?.image_url ? (
               <div className="editorial-admin-preview">
@@ -968,6 +1005,32 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               Guardar manchete
             </button>
           </form>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function () {
+                  var form = document.querySelector('[data-headline-form]');
+                  if (!form) return;
+                  var select = form.querySelector('[data-headline-article-select]');
+                  if (!select) return;
+                  function setField(name, value) {
+                    if (!value) return;
+                    var field = form.querySelector('[name="' + name + '"]');
+                    if (field) field.value = value;
+                  }
+                  function applySelectedArticle() {
+                    var option = select.options[select.selectedIndex];
+                    if (!option || !option.value) return;
+                    setField('title', option.dataset.headlineTitle);
+                    setField('summary', option.dataset.headlineSummary);
+                    setField('image_url', option.dataset.headlineImageUrl);
+                    setField('headline_link_url', option.dataset.headlineLinkUrl);
+                  }
+                  select.addEventListener('change', applySelectedArticle);
+                })();
+              `
+            }}
+          />
           <form
             className="editorial-admin-form"
             action="/api/admin/gestor/editorial-image"
