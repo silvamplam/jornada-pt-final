@@ -147,7 +147,7 @@ const articlePageStyles = `
   }
 
   .public-site-search::before {
-    content: "âŒ•";
+    content: "⌕";
     display: grid;
     place-items: center;
     width: 20px;
@@ -393,6 +393,20 @@ const articlePageStyles = `
     background: linear-gradient(135deg, #eef2f6, #dbe3eb);
   }
 
+  .news-article-side-copy {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .news-article-side-label {
+    color: #c40012;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
   .news-article-side-item a {
     color: #17202b;
     font-size: 15px;
@@ -403,6 +417,20 @@ const articlePageStyles = `
 
   .news-article-side-item a:hover {
     text-decoration: underline;
+  }
+
+  .news-article-side-subtitle {
+    margin: 0;
+    color: #5d6875;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.25;
+  }
+
+  .news-article-side-date {
+    color: #7b8795;
+    font-size: 12px;
+    line-height: 1.1;
   }
 
   @media (max-width: 900px) {
@@ -465,6 +493,16 @@ function formatDate(value?: string | null) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit"
+  }).format(new Date(value));
+}
+
+function formatShortDate(value?: string | null) {
+  if (!value) return null;
+
+  return new Intl.DateTimeFormat("pt-PT", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
   }).format(new Date(value));
 }
 
@@ -603,7 +641,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
           <a className="public-site-brand" href="/">
             Jornada<span>.pt</span>
           </a>
-          <nav className="public-site-menu" aria-label="CompetiÃ§Ãµes principais">
+          <nav className="public-site-menu" aria-label="Competições principais">
             {publicCompetitionMenu.map((item) => (
               <a
                 aria-current={articleContext?.competition.slug === item.slug ? "page" : undefined}
@@ -614,9 +652,9 @@ export default async function NewsArticlePage({ params }: PageProps) {
               </a>
             ))}
             {gamesPageHref ? <a href={gamesPageHref}>Jogos</a> : null}
-            {classificationHref ? <a href={classificationHref}>ClassificaÃ§Ã£o</a> : null}
+            {classificationHref ? <a href={classificationHref}>Classificação</a> : null}
           </nav>
-          <div className="public-site-actions" aria-label="AÃ§Ãµes">
+          <div className="public-site-actions" aria-label="Ações">
             <span className="public-site-search" aria-label="Pesquisar">
               Pesquisar
             </span>
@@ -624,14 +662,14 @@ export default async function NewsArticlePage({ params }: PageProps) {
           </div>
         </header>
         {articleContext ? (
-          <section className="public-season-nav-bar" aria-label="NavegaÃ§Ã£o de jornadas">
+          <section className="public-season-nav-bar" aria-label="Navegação de jornadas">
             <div className="public-hidden-heading">
               <h2>Jornadas</h2>
-              <p>NavegaÃ§Ã£o principal da Ã©poca {articleContext.season.label}.</p>
+              <p>Navegação principal da época {articleContext.season.label}.</p>
             </div>
             <div className="public-season-nav-inner">
               <label className="public-season-select-wrap">
-                <span>Ã‰poca</span>
+                <span>Época</span>
                 <select className="public-season-select" data-season-select defaultValue={currentSeasonHref}>
                   {seasonOptions.map((season) => (
                     <option key={season.id} value={season.href}>
@@ -704,18 +742,27 @@ export default async function NewsArticlePage({ params }: PageProps) {
           {moreArticles.length > 0 ? (
             <section className="news-article-side-panel" aria-label="Artigos relacionados">
               <ul className="news-article-side-list">
-                {moreArticles.map((item) => (
-                  <li className="news-article-side-item" key={item.id}>
-                    {item.image_url ? (
-                      <img alt="" src={item.image_url} />
-                    ) : (
-                      <span className="news-article-side-thumb-placeholder" aria-hidden="true" />
-                    )}
-                    <div>
-                      <a href={publicArticleHref(item)}>{item.title}</a>
-                    </div>
-                  </li>
-                ))}
+                {moreArticles.map((item) => {
+                  const itemLabel = firstText(item.label);
+                  const itemSubtitle = firstText(item.subtitle);
+                  const itemDate = formatShortDate(item.published_at);
+
+                  return (
+                    <li className="news-article-side-item" key={item.id}>
+                      {item.image_url ? (
+                        <img alt="" src={item.image_url} />
+                      ) : (
+                        <span className="news-article-side-thumb-placeholder" aria-hidden="true" />
+                      )}
+                      <div className="news-article-side-copy">
+                        {itemLabel ? <span className="news-article-side-label">{itemLabel}</span> : null}
+                        <a href={publicArticleHref(item)}>{item.title}</a>
+                        {itemSubtitle ? <p className="news-article-side-subtitle">{itemSubtitle}</p> : null}
+                        {itemDate ? <time className="news-article-side-date" dateTime={item.published_at ?? undefined}>{itemDate}</time> : null}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           ) : null}
