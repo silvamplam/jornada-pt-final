@@ -127,7 +127,6 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
           <nav className="editorial-admin-actions" aria-label="Navegação editorial">
             <a href="/admin/editorial/home">Home Editorial</a>
             <a href="/admin/gestor">Centro de Gestão</a>
-            <a href="/admin/gestor?section=linha-editorial#linha-editorial">Composição Editorial</a>
             <a href={editorialMatchdayHref}>{editorialMatchdayLabel}</a>
             <a href="/admin">Backoffice</a>
             <a className="primary" href="/admin/editorial/artigos?mode=novo">

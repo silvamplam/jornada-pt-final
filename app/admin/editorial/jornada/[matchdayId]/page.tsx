@@ -1011,35 +1011,6 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             <input type="hidden" name="complementary_image_url" value={editorial?.complementary_image_url ?? ""} />
             <input type="hidden" name="complementary_link_url" value={editorial?.complementary_link_url ?? ""} />
             <input type="hidden" name="complementary_status" value={editorial?.complementary_status ?? "draft"} />
-            <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
-              <legend>Ligar artigo existente</legend>
-              <div className="editorial-admin-field">
-                <label htmlFor="side-block-article-source">Escolher artigo publicado</label>
-                <select id="side-block-article-source" data-side-block-article-select defaultValue="">
-                  <option value="">Escolher artigo publicado</option>
-                  {sideBlockArticleOptions.map((article) => (
-                    <option
-                      key={article.id}
-                      value={article.id}
-                      data-side-title={cleanText(article.title)}
-                      data-side-text={sideBlockTextFromArticle(article)}
-                      data-side-label={cleanText(article.label)}
-                      data-side-author={cleanText(article.author)}
-                      data-side-image-url={cleanText(article.image_url)}
-                      data-side-link-url={articlePublicHref(article)}
-                    >
-                      {cleanText(article.title) || cleanText(article.slug) || article.id}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button className="editorial-admin-button secondary" data-side-block-article-apply type="button">
-                Usar artigo no bloco lateral
-              </button>
-              <p className="editorial-admin-muted">
-                Preenche os campos abaixo com dados do artigo. Podes ajustar manualmente antes de guardar.
-              </p>
-            </fieldset>
             <div className="editorial-admin-field">
               <label htmlFor="side-block-status">Estado</label>
               <select id="side-block-status" name="side_block_status" defaultValue={editorial?.side_block_status ?? "draft"}>
@@ -1087,6 +1058,32 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               <label htmlFor="side-block-link-url">Link opcional</label>
               <input id="side-block-link-url" name="side_block_link_url" defaultValue={editorial?.side_block_link_url ?? ""} placeholder="/competicoes/liga/2026-27/jornadas/1/noticias/slug" />
             </div>
+            <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
+              <legend>Ligar notícia/artigo publicado</legend>
+              <div className="editorial-admin-field">
+                <label htmlFor="side-block-article-source">Preencher com artigo publicado</label>
+                <select id="side-block-article-source" data-side-block-article-select defaultValue="">
+                  <option value="">Escolher artigo publicado</option>
+                  {sideBlockArticleOptions.map((article) => (
+                    <option
+                      key={article.id}
+                      value={article.id}
+                      data-side-title={cleanText(article.title)}
+                      data-side-text={sideBlockTextFromArticle(article)}
+                      data-side-label={cleanText(article.label)}
+                      data-side-author={cleanText(article.author)}
+                      data-side-image-url={cleanText(article.image_url)}
+                      data-side-link-url={articlePublicHref(article)}
+                    >
+                      {cleanText(article.title) || cleanText(article.slug) || article.id}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="editorial-admin-muted">
+                Ao escolher, os campos do bloco lateral são preenchidos. Podes ajustar manualmente antes de guardar.
+              </p>
+            </fieldset>
             <button className="editorial-admin-button" type="submit">
               Guardar bloco lateral
             </button>
@@ -1098,14 +1095,13 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                   var form = document.querySelector('[data-side-block-form]');
                   if (!form) return;
                   var select = form.querySelector('[data-side-block-article-select]');
-                  var button = form.querySelector('[data-side-block-article-apply]');
-                  if (!select || !button) return;
+                  if (!select) return;
                   function setField(name, value) {
                     if (!value) return;
                     var field = form.querySelector('[name="' + name + '"]');
                     if (field) field.value = value;
                   }
-                  button.addEventListener('click', function () {
+                  function applySelectedArticle() {
                     var option = select.options[select.selectedIndex];
                     if (!option || !option.value) return;
                     setField('side_block_title', option.getAttribute('data-side-title') || '');
@@ -1114,7 +1110,8 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                     setField('side_block_author', option.getAttribute('data-side-author') || '');
                     setField('side_block_image_url', option.getAttribute('data-side-image-url') || '');
                     setField('side_block_link_url', option.getAttribute('data-side-link-url') || '');
-                  });
+                  }
+                  select.addEventListener('change', applySelectedArticle);
                 })();
               `
             }}
