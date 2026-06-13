@@ -1,19 +1,28 @@
 import { NextResponse } from "next/server";
-import { fetchSupabaseAdminTable, getSupabaseServiceConfig, writeSupabaseAdmin } from "@/lib/supabase";
 
-type EditorialArticleIdRow = {
+import {
+  fetchSupabaseAdminTable,
+  getSupabaseServiceConfig,
+  writeSupabaseAdmin,
+  writeSupabaseAdminReturning,
+} from "@/lib/supabase";
+
+type ArticleIdRow = {
   id: string;
 };
 
-type EditorialArticleDeleteRow = {
+type CreatedArticleRow = {
   id: string;
-  slug: string;
+  slug: string | null;
+};
+
+type CompetitionContextRow = {
+  id: string;
 };
 
 type SeasonContextRow = {
   id: string;
   competition_id: string | null;
-  label?: string | null;
 };
 
 type MatchdayContextRow = {
@@ -21,299 +30,263 @@ type MatchdayContextRow = {
   season_id: string | null;
 };
 
-const usageLinkTargets: Record<string, Set<string>> = {
-  site_editorials: new Set(["headline_link_url", "side_block_link_url", "complementary_link_url"]),
-  site_editorial_highlights: new Set(["link_url"]),
-  site_editorial_latest_news: new Set(["link_url"]),
-  matchday_editorials: new Set(["headline_link_url", "side_block_link_url", "complementary_link_url"]),
-  matchday_highlights: new Set(["link_url"]),
-  matchday_latest_news: new Set(["link_url"])
+type ArticlePayload = {
+  title: string;
+  slug: string;
+  status: "draft" | "published";
+  scope: string | null;
+  label: string | null;
+  author: string | null;
+  subtitle: string | null;
+  body: string | null;
+  image_url: string | null;
+  image_caption: string | null;
+  published_at: string | null;
+  competition_id: string | null;
+  season_id: string | null;
+  matchday_id: string | null;
 };
 
-function cleanText(value: FormDataEntryValue | null): string | null {
+class ArticleAdminError extends Error {
+  constructor(public code: string) {
+    super(code);
+  }
+}
+
+function cleanText(value: FormDataEntryValue | null) {
   if (typeof value !== "string") {
     return null;
   }
 
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
+  const cleanValue = value.trim();
+  return cleanValue.length > 0 ? cleanValue : null;
 }
 
-function cleanStatus(value: FormDataEntryValue | null): "draft" | "published" {
-  return cleanText(value) === "published" ? "published" : "draft";
+function normalizeSlug(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
-function cleanScope(value: FormDataEntryValue | null): "home" | "matchday" | "competition" | "general" {
-  const scope = cleanText(value);
-
-  return scope === "home" || scope === "matchday" || scope === "competition" ? scope : "general";
+function cleanStatus(value: string | null): "draft" | "published" {
+  return value === "published" ? "published" : "draft";
 }
 
-function cleanPublishedAt(value: FormDataEntryValue | null): string | null {
-  const text = cleanText(value);
-  if (!text) {
+function normalizePublishedAt(value: string | null) {
+  if (!value) {
     return null;
   }
 
-  const date = new Date(text);
-  return Number.isNaN(date.getTime()) ? text : date.toISOString();
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    throw new ArticleAdminError("invalid-published-at");
+  }
+
+  return date.toISOString();
 }
 
-function returnUrl(request: Request, formData: FormData, key: "created" | "error", value: string) {
-  const rawReturnTo = cleanText(formData.get("return_to"));
-  const safeReturnTo = rawReturnTo?.startsWith("/admin/editorial/artigos") ? rawReturnTo : "/admin/editorial/artigos";
-  const url = new URL(safeReturnTo, request.url);
-
-  url.searchParams.delete("created");
-  url.searchParams.delete("error");
-  url.searchParams.delete("usage_removed");
-  url.searchParams.set(key, value);
+function redirectTo(request: Request, path: string, params: Record<string, string>) {
+  const url = new URL(path, request.url);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
 
   return NextResponse.redirect(url, { status: 303 });
 }
 
-function removeUsageReturnUrl(request: Request, formData: FormData, label: string) {
-  const rawReturnTo = cleanText(formData.get("return_to"));
-  const safeReturnTo = rawReturnTo?.startsWith("/admin/editorial/artigos") ? rawReturnTo : "/admin/editorial/artigos";
-  const url = new URL(safeReturnTo, request.url);
+async function assertSlugAvailable(slug: string, currentArticleId: string | null) {
+  const rows = await fetchSupabaseAdminTable<ArticleIdRow>(
+    `editorial_articles?select=id&slug=eq.${encodeURIComponent(slug)}&limit=2`,
+  );
 
-  url.searchParams.delete("created");
-  url.searchParams.delete("error");
-  url.searchParams.set("created", "remove_article_usage_link");
-  url.searchParams.set("usage_removed", label);
-
-  return NextResponse.redirect(url, { status: 303 });
+  const collision = rows.find((row) => row.id !== currentArticleId);
+  if (collision) {
+    throw new ArticleAdminError("duplicate-slug");
+  }
 }
 
 async function assertArticleExists(articleId: string) {
-  const rows = await fetchSupabaseAdminTable<EditorialArticleIdRow>(
-    `editorial_articles?select=id&id=eq.${encodeURIComponent(articleId)}&limit=1`
+  const rows = await fetchSupabaseAdminTable<ArticleIdRow>(
+    `editorial_articles?select=id&id=eq.${encodeURIComponent(articleId)}&limit=1`,
   );
 
   if (!rows[0]) {
-    throw new Error("article-not-found");
+    throw new ArticleAdminError("missing-article");
   }
 }
 
-async function readSeasonContext(seasonId: string) {
-  const rows = await fetchSupabaseAdminTable<SeasonContextRow>(
-    `seasons?select=id,competition_id,label&id=eq.${encodeURIComponent(seasonId)}&limit=1`
+async function readCompetition(competitionId: string) {
+  const rows = await fetchSupabaseAdminTable<CompetitionContextRow>(
+    `competitions?select=id&id=eq.${encodeURIComponent(competitionId)}&limit=1`,
   );
-  const season = rows[0];
 
-  if (!season) {
-    throw new Error("season-invalid");
-  }
-
-  return season;
+  return rows[0] ?? null;
 }
 
-async function readSeasonContextByLabel(seasonLabel: string, competitionId: string | null) {
-  const competitionFilter = competitionId ? `&competition_id=eq.${encodeURIComponent(competitionId)}` : "";
+async function readSeason(seasonId: string) {
   const rows = await fetchSupabaseAdminTable<SeasonContextRow>(
-    `seasons?select=id,competition_id,label&label=eq.${encodeURIComponent(seasonLabel)}${competitionFilter}&order=id.asc&limit=1`
+    `seasons?select=id,competition_id&id=eq.${encodeURIComponent(seasonId)}&limit=1`,
   );
-  const season = rows[0];
 
-  if (!season) {
-    throw new Error("season-invalid");
-  }
-
-  return season;
+  return rows[0] ?? null;
 }
 
-async function readMatchdayArticleContext(matchdayId: string) {
+async function readMatchday(matchdayId: string) {
   const rows = await fetchSupabaseAdminTable<MatchdayContextRow>(
-    `matchdays?select=id,season_id&id=eq.${encodeURIComponent(matchdayId)}&limit=1`
+    `matchdays?select=id,season_id&id=eq.${encodeURIComponent(matchdayId)}&limit=1`,
   );
-  const matchday = rows[0];
 
-  if (!matchday?.season_id) {
-    throw new Error("matchday-invalid");
-  }
-
-  const season = await readSeasonContext(matchday.season_id);
-
-  return {
-    matchday_id: matchday.id,
-    season_id: season.id,
-    season_label: season.label ?? null,
-    competition_id: season.competition_id
-  };
+  return rows[0] ?? null;
 }
 
-async function saveArticle(formData: FormData) {
-  const articleId = cleanText(formData.get("article_id"));
-  const slug = cleanText(formData.get("slug"));
-  const matchdayId = cleanText(formData.get("matchday_id"));
-  const seasonLabel = cleanText(formData.get("season_label"));
-  let seasonId = cleanText(formData.get("season_id"));
+async function normalizeContextIds(formData: FormData) {
   let competitionId = cleanText(formData.get("competition_id"));
+  let seasonId = cleanText(formData.get("season_id"));
+  const matchdayId = cleanText(formData.get("matchday_id"));
 
-  if (!slug) {
-    throw new Error("slug-required");
+  if (competitionId && !(await readCompetition(competitionId))) {
+    throw new ArticleAdminError("invalid-context");
   }
 
   if (matchdayId) {
-    const matchdayContext = await readMatchdayArticleContext(matchdayId);
-    if (!competitionId) {
-      throw new Error("article-matchday-competition-required");
+    const matchday = await readMatchday(matchdayId);
+    if (!matchday?.season_id) {
+      throw new ArticleAdminError("invalid-context");
     }
-    if (seasonLabel && matchdayContext.season_label !== seasonLabel) {
-      throw new Error("article-matchday-season-mismatch");
+
+    if (seasonId && matchday.season_id !== seasonId) {
+      throw new ArticleAdminError("invalid-context");
     }
-    if (seasonId && !seasonLabel && seasonId !== matchdayContext.season_id) {
-      throw new Error("article-matchday-season-mismatch");
-    }
-    if (competitionId && matchdayContext.competition_id !== competitionId) {
-      throw new Error("article-matchday-competition-mismatch");
-    }
-    seasonId = matchdayContext.season_id;
-    competitionId = matchdayContext.competition_id;
-  } else if (seasonLabel && (!seasonId || competitionId)) {
-    const seasonContext = await readSeasonContextByLabel(seasonLabel, competitionId);
-    seasonId = seasonContext.id;
+
+    seasonId = seasonId ?? matchday.season_id;
   }
 
-  if (!seasonId) {
-    throw new Error("season-required");
-  }
-
-  let season = await readSeasonContext(seasonId);
-
-  if (competitionId && season.competition_id !== competitionId) {
-    if (!seasonLabel) {
-      throw new Error("article-season-competition-mismatch");
+  if (seasonId) {
+    const season = await readSeason(seasonId);
+    if (!season?.competition_id) {
+      throw new ArticleAdminError("invalid-context");
     }
 
-    season = await readSeasonContextByLabel(seasonLabel, competitionId);
-    seasonId = season.id;
+    if (competitionId && season.competition_id !== competitionId) {
+      throw new ArticleAdminError("invalid-context");
+    }
+
+    competitionId = competitionId ?? season.competition_id;
   }
 
-  const payload = {
-    slug,
-    status: cleanStatus(formData.get("status")),
-    scope: cleanScope(formData.get("scope")),
+  return {
+    competition_id: competitionId,
     season_id: seasonId,
     matchday_id: matchdayId,
-    competition_id: competitionId,
-    title: cleanText(formData.get("title")),
-    subtitle: cleanText(formData.get("subtitle")),
+  };
+}
+
+async function buildPayload(formData: FormData, currentArticleId: string | null): Promise<ArticlePayload> {
+  const title = cleanText(formData.get("title"));
+  if (!title) {
+    throw new ArticleAdminError("missing-title");
+  }
+
+  const slug = normalizeSlug(cleanText(formData.get("slug")) ?? title);
+  if (!slug) {
+    throw new ArticleAdminError("missing-slug");
+  }
+
+  await assertSlugAvailable(slug, currentArticleId);
+
+  const status = cleanStatus(cleanText(formData.get("status")));
+  let publishedAt = normalizePublishedAt(cleanText(formData.get("published_at")));
+
+  if (status === "published" && !publishedAt) {
+    publishedAt = new Date().toISOString();
+  }
+
+  const context = await normalizeContextIds(formData);
+
+  return {
+    title,
+    slug,
+    status,
+    scope: cleanText(formData.get("scope")),
     label: cleanText(formData.get("label")),
     author: cleanText(formData.get("author")),
+    subtitle: cleanText(formData.get("subtitle")),
+    body: cleanText(formData.get("body")),
     image_url: cleanText(formData.get("image_url")),
     image_caption: cleanText(formData.get("image_caption")),
-    body: cleanText(formData.get("body")),
-    published_at: cleanPublishedAt(formData.get("published_at")),
-    updated_at: new Date().toISOString()
+    published_at: publishedAt,
+    competition_id: context.competition_id,
+    season_id: context.season_id,
+    matchday_id: context.matchday_id,
   };
-
-  if (articleId) {
-    await assertArticleExists(articleId);
-    await writeSupabaseAdmin(`editorial_articles?id=eq.${encodeURIComponent(articleId)}`, {
-      method: "PATCH",
-      body: JSON.stringify(payload)
-    });
-    return;
-  }
-
-  await writeSupabaseAdmin("editorial_articles", {
-    method: "POST",
-    body: JSON.stringify(payload)
-  });
 }
 
-async function removeArticleUsageLink(formData: FormData) {
-  const table = cleanText(formData.get("usage_table"));
-  const id = cleanText(formData.get("usage_id"));
-  const field = cleanText(formData.get("usage_field"));
-  const articleLink = cleanText(formData.get("article_link"));
+async function createArticle(request: Request, formData: FormData) {
+  const payload = await buildPayload(formData, null);
+  const rows = await writeSupabaseAdminReturning<CreatedArticleRow>("editorial_articles?select=id,slug", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 
-  if (!table || !id || !field || !articleLink) {
-    throw new Error("missing-usage-fields");
+  const created = rows[0];
+  if (!created?.id) {
+    throw new ArticleAdminError("save-failed");
   }
 
-  if (!usageLinkTargets[table]?.has(field)) {
-    throw new Error("invalid-usage-target");
+  return redirectTo(request, `/admin/editorial/artigos/${encodeURIComponent(created.id)}/editar`, { created: "1" });
+}
+
+async function updateArticle(request: Request, formData: FormData) {
+  const articleId = cleanText(formData.get("article_id"));
+  if (!articleId) {
+    throw new ArticleAdminError("missing-article");
   }
 
-  const rows = await fetchSupabaseAdminTable<Record<string, string | null>>(
-    `${table}?select=${field}&id=eq.${encodeURIComponent(id)}&limit=1`
-  );
-  const currentLink = cleanText(rows[0]?.[field] ?? null);
+  await assertArticleExists(articleId);
 
-  if (currentLink !== articleLink) {
-    throw new Error("usage-link-mismatch");
-  }
-
-  await writeSupabaseAdmin(`${table}?id=eq.${encodeURIComponent(id)}`, {
+  const payload = await buildPayload(formData, articleId);
+  await writeSupabaseAdmin(`editorial_articles?id=eq.${encodeURIComponent(articleId)}`, {
     method: "PATCH",
     body: JSON.stringify({
-      [field]: null
-    })
+      ...payload,
+      updated_at: new Date().toISOString(),
+    }),
   });
-}
 
-async function clearArticleUsageLinks(articleLink: string) {
-  const encodedArticleLink = encodeURIComponent(articleLink);
-
-  for (const [table, fields] of Object.entries(usageLinkTargets)) {
-    for (const field of fields) {
-      await writeSupabaseAdmin(`${table}?${field}=eq.${encodedArticleLink}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          [field]: null
-        })
-      });
-    }
-  }
-}
-
-async function deleteArticle(formData: FormData) {
-  const articleId = cleanText(formData.get("article_id"));
-
-  if (!articleId) {
-    throw new Error("article-required");
-  }
-
-  const rows = await fetchSupabaseAdminTable<EditorialArticleDeleteRow>(
-    `editorial_articles?select=id,slug&id=eq.${encodeURIComponent(articleId)}&limit=1`
-  );
-  const article = rows[0];
-
-  if (!article?.slug) {
-    throw new Error("article-not-found");
-  }
-
-  await clearArticleUsageLinks(`/noticias/${article.slug}`);
-  await writeSupabaseAdmin(`editorial_articles?id=eq.${encodeURIComponent(article.id)}`, {
-    method: "DELETE"
-  });
+  return redirectTo(request, `/admin/editorial/artigos/${encodeURIComponent(articleId)}/editar`, { saved: "1" });
 }
 
 export async function POST(request: Request) {
   const formData = await request.formData();
-
-  if (!getSupabaseServiceConfig()) {
-    return returnUrl(request, formData, "error", "supabase-service-not-configured");
-  }
-
   const actionType = cleanText(formData.get("action_type"));
 
   try {
-    if (actionType === "save_article") {
-      await saveArticle(formData);
-    } else if (actionType === "remove_article_usage_link") {
-      await removeArticleUsageLink(formData);
-      return removeUsageReturnUrl(request, formData, cleanText(formData.get("usage_label")) ?? "bloco editorial");
-    } else if (actionType === "delete_article") {
-      await deleteArticle(formData);
-    } else {
-      throw new Error("invalid-action");
+    try {
+      getSupabaseServiceConfig();
+    } catch {
+      throw new ArticleAdminError("missing-service");
     }
 
-    return returnUrl(request, formData, "created", actionType);
+    if (actionType === "create_article") {
+      return await createArticle(request, formData);
+    }
+
+    if (actionType === "update_article") {
+      return await updateArticle(request, formData);
+    }
+
+    return redirectTo(request, "/admin/editorial/artigos", { error: "invalid-action" });
   } catch (error) {
-    return returnUrl(request, formData, "error", error instanceof Error ? error.message : "unknown-error");
+    const code = error instanceof ArticleAdminError ? error.code : "save-failed";
+    const articleId = cleanText(formData.get("article_id"));
+    const fallbackPath =
+      actionType === "update_article" && articleId
+        ? `/admin/editorial/artigos/${encodeURIComponent(articleId)}/editar`
+        : "/admin/editorial/artigos/novo";
+
+    return redirectTo(request, fallbackPath, { error: code });
   }
 }

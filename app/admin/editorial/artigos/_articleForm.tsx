@@ -1,0 +1,641 @@
+export type EditorialArticle = {
+  id: string;
+  slug: string | null;
+  title: string | null;
+  subtitle: string | null;
+  body: string | null;
+  label: string | null;
+  author: string | null;
+  status: string | null;
+  scope: string | null;
+  image_url: string | null;
+  image_caption: string | null;
+  published_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  competition_id: string | null;
+  season_id: string | null;
+  matchday_id: string | null;
+};
+
+export type CompetitionOption = {
+  id: string;
+  name: string | null;
+  slug: string | null;
+  is_active?: boolean | null;
+};
+
+export type SeasonOption = {
+  id: string;
+  competition_id: string | null;
+  label: string | null;
+  starts_on?: string | null;
+  ends_on?: string | null;
+  is_current?: boolean | null;
+};
+
+export type MatchdayOption = {
+  id: string;
+  season_id: string | null;
+  number: number | null;
+  label: string | null;
+  starts_on?: string | null;
+  ends_on?: string | null;
+  status?: string | null;
+};
+
+type ArticleEditorFormProps = {
+  mode: "create" | "edit";
+  article?: EditorialArticle | null;
+  competitions: CompetitionOption[];
+  seasons: SeasonOption[];
+  matchdays: MatchdayOption[];
+  message?: string | null;
+};
+
+export function publicArticleHref(slug: string | null | undefined) {
+  const cleanSlug = (slug ?? "").trim();
+  if (!cleanSlug) {
+    return null;
+  }
+
+  return `/noticias/${encodeURIComponent(cleanSlug)}`;
+}
+
+export function firstText(...values: Array<string | null | undefined>) {
+  for (const value of values) {
+    const cleanValue = value?.trim();
+    if (cleanValue) {
+      return cleanValue;
+    }
+  }
+
+  return "";
+}
+
+export function formatShortDate(value: string | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("pt-PT", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function formatDateTimeLocal(value: string | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  const match = value.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
+  if (match) {
+    return match[1];
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function seasonLabel(season: SeasonOption) {
+  return firstText(season.label, season.id);
+}
+
+function matchdayLabel(matchday: MatchdayOption) {
+  const baseLabel = firstText(matchday.label, matchday.number ? `J${String(matchday.number).padStart(2, "0")}` : null, matchday.id);
+  return matchday.number ? `${baseLabel} · J${String(matchday.number).padStart(2, "0")}` : baseLabel;
+}
+
+const articleFormEnhancer = `
+(function () {
+  function normalizeSlug(value) {
+    return (value || "")
+      .normalize("NFD")
+      .replace(/[\\u0300-\\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  function selectedOption(select) {
+    return select.options[select.selectedIndex] || null;
+  }
+
+  function init(form) {
+    var title = form.querySelector("[data-article-title]");
+    var slug = form.querySelector("[data-article-slug]");
+    var competition = form.querySelector("[data-article-competition]");
+    var season = form.querySelector("[data-article-season]");
+    var matchday = form.querySelector("[data-article-matchday]");
+
+    if (title && slug) {
+      slug.addEventListener("blur", function () {
+        slug.value = normalizeSlug(slug.value);
+      });
+      title.addEventListener("blur", function () {
+        if (!slug.value.trim()) {
+          slug.value = normalizeSlug(title.value);
+        }
+      });
+    }
+
+    function filterOptions() {
+      var competitionId = competition ? competition.value : "";
+      var seasonId = season ? season.value : "";
+
+      if (season) {
+        Array.prototype.forEach.call(season.options, function (option) {
+          if (!option.value) {
+            option.hidden = false;
+            option.disabled = false;
+            return;
+          }
+          var keep = !competitionId || option.getAttribute("data-competition-id") === competitionId;
+          option.hidden = !keep;
+          option.disabled = !keep;
+        });
+
+        if (selectedOption(season) && selectedOption(season).disabled) {
+          season.value = "";
+          seasonId = "";
+        }
+      }
+
+      if (matchday) {
+        Array.prototype.forEach.call(matchday.options, function (option) {
+          if (!option.value) {
+            option.hidden = false;
+            option.disabled = false;
+            return;
+          }
+          var keepBySeason = !seasonId || option.getAttribute("data-season-id") === seasonId;
+          var keepByCompetition = !competitionId || option.getAttribute("data-competition-id") === competitionId;
+          var keep = keepBySeason && keepByCompetition;
+          option.hidden = !keep;
+          option.disabled = !keep;
+        });
+
+        if (selectedOption(matchday) && selectedOption(matchday).disabled) {
+          matchday.value = "";
+        }
+      }
+    }
+
+    if (competition) {
+      competition.addEventListener("change", filterOptions);
+    }
+    if (season) {
+      season.addEventListener("change", filterOptions);
+    }
+
+    filterOptions();
+  }
+
+  document.querySelectorAll("[data-article-admin-form]").forEach(init);
+})();
+`;
+
+export function ArticleEditorForm({
+  mode,
+  article,
+  competitions,
+  seasons,
+  matchdays,
+  message,
+}: ArticleEditorFormProps) {
+  const publicHref = publicArticleHref(article?.slug);
+  const isEdit = mode === "edit";
+  const currentStatus = firstText(article?.status) || "draft";
+  const currentScope = firstText(article?.scope);
+  const competitionBySeasonId = new Map(seasons.map((season) => [season.id, season.competition_id ?? ""]));
+
+  return (
+    <form className="editorial-article-form" action="/api/admin/editorial/artigos" method="post" data-article-admin-form>
+      <input type="hidden" name="action_type" value={isEdit ? "update_article" : "create_article"} />
+      {isEdit ? <input type="hidden" name="article_id" value={article?.id ?? ""} /> : null}
+
+      {message ? <p className="article-admin-alert">{message}</p> : null}
+
+      <section className="article-admin-section">
+        <div>
+          <p className="article-admin-kicker">Conteúdo editorial</p>
+          <h2>{isEdit ? "Editar artigo" : "Novo artigo"}</h2>
+          <p>Guarda em public.editorial_articles. A publicação pública continua disponível apenas para artigos com status published.</p>
+        </div>
+
+        <div className="article-admin-grid">
+          <label>
+            <span>Título</span>
+            <input name="title" data-article-title defaultValue={article?.title ?? ""} required />
+          </label>
+
+          <label>
+            <span>Slug</span>
+            <input name="slug" data-article-slug defaultValue={article?.slug ?? ""} placeholder="gerado-a-partir-do-titulo" />
+          </label>
+
+          <label>
+            <span>Estado</span>
+            <select name="status" defaultValue={currentStatus}>
+              <option value="draft">draft</option>
+              <option value="published">published</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Ambito</span>
+            <input name="scope" defaultValue={currentScope} placeholder="global, matchday, competition..." />
+          </label>
+
+          <label>
+            <span>Etiqueta</span>
+            <input name="label" defaultValue={article?.label ?? ""} placeholder="OPINIAO, ANALISE..." />
+          </label>
+
+          <label>
+            <span>Autor</span>
+            <input name="author" defaultValue={article?.author ?? ""} placeholder="Nome do autor" />
+          </label>
+
+          <label className="article-admin-full">
+            <span>Subtítulo</span>
+            <textarea name="subtitle" rows={3} defaultValue={article?.subtitle ?? ""} />
+          </label>
+
+          <label className="article-admin-full">
+            <span>Corpo</span>
+            <textarea name="body" rows={14} defaultValue={article?.body ?? ""} />
+          </label>
+        </div>
+      </section>
+
+      <section className="article-admin-section">
+        <div>
+          <p className="article-admin-kicker">Imagem e publicação</p>
+          <h2>Metadados públicos</h2>
+          <p>O slug público abre em /noticias/[slug]. Se publicar sem data, a data atual é aplicada no momento da gravação.</p>
+        </div>
+
+        <div className="article-admin-grid">
+          <label className="article-admin-full">
+            <span>Imagem principal</span>
+            <input name="image_url" defaultValue={article?.image_url ?? ""} placeholder="https://..." />
+          </label>
+
+          <label className="article-admin-full">
+            <span>Legenda da imagem</span>
+            <input name="image_caption" defaultValue={article?.image_caption ?? ""} />
+          </label>
+
+          <label>
+            <span>Publicado em</span>
+            <input name="published_at" type="datetime-local" defaultValue={formatDateTimeLocal(article?.published_at)} />
+          </label>
+        </div>
+      </section>
+
+      <section className="article-admin-section">
+        <div>
+          <p className="article-admin-kicker">Contexto opcional</p>
+          <h2>Competição, época e jornada</h2>
+          <p>Associa o artigo a contexto real já existente. As listas são filtradas no formulário e validadas ao gravar.</p>
+        </div>
+
+        <div className="article-admin-grid">
+          <label>
+            <span>Competição</span>
+            <select name="competition_id" data-article-competition defaultValue={article?.competition_id ?? ""}>
+              <option value="">Sem competição</option>
+              {competitions.map((competition) => (
+                <option key={competition.id} value={competition.id}>
+                  {firstText(competition.name, competition.slug, competition.id)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span>Época</span>
+            <select name="season_id" data-article-season defaultValue={article?.season_id ?? ""}>
+              <option value="">Sem época</option>
+              {seasons.map((season) => (
+                <option key={season.id} value={season.id} data-competition-id={season.competition_id ?? ""}>
+                  {seasonLabel(season)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span>Jornada</span>
+            <select name="matchday_id" data-article-matchday defaultValue={article?.matchday_id ?? ""}>
+              <option value="">Sem jornada</option>
+              {matchdays.map((matchday) => (
+                <option
+                  key={matchday.id}
+                  value={matchday.id}
+                  data-season-id={matchday.season_id ?? ""}
+                  data-competition-id={matchday.season_id ? competitionBySeasonId.get(matchday.season_id) ?? "" : ""}
+                >
+                  {matchdayLabel(matchday)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <div className="article-admin-form-actions">
+        <a className="article-admin-secondary" href="/admin/editorial/artigos">
+          Voltar à lista
+        </a>
+        {publicHref ? (
+          <a className="article-admin-secondary" href={publicHref} target="_blank" rel="noreferrer">
+            Abrir público
+          </a>
+        ) : null}
+        <button type="submit">{isEdit ? "Guardar alterações" : "Criar artigo"}</button>
+      </div>
+
+      <script dangerouslySetInnerHTML={{ __html: articleFormEnhancer }} />
+    </form>
+  );
+}
+
+export const editorialArticleAdminStyles = `
+  .editorial-admin-shell {
+    min-height: 100vh;
+    background: #f4f6f8;
+    color: #111827;
+    padding: 32px;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  .editorial-admin-container {
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  .editorial-admin-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+
+  .editorial-admin-header h1 {
+    margin: 0;
+    font-size: 32px;
+    line-height: 1.08;
+  }
+
+  .editorial-admin-header p {
+    max-width: 720px;
+    margin: 8px 0 0;
+    color: #4b5563;
+    line-height: 1.55;
+  }
+
+  .editorial-admin-actions,
+  .article-admin-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .editorial-admin-actions a,
+  .editorial-admin-actions button,
+  .article-admin-form-actions a,
+  .article-admin-form-actions button,
+  .article-card-actions a {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    padding: 0 14px;
+    background: #fff;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .editorial-admin-actions .primary,
+  .article-admin-form-actions button {
+    border-color: #111827;
+    background: #111827;
+    color: #fff;
+  }
+
+  .article-admin-secondary {
+    background: #fff;
+  }
+
+  .article-admin-alert {
+    margin: 0 0 18px;
+    border-radius: 8px;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    padding: 12px 14px;
+    color: #1e3a8a;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .article-admin-section,
+  .editorial-admin-panel,
+  .article-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+  }
+
+  .editorial-admin-panel {
+    padding: 20px;
+  }
+
+  .article-admin-section {
+    display: grid;
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    gap: 24px;
+    padding: 22px;
+    margin-bottom: 18px;
+  }
+
+  .article-admin-section h2 {
+    margin: 4px 0 8px;
+    font-size: 20px;
+  }
+
+  .article-admin-section p {
+    margin: 0;
+    color: #6b7280;
+    line-height: 1.5;
+  }
+
+  .article-admin-kicker {
+    margin: 0;
+    color: #b91c1c !important;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .article-admin-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .article-admin-full {
+    grid-column: 1 / -1;
+  }
+
+  .article-admin-grid label {
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .article-admin-grid input,
+  .article-admin-grid select,
+  .article-admin-grid textarea {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 10px 11px;
+    background: #fff;
+    color: #111827;
+    font: inherit;
+    font-weight: 500;
+  }
+
+  .article-admin-grid textarea {
+    resize: vertical;
+  }
+
+  .article-list {
+    display: grid;
+    gap: 14px;
+  }
+
+  .article-card {
+    display: grid;
+    grid-template-columns: 132px minmax(0, 1fr);
+    gap: 16px;
+    padding: 14px;
+  }
+
+  .article-card img,
+  .article-card-image-placeholder {
+    width: 132px;
+    height: 88px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #e5e7eb;
+  }
+
+  .article-card-image-placeholder {
+    display: grid;
+    place-items: center;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .article-card-body {
+    min-width: 0;
+  }
+
+  .article-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .article-card h2 {
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.18;
+  }
+
+  .article-card h2 a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .article-card h2 a:hover {
+    text-decoration: underline;
+  }
+
+  .article-card p {
+    margin: 8px 0 0;
+    color: #4b5563;
+    line-height: 1.45;
+  }
+
+  .article-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .article-card-context {
+    display: grid;
+    gap: 3px;
+    margin-top: 10px;
+    color: #6b7280;
+    font-size: 12px;
+  }
+
+  @media (max-width: 820px) {
+    .editorial-admin-shell {
+      padding: 20px;
+    }
+
+    .editorial-admin-header,
+    .article-admin-section,
+    .article-admin-grid,
+    .article-card {
+      grid-template-columns: 1fr;
+    }
+
+    .editorial-admin-header {
+      display: grid;
+    }
+
+    .editorial-admin-actions,
+    .article-admin-form-actions {
+      justify-content: flex-start;
+    }
+  }
+`;
