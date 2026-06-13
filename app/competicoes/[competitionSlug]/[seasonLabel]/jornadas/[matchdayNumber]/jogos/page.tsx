@@ -349,8 +349,9 @@ const gamesPageStyles = `
 
   .public-games-card {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(74px, auto) minmax(0, 1fr);
-    gap: 12px;
+    grid-template-columns: 34px minmax(0, 1fr) 120px minmax(0, 1fr) 34px;
+    column-gap: 8px;
+    row-gap: 4px;
     align-items: center;
     padding: 11px 0;
     border: 0;
@@ -376,59 +377,39 @@ const gamesPageStyles = `
     background: #ffffff;
   }
 
-          .public-games-team {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-width: 0;
-            width: 100%;
-            flex-wrap: nowrap;
-          }
+  .public-games-crest {
+    display: grid;
+    place-items: center;
+    min-width: 0;
+  }
 
-          .public-games-team:first-child {
-            display: grid;
-            grid-template-columns: 34px minmax(0, 1fr);
-            column-gap: 8px;
-            justify-content: flex-start;
-            justify-items: start;
-            text-align: left;
-          }
-
-          .public-games-team:last-of-type {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) 34px;
-            column-gap: 8px;
-            inline-size: 100%;
-            justify-self: stretch;
-            justify-content: stretch;
-            justify-items: stretch;
-            text-align: right;
-          }
-
-          .public-games-team-copy {
-            min-width: 0;
-            flex: 0 1 auto;
-          }
-
-  .public-games-team:first-child .public-games-team-copy {
-    inline-size: fit-content;
-    max-inline-size: 100%;
+  .public-games-crest-home {
+    grid-column: 1;
     justify-self: start;
+  }
+
+  .public-games-crest-away {
+    grid-column: 5;
+    justify-self: end;
+  }
+
+  .public-games-team-copy {
+    min-width: 0;
+  }
+
+  .public-games-team-copy-home {
+    grid-column: 2;
+    justify-self: stretch;
     text-align: left;
   }
 
-          .public-games-team:last-of-type .public-games-team-copy {
-            inline-size: auto;
-            max-inline-size: 100%;
-            justify-self: stretch;
-            text-align: right;
-          }
+  .public-games-team-copy-away {
+    grid-column: 4;
+    justify-self: stretch;
+    text-align: right;
+  }
 
-          .public-games-team:last-of-type .public-team-badge {
-            justify-self: end;
-          }
-
-  .public-games-team strong,
+  .public-games-team-copy strong,
   .public-games-score strong {
     display: block;
     color: #10151b;
@@ -439,7 +420,7 @@ const gamesPageStyles = `
     white-space: nowrap;
   }
 
-  .public-games-team small,
+  .public-games-team-copy small,
   .public-games-score small {
     display: block;
     margin-top: 4px;
@@ -475,7 +456,9 @@ const gamesPageStyles = `
   }
 
   .public-games-score {
-    min-width: 74px;
+    grid-column: 3;
+    min-width: 0;
+    inline-size: 100%;
     justify-self: center;
     text-align: center;
   }
@@ -704,7 +687,7 @@ const gamesPageStyles = `
     }
 
     .public-games-card {
-      grid-template-columns: minmax(0, 1fr) minmax(68px, auto) minmax(0, 1fr);
+      grid-template-columns: 34px minmax(0, 1fr) 86px minmax(0, 1fr) 34px;
       gap: 8px;
     }
 
@@ -857,22 +840,22 @@ function MatchCard({ match }: { match: PublicSeasonMatch }) {
 
   return (
     <article className={`public-games-card public-games-card-${kind}`} key={match.id}>
-      <div className={`public-games-team ${homeWinner ? "public-games-team-winner" : ""}`}>
+      <div className="public-games-crest public-games-crest-home">
         <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
-        <div className="public-games-team-copy">
-          <strong>{match.homeTeam?.name ?? "Equipa da casa"}</strong>
-          <small>Casa</small>
-        </div>
+      </div>
+      <div className={`public-games-team-copy public-games-team-copy-home ${homeWinner ? "public-games-team-winner" : ""}`}>
+        <strong>{match.homeTeam?.name ?? "Equipa da casa"}</strong>
+        <small>Casa</small>
       </div>
       <div className="public-games-score">
         <strong>{matchResult(match)}</strong>
         <small className={`public-games-status public-games-status-${kind}`}>{statusText}</small>
       </div>
-      <div className={`public-games-team ${awayWinner ? "public-games-team-winner" : ""}`}>
-        <div className="public-games-team-copy">
-          <strong>{match.awayTeam?.name ?? "Equipa visitante"}</strong>
-          <small>Fora</small>
-        </div>
+      <div className={`public-games-team-copy public-games-team-copy-away ${awayWinner ? "public-games-team-winner" : ""}`}>
+        <strong>{match.awayTeam?.name ?? "Equipa visitante"}</strong>
+        <small>Fora</small>
+      </div>
+      <div className="public-games-crest public-games-crest-away">
         <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
       </div>
       <div className="public-games-meta">
