@@ -2739,8 +2739,16 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
   const matchdayHref = (number: number) => `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/${number}`;
   const liveMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "live");
   const halftimeMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "halftime");
+  const activeMatches = context.matchesForMatchday.filter((match) => {
+    const kind = statusKind(match.status);
+    return kind === "live" || kind === "halftime";
+  });
   const finishedMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "finished");
   const scheduledMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "scheduled");
+  const otherMatches = context.matchesForMatchday.filter((match) => {
+    const kind = statusKind(match.status);
+    return kind !== "live" && kind !== "halftime" && kind !== "finished" && kind !== "scheduled";
+  });
   const selectedMatchdayDateContext = formatMatchdayDateContext(context.matchesForMatchday);
   const editorial = context.editorial;
   const publishedHeadline = editorial?.status === "published" ? editorial : null;
@@ -2949,7 +2957,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
         }}
       />
 
-      <section className="public-matchday-panel public-matchday-scoreboard-panel" id="jogos" aria-label="Visao rapida dos jogos">
+      <section className="public-matchday-panel public-matchday-scoreboard-panel" aria-label="Visao rapida dos jogos">
         <div className="public-matchday-strip-shell">
           <button className="public-matchday-strip-button" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
             ‹
@@ -3309,6 +3317,51 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
           </div>
         </section>
       ) : null}
+
+      <section className="public-matchday-panel" id="jogos" aria-label="Jogos da jornada">
+        <header>
+          <h2>Jogos</h2>
+          <p>{selectedMatchdayDateContext}</p>
+        </header>
+        {context.matchesForMatchday.length > 0 ? (
+          <div className="public-matchday-list">
+            {activeMatches.length > 0 ? (
+              <section className="public-matchday-group" aria-label="Jogos em direto">
+                <h3>Em direto</h3>
+                {activeMatches.map((match) => (
+                  <MatchCard key={match.id} match={match} />
+                ))}
+              </section>
+            ) : null}
+            {finishedMatches.length > 0 ? (
+              <section className="public-matchday-group" aria-label="Jogos finalizados">
+                <h3>Finalizados</h3>
+                {finishedMatches.map((match) => (
+                  <MatchCard key={match.id} match={match} />
+                ))}
+              </section>
+            ) : null}
+            {scheduledMatches.length > 0 ? (
+              <section className="public-matchday-group" aria-label="Jogos agendados">
+                <h3>Agendados</h3>
+                {scheduledMatches.map((match) => (
+                  <MatchCard key={match.id} match={match} />
+                ))}
+              </section>
+            ) : null}
+            {otherMatches.length > 0 ? (
+              <section className="public-matchday-group" aria-label="Outros estados dos jogos">
+                <h3>Outros estados</h3>
+                {otherMatches.map((match) => (
+                  <MatchCard key={match.id} match={match} />
+                ))}
+              </section>
+            ) : null}
+          </div>
+        ) : (
+          <div className="public-matchday-future">Ainda nao ha jogos nesta jornada.</div>
+        )}
+      </section>
 
       <section className="public-matchday-panel" id="classificacao" aria-label="Classificacao acumulada">
         <div className="public-table-wrap">
