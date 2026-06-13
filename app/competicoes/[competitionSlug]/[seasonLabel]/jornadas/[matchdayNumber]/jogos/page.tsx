@@ -398,9 +398,11 @@ const gamesPageStyles = `
             display: grid;
             grid-template-columns: minmax(0, 1fr) 34px;
             column-gap: 8px;
+            inline-size: 100%;
+            justify-self: stretch;
             justify-content: stretch;
-            justify-items: end;
-            text-align: left;
+            justify-items: stretch;
+            text-align: right;
           }
 
           .public-games-team-copy {
@@ -416,10 +418,10 @@ const gamesPageStyles = `
   }
 
           .public-games-team:last-of-type .public-games-team-copy {
-            inline-size: fit-content;
+            inline-size: auto;
             max-inline-size: 100%;
-            justify-self: end;
-            text-align: left;
+            justify-self: stretch;
+            text-align: right;
           }
 
           .public-games-team:last-of-type .public-team-badge {
