@@ -386,13 +386,21 @@ const gamesPageStyles = `
           }
 
           .public-games-team:first-child {
+            display: grid;
+            grid-template-columns: 34px minmax(0, 1fr);
+            column-gap: 8px;
             justify-content: flex-start;
+            justify-items: start;
             text-align: left;
           }
 
           .public-games-team:last-of-type {
-            justify-content: flex-end;
-            text-align: right;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 34px;
+            column-gap: 8px;
+            justify-content: stretch;
+            justify-items: end;
+            text-align: left;
           }
 
           .public-games-team-copy {
@@ -401,12 +409,22 @@ const gamesPageStyles = `
           }
 
   .public-games-team:first-child .public-games-team-copy {
+    inline-size: fit-content;
+    max-inline-size: 100%;
+    justify-self: start;
     text-align: left;
   }
 
-  .public-games-team:last-of-type .public-games-team-copy {
-    text-align: right;
-  }
+          .public-games-team:last-of-type .public-games-team-copy {
+            inline-size: fit-content;
+            max-inline-size: 100%;
+            justify-self: end;
+            text-align: left;
+          }
+
+          .public-games-team:last-of-type .public-team-badge {
+            justify-self: end;
+          }
 
   .public-games-team strong,
   .public-games-score strong {
