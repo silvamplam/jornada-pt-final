@@ -529,7 +529,7 @@ async function readPublishedEditorialArticles(): Promise<EditorialArticleForSide
 
 type FeedbackScope = "manchete" | "bloco-lateral" | "composicao" | "destaques" | "resumo-jornada" | "bloco-complementar" | "ultimas-noticias";
 
-function messageFor(created?: string, error?: string, scope?: FeedbackScope) {
+function messageFor(created?: string, error?: string, scope?: FeedbackScope, detail?: string) {
   const createdLabels: Record<string, string> = {
     save_matchday_editorial: "Linha editorial da jornada guardada.",
     save_matchday_highlights: "Destaques guardados e definidos como zona ativa abaixo da manchete.",
@@ -574,6 +574,7 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope) {
     "editorial-image-type": "O ficheiro tem de ser uma imagem JPG, PNG ou WebP.",
     "editorial-image-size": "A imagem nao pode ter mais de 5MB.",
     "editorial-image-upload": "Nao foi possivel carregar a imagem. Confirma o bucket de Storage.",
+    "latest-news-save-failed": "Nao foi possivel guardar a Zona Editorial Final.",
     save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
   };
 
@@ -582,18 +583,23 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope) {
   }
 
   if (error) {
-    return <div className="editorial-admin-message warning">{errorLabels[error] ?? errorLabels.save}</div>;
+    return (
+      <div className="editorial-admin-message warning">
+        <span>{errorLabels[error] ?? errorLabels.save}</span>
+        {detail ? <small>{detail}</small> : null}
+      </div>
+    );
   }
 
   return null;
 }
 
-function scopedMessageFor(created: string | undefined, error: string | undefined, currentScope: string | undefined, scope: FeedbackScope) {
+function scopedMessageFor(created: string | undefined, error: string | undefined, currentScope: string | undefined, scope: FeedbackScope, detail?: string) {
   if (currentScope !== scope) {
     return null;
   }
 
-  return messageFor(created, error, scope);
+  return messageFor(created, error, scope, detail);
 }
 
 export default async function AdminMatchdayEditorialPage({ params, searchParams }: EditorialPageProps) {
@@ -602,6 +608,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const created = oneParam(query, "created");
   const error = oneParam(query, "error");
   const feedbackScope = oneParam(query, "feedback_scope");
+  const latestNewsErrorDetail = oneParam(query, "latest_news_error_detail");
   const context = await readMatchdayContext(matchdayId);
 
   if (!context) {
@@ -912,7 +919,6 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                       <option
                         key={article.id}
                         value={article.id}
-                        data-latest-news-article-id={article.id}
                         data-latest-news-title={cleanText(article.title)}
                         data-latest-news-subtitle={sideBlockTextFromArticle(article)}
                         data-latest-news-image-url={cleanText(article.image_url)}
@@ -924,7 +930,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                   </select>
                 </div>
                 <p className="editorial-admin-muted">
-                  Ao escolher um artigo, este item recebe titulo, subtitulo, imagem, artigo associado e link interno. Pode ajustar manualmente antes de guardar.
+                  Ao escolher um artigo, este item recebe titulo, subtitulo, imagem e link interno. Pode ajustar manualmente antes de guardar.
                 </p>
               </fieldset>
               {item?.image_url ? (
@@ -955,15 +961,15 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 var order = card.getAttribute('data-latest-news-card');
                 var select = card.querySelector('[data-latest-news-article-select]');
                 if (!order || !select) return;
-                function setLatestNewsField(name, value) {
-                  if (!value) return;
+                function setLatestNewsField(name, value, allowEmpty) {
+                  if (!value && !allowEmpty) return;
                   var field = document.querySelector('[name="latest_news_' + order + '_' + name + '"]');
-                  if (field) field.value = value;
+                  if (field) field.value = value || '';
                 }
                 function applyLatestNewsArticle() {
                   var option = select.options[select.selectedIndex];
                   if (!option || !option.value) return;
-                  setLatestNewsField('article_id', option.dataset.latestNewsArticleId);
+                  setLatestNewsField('article_id', '', true);
                   setLatestNewsField('title', option.dataset.latestNewsTitle);
                   setLatestNewsField('subtitle', option.dataset.latestNewsSubtitle);
                   setLatestNewsField('image_url', option.dataset.latestNewsImageUrl);
@@ -1481,7 +1487,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               <section className="editorial-admin-composition-card" id="ultimas-noticias">
                 <h3>Zona editorial final</h3>
                 <p>Escolhe entre atualidade e Linha editorial. Em Linha editorial, podes publicar cartoes com imagem, titulo, subtitulo e link.</p>
-                {scopedMessageFor(created, error, feedbackScope, "ultimas-noticias")}
+                {scopedMessageFor(created, error, feedbackScope, "ultimas-noticias", latestNewsErrorDetail)}
                 {latestNewsEditor}
               </section>
             </div>

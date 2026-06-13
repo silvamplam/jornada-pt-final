@@ -183,6 +183,7 @@ function returnUrl(request: Request, formData: FormData, key: "created" | "error
   url.searchParams.delete("club_apply_summary");
   url.searchParams.delete("calendar_apply_summary");
   url.searchParams.delete("clear_calendar_error_detail");
+  url.searchParams.delete("latest_news_error_detail");
   url.searchParams.set(key, value);
   Object.entries(extraParams ?? {}).forEach(([paramKey, paramValue]) => {
     url.searchParams.set(paramKey, paramValue);
@@ -1133,7 +1134,8 @@ async function saveMatchdayLatestNews(formData: FormData) {
     const subtitle = cleanText(formData.get(`latest_news_${sortOrder}_subtitle`));
     const imageUrl = cleanText(formData.get(`latest_news_${sortOrder}_image_url`));
     const linkUrl = cleanText(formData.get(`latest_news_${sortOrder}_link_url`));
-    const articleId = cleanText(formData.get(`latest_news_${sortOrder}_article_id`));
+    const rawArticleId = cleanText(formData.get(`latest_news_${sortOrder}_article_id`));
+    const articleId = linkUrl?.startsWith("/noticias/") ? null : rawArticleId;
     const statusValue = cleanText(formData.get(`latest_news_${sortOrder}_status`)) ?? "draft";
     const status = statusValue === "published" ? "published" : "draft";
     const hasContent = Boolean(timeLabel || title || subtitle || imageUrl || linkUrl || articleId);
@@ -1999,6 +2001,12 @@ export async function POST(request: Request) {
       console.error("[admin/gestor] clear_season_calendar failed:", error.detail);
       return returnUrl(request, formData, "error", error.message, {
         clear_calendar_error_detail: error.detail
+      });
+    }
+
+    if (actionType === "save_matchday_latest_news") {
+      return returnUrl(request, formData, "error", "latest-news-save-failed", {
+        latest_news_error_detail: shortActionError(error)
       });
     }
 
