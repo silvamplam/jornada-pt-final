@@ -1325,6 +1325,31 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                       <label htmlFor="complementary-link-url">Link da noticia completa</label>
                       <input id="complementary-link-url" name="complementary_link_url" defaultValue={editorial?.complementary_link_url ?? ""} placeholder="/competicoes/liga/2026-27/jornadas/1/noticias/slug" />
                     </div>
+                    <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
+                      <legend>Ligar artigo publicado ao complemento</legend>
+                      <div className="editorial-admin-field">
+                        <label htmlFor="complementary-article-source">Preencher complemento com artigo publicado</label>
+                        <select id="complementary-article-source" data-complementary-article-select defaultValue="">
+                          <option value="">Escolher artigo publicado</option>
+                          {sideBlockArticleOptions.map((article) => (
+                            <option
+                              key={article.id}
+                              value={article.id}
+                              data-complementary-label={cleanText(article.label)}
+                              data-complementary-title={cleanText(article.title)}
+                              data-complementary-text={sideBlockTextFromArticle(article)}
+                              data-complementary-image-url={cleanText(article.image_url)}
+                              data-complementary-link-url={articlePublicHref(article)}
+                            >
+                              {cleanText(article.title) || cleanText(article.slug) || article.id}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <p className="editorial-admin-muted">
+                        Ao escolher um artigo, o complemento recebe etiqueta, titulo, texto, imagem e link interno. Pode ajustar manualmente antes de guardar.
+                      </p>
+                    </fieldset>
                     <div className="editorial-admin-field">
                       <label htmlFor="complementary-status">Estado</label>
                       <select id="complementary-status" name="complementary_status" defaultValue={editorial?.complementary_status ?? "draft"}>
@@ -1356,9 +1381,25 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 if (!form) return;
                 var belowSelect = form.querySelector('[name="below_headline_mode"]');
                 var complementSelect = form.querySelector('[data-complementary-form] [name="complementary_mode"]');
+                var complementArticleSelect = form.querySelector('[data-complementary-article-select]');
                 var suggestedComplement = form.querySelector('[data-suggested-complement]');
                 var belowSections = Array.prototype.slice.call(form.querySelectorAll('[data-below-section]'));
                 var sections = Array.prototype.slice.call(form.querySelectorAll('[data-complementary-section]'));
+                function setComplementField(name, value) {
+                  if (!value) return;
+                  var field = form.querySelector('[data-complementary-form] [name="' + name + '"]');
+                  if (field) field.value = value;
+                }
+                function applyComplementArticle() {
+                  if (!complementArticleSelect) return;
+                  var option = complementArticleSelect.options[complementArticleSelect.selectedIndex];
+                  if (!option || !option.value) return;
+                  setComplementField('complementary_label', option.dataset.complementaryLabel);
+                  setComplementField('complementary_title', option.dataset.complementaryTitle);
+                  setComplementField('complementary_text', option.dataset.complementaryText);
+                  setComplementField('complementary_image_url', option.dataset.complementaryImageUrl);
+                  setComplementField('complementary_link_url', option.dataset.complementaryLinkUrl);
+                }
                 function syncBelowSections() {
                   var mode = belowSelect ? belowSelect.value : 'highlights';
                   belowSections.forEach(function (section) {
@@ -1381,6 +1422,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 }
                 if (belowSelect) belowSelect.addEventListener('change', suggestComplement);
                 if (complementSelect) complementSelect.addEventListener('change', syncComplementSections);
+                if (complementArticleSelect) complementArticleSelect.addEventListener('change', applyComplementArticle);
                 syncBelowSections();
                 syncComplementSections();
               })();
