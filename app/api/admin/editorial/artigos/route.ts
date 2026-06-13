@@ -42,7 +42,7 @@ type ArticlePayload = {
   title: string;
   slug: string;
   status: "draft" | "published";
-  scope: string;
+  scope: ArticleScope;
   label: string | null;
   author: string | null;
   subtitle: string | null;
@@ -54,6 +54,8 @@ type ArticlePayload = {
   season_id: string | null;
   matchday_id: string | null;
 };
+
+type ArticleScope = "global" | "competition" | "season" | "matchday";
 
 class ArticleAdminError extends Error {
   constructor(public code: string, message = code) {
@@ -294,6 +296,24 @@ async function normalizeContextIds(formData: FormData) {
   };
 }
 
+function scopeForContext(context: {
+  competition_id: string | null;
+  season_id: string | null;
+  matchday_id: string | null;
+}): ArticleScope {
+  if (context.matchday_id) {
+    return "matchday";
+  }
+  if (context.season_id) {
+    return "season";
+  }
+  if (context.competition_id) {
+    return "competition";
+  }
+
+  return "global";
+}
+
 async function buildPayload(formData: FormData, currentArticleId: string | null): Promise<ArticlePayload> {
   const title = cleanText(formData.get("title"));
   if (!title) {
@@ -315,12 +335,13 @@ async function buildPayload(formData: FormData, currentArticleId: string | null)
   }
 
   const context = await normalizeContextIds(formData);
+  const scope = scopeForContext(context);
 
   return {
     title,
     slug,
     status,
-    scope: cleanText(formData.get("scope")) ?? "global",
+    scope,
     label: cleanText(formData.get("label")),
     author: cleanText(formData.get("author")),
     subtitle: cleanText(formData.get("subtitle")),

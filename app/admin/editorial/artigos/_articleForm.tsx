@@ -139,6 +139,7 @@ const articleFormEnhancer = `
   function init(form) {
     var title = form.querySelector("[data-article-title]");
     var slug = form.querySelector("[data-article-slug]");
+    var scope = form.querySelector("[data-article-scope]");
     var competition = form.querySelector("[data-article-competition]");
     var season = form.querySelector("[data-article-season]");
     var matchday = form.querySelector("[data-article-matchday]");
@@ -194,6 +195,18 @@ const articleFormEnhancer = `
           matchday.value = "";
         }
       }
+
+      if (scope) {
+        if (matchday && matchday.value) {
+          scope.value = "matchday";
+        } else if (season && season.value) {
+          scope.value = "season";
+        } else if (competition && competition.value) {
+          scope.value = "competition";
+        } else {
+          scope.value = "global";
+        }
+      }
     }
 
     if (competition) {
@@ -201,6 +214,9 @@ const articleFormEnhancer = `
     }
     if (season) {
       season.addEventListener("change", filterOptions);
+    }
+    if (matchday) {
+      matchday.addEventListener("change", filterOptions);
     }
 
     filterOptions();
@@ -222,7 +238,13 @@ export function ArticleEditorForm({
   const publicHref = publicArticleHref(article?.slug);
   const isEdit = mode === "edit";
   const currentStatus = firstText(article?.status) || "draft";
-  const currentScope = firstText(article?.scope) || "global";
+  const currentScope = article?.matchday_id
+    ? "matchday"
+    : article?.season_id
+      ? "season"
+      : article?.competition_id
+        ? "competition"
+        : firstText(article?.scope) || "global";
   const competitionBySeasonId = new Map(seasons.map((season) => [season.id, season.competition_id ?? ""]));
 
   return (
@@ -255,7 +277,7 @@ export function ArticleEditorForm({
 
           <label>
             <span>Âmbito</span>
-            <input name="scope" defaultValue={currentScope} placeholder="global" />
+            <input name="scope" data-article-scope defaultValue={currentScope} readOnly />
           </label>
 
           <label>
