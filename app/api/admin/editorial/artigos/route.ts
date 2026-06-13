@@ -34,11 +34,11 @@ type ArticlePayload = {
   title: string;
   slug: string;
   status: "draft" | "published";
-  scope: string | null;
+  scope: string;
   label: string | null;
   author: string | null;
   subtitle: string | null;
-  body: string | null;
+  body: string;
   image_url: string | null;
   image_caption: string | null;
   published_at: string | null;
@@ -95,6 +95,27 @@ function redirectTo(request: Request, path: string, params: Record<string, strin
   }
 
   return NextResponse.redirect(url, { status: 303 });
+}
+
+function safeReturnTo(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const url = new URL(value, "https://jornada.local");
+    if (url.pathname !== "/admin/editorial/artigos") {
+      return null;
+    }
+
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return null;
+  }
+}
+
+function createInsertPayload(payload: ArticlePayload) {
+  return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== null));
 }
 
 async function assertSlugAvailable(slug: string, currentArticleId: string | null) {
@@ -210,11 +231,11 @@ async function buildPayload(formData: FormData, currentArticleId: string | null)
     title,
     slug,
     status,
-    scope: cleanText(formData.get("scope")),
+    scope: cleanText(formData.get("scope")) ?? "global",
     label: cleanText(formData.get("label")),
     author: cleanText(formData.get("author")),
     subtitle: cleanText(formData.get("subtitle")),
-    body: cleanText(formData.get("body")),
+    body: cleanText(formData.get("body")) ?? "",
     image_url: cleanText(formData.get("image_url")),
     image_caption: cleanText(formData.get("image_caption")),
     published_at: publishedAt,
@@ -228,7 +249,7 @@ async function createArticle(request: Request, formData: FormData) {
   const payload = await buildPayload(formData, null);
   const rows = await writeSupabaseAdminReturning<CreatedArticleRow>("editorial_articles?select=id,slug", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(createInsertPayload(payload)),
   });
 
   const created = rows[0];
@@ -236,7 +257,8 @@ async function createArticle(request: Request, formData: FormData) {
     throw new ArticleAdminError("save-failed");
   }
 
-  return redirectTo(request, `/admin/editorial/artigos/${encodeURIComponent(created.id)}/editar`, { created: "1" });
+  const returnTo = safeReturnTo(cleanText(formData.get("return_to"))) ?? "/admin/editorial/artigos";
+  return redirectTo(request, returnTo, { articleId: created.id, created: "1" });
 }
 
 async function updateArticle(request: Request, formData: FormData) {
@@ -256,7 +278,8 @@ async function updateArticle(request: Request, formData: FormData) {
     }),
   });
 
-  return redirectTo(request, `/admin/editorial/artigos/${encodeURIComponent(articleId)}/editar`, { saved: "1" });
+  const returnTo = safeReturnTo(cleanText(formData.get("return_to"))) ?? `/admin/editorial/artigos?articleId=${encodeURIComponent(articleId)}`;
+  return redirectTo(request, returnTo, { articleId, saved: "1" });
 }
 
 export async function POST(request: Request) {
@@ -282,10 +305,12 @@ export async function POST(request: Request) {
   } catch (error) {
     const code = error instanceof ArticleAdminError ? error.code : "save-failed";
     const articleId = cleanText(formData.get("article_id"));
+    const returnTo = safeReturnTo(cleanText(formData.get("return_to")));
     const fallbackPath =
-      actionType === "update_article" && articleId
-        ? `/admin/editorial/artigos/${encodeURIComponent(articleId)}/editar`
-        : "/admin/editorial/artigos/novo";
+      returnTo ??
+      (actionType === "update_article" && articleId
+        ? `/admin/editorial/artigos?articleId=${encodeURIComponent(articleId)}`
+        : "/admin/editorial/artigos?mode=novo");
 
     return redirectTo(request, fallbackPath, { error: code });
   }

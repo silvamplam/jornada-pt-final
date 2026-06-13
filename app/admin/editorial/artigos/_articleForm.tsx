@@ -51,6 +51,7 @@ type ArticleEditorFormProps = {
   seasons: SeasonOption[];
   matchdays: MatchdayOption[];
   message?: string | null;
+  returnTo?: string;
 };
 
 export function publicArticleHref(slug: string | null | undefined) {
@@ -216,17 +217,19 @@ export function ArticleEditorForm({
   seasons,
   matchdays,
   message,
+  returnTo,
 }: ArticleEditorFormProps) {
   const publicHref = publicArticleHref(article?.slug);
   const isEdit = mode === "edit";
   const currentStatus = firstText(article?.status) || "draft";
-  const currentScope = firstText(article?.scope);
+  const currentScope = firstText(article?.scope) || "global";
   const competitionBySeasonId = new Map(seasons.map((season) => [season.id, season.competition_id ?? ""]));
 
   return (
     <form className="editorial-article-form" action="/api/admin/editorial/artigos" method="post" data-article-admin-form>
       <input type="hidden" name="action_type" value={isEdit ? "update_article" : "create_article"} />
       {isEdit ? <input type="hidden" name="article_id" value={article?.id ?? ""} /> : null}
+      {returnTo ? <input type="hidden" name="return_to" value={returnTo} /> : null}
 
       {message ? <p className="article-admin-alert">{message}</p> : null}
 
@@ -420,6 +423,11 @@ export const editorialArticleAdminStyles = `
     align-items: center;
   }
 
+  .article-admin-form-actions {
+    padding: 18px 22px;
+    border-top: 1px solid #e5e7eb;
+  }
+
   .editorial-admin-actions a,
   .editorial-admin-actions button,
   .article-admin-form-actions a,
@@ -462,6 +470,93 @@ export const editorialArticleAdminStyles = `
     font-weight: 700;
   }
 
+  .article-admin-workspace {
+    display: grid;
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+
+  .article-admin-sidebar,
+  .article-admin-editor {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+  }
+
+  .article-admin-sidebar {
+    position: sticky;
+    top: 18px;
+    max-height: calc(100vh - 36px);
+    overflow: auto;
+  }
+
+  .article-admin-sidebar-header,
+  .article-admin-editor-header {
+    padding: 18px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .article-admin-sidebar-header h2,
+  .article-admin-editor-header h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  .article-admin-sidebar-header p,
+  .article-admin-editor-header p {
+    margin: 6px 0 0;
+    color: #6b7280;
+    line-height: 1.45;
+  }
+
+  .article-admin-sidebar-list {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .article-admin-sidebar-item {
+    display: grid;
+    gap: 5px;
+    padding: 13px 16px;
+    border-bottom: 1px solid #eef2f7;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .article-admin-sidebar-item:last-child {
+    border-bottom: 0;
+  }
+
+  .article-admin-sidebar-item:hover,
+  .article-admin-sidebar-item.is-selected {
+    background: #f9fafb;
+  }
+
+  .article-admin-sidebar-item.is-selected {
+    box-shadow: inset 4px 0 0 #b91c1c;
+  }
+
+  .article-admin-sidebar-item strong {
+    color: #111827;
+    font-size: 14px;
+    line-height: 1.25;
+  }
+
+  .article-admin-sidebar-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
   .article-admin-section,
   .editorial-admin-panel,
   .article-card {
@@ -480,7 +575,14 @@ export const editorialArticleAdminStyles = `
     grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
     gap: 24px;
     padding: 22px;
-    margin-bottom: 18px;
+    margin: 0;
+    border-width: 0 0 1px;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .article-admin-section:last-of-type {
+    border-bottom: 0;
   }
 
   .article-admin-section h2 {
@@ -623,10 +725,16 @@ export const editorialArticleAdminStyles = `
     }
 
     .editorial-admin-header,
+    .article-admin-workspace,
     .article-admin-section,
     .article-admin-grid,
     .article-card {
       grid-template-columns: 1fr;
+    }
+
+    .article-admin-sidebar {
+      position: static;
+      max-height: none;
     }
 
     .editorial-admin-header {

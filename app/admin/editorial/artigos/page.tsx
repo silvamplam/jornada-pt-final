@@ -1,17 +1,26 @@
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
 import {
+  ArticleEditorForm,
+  CompetitionOption,
   EditorialArticle,
+  MatchdayOption,
+  SeasonOption,
   editorialArticleAdminStyles,
   firstText,
   formatShortDate,
-  publicArticleHref,
 } from "./_articleForm";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  searchParams?: Promise<{ error?: string }>;
+  searchParams?: Promise<{
+    articleId?: string;
+    mode?: string;
+    error?: string;
+    saved?: string;
+    created?: string;
+  }>;
 };
 
 async function readEditorialArticles() {
@@ -29,31 +38,60 @@ async function readEditorialArticles() {
   }
 }
 
-function errorMessage(error?: string) {
-  if (!error) {
-    return null;
+async function loadContextOptions() {
+  const [competitions, seasons, matchdays] = await Promise.all([
+    fetchSupabaseAdminTable<CompetitionOption>("competitions?select=id,name,slug,is_active&order=name.asc"),
+    fetchSupabaseAdminTable<SeasonOption>("seasons?select=id,competition_id,label,starts_on,ends_on,is_current&order=label.desc"),
+    fetchSupabaseAdminTable<MatchdayOption>("matchdays?select=id,season_id,number,label,starts_on,ends_on,status&order=number.asc"),
+  ]);
+
+  return { competitions, seasons, matchdays };
+}
+
+function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
+  if (params.created) {
+    return "Artigo criado.";
+  }
+  if (params.saved) {
+    return "Artigo guardado.";
   }
 
   const messages: Record<string, string> = {
     "invalid-action": "A ação pedida não existe.",
+    "missing-title": "Indique um título para o artigo.",
+    "missing-slug": "Indique um slug ou deixe que seja gerado a partir do título.",
+    "duplicate-slug": "Já existe um artigo com esse slug.",
+    "invalid-context": "A competição, época e jornada escolhidas não pertencem ao mesmo contexto.",
+    "invalid-published-at": "A data de publicação não é válida.",
+    "missing-service": "Não foi possível aceder ao serviço Supabase de administração.",
     "save-failed": "Não foi possível gravar o artigo.",
   };
 
-  return messages[error] ?? "Não foi possível executar a ação pedida.";
+  return params.error ? messages[params.error] ?? "Não foi possível gravar o artigo." : null;
 }
 
 function statusLabel(status: string | null) {
-  if (!status) {
-    return "sem estado";
+  return status?.trim() || "sem estado";
+}
+
+function selectedArticleFromQuery(articles: EditorialArticle[], articleId?: string, mode?: string) {
+  if (mode === "novo") {
+    return null;
   }
 
-  return status;
+  if (!articleId) {
+    return null;
+  }
+
+  return articles.find((article) => article.id === articleId) ?? null;
 }
 
 export default async function AdminEditorialArticlesPage({ searchParams }: PageProps) {
   const params = searchParams ? await searchParams : {};
-  const { articles, error } = await readEditorialArticles();
-  const routeMessage = errorMessage(params.error);
+  const [{ articles, error }, context] = await Promise.all([readEditorialArticles(), loadContextOptions()]);
+  const selectedArticle = selectedArticleFromQuery(articles, params.articleId, params.mode);
+  const isEditing = Boolean(selectedArticle);
+  const message = pageMessage(params);
 
   return (
     <main className="editorial-admin-shell">
@@ -62,7 +100,7 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
           <div>
             <h1>Artigos / Notícias</h1>
             <p>
-              Biblioteca editorial global lida de public.editorial_articles. Os artigos publicados abrem em /noticias/[slug].
+              Biblioteca editorial global de public.editorial_articles, com criação e edição na mesma página.
             </p>
           </div>
           <nav className="editorial-admin-actions" aria-label="Navegação editorial">
@@ -71,80 +109,77 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
             <a href="/admin/gestor?section=linha-editorial#linha-editorial">Composição Editorial</a>
             <a href="/admin/gestor?section=linha-editorial#linha-editorial">Editorial da Jornada</a>
             <a href="/admin">Backoffice</a>
-            <a className="primary" href="/admin/editorial/artigos/novo">
-              Novo
+            <a className="primary" href="/admin/editorial/artigos?mode=novo">
+              Novo artigo
             </a>
           </nav>
         </header>
 
-        {routeMessage ? <p className="article-admin-alert">{routeMessage}</p> : null}
+        {message ? <p className="article-admin-alert">{message}</p> : null}
 
-        <section className="editorial-admin-panel">
-          <div className="editorial-admin-header">
-            <div>
-              <h2>Artigos editoriais públicos</h2>
+        <div className="article-admin-workspace">
+          <aside className="article-admin-sidebar" aria-label="Artigos existentes">
+            <div className="article-admin-sidebar-header">
+              <h2>Artigos existentes</h2>
+              <p>{articles.length} artigos na biblioteca editorial.</p>
+            </div>
+
+            {error ? <p className="article-admin-alert">{error}</p> : null}
+            {!error && articles.length === 0 ? <p className="article-admin-sidebar-item">Não há artigos editoriais para apresentar.</p> : null}
+
+            {articles.length > 0 ? (
+              <ul className="article-admin-sidebar-list">
+                {articles.map((article) => {
+                  const articleDate = firstText(formatShortDate(article.published_at), formatShortDate(article.created_at));
+                  const isSelected = selectedArticle?.id === article.id;
+
+                  return (
+                    <li key={article.id}>
+                      <a
+                        className={`article-admin-sidebar-item${isSelected ? " is-selected" : ""}`}
+                        href={`/admin/editorial/artigos?articleId=${encodeURIComponent(article.id)}`}
+                      >
+                        <span className="article-admin-sidebar-meta">
+                          <span>{statusLabel(article.status)}</span>
+                          {article.label ? <span>{article.label}</span> : null}
+                        </span>
+                        <strong>{article.title ?? "Sem título"}</strong>
+                        <span className="article-admin-sidebar-meta">
+                          {article.slug ? <span>/{article.slug}</span> : null}
+                          {articleDate ? <span>{articleDate}</span> : null}
+                        </span>
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+          </aside>
+
+          <section className="article-admin-editor">
+            <div className="article-admin-editor-header">
+              <h2>{isEditing ? "Editar artigo" : "Novo artigo"}</h2>
               <p>
-                Esta página cria e edita a biblioteca global. A associação a uma jornada continua separada na Composição Editorial.
+                {isEditing
+                  ? "O artigo selecionado mantém o link público e pode ser atualizado aqui."
+                  : "Preencha o formulário para criar um novo rascunho ou artigo publicado."}
               </p>
             </div>
-            <strong>{articles.length} itens</strong>
-          </div>
 
-          {error ? <p className="article-admin-alert">{error}</p> : null}
-          {!error && articles.length === 0 ? <p>Não há artigos editoriais para apresentar.</p> : null}
-
-          {articles.length > 0 ? (
-            <div className="article-list">
-              {articles.map((article) => {
-                const publicHref = publicArticleHref(article.slug);
-                const label = firstText(article.label);
-                const subtitle = firstText(article.subtitle);
-                const articleDate = firstText(formatShortDate(article.published_at), formatShortDate(article.created_at));
-
-                return (
-                  <article className="article-card" key={article.id}>
-                    {article.image_url ? (
-                      <img alt="" src={article.image_url} />
-                    ) : (
-                      <div className="article-card-image-placeholder">Sem imagem</div>
-                    )}
-
-                    <div className="article-card-body">
-                      <div className="article-card-meta">
-                        <span>{statusLabel(article.status)}</span>
-                        {label ? <span>{label}</span> : null}
-                        {article.author ? <span>{article.author}</span> : null}
-                        {articleDate ? <span>{articleDate}</span> : null}
-                      </div>
-
-                      <h2>
-                        {publicHref ? <a href={publicHref}>{article.title ?? "Sem título"}</a> : article.title ?? "Sem título"}
-                      </h2>
-
-                      {article.slug ? <p className="article-card-context">/{article.slug}</p> : null}
-                      {subtitle ? <p>{subtitle}</p> : null}
-
-                      <div className="article-card-context">
-                        {article.competition_id ? <span>competition_id: {article.competition_id}</span> : null}
-                        {article.season_id ? <span>season_id: {article.season_id}</span> : null}
-                        {article.matchday_id ? <span>matchday_id: {article.matchday_id}</span> : null}
-                      </div>
-
-                      <div className="article-card-actions">
-                        <a href={`/admin/editorial/artigos/${encodeURIComponent(article.id)}/editar`}>Editar</a>
-                        {publicHref ? (
-                          <a href={publicHref} target="_blank" rel="noreferrer">
-                            Abrir público
-                          </a>
-                        ) : null}
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          ) : null}
-        </section>
+            <ArticleEditorForm
+              mode={isEditing ? "edit" : "create"}
+              article={selectedArticle}
+              competitions={context.competitions}
+              seasons={context.seasons}
+              matchdays={context.matchdays}
+              returnTo={
+                isEditing && selectedArticle
+                  ? `/admin/editorial/artigos?articleId=${encodeURIComponent(selectedArticle.id)}`
+                  : "/admin/editorial/artigos"
+              }
+            />
+          </section>
+        </div>
       </div>
 
       <style>{editorialArticleAdminStyles}</style>
