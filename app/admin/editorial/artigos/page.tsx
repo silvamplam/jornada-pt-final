@@ -112,7 +112,9 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
   const editorialMatchdayHref = selectedMatchdayId
     ? `/admin/editorial/jornada/${encodeURIComponent(selectedMatchdayId)}`
     : "/admin/gestor";
-  const editorialMatchdayLabel = selectedMatchdayId ? "Editorial da Jornada" : "Escolher jornada";
+  const compositionMatchdayHref = selectedMatchdayId
+    ? `/admin/editorial/composicao/${encodeURIComponent(selectedMatchdayId)}`
+    : "";
 
   return (
     <main className="editorial-admin-shell">
@@ -127,7 +129,14 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
           <nav className="editorial-admin-actions" aria-label="Navegação editorial">
             <a href="/admin/editorial/home">Home Editorial</a>
             <a href="/admin/gestor">Centro de Gestão</a>
-            <a href={editorialMatchdayHref}>{editorialMatchdayLabel}</a>
+            {selectedMatchdayId ? (
+              <>
+                <a href={editorialMatchdayHref}>Editorial da Jornada</a>
+                <a href={compositionMatchdayHref}>Composição Editorial</a>
+              </>
+            ) : (
+              <a href="/admin/gestor">Escolher jornada</a>
+            )}
             <a href="/admin">Backoffice</a>
             <a className="primary" href="/admin/editorial/artigos?mode=novo">
               Novo artigo
