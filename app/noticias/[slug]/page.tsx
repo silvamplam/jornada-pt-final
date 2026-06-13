@@ -5,7 +5,6 @@ import { getPublicCompetitionMenu } from "@/lib/public-competition-menu";
 import {
   getPublicMatchdayDiagnostic,
   seasonLabelToUrlSegment,
-  type PublicMatchdayContext,
   type PublicSeasonMatch
 } from "@/lib/public-matchday";
 import {
@@ -246,48 +245,115 @@ const articlePageStyles = `
     display: flex;
     gap: 14px;
     overflow-x: auto;
+    scroll-behavior: smooth;
     scroll-padding: 14px;
-    padding: 10px 0 12px;
+    padding: 8px;
     background: #ffffff;
   }
 
-  .news-scoreboard-card {
+  .public-matchday-strip-shell {
     display: grid;
-    gap: 7px;
-    min-width: 192px;
-    padding: 10px 12px;
-    border: 1px solid #e0e6ee;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 6px;
+    align-items: center;
+    min-height: 104px;
+    padding: 0 10px;
+    background: #ffffff;
+  }
+
+  .public-matchday-strip-button {
+    align-self: center;
+    width: 30px;
+    height: 52px;
+    border: 1px solid #d8dee6;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #263241;
+    font-size: 22px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .public-matchday-mini-card {
+    position: relative;
+    display: grid;
+    flex: 0 0 226px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    align-items: start;
+    min-height: 88px;
+    padding: 8px 9px 9px;
+    border: 1px solid #eef2f6;
     border-radius: 6px;
     background: #ffffff;
-    color: #10151b;
+    box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
+    font-size: 13px;
   }
 
-  .news-scoreboard-teams {
-    display: grid;
-    gap: 5px;
+  .public-matchday-mini-card + .public-matchday-mini-card::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: -7px;
+    width: 1px;
+    background: #dfe5ec;
   }
 
-  .news-scoreboard-team {
+  .public-matchday-mini-card-live,
+  .public-matchday-mini-card-halftime {
+    border-color: #a9dcbc;
+    background: #f1fbf5;
+  }
+
+  .public-matchday-mini-card-finished {
+    border-color: #d8dee6;
+    background: #f7f9fb;
+  }
+
+  .public-matchday-mini-card-scheduled {
+    border-color: #ecd58b;
+    background: #fff9e8;
+  }
+
+  .public-matchday-mini-card-unknown {
+    border-color: #d8dee6;
+    background: #ffffff;
+  }
+
+  .public-matchday-mini-team {
     display: grid;
-    grid-template-columns: 22px minmax(0, 1fr);
-    gap: 7px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 6px;
     align-items: center;
+    overflow: hidden;
+    font-weight: 800;
+    text-transform: none;
     min-width: 0;
-    font-size: 12px;
-    font-weight: 900;
   }
 
-  .news-scoreboard-team span {
+  .public-matchday-mini-team span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .news-scoreboard-team .public-team-badge {
+  .public-matchday-mini-score {
+    min-width: 18px;
+    color: #10151b;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1;
+    text-align: right;
+  }
+
+  .public-matchday-mini-card .public-team-badge {
     display: grid;
+    flex: 0 0 auto;
     place-items: center;
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     overflow: hidden;
     border: 1px solid #d8dee6;
     border-radius: 999px;
@@ -297,27 +363,89 @@ const articlePageStyles = `
     font-weight: 900;
   }
 
-  .news-scoreboard-team .public-team-badge img {
+  .public-matchday-mini-card .public-team-badge img {
     width: 100%;
     height: 100%;
     object-fit: contain;
   }
 
-  .news-scoreboard-meta {
+  .public-matchday-mini-card .public-matchday-mini-status {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    color: #657180;
+    justify-content: flex-start;
+    gap: 4px;
+    min-width: 0;
+    padding: 3px 0 0 30px;
+    border-radius: 0;
+    background: transparent;
+    color: #607086;
     font-size: 11px;
-    font-weight: 900;
-    text-transform: uppercase;
+    font-weight: 800;
+    line-height: 1.15;
+    text-transform: none;
   }
 
-  .news-scoreboard-result {
-    color: #10151b;
-    font-size: 16px;
-    font-weight: 950;
+  .public-matchday-mini-card-live .public-matchday-mini-status > span,
+  .public-matchday-mini-card-halftime .public-matchday-mini-status > span,
+  .public-matchday-mini-card-finished .public-matchday-mini-status > span,
+  .public-matchday-mini-card-unknown .public-matchday-mini-status > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    font-weight: 900;
+  }
+
+  .public-matchday-mini-card-live .public-matchday-mini-status > span,
+  .public-matchday-mini-card-halftime .public-matchday-mini-status > span {
+    background: #dff7e8;
+    color: #137a3a;
+  }
+
+  .public-matchday-mini-card-live .public-matchday-mini-status > span::before,
+  .public-matchday-mini-card-halftime .public-matchday-mini-status > span::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: #17a34a;
+  }
+
+  .public-matchday-mini-card-finished .public-matchday-mini-status > span {
+    background: #e9edf2;
+    color: #4e5b69;
+  }
+
+  .public-matchday-mini-card-unknown .public-matchday-mini-status > span {
+    background: #eef2f6;
+    color: #506075;
+  }
+
+  .public-matchday-mini-time {
+    color: #263241;
+    white-space: nowrap;
+  }
+
+  .public-matchday-mini-card-scheduled .public-matchday-mini-time {
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: #fff2bf;
+    color: #745400;
+    font-weight: 900;
+  }
+
+  .public-matchday-mini-channel {
+    min-width: 0;
+    overflow: hidden;
+    color: #607086;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .public-matchday-mini-separator {
+    color: #9aa6b4;
   }
 
   .news-article-layout {
@@ -357,10 +485,10 @@ const articlePageStyles = `
 
   .news-article-title {
     margin: 0;
-    max-width: 760px;
+    max-width: 740px;
     color: #05080c;
-    font-size: clamp(36px, 4.5vw, 56px);
-    line-height: 1.02;
+    font-size: clamp(34px, 3.7vw, 50px);
+    line-height: 1.06;
     letter-spacing: 0;
   }
 
@@ -368,8 +496,8 @@ const articlePageStyles = `
     margin: 14px 0 0;
     max-width: 720px;
     color: #56616f;
-    font-size: 21px;
-    font-weight: 700;
+    font-size: 19px;
+    font-weight: 500;
     line-height: 1.42;
   }
 
@@ -554,7 +682,7 @@ const articlePageStyles = `
     }
 
     .news-article-title {
-      font-size: 40px;
+      font-size: 34px;
     }
 
     .news-article-subtitle {
@@ -661,61 +789,115 @@ async function readArticleMatchdayContext(article: EditorialArticle) {
   }
 }
 
-function shortTeamName(matchTeam: PublicSeasonMatch["homeTeam"]) {
-  return firstText(matchTeam?.short_name, matchTeam?.name) ?? "Equipa";
-}
-
-function shortMatchDate(value?: string | null) {
-  if (!value) return "Agendado";
-
+function formatKickoffTime(value: string) {
   return new Intl.DateTimeFormat("pt-PT", {
-    day: "2-digit",
-    month: "2-digit",
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
+    timeZone: "Europe/Lisbon"
   }).format(new Date(value));
 }
 
-function scoreboardStatus(match: PublicSeasonMatch) {
-  const status = (match.status ?? "").toLowerCase();
+function formatMiniCardKickoff(value: string) {
+  const date = new Date(value);
+  const dayMonth = new Intl.DateTimeFormat("pt-PT", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "Europe/Lisbon"
+  }).format(date);
+  const time = formatKickoffTime(value);
 
-  if (status === "finished") return "Finalizado";
-  if (status === "live") return match.minute ? `Ao vivo · ${match.minute}'` : "Ao vivo";
-  if (status === "halftime") return "Intervalo";
-  if (status === "postponed") return "Adiado";
-  if (status === "cancelled") return "Cancelado";
-  return shortMatchDate(match.kickoff_at);
+  return `${dayMonth} · ${time}`;
 }
 
-function scoreboardResult(match: PublicSeasonMatch) {
-  if (match.home_score !== null && match.away_score !== null && match.home_score !== undefined && match.away_score !== undefined) {
-    return `${match.home_score}-${match.away_score}`;
+function statusLabel(status: string) {
+  const normalized = status.trim().toLowerCase();
+  if (normalized === "finished") return "Finalizado";
+  if (normalized === "scheduled") return "Agendado";
+  if (normalized === "live") return "AO VIVO";
+  if (normalized === "halftime") return "AO VIVO";
+  if (normalized === "postponed") return "Adiado";
+  if (normalized === "cancelled") return "Cancelado";
+  return status;
+}
+
+function statusKind(status: string) {
+  const normalized = status.trim().toLowerCase();
+  if (normalized === "finished") return "finished";
+  if (normalized === "live") return "live";
+  if (normalized === "halftime") return "halftime";
+  if (normalized === "scheduled") return "scheduled";
+  return "unknown";
+}
+
+function teamInitials(name?: string | null, shortName?: string | null) {
+  const source = shortName || name || "";
+  const initials = source
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 3)
+    .toUpperCase();
+
+  return initials || "FC";
+}
+
+function shortTeamLabel(name?: string | null, shortName?: string | null) {
+  const editorialName = name?.trim();
+  const fallback = shortName?.trim() || editorialName || "Equipa";
+
+  if (!editorialName) {
+    return fallback;
   }
 
-  return "vs";
+  return editorialName.length <= 20 ? editorialName : fallback;
 }
 
-function MiniScoreboardCard({ match }: { match: PublicSeasonMatch }) {
+function TeamBadge({ logoUrl, name, shortName }: { logoUrl?: string | null; name?: string | null; shortName?: string | null }) {
+  return <PublicTeamBadge fallbackLabel={teamInitials(name, shortName)} logoUrl={logoUrl} />;
+}
+
+function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: boolean }) {
+  const kind = statusKind(match.status);
+  const broadcastChannelName = match.broadcastChannel?.name?.trim();
+  const hasScore = match.home_score !== null && match.away_score !== null;
+  const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
+  const liveStatus = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
+
   return (
-    <article className="news-scoreboard-card">
-      <div className="news-scoreboard-teams">
-        <div className="news-scoreboard-team">
-          <PublicTeamBadge fallbackLabel={shortTeamName(match.homeTeam).slice(0, 3).toUpperCase()} logoUrl={match.homeTeam?.logo_url} />
-          <span>{shortTeamName(match.homeTeam)}</span>
-        </div>
-        <div className="news-scoreboard-team">
-          <PublicTeamBadge fallbackLabel={shortTeamName(match.awayTeam).slice(0, 3).toUpperCase()} logoUrl={match.awayTeam?.logo_url} />
-          <span>{shortTeamName(match.awayTeam)}</span>
-        </div>
-      </div>
-      <div className="news-scoreboard-meta">
-        <span className="news-scoreboard-result">{scoreboardResult(match)}</span>
-        <span>{scoreboardStatus(match)}</span>
-      </div>
+    <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>
+      <span className="public-matchday-mini-team">
+        <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
+        <span>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</span>
+        {showScore ? <b className="public-matchday-mini-score">{match.home_score}</b> : null}
+      </span>
+      <span className="public-matchday-mini-team">
+        <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
+        <span>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</span>
+        {showScore ? <b className="public-matchday-mini-score">{match.away_score}</b> : null}
+      </span>
+      <span className="public-matchday-mini-status">
+        {kind === "finished" ? (
+          <span>Finalizado</span>
+        ) : kind === "live" || kind === "halftime" ? (
+          <span>{liveStatus}</span>
+        ) : kind === "scheduled" ? (
+          <>
+            <time className="public-matchday-mini-time" dateTime={match.kickoff_at}>{formatMiniCardKickoff(match.kickoff_at)}</time>
+            {broadcastChannelName ? (
+              <>
+                <span className="public-matchday-mini-separator" aria-hidden="true">·</span>
+                <span className="public-matchday-mini-channel">{broadcastChannelName}</span>
+              </>
+            ) : null}
+          </>
+        ) : (
+          <span>{statusLabel(match.status)}</span>
+        )}
+      </span>
     </article>
   );
 }
-
 export default async function NewsArticlePage({ params }: PageProps) {
   const { slug } = await params;
   const article = await readArticle(slug);
@@ -764,6 +946,9 @@ export default async function NewsArticlePage({ params }: PageProps) {
         }))
       : [];
   const currentSeasonHref = articleContext && seasonSegment ? `/competicoes/${articleContext.competition.slug}/${seasonSegment}/jornadas/1` : "/";
+  const liveMatches = articleContext?.matchesForMatchday.filter((match) => statusKind(match.status) === "live") ?? [];
+  const halftimeMatches = articleContext?.matchesForMatchday.filter((match) => statusKind(match.status) === "halftime") ?? [];
+  const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
 
   return (
     <div className="news-article-shell">
@@ -827,10 +1012,18 @@ export default async function NewsArticlePage({ params }: PageProps) {
             </section>
             {articleContext.matchesForMatchday.length > 0 ? (
               <section className="public-matchday-panel public-matchday-scoreboard-panel" aria-label="Visão rápida dos jogos">
-                <div className="public-matchday-strip">
-                  {articleContext.matchesForMatchday.map((match) => (
-                    <MiniScoreboardCard key={match.id} match={match} />
-                  ))}
+                <div className="public-matchday-strip-shell">
+                  <button className="public-matchday-strip-button" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
+                    ‹
+                  </button>
+                  <div className="public-matchday-strip" data-matchday-strip>
+                    {articleContext.matchesForMatchday.map((match) => (
+                      <CompactMatchCard focus={focusedStripMatch?.id === match.id} key={match.id} match={match} />
+                    ))}
+                  </div>
+                  <button className="public-matchday-strip-button" data-strip-scroll="right" type="button" aria-label="Ver jogos seguintes">
+                    ›
+                  </button>
                 </div>
               </section>
             ) : null}
@@ -842,9 +1035,22 @@ export default async function NewsArticlePage({ params }: PageProps) {
           __html: `
             document.addEventListener("DOMContentLoaded", function () {
               var select = document.querySelector("[data-season-select]");
-              if (!select) return;
-              select.addEventListener("change", function () {
-                if (select.value) window.location.href = select.value;
+              if (select) {
+                select.addEventListener("change", function () {
+                  if (select.value) window.location.href = select.value;
+                });
+              }
+              var strip = document.querySelector("[data-matchday-strip]");
+              if (!strip) return;
+              var focused = strip.querySelector("[data-live-focus='true']");
+              if (focused && "scrollIntoView" in focused) {
+                focused.scrollIntoView({ block: "nearest", inline: "center" });
+              }
+              document.querySelectorAll("[data-strip-scroll]").forEach(function (button) {
+                button.addEventListener("click", function () {
+                  var direction = button.getAttribute("data-strip-scroll") === "left" ? -1 : 1;
+                  strip.scrollBy({ left: direction * Math.max(260, Math.round(strip.clientWidth * 0.85)), behavior: "smooth" });
+                });
               });
             });
           `
