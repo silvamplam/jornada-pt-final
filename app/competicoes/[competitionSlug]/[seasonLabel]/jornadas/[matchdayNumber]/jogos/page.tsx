@@ -376,29 +376,29 @@ const gamesPageStyles = `
     background: #ffffff;
   }
 
-  .public-games-team {
-    display: grid;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    width: 100%;
-  }
+          .public-games-team {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            width: 100%;
+            flex-wrap: nowrap;
+          }
 
-  .public-games-team:first-child {
-    grid-template-columns: 34px minmax(0, 1fr);
-    justify-content: flex-start;
-    text-align: left;
-  }
+          .public-games-team:first-child {
+            justify-content: flex-start;
+            text-align: left;
+          }
 
-  .public-games-team:last-of-type {
-    grid-template-columns: minmax(0, 1fr) 34px;
-    justify-content: flex-end;
-    text-align: right;
-  }
+          .public-games-team:last-of-type {
+            justify-content: flex-end;
+            text-align: right;
+          }
 
-  .public-games-team-copy {
-    min-width: 0;
-  }
+          .public-games-team-copy {
+            min-width: 0;
+            flex: 0 1 auto;
+          }
 
   .public-games-team:first-child .public-games-team-copy {
     text-align: left;
@@ -433,12 +433,12 @@ const gamesPageStyles = `
     color: #137a3a;
   }
 
-  .public-team-badge {
-    display: grid;
-    flex: 0 0 auto;
-    place-items: center;
-    width: 34px;
-    height: 34px;
+          .public-team-badge {
+            display: grid;
+            flex: 0 0 34px;
+            place-items: center;
+            width: 34px;
+            height: 34px;
     overflow: hidden;
     border: 1px solid #d8dee6;
     border-radius: 999px;
@@ -540,16 +540,6 @@ const gamesPageStyles = `
 
   .public-games-side-block {
     padding: 16px;
-  }
-
-  .public-games-side-block h2 {
-    margin: 0 0 12px;
-    padding-bottom: 8px;
-    border-bottom: 3px solid #10151b;
-    color: #10151b;
-    font-size: 20px;
-    font-weight: 900;
-    text-transform: uppercase;
   }
 
   .public-games-side-block p {
@@ -1065,7 +1055,6 @@ export default async function PublicMatchdayGamesPage({ params }: PublicMatchday
 
             {sidebarNewsItems.length > 0 ? (
               <section className="public-games-panel public-games-side-block" aria-label="Mais notícias">
-                <h2>Mais notícias</h2>
                 <div className="public-games-news-list">
                   {sidebarNewsItems.map((item) => {
                     const itemClassName = `public-games-news-item ${item.imageUrl ? "" : "public-games-news-item-no-image"}`.trim();
