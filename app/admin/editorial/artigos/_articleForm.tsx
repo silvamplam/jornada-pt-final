@@ -238,6 +238,7 @@ export function ArticleEditorForm({
   const publicHref = publicArticleHref(article?.slug);
   const isEdit = mode === "edit";
   const currentStatus = firstText(article?.status) || "draft";
+  const canOpenPublicArticle = Boolean(publicHref && currentStatus === "published");
   const currentScope = article?.matchday_id
     ? "matchday"
     : article?.season_id
@@ -372,10 +373,14 @@ export function ArticleEditorForm({
         <a className="article-admin-secondary" href="/admin/editorial/artigos">
           Voltar à lista
         </a>
-        {publicHref ? (
+        {canOpenPublicArticle && publicHref ? (
           <a className="article-admin-secondary" href={publicHref} target="_blank" rel="noreferrer">
             Abrir público
           </a>
+        ) : publicHref ? (
+          <span className="article-admin-secondary article-admin-disabled" aria-disabled="true">
+            Só disponível quando publicado
+          </span>
         ) : null}
         <button type="submit">{isEdit ? "Guardar alterações" : "Criar artigo"}</button>
       </div>
@@ -395,7 +400,7 @@ export const editorialArticleAdminStyles = `
   }
 
   .editorial-admin-container {
-    max-width: 1180px;
+    max-width: 1360px;
     margin: 0 auto;
   }
 
@@ -449,6 +454,7 @@ export const editorialArticleAdminStyles = `
   .editorial-admin-actions a,
   .editorial-admin-actions button,
   .article-admin-form-actions a,
+  .article-admin-form-actions span.article-admin-secondary,
   .article-admin-form-actions button,
   .article-card-actions a {
     display: inline-flex;
@@ -464,6 +470,10 @@ export const editorialArticleAdminStyles = `
     font-weight: 700;
     text-decoration: none;
     cursor: pointer;
+  }
+
+  .article-admin-form-actions span.article-admin-secondary {
+    cursor: default;
   }
 
   .editorial-admin-actions .primary,
@@ -489,6 +499,12 @@ export const editorialArticleAdminStyles = `
     background: #fff;
   }
 
+  .article-admin-disabled {
+    border-color: #e5e7eb !important;
+    background: #f3f4f6 !important;
+    color: #6b7280 !important;
+  }
+
   .article-admin-alert {
     margin: 0 0 18px;
     border-radius: 8px;
@@ -502,8 +518,8 @@ export const editorialArticleAdminStyles = `
 
   .article-admin-workspace {
     display: grid;
-    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
-    gap: 18px;
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    gap: 22px;
     align-items: start;
   }
 
@@ -572,6 +588,10 @@ export const editorialArticleAdminStyles = `
   }
 
   .article-admin-sidebar-item strong {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     color: #111827;
     font-size: 14px;
     line-height: 1.25;

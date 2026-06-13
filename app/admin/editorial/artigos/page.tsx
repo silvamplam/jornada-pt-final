@@ -108,6 +108,11 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
   const selectedArticle = selectedArticleFromQuery(articles, params.articleId, params.mode);
   const isEditing = Boolean(selectedArticle);
   const message = pageMessage(params);
+  const selectedMatchdayId = selectedArticle?.matchday_id?.trim() ?? "";
+  const editorialMatchdayHref = selectedMatchdayId
+    ? `/admin/editorial/jornada/${encodeURIComponent(selectedMatchdayId)}`
+    : "/admin/gestor";
+  const editorialMatchdayLabel = selectedMatchdayId ? "Editorial da Jornada" : "Escolher jornada";
 
   return (
     <main className="editorial-admin-shell">
@@ -123,7 +128,7 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
             <a href="/admin/editorial/home">Home Editorial</a>
             <a href="/admin/gestor">Centro de Gestão</a>
             <a href="/admin/gestor?section=linha-editorial#linha-editorial">Composição Editorial</a>
-            <a href="/admin/gestor?section=linha-editorial#linha-editorial">Editorial da Jornada</a>
+            <a href={editorialMatchdayHref}>{editorialMatchdayLabel}</a>
             <a href="/admin">Backoffice</a>
             <a className="primary" href="/admin/editorial/artigos?mode=novo">
               Novo artigo
