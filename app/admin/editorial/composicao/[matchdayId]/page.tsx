@@ -1571,11 +1571,20 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
           <span>{contextLabel}</span>
         </div>
         <nav className="composition-admin-actions" aria-label="Acoes de navegacao">
-          <a className="composition-admin-button" href={`/admin/editorial/jornada/${matchday.id}`}>
-            Backoffice editorial
+          <a className="composition-admin-button" href="/admin/editorial/home">
+            Home editorial
+          </a>
+          <a className="composition-admin-button" href="/admin/editorial/artigos">
+            Artigos / Notícias
+          </a>
+          <a className="composition-admin-button" href={`/admin/editorial/jornada/${encodeURIComponent(matchday.id)}`}>
+            Editorial da Jornada
           </a>
           <a className="composition-admin-button" href="/admin/gestor">
-            Centro de gestao
+            Centro de Gestão
+          </a>
+          <a className="composition-admin-button" href="/admin">
+            Backoffice
           </a>
         </nav>
       </section>
