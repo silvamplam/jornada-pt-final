@@ -1,4 +1,3 @@
-import { buildAccumulatedClassification } from "@/lib/classification";
 import { getPublicCompetitionMenu } from "@/lib/public-competition-menu";
 import {
   getPublicMatchdayDiagnostic,
@@ -206,213 +205,8 @@ const gamesPageStyles = `
     text-align: right;
   }
 
-  .public-matchday-panel {
-    max-width: 1512px;
-    margin: 12px auto 0;
-    overflow: hidden;
-    border: 1px solid #dde4ec;
-    border-radius: 8px;
-    background: #ffffff;
-    box-shadow: 0 14px 28px rgba(12, 22, 34, 0.08);
-  }
-
-  .public-matchday-scoreboard-panel {
-    margin-top: 1px;
-    min-height: 84px;
-    border: 0;
-    border-radius: 0;
-    background: #ffffff;
-    box-shadow: none;
-  }
-
-  .public-matchday-strip-shell {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 6px;
-    align-items: center;
-    min-height: 104px;
-    padding: 0 10px;
-    background: #ffffff;
-  }
-
-  .public-matchday-strip {
-    display: flex;
-    gap: 14px;
-    overflow-x: auto;
-    scroll-behavior: smooth;
-    scroll-padding: 14px;
-    padding: 8px;
-    background: #ffffff;
-  }
-
-  .public-matchday-strip-button {
-    align-self: center;
-    width: 30px;
-    height: 52px;
-    border: 1px solid #d8dee6;
-    border-radius: 999px;
-    background: #ffffff;
-    color: #263241;
-    font-size: 22px;
-    font-weight: 900;
-    cursor: pointer;
-  }
-
-  .public-matchday-mini-card {
-    position: relative;
-    display: grid;
-    flex: 0 0 226px;
-    gap: 4px;
-    align-items: start;
-    min-height: 88px;
-    padding: 8px 9px 9px;
-    border: 1px solid #eef2f6;
-    border-radius: 6px;
-    background: #ffffff;
-    box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
-    font-size: 13px;
-  }
-
-  .public-matchday-mini-card + .public-matchday-mini-card::before {
-    content: "";
-    position: absolute;
-    top: 10px;
-    bottom: 10px;
-    left: -7px;
-    width: 1px;
-    background: #dfe5ec;
-  }
-
-  .public-matchday-mini-card-live,
-  .public-matchday-mini-card-halftime {
-    border-color: #a9dcbc;
-    background: #f1fbf5;
-  }
-
-  .public-matchday-mini-card-finished {
-    border-color: #d8dee6;
-    background: #f7f9fb;
-  }
-
-  .public-matchday-mini-card-scheduled {
-    border-color: #ecd58b;
-    background: #fff9e8;
-  }
-
-  .public-matchday-mini-card-unknown {
-    border-color: #d8dee6;
-    background: #ffffff;
-  }
-
-  .public-matchday-mini-team {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 6px;
-    overflow: hidden;
-    font-weight: 800;
-  }
-
-  .public-matchday-mini-team span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .public-matchday-mini-score {
-    min-width: 18px;
-    color: #10151b;
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: 18px;
-    font-weight: 900;
-    line-height: 1;
-    text-align: right;
-  }
-
-  .public-matchday-mini-card .public-team-badge {
-    width: 24px;
-    height: 24px;
-    background: #ffffff;
-  }
-
-  .public-matchday-mini-status {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 4px;
-    min-width: 0;
-    padding: 3px 0 0 30px;
-    color: #607086;
-    font-size: 11px;
-    font-weight: 800;
-    line-height: 1.15;
-  }
-
-  .public-matchday-mini-card-live .public-matchday-mini-status > span,
-  .public-matchday-mini-card-halftime .public-matchday-mini-status > span,
-  .public-matchday-mini-card-finished .public-matchday-mini-status > span,
-  .public-matchday-mini-card-unknown .public-matchday-mini-status > span {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 7px;
-    border-radius: 999px;
-    font-weight: 900;
-  }
-
-  .public-matchday-mini-card-live .public-matchday-mini-status > span,
-  .public-matchday-mini-card-halftime .public-matchday-mini-status > span {
-    background: #dff7e8;
-    color: #137a3a;
-  }
-
-  .public-matchday-mini-card-live .public-matchday-mini-status > span::before,
-  .public-matchday-mini-card-halftime .public-matchday-mini-status > span::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    border-radius: 999px;
-    background: #17a34a;
-  }
-
-  .public-matchday-mini-card-finished .public-matchday-mini-status > span {
-    background: #e9edf2;
-    color: #4e5b69;
-  }
-
-  .public-matchday-mini-card-unknown .public-matchday-mini-status > span {
-    background: #eef2f6;
-    color: #506075;
-  }
-
-  .public-matchday-mini-time {
-    color: #263241;
-    white-space: nowrap;
-  }
-
-  .public-matchday-mini-card-scheduled .public-matchday-mini-time {
-    padding: 3px 7px;
-    border-radius: 999px;
-    background: #fff2bf;
-    color: #745400;
-    font-weight: 900;
-  }
-
-  .public-matchday-mini-channel {
-    min-width: 0;
-    overflow: hidden;
-    color: #607086;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .public-matchday-mini-separator {
-    color: #9aa6b4;
-  }
-
   .public-games-wrap {
-    max-width: 1512px;
+    max-width: 1180px;
     margin: 0 auto;
   }
 
@@ -441,7 +235,7 @@ const gamesPageStyles = `
     margin: 0;
     color: #10151b;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: clamp(34px, 3.8vw, 52px);
+    font-size: clamp(30px, 3vw, 42px);
     line-height: 1;
     letter-spacing: 0;
   }
@@ -469,9 +263,10 @@ const gamesPageStyles = `
 
   .public-games-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+    grid-template-columns: minmax(0, 760px) minmax(280px, 320px);
     gap: 22px;
     align-items: start;
+    justify-content: center;
     margin-top: 18px;
   }
 
@@ -535,7 +330,7 @@ const gamesPageStyles = `
 
   .public-games-card {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(76px, auto) minmax(0, 1fr);
     gap: 12px;
     align-items: center;
     padding: 15px 16px;
@@ -573,13 +368,13 @@ const gamesPageStyles = `
   }
 
   .public-games-team:first-child {
-    justify-content: flex-end;
-    text-align: right;
+    justify-content: flex-start;
+    text-align: left;
   }
 
   .public-games-team:last-of-type {
-    justify-content: flex-start;
-    text-align: left;
+    justify-content: flex-end;
+    text-align: right;
   }
 
   .public-games-team-copy {
@@ -630,12 +425,12 @@ const gamesPageStyles = `
   }
 
   .public-games-score {
-    min-width: 92px;
+    min-width: 76px;
     text-align: center;
   }
 
   .public-games-score strong {
-    font-size: 25px;
+    font-size: 22px;
   }
 
   .public-games-status {
@@ -732,49 +527,54 @@ const gamesPageStyles = `
     line-height: 1.42;
   }
 
-  .public-games-note-list,
-  .public-games-link-list {
+  .public-games-ad-slot {
     display: grid;
-    gap: 8px;
-  }
-
-  .public-games-note-list span {
-    padding: 8px 0;
-    border-bottom: 1px solid #e6ebf1;
-    color: #34404d;
-    font-size: 13px;
-    font-weight: 900;
-    line-height: 1.32;
-  }
-
-  .public-games-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-  }
-
-  .public-games-table th,
-  .public-games-table td {
-    padding: 8px 4px;
-    border-bottom: 1px solid #e6ebf1;
-    text-align: right;
-  }
-
-  .public-games-table th:first-child,
-  .public-games-table td:first-child {
-    text-align: left;
-  }
-
-  .public-games-table th {
-    color: #607086;
+    min-height: 260px;
+    place-items: center;
+    border: 1px solid #dfe5ec;
+    background: #f8fafc;
+    color: #8a96a5;
     font-size: 11px;
     font-weight: 900;
     text-transform: uppercase;
   }
 
-  .public-games-table b {
-    color: #10151b;
+  .public-games-news-list,
+  .public-games-link-list {
+    display: grid;
+    gap: 8px;
+  }
+
+  .public-games-news-item {
+    display: grid;
+    gap: 5px;
+    padding: 0 0 12px;
+    border-bottom: 1px solid #e6ebf1;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .public-games-news-item + .public-games-news-item {
+    padding-top: 8px;
+  }
+
+  .public-games-news-item time {
+    color: #c40012;
+    font-size: 11px;
     font-weight: 900;
+  }
+
+  .public-games-news-item strong {
+    color: #10151b;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 16px;
+    line-height: 1.15;
+  }
+
+  .public-games-news-item span {
+    color: #607086;
+    font-size: 12px;
+    line-height: 1.32;
   }
 
   .public-games-link-list a {
@@ -863,13 +663,6 @@ const gamesPageStyles = `
       font-size: 34px;
     }
 
-    .public-matchday-strip-shell {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .public-matchday-strip-button {
-      display: none;
-    }
   }
 `;
 
@@ -887,18 +680,6 @@ function formatKickoffTime(value: string) {
     minute: "2-digit",
     timeZone: "Europe/Lisbon"
   }).format(new Date(value));
-}
-
-function formatMiniCardKickoff(value: string) {
-  const date = new Date(value);
-  const dayMonth = new Intl.DateTimeFormat("pt-PT", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone: "Europe/Lisbon"
-  }).format(date);
-  const time = formatKickoffTime(value);
-
-  return `${dayMonth} · ${time}`;
 }
 
 function formatMatchdayDateContext(matches: PublicSeasonMatch[]) {
@@ -984,17 +765,6 @@ function teamInitials(name?: string | null, shortName?: string | null) {
   return initials || "FC";
 }
 
-function shortTeamLabel(name?: string | null, shortName?: string | null) {
-  const editorialName = name?.trim();
-  const fallback = shortName?.trim() || editorialName || "Equipa";
-
-  if (!editorialName) {
-    return fallback;
-  }
-
-  return editorialName.length <= 20 ? editorialName : fallback;
-}
-
 function isWinner(match: PublicSeasonMatch, side: "home" | "away") {
   if (match.status !== "finished" || match.home_score === null || match.away_score === null || match.home_score === match.away_score) {
     return false;
@@ -1020,48 +790,6 @@ function BroadcastBadge({ match }: { match: PublicSeasonMatch }) {
   );
 }
 
-function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: boolean }) {
-  const kind = statusKind(match.status);
-  const broadcastChannelName = match.broadcastChannel?.name?.trim();
-  const hasScore = match.home_score !== null && match.away_score !== null;
-  const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
-  const liveStatus = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
-
-  return (
-    <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>
-      <span className="public-matchday-mini-team">
-        <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
-        <span>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</span>
-        {showScore ? <b className="public-matchday-mini-score">{match.home_score}</b> : null}
-      </span>
-      <span className="public-matchday-mini-team">
-        <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
-        <span>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</span>
-        {showScore ? <b className="public-matchday-mini-score">{match.away_score}</b> : null}
-      </span>
-      <span className="public-matchday-mini-status">
-        {kind === "finished" ? (
-          <span>Finalizado</span>
-        ) : kind === "live" || kind === "halftime" ? (
-          <span>{liveStatus}</span>
-        ) : kind === "scheduled" ? (
-          <>
-            <time className="public-matchday-mini-time" dateTime={match.kickoff_at}>{formatMiniCardKickoff(match.kickoff_at)}</time>
-            {broadcastChannelName ? (
-              <>
-                <span className="public-matchday-mini-separator" aria-hidden="true">·</span>
-                <span className="public-matchday-mini-channel">{broadcastChannelName}</span>
-              </>
-            ) : null}
-          </>
-        ) : (
-          <span>{statusLabel(match.status)}</span>
-        )}
-      </span>
-    </article>
-  );
-}
-
 function MatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const statusText = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
@@ -1071,22 +799,22 @@ function MatchCard({ match }: { match: PublicSeasonMatch }) {
   return (
     <article className={`public-games-card public-games-card-${kind}`} key={match.id}>
       <div className={`public-games-team ${homeWinner ? "public-games-team-winner" : ""}`}>
+        <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
         <div className="public-games-team-copy">
           <strong>{match.homeTeam?.name ?? "Equipa da casa"}</strong>
           <small>Casa</small>
         </div>
-        <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
       </div>
       <div className="public-games-score">
         <strong>{matchResult(match)}</strong>
         <small className={`public-games-status public-games-status-${kind}`}>{statusText}</small>
       </div>
       <div className={`public-games-team ${awayWinner ? "public-games-team-winner" : ""}`}>
-        <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
         <div className="public-games-team-copy">
           <strong>{match.awayTeam?.name ?? "Equipa visitante"}</strong>
           <small>Fora</small>
         </div>
+        <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
       </div>
       <div className="public-games-meta">
         <span>{statusKind(match.status) === "scheduled" ? formatKickoffTime(match.kickoff_at) : formatKickoff(match.kickoff_at)}</span>
@@ -1176,14 +904,14 @@ export default async function PublicMatchdayGamesPage({ params }: PublicMatchday
     { key: "scheduled", label: "Agendados", matches: scheduledMatches },
     { key: "other", label: "Outros estados", matches: otherMatches }
   ].filter((group) => group.matches.length > 0);
-  const classificationRows = buildAccumulatedClassification({
-    participants: context.participants,
-    matches: context.matchesForSeason,
-    matchdays: context.matchdays,
-    selectedMatchday: context.matchday
-  }).slice(0, 5);
   const selectedMatchdayDateContext = formatMatchdayDateContext(context.matchesForMatchday);
-  const focusedStripMatch = liveMatches[0] ?? null;
+  const sidebarNewsItems = context.latestNews.slice(0, 4).map((item) => ({
+    id: item.id,
+    timeLabel: item.time_label || "",
+    title: item.title || "Notícia da jornada",
+    subtitle: item.subtitle?.trim() || "",
+    linkUrl: item.link_url?.trim() || ""
+  }));
 
   return (
     <main className="public-games-shell">
@@ -1258,46 +986,6 @@ export default async function PublicMatchdayGamesPage({ params }: PublicMatchday
         }}
       />
 
-      <section className="public-matchday-panel public-matchday-scoreboard-panel" aria-label="Visão rápida dos jogos">
-        <div className="public-matchday-strip-shell">
-          <button className="public-matchday-strip-button" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
-            ‹
-          </button>
-          <div className="public-matchday-strip" data-matchday-strip>
-            {context.matchesForMatchday.length > 0 ? (
-              context.matchesForMatchday.map((match) => (
-                <CompactMatchCard focus={focusedStripMatch?.id === match.id} key={match.id} match={match} />
-              ))
-            ) : (
-              <p>Ainda não há jogos nesta jornada.</p>
-            )}
-          </div>
-          <button className="public-matchday-strip-button" data-strip-scroll="right" type="button" aria-label="Ver jogos seguintes">
-            ›
-          </button>
-        </div>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              document.addEventListener("DOMContentLoaded", function () {
-                var strip = document.querySelector("[data-matchday-strip]");
-                if (!strip) return;
-                var focused = strip.querySelector("[data-live-focus='true']");
-                if (focused && "scrollIntoView" in focused) {
-                  focused.scrollIntoView({ block: "nearest", inline: "center" });
-                }
-                document.querySelectorAll("[data-strip-scroll]").forEach(function (button) {
-                  button.addEventListener("click", function () {
-                    var direction = button.getAttribute("data-strip-scroll") === "left" ? -1 : 1;
-                    strip.scrollBy({ left: direction * Math.max(260, Math.round(strip.clientWidth * 0.85)), behavior: "smooth" });
-                  });
-                });
-              });
-            `
-          }}
-        />
-      </section>
-
       <div className="public-games-wrap">
         <section className="public-games-page-head" aria-label="Cabeçalho dos jogos da jornada">
           <div>
@@ -1333,38 +1021,30 @@ export default async function PublicMatchdayGamesPage({ params }: PublicMatchday
           </section>
 
           <aside className="public-games-sidebar" aria-label="Informação lateral da jornada">
-            <section className="public-games-panel public-games-side-block" aria-label="Nesta jornada">
-              <h2>Nesta jornada</h2>
-              <p>{selectedMatchdayDateContext}</p>
-              <div className="public-games-note-list" aria-label="Estado dos jogos">
-                <span>{context.matchesForMatchday.length} jogos no calendário</span>
-                <span>{finishedMatches.length} finalizados</span>
-                <span>{liveMatches.length} em direto ou intervalo</span>
-                <span>{scheduledMatches.length} agendados</span>
-              </div>
+            <section className="public-games-panel public-games-side-block" aria-label="Publicidade">
+              <div className="public-games-ad-slot">Publicidade</div>
             </section>
 
-            {classificationRows.length > 0 ? (
-              <section className="public-games-panel public-games-side-block" aria-label="Classificação curta">
-                <h2>Classificação</h2>
-                <table className="public-games-table">
-                  <thead>
-                    <tr>
-                      <th>Clube</th>
-                      <th>J</th>
-                      <th>Pts</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {classificationRows.map((row, index) => (
-                      <tr key={row.teamId}>
-                        <td>{index + 1}. {row.name}</td>
-                        <td>{row.played}</td>
-                        <td><b>{row.points}</b></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {sidebarNewsItems.length > 0 ? (
+              <section className="public-games-panel public-games-side-block" aria-label="Mais notícias">
+                <h2>Mais notícias</h2>
+                <div className="public-games-news-list">
+                  {sidebarNewsItems.map((item) =>
+                    item.linkUrl ? (
+                      <a className="public-games-news-item" href={item.linkUrl} key={item.id}>
+                        {item.timeLabel ? <time>{item.timeLabel}</time> : null}
+                        <strong>{item.title}</strong>
+                        {item.subtitle ? <span>{item.subtitle}</span> : null}
+                      </a>
+                    ) : (
+                      <div className="public-games-news-item" key={item.id}>
+                        {item.timeLabel ? <time>{item.timeLabel}</time> : null}
+                        <strong>{item.title}</strong>
+                        {item.subtitle ? <span>{item.subtitle}</span> : null}
+                      </div>
+                    )
+                  )}
+                </div>
               </section>
             ) : null}
 
