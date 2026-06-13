@@ -1,6 +1,19 @@
 import { notFound } from "next/navigation";
 
-import { fetchSupabaseAdminTable } from "@/lib/supabase";
+import PublicTeamBadge from "@/components/public/PublicTeamBadge";
+import { getPublicCompetitionMenu } from "@/lib/public-competition-menu";
+import {
+  getPublicMatchdayDiagnostic,
+  seasonLabelToUrlSegment,
+  type PublicMatchdayContext,
+  type PublicSeasonMatch
+} from "@/lib/public-matchday";
+import {
+  fetchSupabaseAdminTable,
+  type SupabaseCompetition,
+  type SupabaseMatchday,
+  type SupabaseSeason
+} from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -39,44 +52,15 @@ type PageProps = {
 const articlePageStyles = `
   body {
     margin: 0;
-    background: #f3f5f8;
+    overflow-x: hidden;
+    background: #ffffff;
   }
 
   .news-article-shell {
     min-height: 100vh;
     color: #111820;
-    padding: 0 24px 36px;
-    font-family: Inter, Arial, Helvetica, sans-serif;
-  }
-
-  .news-article-topbar {
-    border-bottom: 1px solid #e5e9ef;
-    background: #ffffff;
-  }
-
-  .news-article-topbar-inner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: min(1240px, calc(100% - 36px));
-    margin: 0 auto;
-    padding: 16px 0;
-  }
-
-  .news-article-brand {
-    color: #e5252a;
-    font-size: 18px;
-    font-weight: 900;
-    letter-spacing: 0;
-    text-decoration: none;
-  }
-
-  .news-article-back {
-    color: #4c5967;
-    font-size: 13px;
-    font-weight: 800;
-    text-decoration: none;
-    text-transform: uppercase;
+    padding: 0 24px 28px;
+    font-family: Arial, Helvetica, sans-serif;
   }
 
   .public-top-stack {
@@ -85,129 +69,262 @@ const articlePageStyles = `
     z-index: 20;
     margin: 0 -24px;
     padding: 0 24px;
+    border-bottom: 1px solid #d8dee6;
     background: rgba(255, 255, 255, 0.98);
-    border-bottom: 1px solid #d9dee6;
-    box-shadow: 0 10px 28px rgba(16, 24, 32, 0.08);
-    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.08);
   }
 
   .public-site-topbar {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 22px;
     align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    max-width: 1180px;
-    min-height: 70px;
+    min-height: 56px;
+    max-width: 1512px;
     margin: 0 auto;
+    padding: 0;
+    border-bottom: 1px solid #dfe5ec;
   }
 
   .public-site-brand {
-    padding: 9px 12px;
-    border-radius: 4px;
-    background: #111820;
-    color: #ffffff;
-    font-size: 24px;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+    color: #2f343b;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 29px;
     font-weight: 900;
-    letter-spacing: 0;
+    line-height: 1;
     text-decoration: none;
+    letter-spacing: -0.02em;
   }
 
   .public-site-brand span {
-    color: #e5252a;
+    color: #6b7480;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0;
   }
 
   .public-site-menu {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 4px;
-    margin-right: auto;
-  }
-
-  .public-site-menu a,
-  .public-site-actions a,
-  .public-site-search {
-    display: inline-flex;
-    min-height: 34px;
-    align-items: center;
-    padding: 0 11px;
-    border-radius: 4px;
-    color: #24313f;
+    gap: 18px;
     font-size: 13px;
-    font-weight: 850;
-    letter-spacing: 0;
-    text-decoration: none;
+    font-weight: 900;
     text-transform: uppercase;
   }
 
-  .public-site-menu a:hover,
-  .public-site-actions a:hover {
-    background: #eef2f6;
-    color: #e5252a;
+  .public-site-menu a,
+  .public-site-actions a {
+    color: #10151b;
+    text-decoration: none;
   }
 
   .public-site-menu a[aria-current="page"] {
-    color: #e5252a;
+    color: #c40012;
   }
 
   .public-site-actions {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 12px;
+    font-size: 13px;
+    font-weight: 900;
   }
 
   .public-site-search {
-    background: #eef2f6;
-    color: #687583;
-  }
-
-  .news-section-nav-bar {
-    max-width: 1180px;
-    margin: 0 auto;
-    padding: 0 0 12px;
-  }
-
-  .news-section-nav-inner {
-    display: flex;
-    min-height: 38px;
+    display: inline-flex;
+    min-width: 170px;
     align-items: center;
     gap: 8px;
-    overflow-x: auto;
-  }
-
-  .news-section-label,
-  .news-section-pill,
-  .news-section-date {
-    flex: 0 0 auto;
-    padding: 7px 10px;
-    border-radius: 3px;
+    padding: 6px 11px;
+    border: 1px solid #d8dee6;
+    border-radius: 999px;
+    background: #eef2f6;
+    color: #687583;
     font-size: 12px;
-    font-weight: 850;
-    letter-spacing: 0;
-    text-transform: uppercase;
+    font-weight: 900;
   }
 
-  .news-section-label {
-    background: #e5252a;
+  .public-site-search::before {
+    content: "⌕";
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: #ffe04f;
+    color: #10151b;
+    font-size: 13px;
+  }
+
+  .public-season-nav-bar {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+  }
+
+  .public-hidden-heading {
+    display: none;
+  }
+
+  .public-season-nav-inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    align-items: center;
+    max-width: 1512px;
+    margin: 0 auto;
+    padding: 8px 0 9px;
+  }
+
+  .public-season-select-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px 5px 10px;
+    border: 1px solid #cfd7e1;
+    background: #f8fafc;
+    color: #263241;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .public-season-select {
+    min-width: 118px;
+    border: 0;
+    background: transparent;
+    color: #10151b;
+    font: inherit;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .public-matchday-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .public-matchday-tab {
+    display: inline-flex;
+    min-width: 38px;
+    justify-content: center;
+    padding: 7px 9px;
+    border: 1px solid #dce2e9;
+    background: #f8fafc;
+    color: #263241;
+    font-size: 12px;
+    font-weight: 900;
+    text-decoration: none;
+  }
+
+  .public-matchday-tab[aria-current="page"] {
+    border-color: #c40012;
+    background: #c40012;
     color: #ffffff;
   }
 
-  .news-section-pill {
-    border: 1px solid #dce2e9;
+  .public-matchday-panel {
+    max-width: 1512px;
+    margin: 0 auto;
     background: #ffffff;
-    color: #182330;
   }
 
-  .news-section-date {
-    margin-left: auto;
-    background: transparent;
+  .public-matchday-scoreboard-panel {
+    margin: 0 auto;
+    border-bottom: 1px solid #e1e6ec;
+  }
+
+  .public-matchday-strip {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-padding: 14px;
+    padding: 10px 0 12px;
+    background: #ffffff;
+  }
+
+  .news-scoreboard-card {
+    display: grid;
+    gap: 7px;
+    min-width: 192px;
+    padding: 10px 12px;
+    border: 1px solid #e0e6ee;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #10151b;
+  }
+
+  .news-scoreboard-teams {
+    display: grid;
+    gap: 5px;
+  }
+
+  .news-scoreboard-team {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 7px;
+    align-items: center;
+    min-width: 0;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .news-scoreboard-team span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .news-scoreboard-team .public-team-badge {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    overflow: hidden;
+    border: 1px solid #d8dee6;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #465363;
+    font-size: 8px;
+    font-weight: 900;
+  }
+
+  .news-scoreboard-team .public-team-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .news-scoreboard-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
     color: #657180;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .news-scoreboard-result {
+    color: #10151b;
+    font-size: 16px;
+    font-weight: 950;
   }
 
   .news-article-layout {
     display: grid;
     grid-template-columns: minmax(0, 800px) 320px;
     gap: 42px;
-    width: min(1180px, 100%);
+    width: min(1180px, calc(100% - 32px));
     margin: 0 auto;
     padding: 34px 0 56px;
   }
@@ -408,26 +525,23 @@ const articlePageStyles = `
 
   @media (max-width: 900px) {
     .public-top-stack {
-      margin: 0 -18px;
-      padding: 0 18px;
+      margin: 0 -16px;
+      padding: 0 16px;
     }
 
     .public-site-topbar {
-      min-height: auto;
+      grid-template-columns: 1fr;
       padding: 12px 0;
-      align-items: flex-start;
-      flex-wrap: wrap;
     }
 
-    .public-site-menu {
-      order: 3;
-      width: 100%;
-      overflow-x: auto;
-      padding-bottom: 2px;
-    }
-
+    .public-site-menu,
     .public-site-actions {
-      margin-left: auto;
+      display: none;
+    }
+
+    .public-season-nav-inner {
+      padding: 8px 0 9px;
+      gap: 8px;
     }
 
     .news-article-layout {
@@ -449,10 +563,6 @@ const articlePageStyles = `
 
     .news-article-body {
       font-size: 18px;
-    }
-
-    .news-section-date {
-      margin-left: 0;
     }
   }
 `;
@@ -500,6 +610,112 @@ async function readMoreArticles(currentSlug: string) {
   ).catch(() => []);
 }
 
+async function readArticleMatchdayContext(article: EditorialArticle) {
+  if (!article.matchday_id) {
+    return null;
+  }
+
+  try {
+    const matchdays = await fetchSupabaseAdminTable<SupabaseMatchday>(
+      `matchdays?select=id,season_id,number,label,starts_on,ends_on,status,context_summary&id=eq.${encodeURIComponent(
+        article.matchday_id
+      )}&limit=1`
+    );
+    const matchday = matchdays[0] ?? null;
+    const seasonId = matchday?.season_id ?? article.season_id;
+
+    if (!matchday || !seasonId) {
+      return null;
+    }
+
+    const seasons = await fetchSupabaseAdminTable<SupabaseSeason>(
+      `seasons?select=id,competition_id,label,starts_on,ends_on,is_current&id=eq.${encodeURIComponent(seasonId)}&limit=1`
+    );
+    const season = seasons[0] ?? null;
+    const competitionId = season?.competition_id ?? article.competition_id;
+
+    if (!season || !competitionId) {
+      return null;
+    }
+
+    const competitions = await fetchSupabaseAdminTable<SupabaseCompetition>(
+      `competitions?select=id,name,slug,country_id,country,logo_url,accent_color,is_active&id=eq.${encodeURIComponent(
+        competitionId
+      )}&limit=1`
+    );
+    const competition = competitions[0] ?? null;
+
+    if (!competition?.slug || !matchday.number) {
+      return null;
+    }
+
+    const { context } = await getPublicMatchdayDiagnostic({
+      competitionSlug: competition.slug,
+      seasonLabel: seasonLabelToUrlSegment(season.label),
+      matchdayNumber: matchday.number
+    });
+
+    return context;
+  } catch {
+    return null;
+  }
+}
+
+function shortTeamName(matchTeam: PublicSeasonMatch["homeTeam"]) {
+  return firstText(matchTeam?.short_name, matchTeam?.name) ?? "Equipa";
+}
+
+function shortMatchDate(value?: string | null) {
+  if (!value) return "Agendado";
+
+  return new Intl.DateTimeFormat("pt-PT", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
+
+function scoreboardStatus(match: PublicSeasonMatch) {
+  const status = (match.status ?? "").toLowerCase();
+
+  if (status === "finished") return "Finalizado";
+  if (status === "live") return match.minute ? `Ao vivo · ${match.minute}'` : "Ao vivo";
+  if (status === "halftime") return "Intervalo";
+  if (status === "postponed") return "Adiado";
+  if (status === "cancelled") return "Cancelado";
+  return shortMatchDate(match.kickoff_at);
+}
+
+function scoreboardResult(match: PublicSeasonMatch) {
+  if (match.home_score !== null && match.away_score !== null && match.home_score !== undefined && match.away_score !== undefined) {
+    return `${match.home_score}-${match.away_score}`;
+  }
+
+  return "vs";
+}
+
+function MiniScoreboardCard({ match }: { match: PublicSeasonMatch }) {
+  return (
+    <article className="news-scoreboard-card">
+      <div className="news-scoreboard-teams">
+        <div className="news-scoreboard-team">
+          <PublicTeamBadge fallbackLabel={shortTeamName(match.homeTeam).slice(0, 3).toUpperCase()} logoUrl={match.homeTeam?.logo_url} />
+          <span>{shortTeamName(match.homeTeam)}</span>
+        </div>
+        <div className="news-scoreboard-team">
+          <PublicTeamBadge fallbackLabel={shortTeamName(match.awayTeam).slice(0, 3).toUpperCase()} logoUrl={match.awayTeam?.logo_url} />
+          <span>{shortTeamName(match.awayTeam)}</span>
+        </div>
+      </div>
+      <div className="news-scoreboard-meta">
+        <span className="news-scoreboard-result">{scoreboardResult(match)}</span>
+        <span>{scoreboardStatus(match)}</span>
+      </div>
+    </article>
+  );
+}
+
 export default async function NewsArticlePage({ params }: PageProps) {
   const { slug } = await params;
   const article = await readArticle(slug);
@@ -508,12 +724,46 @@ export default async function NewsArticlePage({ params }: PageProps) {
     notFound();
   }
 
-  const moreArticles = await readMoreArticles(slug);
+  const [moreArticles, articleContext, publicCompetitionMenuBase] = await Promise.all([
+    readMoreArticles(slug),
+    readArticleMatchdayContext(article),
+    getPublicCompetitionMenu().catch(() => [])
+  ]);
   const label = firstText(article.label, article.category, article.type);
   const subtitle = firstText(article.subtitle, article.summary, article.excerpt);
   const author = firstText(article.author, article.author_name);
   const publishedAt = formatDate(article.published_at ?? article.created_at);
   const paragraphs = articleParagraphs(article.body);
+  const seasonSegment = articleContext ? seasonLabelToUrlSegment(articleContext.season.label) : null;
+  const matchdayHref = (matchdayNumber: number) =>
+    articleContext && seasonSegment
+      ? `/competicoes/${articleContext.competition.slug}/${seasonSegment}/jornadas/${matchdayNumber}`
+      : "/";
+  const gamesPageHref =
+    articleContext && seasonSegment
+      ? `/competicoes/${articleContext.competition.slug}/${seasonSegment}/jornadas/${articleContext.matchday.number}/jogos`
+      : null;
+  const classificationHref = articleContext ? `${matchdayHref(articleContext.matchday.number)}#classificacao` : null;
+  const currentCompetitionMenuItem =
+    articleContext && seasonSegment
+      ? {
+          label: articleContext.competition.name,
+          slug: articleContext.competition.slug,
+          href: matchdayHref(articleContext.matchday.number)
+        }
+      : null;
+  const publicCompetitionMenu = currentCompetitionMenuItem
+    ? publicCompetitionMenuBase.map((item) => (item.slug === currentCompetitionMenuItem.slug ? currentCompetitionMenuItem : item))
+    : publicCompetitionMenuBase;
+  const seasonOptions =
+    articleContext && seasonSegment
+      ? articleContext.seasons.map((season) => ({
+          id: season.id,
+          label: season.label,
+          href: `/competicoes/${articleContext.competition.slug}/${seasonLabelToUrlSegment(season.label)}/jornadas/1`
+        }))
+      : [];
+  const currentSeasonHref = articleContext && seasonSegment ? `/competicoes/${articleContext.competition.slug}/${seasonSegment}/jornadas/1` : "/";
 
   return (
     <div className="news-article-shell">
@@ -523,11 +773,18 @@ export default async function NewsArticlePage({ params }: PageProps) {
           <a className="public-site-brand" href="/">
             Jornada<span>.pt</span>
           </a>
-          <nav className="public-site-menu" aria-label="Navegação principal">
-            <a href="/">Início</a>
-            <a href={`/noticias/${encodeURIComponent(slug)}`} aria-current="page">
-              Notícias
-            </a>
+          <nav className="public-site-menu" aria-label="Competições principais">
+            {publicCompetitionMenu.map((item) => (
+              <a
+                aria-current={articleContext?.competition.slug === item.slug ? "page" : undefined}
+                href={item.href}
+                key={item.slug}
+              >
+                {item.label}
+              </a>
+            ))}
+            {gamesPageHref ? <a href={gamesPageHref}>Jogos</a> : null}
+            {classificationHref ? <a href={classificationHref}>Classificação</a> : null}
           </nav>
           <div className="public-site-actions" aria-label="Ações">
             <span className="public-site-search" aria-label="Pesquisar">
@@ -536,16 +793,63 @@ export default async function NewsArticlePage({ params }: PageProps) {
             <a href="/admin/gestor">Entrar</a>
           </div>
         </header>
-        <section className="news-section-nav-bar" aria-label="Contexto editorial">
-          <div className="news-section-nav-inner">
-            <span className="news-section-label">Editorial</span>
-            <span className="news-section-pill">Notícias</span>
-            {label ? <span className="news-section-pill">{label}</span> : null}
-            {publishedAt ? <span className="news-section-date">{publishedAt}</span> : null}
-          </div>
-        </section>
+        {articleContext ? (
+          <>
+            <section className="public-season-nav-bar" aria-label="Navegação de jornadas">
+              <div className="public-hidden-heading">
+                <h2>Jornadas</h2>
+                <p>Navegação principal da época {articleContext.season.label}.</p>
+              </div>
+              <div className="public-season-nav-inner">
+                <label className="public-season-select-wrap">
+                  <span>Época</span>
+                  <select className="public-season-select" data-season-select defaultValue={currentSeasonHref}>
+                    {seasonOptions.map((season) => (
+                      <option key={season.id} value={season.href}>
+                        {season.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <nav className="public-matchday-tabs" aria-label="Jornadas">
+                  {articleContext.matchdays.map((matchday) => (
+                    <a
+                      aria-current={matchday.id === articleContext.matchday.id ? "page" : undefined}
+                      className="public-matchday-tab"
+                      href={matchdayHref(matchday.number)}
+                      key={matchday.id}
+                    >
+                      J{String(matchday.number).padStart(2, "0")}
+                    </a>
+                  ))}
+                </nav>
+              </div>
+            </section>
+            {articleContext.matchesForMatchday.length > 0 ? (
+              <section className="public-matchday-panel public-matchday-scoreboard-panel" aria-label="Visão rápida dos jogos">
+                <div className="public-matchday-strip">
+                  {articleContext.matchesForMatchday.map((match) => (
+                    <MiniScoreboardCard key={match.id} match={match} />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+          </>
+        ) : null}
       </div>
-
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            document.addEventListener("DOMContentLoaded", function () {
+              var select = document.querySelector("[data-season-select]");
+              if (!select) return;
+              select.addEventListener("change", function () {
+                if (select.value) window.location.href = select.value;
+              });
+            });
+          `
+        }}
+      />
       <main className="news-article-layout">
         <article className="news-article-main">
           {label ? (
