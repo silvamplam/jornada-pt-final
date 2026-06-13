@@ -327,6 +327,8 @@ const gamesPageStyles = `
   .public-games-list {
     display: grid;
     gap: 14px;
+    inline-size: min(100%, 620px);
+    justify-self: start;
     padding: 4px 0 0;
   }
 
