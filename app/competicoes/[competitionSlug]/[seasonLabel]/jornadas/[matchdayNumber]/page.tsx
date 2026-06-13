@@ -2867,7 +2867,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
               {item.label}
             </a>
           ))}
-          <a href="#jogos">Jogos</a>
+          <a href="#jogos" data-public-anchor-link="jogos">Jogos</a>
           <a href="#classificacao">Classificação</a>
         </nav>
         <div className="public-site-actions" aria-label="Ações">
@@ -2918,6 +2918,31 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
               if (!select) return;
               select.addEventListener("change", function () {
                 if (select.value) window.location.href = select.value;
+              });
+            });
+          `
+        }}
+      />
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            document.addEventListener("DOMContentLoaded", function () {
+              document.querySelectorAll("[data-public-anchor-link]").forEach(function (link) {
+                link.addEventListener("click", function (event) {
+                  var targetId = link.getAttribute("data-public-anchor-link");
+                  var target = targetId ? document.getElementById(targetId) : null;
+                  if (!target) return;
+                  event.preventDefault();
+                  var sticky = document.querySelector(".public-top-stack");
+                  var offset = sticky ? sticky.getBoundingClientRect().height + 12 : 132;
+                  var top = target.getBoundingClientRect().top + window.scrollY - offset;
+                  if (window.history && window.history.pushState) {
+                    window.history.pushState(null, "", "#" + targetId);
+                  } else {
+                    window.location.hash = targetId;
+                  }
+                  window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+                });
               });
             });
           `
