@@ -234,14 +234,8 @@ export function ArticleEditorForm({
       {message ? <p className="article-admin-alert">{message}</p> : null}
 
       <section className="article-admin-section">
-        <div>
-          <p className="article-admin-kicker">Conteúdo editorial</p>
-          <h2>{isEdit ? "Editar artigo" : "Novo artigo"}</h2>
-          <p>Guarda em public.editorial_articles. A publicação pública continua disponível apenas para artigos com status published.</p>
-        </div>
-
         <div className="article-admin-grid">
-          <label>
+          <label className="article-admin-full">
             <span>Título</span>
             <input name="title" data-article-title defaultValue={article?.title ?? ""} required />
           </label>
@@ -260,18 +254,23 @@ export function ArticleEditorForm({
           </label>
 
           <label>
-            <span>Ambito</span>
-            <input name="scope" defaultValue={currentScope} placeholder="global, matchday, competition..." />
+            <span>Âmbito</span>
+            <input name="scope" defaultValue={currentScope} placeholder="global" />
           </label>
 
           <label>
             <span>Etiqueta</span>
-            <input name="label" defaultValue={article?.label ?? ""} placeholder="OPINIAO, ANALISE..." />
+            <input name="label" defaultValue={article?.label ?? ""} placeholder="OPINIÃO, ANÁLISE..." />
           </label>
 
           <label>
             <span>Autor</span>
             <input name="author" defaultValue={article?.author ?? ""} placeholder="Nome do autor" />
+          </label>
+
+          <label>
+            <span>Publicado em</span>
+            <input name="published_at" type="datetime-local" defaultValue={formatDateTimeLocal(article?.published_at)} />
           </label>
 
           <label className="article-admin-full">
@@ -281,18 +280,13 @@ export function ArticleEditorForm({
 
           <label className="article-admin-full">
             <span>Corpo</span>
-            <textarea name="body" rows={14} defaultValue={article?.body ?? ""} />
+            <textarea name="body" rows={12} defaultValue={article?.body ?? ""} />
           </label>
         </div>
       </section>
 
-      <section className="article-admin-section">
-        <div>
-          <p className="article-admin-kicker">Imagem e publicação</p>
-          <h2>Metadados públicos</h2>
-          <p>O slug público abre em /noticias/[slug]. Se publicar sem data, a data atual é aplicada no momento da gravação.</p>
-        </div>
-
+      <section className="article-admin-section article-admin-compact-section">
+        <p className="article-admin-section-title">Imagem</p>
         <div className="article-admin-grid">
           <label className="article-admin-full">
             <span>Imagem principal</span>
@@ -303,21 +297,11 @@ export function ArticleEditorForm({
             <span>Legenda da imagem</span>
             <input name="image_caption" defaultValue={article?.image_caption ?? ""} />
           </label>
-
-          <label>
-            <span>Publicado em</span>
-            <input name="published_at" type="datetime-local" defaultValue={formatDateTimeLocal(article?.published_at)} />
-          </label>
         </div>
       </section>
 
-      <section className="article-admin-section">
-        <div>
-          <p className="article-admin-kicker">Contexto opcional</p>
-          <h2>Competição, época e jornada</h2>
-          <p>Associa o artigo a contexto real já existente. As listas são filtradas no formulário e validadas ao gravar.</p>
-        </div>
-
+      <section className="article-admin-section article-admin-compact-section">
+        <p className="article-admin-section-title">Contexto</p>
         <div className="article-admin-grid">
           <label>
             <span>Competição</span>
@@ -401,6 +385,14 @@ export const editorialArticleAdminStyles = `
     margin-bottom: 24px;
   }
 
+  .editorial-admin-hero {
+    padding: 26px;
+    border-radius: 10px;
+    background: #10151b;
+    color: #fff;
+    box-shadow: 0 18px 40px rgba(8, 15, 24, 0.16);
+  }
+
   .editorial-admin-header h1 {
     margin: 0;
     font-size: 32px;
@@ -412,6 +404,10 @@ export const editorialArticleAdminStyles = `
     margin: 8px 0 0;
     color: #4b5563;
     line-height: 1.55;
+  }
+
+  .editorial-admin-hero p {
+    color: #cbd5e1;
   }
 
   .editorial-admin-actions,
@@ -453,6 +449,18 @@ export const editorialArticleAdminStyles = `
     border-color: #111827;
     background: #111827;
     color: #fff;
+  }
+
+  .editorial-admin-hero .editorial-admin-actions a {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: transparent;
+    color: #fff;
+  }
+
+  .editorial-admin-hero .editorial-admin-actions .primary {
+    border-color: #fff;
+    background: #fff;
+    color: #10151b;
   }
 
   .article-admin-secondary {
@@ -571,10 +579,8 @@ export const editorialArticleAdminStyles = `
   }
 
   .article-admin-section {
-    display: grid;
-    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
-    gap: 24px;
-    padding: 22px;
+    display: block;
+    padding: 18px 22px;
     margin: 0;
     border-width: 0 0 1px;
     border-radius: 0;
@@ -594,6 +600,15 @@ export const editorialArticleAdminStyles = `
     margin: 0;
     color: #6b7280;
     line-height: 1.5;
+  }
+
+  .article-admin-section-title {
+    margin: 0 0 14px !important;
+    color: #b91c1c !important;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .article-admin-kicker {
@@ -620,6 +635,14 @@ export const editorialArticleAdminStyles = `
     gap: 6px;
     font-size: 13px;
     font-weight: 700;
+  }
+
+  .article-admin-grid label > span {
+    color: #475569;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }
 
   .article-admin-grid input,
@@ -719,6 +742,51 @@ export const editorialArticleAdminStyles = `
     font-size: 12px;
   }
 
+  .article-admin-delete-form {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: flex-start;
+    padding: 18px 22px;
+    border-top: 1px solid #fee2e2;
+    background: #fff7f7;
+  }
+
+  .article-admin-delete-form strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #991b1b;
+  }
+
+  .article-admin-delete-form p {
+    margin: 0;
+    color: #7f1d1d;
+    line-height: 1.45;
+  }
+
+  .article-admin-delete-confirm {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 10px;
+    color: #7f1d1d;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .article-admin-delete-form button {
+    flex: 0 0 auto;
+    min-height: 38px;
+    border: 1px solid #991b1b;
+    border-radius: 8px;
+    padding: 0 14px;
+    background: #991b1b;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
   @media (max-width: 820px) {
     .editorial-admin-shell {
       padding: 20px;
@@ -744,6 +812,10 @@ export const editorialArticleAdminStyles = `
     .editorial-admin-actions,
     .article-admin-form-actions {
       justify-content: flex-start;
+    }
+
+    .article-admin-delete-form {
+      display: grid;
     }
   }
 `;

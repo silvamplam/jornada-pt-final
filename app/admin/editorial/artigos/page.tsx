@@ -20,13 +20,15 @@ type PageProps = {
     error?: string;
     saved?: string;
     created?: string;
+    removed?: string;
+    detail?: string;
   }>;
 };
 
 async function readEditorialArticles() {
   try {
     const articles = await fetchSupabaseAdminTable<EditorialArticle>(
-      "editorial_articles?select=*&order=published_at.desc.nullslast&limit=100",
+      "editorial_articles?select=*&order=published_at.desc.nullslast,created_at.desc.nullslast&limit=100",
     );
 
     return { articles, error: null as string | null };
@@ -55,6 +57,9 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
   if (params.saved) {
     return "Artigo guardado.";
   }
+  if (params.removed) {
+    return "Artigo removido.";
+  }
 
   const messages: Record<string, string> = {
     "invalid-action": "A ação pedida não existe.",
@@ -64,10 +69,21 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
     "invalid-context": "A competição, época e jornada escolhidas não pertencem ao mesmo contexto.",
     "invalid-published-at": "A data de publicação não é válida.",
     "missing-service": "Não foi possível aceder ao serviço Supabase de administração.",
+    "missing-article": "O artigo selecionado já não existe.",
+    "delete-not-confirmed": "Confirme a remoção antes de apagar o artigo.",
+    "required-field": "O Supabase recusou a gravação por campo obrigatório em falta.",
+    constraint: "O Supabase recusou a gravação por constraint da tabela.",
+    permission: "O Supabase recusou a gravação por permissões/RLS.",
+    "supabase-error": "O Supabase recusou a gravação.",
     "save-failed": "Não foi possível gravar o artigo.",
   };
 
-  return params.error ? messages[params.error] ?? "Não foi possível gravar o artigo." : null;
+  if (!params.error) {
+    return null;
+  }
+
+  const base = messages[params.error] ?? "Não foi possível gravar o artigo.";
+  return params.detail ? `${base} Detalhe: ${params.detail}` : base;
 }
 
 function statusLabel(status: string | null) {
@@ -96,7 +112,7 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
   return (
     <main className="editorial-admin-shell">
       <div className="editorial-admin-container">
-        <header className="editorial-admin-header">
+        <header className="editorial-admin-header editorial-admin-hero">
           <div>
             <h1>Artigos / Notícias</h1>
             <p>
@@ -178,6 +194,22 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
                   : "/admin/editorial/artigos"
               }
             />
+            {selectedArticle ? (
+              <form className="article-admin-delete-form" action="/api/admin/editorial/artigos" method="post">
+                <input type="hidden" name="action_type" value="delete_article" />
+                <input type="hidden" name="article_id" value={selectedArticle.id} />
+                <input type="hidden" name="return_to" value="/admin/editorial/artigos" />
+                <div>
+                  <strong>Remover artigo</strong>
+                  <p>Remove apenas o registo de public.editorial_articles. O link público deixará de abrir em /noticias/{selectedArticle.slug ?? "[slug]"}.</p>
+                  <label className="article-admin-delete-confirm">
+                    <input name="confirm_delete" type="checkbox" value="yes" required />
+                    <span>Confirmo que quero remover este artigo editorial.</span>
+                  </label>
+                </div>
+                <button type="submit">Remover artigo</button>
+              </form>
+            ) : null}
           </section>
         </div>
       </div>

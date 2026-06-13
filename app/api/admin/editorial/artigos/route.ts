@@ -1,3 +1,5 @@
+import { randomUUID } from "crypto";
+
 import { NextResponse } from "next/server";
 
 import {
@@ -14,6 +16,12 @@ type ArticleIdRow = {
 type CreatedArticleRow = {
   id: string;
   slug: string | null;
+};
+
+type ArticleDeleteRow = {
+  id: string;
+  slug: string | null;
+  title: string | null;
 };
 
 type CompetitionContextRow = {
@@ -48,10 +56,17 @@ type ArticlePayload = {
 };
 
 class ArticleAdminError extends Error {
-  constructor(public code: string) {
-    super(code);
+  constructor(public code: string, message = code) {
+    super(message);
   }
 }
+
+type ParsedSupabaseError = {
+  code: string;
+  message: string;
+  details: string | null;
+  hint: string | null;
+};
 
 function cleanText(value: FormDataEntryValue | null) {
   if (typeof value !== "string") {
@@ -115,7 +130,73 @@ function safeReturnTo(value: string | null) {
 }
 
 function createInsertPayload(payload: ArticlePayload) {
-  return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== null));
+  const now = new Date().toISOString();
+  return Object.fromEntries(
+    Object.entries({
+      id: randomUUID(),
+      ...payload,
+      created_at: now,
+      updated_at: now,
+    }).filter(([, value]) => value !== null),
+  );
+}
+
+function sanitizeErrorText(value: string | null | undefined) {
+  return (value ?? "")
+    .replace(/\s+/g, " ")
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [redacted]")
+    .replace(/apikey[=:]\s*[A-Za-z0-9._-]+/gi, "apikey=[redacted]")
+    .trim()
+    .slice(0, 260);
+}
+
+function parseSupabaseError(error: unknown): ParsedSupabaseError {
+  const raw = error instanceof Error ? error.message : String(error);
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<ParsedSupabaseError>;
+    return {
+      code: sanitizeErrorText(parsed.code) || "supabase-error",
+      message: sanitizeErrorText(parsed.message) || "Erro Supabase.",
+      details: sanitizeErrorText(parsed.details) || null,
+      hint: sanitizeErrorText(parsed.hint) || null,
+    };
+  } catch {
+    return {
+      code: "supabase-error",
+      message: sanitizeErrorText(raw) || "Erro Supabase.",
+      details: null,
+      hint: null,
+    };
+  }
+}
+
+function classifySupabaseError(error: ParsedSupabaseError) {
+  if (error.code === "23505" || /duplicate|unique/i.test(error.message)) {
+    return "duplicate-slug";
+  }
+  if (error.code === "23502" || /null value|not-null/i.test(error.message)) {
+    return "required-field";
+  }
+  if (error.code === "23514" || /check constraint/i.test(error.message)) {
+    return "constraint";
+  }
+  if (error.code === "42501" || /permission|rls|policy/i.test(error.message)) {
+    return "permission";
+  }
+
+  return "supabase-error";
+}
+
+function supabaseDetailText(error: ParsedSupabaseError) {
+  const pieces = [
+    error.message ? `message: ${error.message}` : null,
+    error.code ? `code: ${error.code}` : null,
+    error.details ? `details: ${error.details}` : null,
+    error.hint ? `hint: ${error.hint}` : null,
+  ].filter(Boolean);
+
+  return pieces.join(" | ");
 }
 
 async function assertSlugAvailable(slug: string, currentArticleId: string | null) {
@@ -137,6 +218,14 @@ async function assertArticleExists(articleId: string) {
   if (!rows[0]) {
     throw new ArticleAdminError("missing-article");
   }
+}
+
+async function readArticleForDelete(articleId: string) {
+  const rows = await fetchSupabaseAdminTable<ArticleDeleteRow>(
+    `editorial_articles?select=id,slug,title&id=eq.${encodeURIComponent(articleId)}&limit=1`,
+  );
+
+  return rows[0] ?? null;
 }
 
 async function readCompetition(competitionId: string) {
@@ -282,6 +371,27 @@ async function updateArticle(request: Request, formData: FormData) {
   return redirectTo(request, returnTo, { articleId, saved: "1" });
 }
 
+async function deleteArticle(request: Request, formData: FormData) {
+  const articleId = cleanText(formData.get("article_id"));
+  if (!articleId) {
+    throw new ArticleAdminError("missing-article");
+  }
+  if (cleanText(formData.get("confirm_delete")) !== "yes") {
+    throw new ArticleAdminError("delete-not-confirmed");
+  }
+
+  const article = await readArticleForDelete(articleId);
+  if (!article) {
+    throw new ArticleAdminError("missing-article");
+  }
+
+  await writeSupabaseAdmin(`editorial_articles?id=eq.${encodeURIComponent(article.id)}`, {
+    method: "DELETE",
+  });
+
+  return redirectTo(request, "/admin/editorial/artigos", { removed: "1" });
+}
+
 export async function POST(request: Request) {
   const formData = await request.formData();
   const actionType = cleanText(formData.get("action_type"));
@@ -301,17 +411,30 @@ export async function POST(request: Request) {
       return await updateArticle(request, formData);
     }
 
+    if (actionType === "delete_article") {
+      return await deleteArticle(request, formData);
+    }
+
     return redirectTo(request, "/admin/editorial/artigos", { error: "invalid-action" });
   } catch (error) {
-    const code = error instanceof ArticleAdminError ? error.code : "save-failed";
+    let code: string;
+    let detail: string;
+    if (error instanceof ArticleAdminError) {
+      code = error.code;
+      detail = error.message;
+    } else {
+      const parsedSupabaseError = parseSupabaseError(error);
+      code = classifySupabaseError(parsedSupabaseError);
+      detail = supabaseDetailText(parsedSupabaseError);
+    }
     const articleId = cleanText(formData.get("article_id"));
     const returnTo = safeReturnTo(cleanText(formData.get("return_to")));
     const fallbackPath =
       returnTo ??
-      (actionType === "update_article" && articleId
+      ((actionType === "update_article" || actionType === "delete_article") && articleId
         ? `/admin/editorial/artigos?articleId=${encodeURIComponent(articleId)}`
         : "/admin/editorial/artigos?mode=novo");
 
-    return redirectTo(request, fallbackPath, { error: code });
+    return redirectTo(request, fallbackPath, { error: code, detail });
   }
 }
