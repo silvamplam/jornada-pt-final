@@ -1,4 +1,5 @@
 import { buildAccumulatedClassification } from "@/lib/classification";
+import { getPublicCompetitionMenu } from "@/lib/public-competition-menu";
 import {
   getPublicMatchdayDiagnostic,
   seasonLabelToUrlSegment,
@@ -22,17 +23,17 @@ const gamesPageStyles = `
   body {
     margin: 0;
     overflow-x: hidden;
-    background: #f4f6f8;
+    background: #ffffff;
     color: #10151b;
     font-family: Arial, Helvetica, sans-serif;
   }
 
   .public-games-shell {
     min-height: 100vh;
-    padding: 0 24px 34px;
+    padding: 0 24px 32px;
   }
 
-  .public-games-topbar {
+  .public-top-stack {
     position: sticky;
     top: 0;
     z-index: 20;
@@ -43,18 +44,18 @@ const gamesPageStyles = `
     box-shadow: 0 10px 24px rgba(12, 22, 34, 0.08);
   }
 
-  .public-games-topbar-inner {
+  .public-site-topbar {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 22px;
     align-items: center;
-    min-height: 58px;
+    min-height: 56px;
     max-width: 1512px;
     margin: 0 auto;
     border-bottom: 1px solid #dfe5ec;
   }
 
-  .public-games-brand {
+  .public-site-brand {
     display: inline-flex;
     align-items: baseline;
     gap: 2px;
@@ -64,33 +65,350 @@ const gamesPageStyles = `
     font-weight: 900;
     line-height: 1;
     text-decoration: none;
+    letter-spacing: 0;
   }
 
-  .public-games-brand span {
+  .public-site-brand span {
     color: #6b7480;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 13px;
     font-weight: 900;
   }
 
-  .public-games-nav {
+  .public-site-menu {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 18px;
     align-items: center;
-    justify-content: flex-end;
     font-size: 13px;
     font-weight: 900;
     text-transform: uppercase;
   }
 
-  .public-games-nav a {
+  .public-site-menu a,
+  .public-site-actions a {
     color: #10151b;
     text-decoration: none;
   }
 
-  .public-games-nav a[aria-current="page"] {
+  .public-site-menu a[aria-current="page"] {
     color: #c40012;
+  }
+
+  .public-site-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .public-site-search {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 170px;
+    padding: 6px 11px;
+    border: 1px solid #d8dee6;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #66717f;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .public-site-search::before {
+    content: "⌕";
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: #ffe04f;
+    color: #10151b;
+    font-size: 13px;
+  }
+
+  .public-season-nav-bar {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+  }
+
+  .public-hidden-heading {
+    display: none;
+  }
+
+  .public-season-nav-inner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: center;
+    min-height: 52px;
+    max-width: 1512px;
+    margin: 0 auto;
+  }
+
+  .public-season-select-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px 5px 10px;
+    border: 1px solid #cfd7e1;
+    background: #f8fafc;
+    color: #263241;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .public-season-select {
+    min-width: 118px;
+    border: 0;
+    background: transparent;
+    color: #10151b;
+    font: inherit;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .public-matchday-nav {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 6px 0;
+  }
+
+  .public-matchday-nav a {
+    flex: 0 0 auto;
+    padding: 6px 9px;
+    border: 1px solid #d8dee6;
+    border-radius: 999px;
+    color: #10151b;
+    font-size: 12px;
+    font-weight: 900;
+    text-decoration: none;
+  }
+
+  .public-matchday-nav a[aria-current="page"] {
+    border-color: #c40012;
+    background: #c40012;
+    color: #ffffff;
+  }
+
+  .public-matchday-date-row {
+    justify-self: end;
+    min-width: 0;
+    color: #607086;
+    font-size: 13px;
+    font-weight: 900;
+    text-align: right;
+  }
+
+  .public-matchday-panel {
+    max-width: 1512px;
+    margin: 12px auto 0;
+    overflow: hidden;
+    border: 1px solid #dde4ec;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 14px 28px rgba(12, 22, 34, 0.08);
+  }
+
+  .public-matchday-scoreboard-panel {
+    margin-top: 1px;
+    min-height: 84px;
+    border: 0;
+    border-radius: 0;
+    background: #ffffff;
+    box-shadow: none;
+  }
+
+  .public-matchday-strip-shell {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 6px;
+    align-items: center;
+    min-height: 104px;
+    padding: 0 10px;
+    background: #ffffff;
+  }
+
+  .public-matchday-strip {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scroll-padding: 14px;
+    padding: 8px;
+    background: #ffffff;
+  }
+
+  .public-matchday-strip-button {
+    align-self: center;
+    width: 30px;
+    height: 52px;
+    border: 1px solid #d8dee6;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #263241;
+    font-size: 22px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .public-matchday-mini-card {
+    position: relative;
+    display: grid;
+    flex: 0 0 226px;
+    gap: 4px;
+    align-items: start;
+    min-height: 88px;
+    padding: 8px 9px 9px;
+    border: 1px solid #eef2f6;
+    border-radius: 6px;
+    background: #ffffff;
+    box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
+    font-size: 13px;
+  }
+
+  .public-matchday-mini-card + .public-matchday-mini-card::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: -7px;
+    width: 1px;
+    background: #dfe5ec;
+  }
+
+  .public-matchday-mini-card-live,
+  .public-matchday-mini-card-halftime {
+    border-color: #a9dcbc;
+    background: #f1fbf5;
+  }
+
+  .public-matchday-mini-card-finished {
+    border-color: #d8dee6;
+    background: #f7f9fb;
+  }
+
+  .public-matchday-mini-card-scheduled {
+    border-color: #ecd58b;
+    background: #fff9e8;
+  }
+
+  .public-matchday-mini-card-unknown {
+    border-color: #d8dee6;
+    background: #ffffff;
+  }
+
+  .public-matchday-mini-team {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    font-weight: 800;
+  }
+
+  .public-matchday-mini-team span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .public-matchday-mini-score {
+    min-width: 18px;
+    color: #10151b;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1;
+    text-align: right;
+  }
+
+  .public-matchday-mini-card .public-team-badge {
+    width: 24px;
+    height: 24px;
+    background: #ffffff;
+  }
+
+  .public-matchday-mini-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px;
+    min-width: 0;
+    padding: 3px 0 0 30px;
+    color: #607086;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.15;
+  }
+
+  .public-matchday-mini-card-live .public-matchday-mini-status > span,
+  .public-matchday-mini-card-halftime .public-matchday-mini-status > span,
+  .public-matchday-mini-card-finished .public-matchday-mini-status > span,
+  .public-matchday-mini-card-unknown .public-matchday-mini-status > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    font-weight: 900;
+  }
+
+  .public-matchday-mini-card-live .public-matchday-mini-status > span,
+  .public-matchday-mini-card-halftime .public-matchday-mini-status > span {
+    background: #dff7e8;
+    color: #137a3a;
+  }
+
+  .public-matchday-mini-card-live .public-matchday-mini-status > span::before,
+  .public-matchday-mini-card-halftime .public-matchday-mini-status > span::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: #17a34a;
+  }
+
+  .public-matchday-mini-card-finished .public-matchday-mini-status > span {
+    background: #e9edf2;
+    color: #4e5b69;
+  }
+
+  .public-matchday-mini-card-unknown .public-matchday-mini-status > span {
+    background: #eef2f6;
+    color: #506075;
+  }
+
+  .public-matchday-mini-time {
+    color: #263241;
+    white-space: nowrap;
+  }
+
+  .public-matchday-mini-card-scheduled .public-matchday-mini-time {
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: #fff2bf;
+    color: #745400;
+    font-weight: 900;
+  }
+
+  .public-matchday-mini-channel {
+    min-width: 0;
+    overflow: hidden;
+    color: #607086;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .public-matchday-mini-separator {
+    color: #9aa6b4;
   }
 
   .public-games-wrap {
@@ -98,44 +416,42 @@ const gamesPageStyles = `
     margin: 0 auto;
   }
 
-  .public-games-hero {
+  .public-games-page-head {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: 24px;
+    gap: 20px;
     align-items: end;
-    margin-top: 18px;
-    padding: 24px 0 18px;
+    padding: 22px 0 14px;
     border-bottom: 4px solid #10151b;
   }
 
   .public-games-kicker {
     display: inline-flex;
     width: fit-content;
-    margin-bottom: 12px;
-    padding: 5px 8px;
+    margin-bottom: 10px;
+    padding: 4px 7px;
     background: #c40012;
     color: #ffffff;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 900;
-    letter-spacing: 0;
     text-transform: uppercase;
   }
 
-  .public-games-hero h1 {
-    max-width: 920px;
+  .public-games-page-head h1 {
     margin: 0;
     color: #10151b;
-    font-size: clamp(34px, 4.6vw, 64px);
-    line-height: 0.95;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(34px, 3.8vw, 52px);
+    line-height: 1;
     letter-spacing: 0;
   }
 
-  .public-games-hero p {
-    max-width: 760px;
-    margin: 12px 0 0;
+  .public-games-page-head p {
+    max-width: 720px;
+    margin: 8px 0 0;
     color: #4e5b69;
-    font-size: 17px;
-    line-height: 1.45;
+    font-size: 16px;
+    line-height: 1.42;
   }
 
   .public-games-backlink {
@@ -153,10 +469,10 @@ const gamesPageStyles = `
 
   .public-games-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
     gap: 22px;
     align-items: start;
-    margin-top: 22px;
+    margin-top: 18px;
   }
 
   .public-games-main,
@@ -186,7 +502,7 @@ const gamesPageStyles = `
 
   .public-games-panel h2 {
     color: #10151b;
-    font-size: 22px;
+    font-size: 21px;
     font-weight: 900;
     text-transform: uppercase;
   }
@@ -209,6 +525,8 @@ const gamesPageStyles = `
   }
 
   .public-games-group h3 {
+    padding-bottom: 7px;
+    border-bottom: 3px solid #10151b;
     color: #263241;
     font-size: 14px;
     font-weight: 900;
@@ -408,30 +726,25 @@ const gamesPageStyles = `
     text-transform: uppercase;
   }
 
-  .public-games-stats {
+  .public-games-side-block p {
+    color: #607086;
+    font-size: 14px;
+    line-height: 1.42;
+  }
+
+  .public-games-note-list,
+  .public-games-link-list {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
-  .public-games-stat {
-    padding: 11px;
-    border: 1px solid #e3e9f0;
-    background: #f8fafc;
-  }
-
-  .public-games-stat strong {
-    display: block;
-    color: #10151b;
-    font-size: 23px;
+  .public-games-note-list span {
+    padding: 8px 0;
+    border-bottom: 1px solid #e6ebf1;
+    color: #34404d;
+    font-size: 13px;
     font-weight: 900;
-  }
-
-  .public-games-stat span {
-    color: #607086;
-    font-size: 12px;
-    font-weight: 900;
-    text-transform: uppercase;
+    line-height: 1.32;
   }
 
   .public-games-table {
@@ -462,11 +775,6 @@ const gamesPageStyles = `
   .public-games-table b {
     color: #10151b;
     font-weight: 900;
-  }
-
-  .public-games-link-list {
-    display: grid;
-    gap: 8px;
   }
 
   .public-games-link-list a {
@@ -502,24 +810,31 @@ const gamesPageStyles = `
     white-space: pre-wrap;
   }
 
-  @media (max-width: 920px) {
+  @media (max-width: 980px) {
     .public-games-shell {
       padding: 0 14px 26px;
     }
 
-    .public-games-topbar {
+    .public-top-stack {
       margin: 0 -14px;
       padding: 0 14px;
     }
 
-    .public-games-topbar-inner,
-    .public-games-hero,
+    .public-site-topbar,
+    .public-season-nav-inner,
+    .public-games-page-head,
     .public-games-layout {
       grid-template-columns: 1fr;
     }
 
-    .public-games-nav {
+    .public-site-menu,
+    .public-site-actions {
       justify-content: flex-start;
+    }
+
+    .public-matchday-date-row {
+      justify-self: start;
+      text-align: left;
     }
 
     .public-games-card {
@@ -538,6 +853,24 @@ const gamesPageStyles = `
       grid-column: auto;
     }
   }
+
+  @media (max-width: 640px) {
+    .public-site-search {
+      min-width: 0;
+    }
+
+    .public-games-page-head h1 {
+      font-size: 34px;
+    }
+
+    .public-matchday-strip-shell {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .public-matchday-strip-button {
+      display: none;
+    }
+  }
 `;
 
 function formatKickoff(value: string) {
@@ -554,6 +887,18 @@ function formatKickoffTime(value: string) {
     minute: "2-digit",
     timeZone: "Europe/Lisbon"
   }).format(new Date(value));
+}
+
+function formatMiniCardKickoff(value: string) {
+  const date = new Date(value);
+  const dayMonth = new Intl.DateTimeFormat("pt-PT", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "Europe/Lisbon"
+  }).format(date);
+  const time = formatKickoffTime(value);
+
+  return `${dayMonth} · ${time}`;
 }
 
 function formatMatchdayDateContext(matches: PublicSeasonMatch[]) {
@@ -613,7 +958,7 @@ function statusLabel(status: string) {
   if (normalized === "halftime") return "AO VIVO";
   if (normalized === "postponed") return "Adiado";
   if (normalized === "cancelled") return "Cancelado";
-  return status;
+  return status || "Estado por definir";
 }
 
 function matchResult(match: PublicSeasonMatch) {
@@ -639,6 +984,17 @@ function teamInitials(name?: string | null, shortName?: string | null) {
   return initials || "FC";
 }
 
+function shortTeamLabel(name?: string | null, shortName?: string | null) {
+  const editorialName = name?.trim();
+  const fallback = shortName?.trim() || editorialName || "Equipa";
+
+  if (!editorialName) {
+    return fallback;
+  }
+
+  return editorialName.length <= 20 ? editorialName : fallback;
+}
+
 function isWinner(match: PublicSeasonMatch, side: "home" | "away") {
   if (match.status !== "finished" || match.home_score === null || match.away_score === null || match.home_score === match.away_score) {
     return false;
@@ -661,6 +1017,48 @@ function BroadcastBadge({ match }: { match: PublicSeasonMatch }) {
       {match.broadcastChannel.logo_url ? <img alt="" src={match.broadcastChannel.logo_url} /> : null}
       <span>{match.broadcastChannel.name}</span>
     </span>
+  );
+}
+
+function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: boolean }) {
+  const kind = statusKind(match.status);
+  const broadcastChannelName = match.broadcastChannel?.name?.trim();
+  const hasScore = match.home_score !== null && match.away_score !== null;
+  const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
+  const liveStatus = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
+
+  return (
+    <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>
+      <span className="public-matchday-mini-team">
+        <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
+        <span>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</span>
+        {showScore ? <b className="public-matchday-mini-score">{match.home_score}</b> : null}
+      </span>
+      <span className="public-matchday-mini-team">
+        <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
+        <span>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</span>
+        {showScore ? <b className="public-matchday-mini-score">{match.away_score}</b> : null}
+      </span>
+      <span className="public-matchday-mini-status">
+        {kind === "finished" ? (
+          <span>Finalizado</span>
+        ) : kind === "live" || kind === "halftime" ? (
+          <span>{liveStatus}</span>
+        ) : kind === "scheduled" ? (
+          <>
+            <time className="public-matchday-mini-time" dateTime={match.kickoff_at}>{formatMiniCardKickoff(match.kickoff_at)}</time>
+            {broadcastChannelName ? (
+              <>
+                <span className="public-matchday-mini-separator" aria-hidden="true">·</span>
+                <span className="public-matchday-mini-channel">{broadcastChannelName}</span>
+              </>
+            ) : null}
+          </>
+        ) : (
+          <span>{statusLabel(match.status)}</span>
+        )}
+      </span>
+    </article>
   );
 }
 
@@ -731,9 +1129,31 @@ export default async function PublicMatchdayGamesPage({ params }: PublicMatchday
   }
 
   const seasonSegment = seasonLabelToUrlSegment(context.season.label);
-  const matchdayHref = (number: number) => `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/${number}`;
-  const currentMatchdayHref = matchdayHref(context.matchday.number);
+  const matchdayPageHref = (number: number) => `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/${number}`;
+  const gamesPageHref = (number: number) => `${matchdayPageHref(number)}/jogos`;
+  const currentMatchdayHref = matchdayPageHref(context.matchday.number);
+  const currentGamesHref = gamesPageHref(context.matchday.number);
   const classificationHref = `${currentMatchdayHref}#classificacao`;
+  const seasonOptions = context.seasons.map((season) => ({
+    id: season.id,
+    label: season.label,
+    href: `/competicoes/${context.competition.slug}/${seasonLabelToUrlSegment(season.label)}/jornadas/1/jogos`
+  }));
+  const currentSeasonHref = `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/1/jogos`;
+  const currentCompetitionMenuItem = {
+    label: context.competition.name,
+    slug: context.competition.slug,
+    href: currentMatchdayHref
+  };
+  const publicCompetitionMenuBase = await getPublicCompetitionMenu().catch(() => []);
+  const publicCompetitionMenu = publicCompetitionMenuBase.map((item) =>
+    item.slug === currentCompetitionMenuItem.slug ? currentCompetitionMenuItem : item
+  );
+
+  if (!publicCompetitionMenu.some((item) => item.slug === currentCompetitionMenuItem.slug)) {
+    publicCompetitionMenu.unshift(currentCompetitionMenuItem);
+  }
+
   const selectedMatchdayIndex = context.matchdays.findIndex((matchday) => matchday.id === context.matchday.id);
   const previousMatchday = selectedMatchdayIndex > 0 ? context.matchdays[selectedMatchdayIndex - 1] : null;
   const nextMatchday =
@@ -763,31 +1183,129 @@ export default async function PublicMatchdayGamesPage({ params }: PublicMatchday
     selectedMatchday: context.matchday
   }).slice(0, 5);
   const selectedMatchdayDateContext = formatMatchdayDateContext(context.matchesForMatchday);
+  const focusedStripMatch = liveMatches[0] ?? null;
 
   return (
     <main className="public-games-shell">
       <style>{gamesPageStyles}</style>
-      <div className="public-games-topbar">
-        <div className="public-games-topbar-inner">
-          <a className="public-games-brand" href="/">
+      <div className="public-top-stack">
+        <header className="public-site-topbar" aria-label="Topo do Jornada.pt">
+          <a className="public-site-brand" href="/">
             Jornada<span>.pt</span>
           </a>
-          <nav className="public-games-nav" aria-label="Navegação da página de jogos">
-            <a href={currentMatchdayHref}>Jornada</a>
-            <a aria-current="page" href={`${currentMatchdayHref}/jogos`}>Jogos</a>
+          <nav className="public-site-menu" aria-label="Competições principais">
+            {publicCompetitionMenu.map((item) => (
+              <a
+                aria-current={item.slug === context.competition.slug ? "page" : undefined}
+                href={item.href}
+                key={item.slug}
+              >
+                {item.label}
+              </a>
+            ))}
+            <a aria-current="page" href={currentGamesHref}>Jogos</a>
             <a href={classificationHref}>Classificação</a>
           </nav>
-        </div>
+          <div className="public-site-actions" aria-label="Ações">
+            <span className="public-site-search" aria-label="Pesquisar">Pesquisar</span>
+            <a href="/admin/gestor">Entrar</a>
+          </div>
+        </header>
+        <section className="public-season-nav-bar" aria-label="Navegação de jornadas">
+          <div className="public-hidden-heading">
+            <h2>Jornadas</h2>
+            <p>Navegação principal da época {context.season.label}.</p>
+          </div>
+          <div className="public-season-nav-inner">
+            <label className="public-season-select-wrap">
+              <span>Época</span>
+              <select className="public-season-select" data-season-select defaultValue={currentSeasonHref}>
+                {seasonOptions.map((season) => (
+                  <option key={season.id} value={season.href}>
+                    {season.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <nav className="public-matchday-nav" aria-label="Jornadas">
+              {context.matchdays.map((matchday) => (
+                <a
+                  aria-current={matchday.id === context.matchday.id ? "page" : undefined}
+                  href={gamesPageHref(matchday.number)}
+                  key={matchday.id}
+                >
+                  J{String(matchday.number).padStart(2, "0")}
+                </a>
+              ))}
+            </nav>
+            <div className="public-matchday-date-row" aria-label="Data da jornada selecionada">
+              <span className="public-matchday-date-context">{selectedMatchdayDateContext}</span>
+            </div>
+          </div>
+        </section>
       </div>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            document.addEventListener("DOMContentLoaded", function () {
+              var select = document.querySelector("[data-season-select]");
+              if (!select) return;
+              select.addEventListener("change", function () {
+                if (select.value) window.location.href = select.value;
+              });
+            });
+          `
+        }}
+      />
+
+      <section className="public-matchday-panel public-matchday-scoreboard-panel" aria-label="Visão rápida dos jogos">
+        <div className="public-matchday-strip-shell">
+          <button className="public-matchday-strip-button" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
+            ‹
+          </button>
+          <div className="public-matchday-strip" data-matchday-strip>
+            {context.matchesForMatchday.length > 0 ? (
+              context.matchesForMatchday.map((match) => (
+                <CompactMatchCard focus={focusedStripMatch?.id === match.id} key={match.id} match={match} />
+              ))
+            ) : (
+              <p>Ainda não há jogos nesta jornada.</p>
+            )}
+          </div>
+          <button className="public-matchday-strip-button" data-strip-scroll="right" type="button" aria-label="Ver jogos seguintes">
+            ›
+          </button>
+        </div>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              document.addEventListener("DOMContentLoaded", function () {
+                var strip = document.querySelector("[data-matchday-strip]");
+                if (!strip) return;
+                var focused = strip.querySelector("[data-live-focus='true']");
+                if (focused && "scrollIntoView" in focused) {
+                  focused.scrollIntoView({ block: "nearest", inline: "center" });
+                }
+                document.querySelectorAll("[data-strip-scroll]").forEach(function (button) {
+                  button.addEventListener("click", function () {
+                    var direction = button.getAttribute("data-strip-scroll") === "left" ? -1 : 1;
+                    strip.scrollBy({ left: direction * Math.max(260, Math.round(strip.clientWidth * 0.85)), behavior: "smooth" });
+                  });
+                });
+              });
+            `
+          }}
+        />
+      </section>
 
       <div className="public-games-wrap">
-        <section className="public-games-hero" aria-label="Cabeçalho dos jogos da jornada">
+        <section className="public-games-page-head" aria-label="Cabeçalho dos jogos da jornada">
           <div>
             <span className="public-games-kicker">
               {context.competition.name} · {context.season.label} · J{String(context.matchday.number).padStart(2, "0")}
             </span>
-            <h1>Jogos da Jornada</h1>
-            <p>Calendário, resultados e estado dos jogos da J{String(context.matchday.number).padStart(2, "0")}.</p>
+            <h1>Jogos</h1>
+            <p>Calendário, resultados e estado dos jogos desta jornada.</p>
           </div>
           <a className="public-games-backlink" href={currentMatchdayHref}>Voltar à jornada</a>
         </section>
@@ -795,7 +1313,7 @@ export default async function PublicMatchdayGamesPage({ params }: PublicMatchday
         <div className="public-games-layout">
           <section className="public-games-main public-games-panel" aria-label="Lista detalhada dos jogos">
             <header>
-              <h2>Jogos</h2>
+              <h2>Jogos da jornada</h2>
               <p>{selectedMatchdayDateContext}</p>
             </header>
             {context.matchesForMatchday.length > 0 ? (
@@ -815,25 +1333,14 @@ export default async function PublicMatchdayGamesPage({ params }: PublicMatchday
           </section>
 
           <aside className="public-games-sidebar" aria-label="Informação lateral da jornada">
-            <section className="public-games-panel public-games-side-block" aria-label="Resumo da jornada">
-              <h2>Resumo</h2>
-              <div className="public-games-stats">
-                <div className="public-games-stat">
-                  <strong>{context.matchesForMatchday.length}</strong>
-                  <span>Jogos</span>
-                </div>
-                <div className="public-games-stat">
-                  <strong>{finishedMatches.length}</strong>
-                  <span>Finalizados</span>
-                </div>
-                <div className="public-games-stat">
-                  <strong>{liveMatches.length}</strong>
-                  <span>Em direto</span>
-                </div>
-                <div className="public-games-stat">
-                  <strong>{scheduledMatches.length}</strong>
-                  <span>Agendados</span>
-                </div>
+            <section className="public-games-panel public-games-side-block" aria-label="Nesta jornada">
+              <h2>Nesta jornada</h2>
+              <p>{selectedMatchdayDateContext}</p>
+              <div className="public-games-note-list" aria-label="Estado dos jogos">
+                <span>{context.matchesForMatchday.length} jogos no calendário</span>
+                <span>{finishedMatches.length} finalizados</span>
+                <span>{liveMatches.length} em direto ou intervalo</span>
+                <span>{scheduledMatches.length} agendados</span>
               </div>
             </section>
 
@@ -873,13 +1380,13 @@ export default async function PublicMatchdayGamesPage({ params }: PublicMatchday
                   <span>›</span>
                 </a>
                 {previousMatchday ? (
-                  <a href={`${matchdayHref(previousMatchday.number)}/jogos`}>
+                  <a href={gamesPageHref(previousMatchday.number)}>
                     <span>Jornada anterior</span>
                     <span>J{String(previousMatchday.number).padStart(2, "0")}</span>
                   </a>
                 ) : null}
                 {nextMatchday ? (
-                  <a href={`${matchdayHref(nextMatchday.number)}/jogos`}>
+                  <a href={gamesPageHref(nextMatchday.number)}>
                     <span>Jornada seguinte</span>
                     <span>J{String(nextMatchday.number).padStart(2, "0")}</span>
                   </a>
