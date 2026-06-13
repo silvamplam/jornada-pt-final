@@ -377,24 +377,26 @@ const gamesPageStyles = `
   }
 
   .public-games-team {
-    display: flex;
+    display: grid;
     align-items: center;
     gap: 8px;
     min-width: 0;
+    width: 100%;
   }
 
   .public-games-team:first-child {
+    grid-template-columns: 34px minmax(0, 1fr);
     justify-content: flex-start;
     text-align: left;
   }
 
   .public-games-team:last-of-type {
+    grid-template-columns: minmax(0, 1fr) 34px;
     justify-content: flex-end;
     text-align: right;
   }
 
   .public-games-team-copy {
-    flex: 0 1 auto;
     min-width: 0;
   }
 
@@ -454,6 +456,7 @@ const gamesPageStyles = `
 
   .public-games-score {
     min-width: 74px;
+    justify-self: center;
     text-align: center;
   }
 
@@ -569,20 +572,56 @@ const gamesPageStyles = `
 
   .public-games-news-list {
     display: grid;
-    gap: 8px;
+    gap: 12px;
   }
 
   .public-games-news-item {
     display: grid;
-    gap: 5px;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
     padding: 0;
     border-bottom: 0;
     color: inherit;
     text-decoration: none;
   }
 
+  .public-games-news-item-no-image {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .public-games-news-item + .public-games-news-item {
     padding-top: 8px;
+  }
+
+  .public-games-news-thumb {
+    display: block;
+    width: 72px;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #eef2f6;
+  }
+
+  .public-games-news-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .public-games-news-copy {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .public-games-news-label {
+    color: #c40012;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
   }
 
   .public-games-news-item strong {
@@ -590,6 +629,13 @@ const gamesPageStyles = `
     font-family: Georgia, "Times New Roman", serif;
     font-size: 16px;
     line-height: 1.15;
+  }
+
+  .public-games-news-date {
+    color: #7a8796;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
   }
 
   .public-games-diagnostic {
@@ -903,6 +949,9 @@ export default async function PublicMatchdayGamesPage({ params }: PublicMatchday
   const selectedMatchdayDateContext = formatMatchdayDateContext(context.matchesForMatchday);
   const sidebarNewsItems = context.latestNews.slice(0, 4).map((item) => ({
     id: item.id,
+    dateLabel: item.time_label?.trim() || "",
+    imageUrl: item.image_url?.trim() || "",
+    label: "label" in item ? ((item as { label?: string | null }).label?.trim() || "") : "",
     title: item.title || "Notícia da jornada",
     linkUrl: item.link_url?.trim() || ""
   }));
@@ -1018,17 +1067,33 @@ export default async function PublicMatchdayGamesPage({ params }: PublicMatchday
               <section className="public-games-panel public-games-side-block" aria-label="Mais notícias">
                 <h2>Mais notícias</h2>
                 <div className="public-games-news-list">
-                  {sidebarNewsItems.map((item) =>
-                    item.linkUrl ? (
-                      <a className="public-games-news-item" href={item.linkUrl} key={item.id}>
-                        <strong>{item.title}</strong>
+                  {sidebarNewsItems.map((item) => {
+                    const itemClassName = `public-games-news-item ${item.imageUrl ? "" : "public-games-news-item-no-image"}`.trim();
+                    const itemContent = (
+                      <>
+                        {item.imageUrl ? (
+                          <span className="public-games-news-thumb">
+                            <img alt="" src={item.imageUrl} />
+                          </span>
+                        ) : null}
+                        <span className="public-games-news-copy">
+                          {item.label ? <span className="public-games-news-label">{item.label}</span> : null}
+                          <strong>{item.title}</strong>
+                          {item.dateLabel ? <span className="public-games-news-date">{item.dateLabel}</span> : null}
+                        </span>
+                      </>
+                    );
+
+                    return item.linkUrl ? (
+                      <a className={itemClassName} href={item.linkUrl} key={item.id}>
+                        {itemContent}
                       </a>
                     ) : (
-                      <div className="public-games-news-item" key={item.id}>
-                        <strong>{item.title}</strong>
+                      <div className={itemClassName} key={item.id}>
+                        {itemContent}
                       </div>
-                    )
-                  )}
+                    );
+                  })}
                 </div>
               </section>
             ) : null}
