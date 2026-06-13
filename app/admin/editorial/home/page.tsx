@@ -508,7 +508,8 @@ export default async function AdminEditorialHomePage() {
 
           <section className="editorial-home-panel">
             <div className="editorial-home-note">
-              A Home pública não usa uma tabela site_editorials nem um editor autónomo encontrado no código vivo. Esta área mostra os conteúdos reais actualmente publicados pela Home e mantém a gestão operacional no Centro de Gestão.
+              A Home pública não usa uma tabela site_editorials nem um editor autónomo encontrado no código vivo. Esta área mostra os conteúdos reais actualmente publicados pela Home através de getHomeContext.
+              A barra de jogos da Home é calculada a partir do modelo contextual antigo, em data/jornada-data.json; a zona operacional viva de jogos fica no <a href="/admin/gestor?section=jogos#jogos">Centro de Gestão</a>, mas não existe ainda um seletor específico para escolher manualmente os jogos da barra da Home.
             </div>
           </section>
         </aside>

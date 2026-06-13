@@ -322,6 +322,11 @@ export default async function AdminEditorialArticlesPage() {
         </header>
 
         {error ? <div className="editorial-articles-warning">{error}</div> : null}
+        {!error ? (
+          <div className="editorial-articles-warning">
+            Não foi encontrada no código vivo uma ação, rota ou API de criação/edição de artigos. Por isso, o botão “Novo” fica visível mas desativado, e esta página preserva apenas a leitura real da tabela articles e dos respetivos links.
+          </div>
+        ) : null}
 
         {!error && articles.length === 0 ? (
           <div className="editorial-articles-empty">Não há artigos/notícias registados para apresentar.</div>
