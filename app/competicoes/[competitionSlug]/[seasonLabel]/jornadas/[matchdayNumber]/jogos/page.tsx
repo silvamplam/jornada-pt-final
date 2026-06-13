@@ -275,7 +275,7 @@ const gamesPageStyles = `
     grid-template-columns: minmax(0, 760px) minmax(280px, 320px);
     gap: 22px;
     align-items: start;
-    justify-content: center;
+    justify-content: start;
     margin-top: 18px;
   }
 
