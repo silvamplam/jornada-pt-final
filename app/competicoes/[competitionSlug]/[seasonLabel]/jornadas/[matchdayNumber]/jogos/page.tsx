@@ -379,7 +379,7 @@ const gamesPageStyles = `
   .public-games-team {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     min-width: 0;
   }
 
@@ -394,6 +394,7 @@ const gamesPageStyles = `
   }
 
   .public-games-team-copy {
+    flex: 0 1 auto;
     min-width: 0;
   }
 
@@ -411,6 +412,9 @@ const gamesPageStyles = `
     color: #10151b;
     font-size: 18px;
     font-weight: 900;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .public-games-team small,
@@ -571,8 +575,8 @@ const gamesPageStyles = `
   .public-games-news-item {
     display: grid;
     gap: 5px;
-    padding: 0 0 12px;
-    border-bottom: 1px solid #e6ebf1;
+    padding: 0;
+    border-bottom: 0;
     color: inherit;
     text-decoration: none;
   }
@@ -817,7 +821,6 @@ function MatchCard({ match }: { match: PublicSeasonMatch }) {
       </div>
       <div className="public-games-meta">
         <span>{statusKind(match.status) === "scheduled" ? formatKickoffTime(match.kickoff_at) : formatKickoff(match.kickoff_at)}</span>
-        {match.venue ? <span>{match.venue}</span> : null}
         <BroadcastBadge match={match} />
       </div>
     </article>
