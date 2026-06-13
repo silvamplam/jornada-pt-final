@@ -469,6 +469,10 @@ type MatchdayEditorialForAdmin = SupabaseMatchdayEditorial & {
   headline_link_url?: string | null;
 };
 
+type MatchdayHighlightForAdmin = SupabaseMatchdayHighlight & {
+  link_url?: string | null;
+};
+
 async function readMatchdayEditorial(matchdayId: string): Promise<MatchdayEditorialForAdmin | null> {
   try {
     return await readFirst<MatchdayEditorialForAdmin>(
@@ -485,9 +489,9 @@ async function readMatchdayEditorial(matchdayId: string): Promise<MatchdayEditor
   }
 }
 
-async function readMatchdayHighlights(matchdayId: string): Promise<SupabaseMatchdayHighlight[]> {
-  return fetchSupabaseAdminTable<SupabaseMatchdayHighlight>(
-    `matchday_highlights?select=id,matchday_id,label,title,image_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+async function readMatchdayHighlights(matchdayId: string): Promise<MatchdayHighlightForAdmin[]> {
+  return fetchSupabaseAdminTable<MatchdayHighlightForAdmin>(
+    `matchday_highlights?select=id,matchday_id,label,title,image_url,link_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
       matchdayId
     )}&order=sort_order.asc&limit=3`
   ).catch(() => []);
@@ -653,7 +657,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
         {[1, 2, 3].map((order) => {
           const highlight = highlights.find((item) => item.sort_order === order);
           return (
-            <fieldset className={`editorial-admin-fieldset editorial-admin-compact-card editorial-admin-highlight-${order}`} key={order}>
+            <fieldset className={`editorial-admin-fieldset editorial-admin-compact-card editorial-admin-highlight-${order}`} data-highlight-card={order} key={order}>
               <legend>Destaque {order}</legend>
               <input form={highlightsFormId} type="hidden" name={`highlight_${order}_id`} value={highlight?.id ?? ""} />
               <input form={highlightsFormId} type="hidden" name={`highlight_${order}_sort_order`} value={order} />
@@ -675,6 +679,34 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 <label htmlFor={`highlight-${order}-image-url`}>Imagem URL</label>
                 <input form={highlightsFormId} id={`highlight-${order}-image-url`} name={`highlight_${order}_image_url`} defaultValue={highlight?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
               </div>
+              <div className="editorial-admin-field">
+                <label htmlFor={`highlight-${order}-link-url`}>Link do destaque</label>
+                <input form={highlightsFormId} id={`highlight-${order}-link-url`} name={`highlight_${order}_link_url`} defaultValue={highlight?.link_url ?? ""} placeholder="/noticias/slug-do-artigo" />
+              </div>
+              <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
+                <legend>Ligar artigo publicado ao destaque</legend>
+                <div className="editorial-admin-field">
+                  <label htmlFor={`highlight-${order}-article-source`}>Preencher destaque com artigo publicado</label>
+                  <select id={`highlight-${order}-article-source`} data-highlight-article-select defaultValue="">
+                    <option value="">Escolher artigo publicado</option>
+                    {sideBlockArticleOptions.map((article) => (
+                      <option
+                        key={article.id}
+                        value={article.id}
+                        data-highlight-label={cleanText(article.label)}
+                        data-highlight-title={cleanText(article.title)}
+                        data-highlight-image-url={cleanText(article.image_url)}
+                        data-highlight-link-url={articlePublicHref(article)}
+                      >
+                        {cleanText(article.title) || cleanText(article.slug) || article.id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="editorial-admin-muted">
+                  Ao escolher um artigo, o destaque recebe etiqueta, titulo, imagem e link interno. Pode ajustar manualmente antes de guardar.
+                </p>
+              </fieldset>
               {highlight?.image_url ? (
                 <div className="editorial-admin-preview">
                   <img alt="" src={highlight.image_url} />
@@ -707,6 +739,34 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           Guardar destaques
         </button>
       </div>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function () {
+              var cards = Array.prototype.slice.call(document.querySelectorAll('[data-highlight-card]'));
+              cards.forEach(function (card) {
+                var order = card.getAttribute('data-highlight-card');
+                var select = card.querySelector('[data-highlight-article-select]');
+                if (!order || !select) return;
+                function setHighlightField(name, value) {
+                  if (!value) return;
+                  var field = document.querySelector('[name="highlight_' + order + '_' + name + '"]');
+                  if (field) field.value = value;
+                }
+                function applyHighlightArticle() {
+                  var option = select.options[select.selectedIndex];
+                  if (!option || !option.value) return;
+                  setHighlightField('label', option.dataset.highlightLabel);
+                  setHighlightField('title', option.dataset.highlightTitle);
+                  setHighlightField('image_url', option.dataset.highlightImageUrl);
+                  setHighlightField('link_url', option.dataset.highlightLinkUrl);
+                }
+                select.addEventListener('change', applyHighlightArticle);
+              });
+            })();
+          `
+        }}
+      />
     </>
   );
 
