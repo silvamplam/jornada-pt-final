@@ -39,13 +39,14 @@ type PageProps = {
 const articlePageStyles = `
   body {
     margin: 0;
-    background: #ffffff;
+    background: #f3f5f8;
   }
 
   .news-article-shell {
     min-height: 100vh;
     color: #111820;
-    font-family: Arial, Helvetica, sans-serif;
+    padding: 0 24px 36px;
+    font-family: Inter, Arial, Helvetica, sans-serif;
   }
 
   .news-article-topbar {
@@ -78,11 +79,135 @@ const articlePageStyles = `
     text-transform: uppercase;
   }
 
+  .public-top-stack {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    margin: 0 -24px;
+    padding: 0 24px;
+    background: rgba(255, 255, 255, 0.98);
+    border-bottom: 1px solid #d9dee6;
+    box-shadow: 0 10px 28px rgba(16, 24, 32, 0.08);
+    backdrop-filter: blur(10px);
+  }
+
+  .public-site-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    max-width: 1180px;
+    min-height: 70px;
+    margin: 0 auto;
+  }
+
+  .public-site-brand {
+    padding: 9px 12px;
+    border-radius: 4px;
+    background: #111820;
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-decoration: none;
+  }
+
+  .public-site-brand span {
+    color: #e5252a;
+  }
+
+  .public-site-menu {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: auto;
+  }
+
+  .public-site-menu a,
+  .public-site-actions a,
+  .public-site-search {
+    display: inline-flex;
+    min-height: 34px;
+    align-items: center;
+    padding: 0 11px;
+    border-radius: 4px;
+    color: #24313f;
+    font-size: 13px;
+    font-weight: 850;
+    letter-spacing: 0;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .public-site-menu a:hover,
+  .public-site-actions a:hover {
+    background: #eef2f6;
+    color: #e5252a;
+  }
+
+  .public-site-menu a[aria-current="page"] {
+    color: #e5252a;
+  }
+
+  .public-site-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .public-site-search {
+    background: #eef2f6;
+    color: #687583;
+  }
+
+  .news-section-nav-bar {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 0 12px;
+  }
+
+  .news-section-nav-inner {
+    display: flex;
+    min-height: 38px;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+  }
+
+  .news-section-label,
+  .news-section-pill,
+  .news-section-date {
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 850;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .news-section-label {
+    background: #e5252a;
+    color: #ffffff;
+  }
+
+  .news-section-pill {
+    border: 1px solid #dce2e9;
+    background: #ffffff;
+    color: #182330;
+  }
+
+  .news-section-date {
+    margin-left: auto;
+    background: transparent;
+    color: #657180;
+  }
+
   .news-article-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: 34px;
-    width: min(1240px, calc(100% - 36px));
+    grid-template-columns: minmax(0, 800px) 320px;
+    gap: 42px;
+    width: min(1180px, 100%);
     margin: 0 auto;
     padding: 34px 0 56px;
   }
@@ -115,26 +240,29 @@ const articlePageStyles = `
 
   .news-article-title {
     margin: 0;
-    max-width: 900px;
+    max-width: 760px;
     color: #05080c;
-    font-size: clamp(38px, 5vw, 64px);
-    line-height: 0.96;
+    font-size: clamp(36px, 4.5vw, 56px);
+    line-height: 1.02;
     letter-spacing: 0;
   }
 
   .news-article-subtitle {
     margin: 14px 0 0;
-    max-width: 820px;
+    max-width: 720px;
     color: #56616f;
-    font-size: 22px;
+    font-size: 21px;
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.42;
   }
 
   .news-article-meta {
     display: grid;
     gap: 8px;
     margin: 18px 0 26px;
+    padding: 13px 0;
+    border-top: 1px solid #e1e6ec;
+    border-bottom: 1px solid #e1e6ec;
     color: #5e6976;
     font-size: 14px;
   }
@@ -147,6 +275,7 @@ const articlePageStyles = `
 
   .news-article-image {
     margin: 0 0 28px;
+    background: #eef2f6;
   }
 
   .news-article-image img {
@@ -178,6 +307,24 @@ const articlePageStyles = `
     display: grid;
     align-content: start;
     gap: 20px;
+    position: sticky;
+    top: 128px;
+  }
+
+  .news-article-ad {
+    display: grid;
+    min-height: 300px;
+    place-items: center;
+    border: 1px solid #dfe5eb;
+    border-radius: 8px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.66)),
+      linear-gradient(135deg, #eef4f6, #e5ecf2 55%, #f5f0e8);
+    color: #7a8794;
+    font-size: 12px;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .news-article-side-panel {
@@ -225,6 +372,13 @@ const articlePageStyles = `
     background: #eef2f6;
   }
 
+  .news-article-side-thumb-placeholder {
+    display: block;
+    width: 92px;
+    aspect-ratio: 4 / 3;
+    background: linear-gradient(135deg, #eef2f6, #dbe3eb);
+  }
+
   .news-article-side-item span {
     display: block;
     margin-bottom: 4px;
@@ -253,9 +407,36 @@ const articlePageStyles = `
   }
 
   @media (max-width: 900px) {
+    .public-top-stack {
+      margin: 0 -18px;
+      padding: 0 18px;
+    }
+
+    .public-site-topbar {
+      min-height: auto;
+      padding: 12px 0;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .public-site-menu {
+      order: 3;
+      width: 100%;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .public-site-actions {
+      margin-left: auto;
+    }
+
     .news-article-layout {
       grid-template-columns: 1fr;
       padding-top: 22px;
+    }
+
+    .news-article-sidebar {
+      position: static;
     }
 
     .news-article-title {
@@ -268,6 +449,10 @@ const articlePageStyles = `
 
     .news-article-body {
       font-size: 18px;
+    }
+
+    .news-section-date {
+      margin-left: 0;
     }
   }
 `;
@@ -331,20 +516,37 @@ export default async function NewsArticlePage({ params }: PageProps) {
   const paragraphs = articleParagraphs(article.body);
 
   return (
-    <main className="news-article-shell">
+    <div className="news-article-shell">
       <style>{articlePageStyles}</style>
-      <header className="news-article-topbar">
-        <div className="news-article-topbar-inner">
-          <a className="news-article-brand" href="/">
-            Jornada.pt
+      <div className="public-top-stack">
+        <header className="public-site-topbar" aria-label="Topo do Jornada.pt">
+          <a className="public-site-brand" href="/">
+            Jornada<span>.pt</span>
           </a>
-          <a className="news-article-back" href="/">
-            Voltar a Jornada.pt
-          </a>
-        </div>
-      </header>
+          <nav className="public-site-menu" aria-label="Navegação principal">
+            <a href="/">Início</a>
+            <a href={`/noticias/${encodeURIComponent(slug)}`} aria-current="page">
+              Notícias
+            </a>
+          </nav>
+          <div className="public-site-actions" aria-label="Ações">
+            <span className="public-site-search" aria-label="Pesquisar">
+              Pesquisar
+            </span>
+            <a href="/admin/gestor">Entrar</a>
+          </div>
+        </header>
+        <section className="news-section-nav-bar" aria-label="Contexto editorial">
+          <div className="news-section-nav-inner">
+            <span className="news-section-label">Editorial</span>
+            <span className="news-section-pill">Notícias</span>
+            {label ? <span className="news-section-pill">{label}</span> : null}
+            {publishedAt ? <span className="news-section-date">{publishedAt}</span> : null}
+          </div>
+        </section>
+      </div>
 
-      <div className="news-article-layout">
+      <main className="news-article-layout">
         <article className="news-article-main">
           {label ? (
             <div className="news-article-kickers">
@@ -373,6 +575,9 @@ export default async function NewsArticlePage({ params }: PageProps) {
         </article>
 
         <aside className="news-article-sidebar">
+          <div className="news-article-ad" aria-label="Publicidade">
+            Publicidade
+          </div>
           {moreArticles.length > 0 ? (
             <section className="news-article-side-panel" aria-label="Mais notícias">
               <h2>Mais notícias</h2>
@@ -383,7 +588,11 @@ export default async function NewsArticlePage({ params }: PageProps) {
 
                   return (
                     <li className="news-article-side-item" key={item.id}>
-                      {item.image_url ? <img alt="" src={item.image_url} /> : <span aria-hidden="true" />}
+                      {item.image_url ? (
+                        <img alt="" src={item.image_url} />
+                      ) : (
+                        <span className="news-article-side-thumb-placeholder" aria-hidden="true" />
+                      )}
                       <div>
                         {itemLabel ? <span>{itemLabel}</span> : null}
                         <a href={publicArticleHref(item)}>{item.title}</a>
@@ -396,7 +605,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
             </section>
           ) : null}
         </aside>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
