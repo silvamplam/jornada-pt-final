@@ -557,25 +557,25 @@ const publicMatchdayStyles = `
     line-height: 1.48;
   }
 
-  .public-side-editorial-title-link {
+  .public-side-editorial-card-link {
+    display: grid;
+    gap: 12px;
+    align-content: start;
+    min-width: 0;
     color: inherit;
     text-decoration: none;
+    border-radius: 6px;
   }
 
-  .public-side-editorial-title-link:hover {
+  .public-side-editorial-card-link:hover .public-side-editorial-copy strong {
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 3px;
   }
 
-  .public-side-editorial-block .public-editorial-more-link {
-    justify-content: flex-start;
-    gap: 6px;
-    width: fit-content;
-    margin-top: 2px;
-    color: #263241;
-    font-size: 10.5px;
-    letter-spacing: 0.03em;
+  .public-side-editorial-card-link:focus-visible {
+    outline: 2px solid #003f8f;
+    outline-offset: 4px;
   }
 
   .public-side-editorial-placeholder {
@@ -2871,6 +2871,21 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
           <aside className="public-matchday-feature public-side-editorial-block" aria-label="Bloco editorial lateral da jornada">
             <div className="public-side-editorial-inner">
               {hasPublishedSideBlock ? (
+                sideBlockLinkUrl ? (
+                  <a className="public-side-editorial-card-link" href={sideBlockLinkUrl} aria-label={sideBlockTitle ? `Abrir ${sideBlockTitle}` : "Abrir artigo"}>
+                    {sideBlockImageUrl ? (
+                      <div className="public-side-editorial-image">
+                        <img alt="" src={sideBlockImageUrl} />
+                      </div>
+                    ) : null}
+                    <div className="public-side-editorial-copy">
+                      {sideBlockLabel ? <span className="public-side-editorial-label">{sideBlockLabel}</span> : null}
+                      {sideBlockTitle ? <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong> : null}
+                      {sideBlockAuthor ? <small>Por {sideBlockAuthor}</small> : null}
+                      {sideBlockText ? <p>{sideBlockText}</p> : null}
+                    </div>
+                  </a>
+                ) : (
                 <>
                   {sideBlockImageUrl ? (
                     <div className="public-side-editorial-image">
@@ -2879,24 +2894,12 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                   ) : null}
                   <div className="public-side-editorial-copy">
                     {sideBlockLabel ? <span className="public-side-editorial-label">{sideBlockLabel}</span> : null}
-                    {sideBlockTitle ? (
-                      sideBlockLinkUrl ? (
-                        <a className="public-side-editorial-title-link" href={sideBlockLinkUrl}>
-                          <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
-                        </a>
-                      ) : (
-                        <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong>
-                      )
-                    ) : null}
+                    {sideBlockTitle ? <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong> : null}
                     {sideBlockAuthor ? <small>Por {sideBlockAuthor}</small> : null}
                     {sideBlockText ? <p>{sideBlockText}</p> : null}
-                    {sideBlockLinkUrl ? (
-                      <a className="public-editorial-more-link" href={sideBlockLinkUrl}>
-                        Ler mais <span aria-hidden="true">›</span>
-                      </a>
-                    ) : null}
                   </div>
                 </>
+                )
               ) : (
                 <div className="public-side-editorial-placeholder">Espaco editorial por definir</div>
               )}
