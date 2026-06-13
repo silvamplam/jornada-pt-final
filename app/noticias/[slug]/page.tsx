@@ -1,11 +1,9 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 
-import PublicTeamBadge from "@/components/public/PublicTeamBadge";
 import { getPublicCompetitionMenu } from "@/lib/public-competition-menu";
 import {
   getPublicMatchdayDiagnostic,
-  seasonLabelToUrlSegment,
-  type PublicSeasonMatch
+  seasonLabelToUrlSegment
 } from "@/lib/public-matchday";
 import {
   fetchSupabaseAdminTable,
@@ -142,14 +140,14 @@ const articlePageStyles = `
     padding: 6px 11px;
     border: 1px solid #d8dee6;
     border-radius: 999px;
-    background: #eef2f6;
-    color: #687583;
+    background: #ffffff;
+    color: #66717f;
     font-size: 12px;
     font-weight: 900;
   }
 
   .public-site-search::before {
-    content: "⌕";
+    content: "âŒ•";
     display: grid;
     place-items: center;
     width: 20px;
@@ -175,9 +173,10 @@ const articlePageStyles = `
     flex-wrap: wrap;
     gap: 8px 18px;
     align-items: center;
+    min-height: 52px;
     max-width: 1512px;
     margin: 0 auto;
-    padding: 8px 0 9px;
+    padding: 0;
   }
 
   .public-season-select-wrap {
@@ -204,257 +203,45 @@ const articlePageStyles = `
     cursor: pointer;
   }
 
-  .public-matchday-tabs {
+  .public-matchday-nav {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
-    align-items: center;
+    gap: 0;
+    min-width: 0;
+    overflow-x: auto;
+    padding: 0;
+    border-top: 2px solid #10151b;
+    background: #ffffff;
   }
 
-  .public-matchday-tab {
-    display: inline-flex;
-    min-width: 38px;
-    justify-content: center;
-    padding: 7px 9px;
-    border: 1px solid #dce2e9;
-    background: #f8fafc;
+  .public-matchday-nav a {
+    display: inline-block;
+    flex: 0 0 auto;
+    padding: 8px 13px;
+    border: 0;
+    border-right: 1px solid #dfe5ec;
+    border-radius: 0;
+    background: #ffffff;
     color: #263241;
     font-size: 12px;
     font-weight: 900;
     text-decoration: none;
+    text-transform: uppercase;
   }
 
-  .public-matchday-tab[aria-current="page"] {
+  .public-matchday-nav a[aria-current="page"] {
     border-color: #c40012;
     background: #c40012;
     color: #ffffff;
   }
 
-  .public-matchday-panel {
-    max-width: 1512px;
-    margin: 0 auto;
-    background: #ffffff;
-  }
-
-  .public-matchday-scoreboard-panel {
-    margin: 0 auto;
-    border-bottom: 1px solid #e1e6ec;
-  }
-
-  .public-matchday-strip {
-    display: flex;
-    gap: 14px;
-    overflow-x: auto;
-    scroll-behavior: smooth;
-    scroll-padding: 14px;
-    padding: 8px;
-    background: #ffffff;
-  }
-
-  .public-matchday-strip-shell {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 6px;
-    align-items: center;
-    min-height: 104px;
-    padding: 0 10px;
-    background: #ffffff;
-  }
-
-  .public-matchday-strip-button {
-    align-self: center;
-    width: 30px;
-    height: 52px;
-    border: 1px solid #d8dee6;
-    border-radius: 999px;
-    background: #ffffff;
-    color: #263241;
-    font-size: 22px;
-    font-weight: 900;
-    cursor: pointer;
-  }
-
-  .public-matchday-mini-card {
-    position: relative;
-    display: grid;
-    flex: 0 0 226px;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
-    align-items: start;
-    min-height: 88px;
-    padding: 8px 9px 9px;
-    border: 1px solid #eef2f6;
-    border-radius: 6px;
-    background: #ffffff;
-    box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
-    font-size: 13px;
-  }
-
-  .public-matchday-mini-card + .public-matchday-mini-card::before {
-    content: "";
-    position: absolute;
-    top: 10px;
-    bottom: 10px;
-    left: -7px;
-    width: 1px;
-    background: #dfe5ec;
-  }
-
-  .public-matchday-mini-card-live,
-  .public-matchday-mini-card-halftime {
-    border-color: #a9dcbc;
-    background: #f1fbf5;
-  }
-
-  .public-matchday-mini-card-finished {
-    border-color: #d8dee6;
-    background: #f7f9fb;
-  }
-
-  .public-matchday-mini-card-scheduled {
-    border-color: #ecd58b;
-    background: #fff9e8;
-  }
-
-  .public-matchday-mini-card-unknown {
-    border-color: #d8dee6;
-    background: #ffffff;
-  }
-
-  .public-matchday-mini-team {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 6px;
-    align-items: center;
-    overflow: hidden;
-    font-weight: 800;
-    text-transform: none;
-    min-width: 0;
-  }
-
-  .public-matchday-mini-team span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .public-matchday-mini-score {
-    min-width: 18px;
-    color: #10151b;
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: 18px;
-    font-weight: 900;
-    line-height: 1;
-    text-align: right;
-  }
-
-  .public-matchday-mini-card .public-team-badge {
-    display: grid;
-    flex: 0 0 auto;
-    place-items: center;
-    width: 24px;
-    height: 24px;
-    overflow: hidden;
-    border: 1px solid #d8dee6;
-    border-radius: 999px;
-    background: #ffffff;
-    color: #465363;
-    font-size: 8px;
-    font-weight: 900;
-  }
-
-  .public-matchday-mini-card .public-team-badge img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  }
-
-  .public-matchday-mini-card .public-matchday-mini-status {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 4px;
-    min-width: 0;
-    padding: 3px 0 0 30px;
-    border-radius: 0;
-    background: transparent;
-    color: #607086;
-    font-size: 11px;
-    font-weight: 800;
-    line-height: 1.15;
-    text-transform: none;
-  }
-
-  .public-matchday-mini-card-live .public-matchday-mini-status > span,
-  .public-matchday-mini-card-halftime .public-matchday-mini-status > span,
-  .public-matchday-mini-card-finished .public-matchday-mini-status > span,
-  .public-matchday-mini-card-unknown .public-matchday-mini-status > span {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 7px;
-    border-radius: 999px;
-    font-weight: 900;
-  }
-
-  .public-matchday-mini-card-live .public-matchday-mini-status > span,
-  .public-matchday-mini-card-halftime .public-matchday-mini-status > span {
-    background: #dff7e8;
-    color: #137a3a;
-  }
-
-  .public-matchday-mini-card-live .public-matchday-mini-status > span::before,
-  .public-matchday-mini-card-halftime .public-matchday-mini-status > span::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    border-radius: 999px;
-    background: #17a34a;
-  }
-
-  .public-matchday-mini-card-finished .public-matchday-mini-status > span {
-    background: #e9edf2;
-    color: #4e5b69;
-  }
-
-  .public-matchday-mini-card-unknown .public-matchday-mini-status > span {
-    background: #eef2f6;
-    color: #506075;
-  }
-
-  .public-matchday-mini-time {
-    color: #263241;
-    white-space: nowrap;
-  }
-
-  .public-matchday-mini-card-scheduled .public-matchday-mini-time {
-    padding: 3px 7px;
-    border-radius: 999px;
-    background: #fff2bf;
-    color: #745400;
-    font-weight: 900;
-  }
-
-  .public-matchday-mini-channel {
-    min-width: 0;
-    overflow: hidden;
-    color: #607086;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .public-matchday-mini-separator {
-    color: #9aa6b4;
-  }
-
   .news-article-layout {
     display: grid;
-    grid-template-columns: minmax(0, 800px) 320px;
-    gap: 42px;
-    width: min(1180px, calc(100% - 32px));
+    grid-template-columns: minmax(0, 740px) 320px;
+    gap: 38px;
+    width: min(1120px, calc(100% - 32px));
     margin: 0 auto;
-    padding: 34px 0 56px;
+    padding: 22px 0 52px;
   }
 
   .news-article-main {
@@ -465,7 +252,7 @@ const articlePageStyles = `
     display: flex;
     flex-wrap: wrap;
     gap: 7px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .news-article-label {
@@ -485,27 +272,27 @@ const articlePageStyles = `
 
   .news-article-title {
     margin: 0;
-    max-width: 740px;
+    max-width: 690px;
     color: #05080c;
-    font-size: clamp(34px, 3.7vw, 50px);
-    line-height: 1.06;
+    font-size: clamp(30px, 3vw, 42px);
+    line-height: 1.08;
     letter-spacing: 0;
   }
 
   .news-article-subtitle {
-    margin: 14px 0 0;
-    max-width: 720px;
+    margin: 12px 0 0;
+    max-width: 660px;
     color: #56616f;
-    font-size: 19px;
+    font-size: 18px;
     font-weight: 500;
-    line-height: 1.42;
+    line-height: 1.48;
   }
 
   .news-article-meta {
     display: grid;
-    gap: 8px;
-    margin: 18px 0 26px;
-    padding: 13px 0;
+    gap: 6px;
+    margin: 16px 0 22px;
+    padding: 10px 0;
     border-top: 1px solid #e1e6ec;
     border-bottom: 1px solid #e1e6ec;
     color: #5e6976;
@@ -514,7 +301,7 @@ const articlePageStyles = `
 
   .news-article-author {
     color: #17202b;
-    font-size: 17px;
+    font-size: 15px;
     font-weight: 800;
   }
 
@@ -573,45 +360,27 @@ const articlePageStyles = `
   }
 
   .news-article-side-panel {
-    border: 1px solid #e0e5eb;
-    border-radius: 6px;
     background: #ffffff;
-    overflow: hidden;
-  }
-
-  .news-article-side-panel h2 {
-    margin: 0;
-    padding: 14px 16px 10px;
-    border-top: 5px solid #14263a;
-    color: #111820;
-    font-size: 22px;
-    line-height: 1;
-    text-transform: uppercase;
   }
 
   .news-article-side-list {
     display: grid;
-    gap: 0;
+    gap: 14px;
     margin: 0;
-    padding: 0 16px 16px;
+    padding: 0;
     list-style: none;
   }
 
   .news-article-side-item {
     display: grid;
-    grid-template-columns: 92px minmax(0, 1fr);
-    gap: 11px;
-    padding: 12px 0;
-    border-bottom: 1px solid #edf1f5;
-  }
-
-  .news-article-side-item:last-child {
-    border-bottom: 0;
+    grid-template-columns: 86px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
   }
 
   .news-article-side-item img {
     display: block;
-    width: 92px;
+    width: 86px;
     aspect-ratio: 4 / 3;
     object-fit: cover;
     background: #eef2f6;
@@ -619,25 +388,16 @@ const articlePageStyles = `
 
   .news-article-side-thumb-placeholder {
     display: block;
-    width: 92px;
+    width: 86px;
     aspect-ratio: 4 / 3;
     background: linear-gradient(135deg, #eef2f6, #dbe3eb);
   }
 
-  .news-article-side-item span {
-    display: block;
-    margin-bottom: 4px;
-    color: #e5252a;
-    font-size: 11px;
-    font-weight: 900;
-    text-transform: uppercase;
-  }
-
   .news-article-side-item a {
     color: #17202b;
-    font-size: 17px;
+    font-size: 15px;
     font-weight: 900;
-    line-height: 1.08;
+    line-height: 1.16;
     text-decoration: none;
   }
 
@@ -645,36 +405,33 @@ const articlePageStyles = `
     text-decoration: underline;
   }
 
-  .news-article-side-date {
-    margin-top: 5px;
-    color: #788391;
-    font-size: 12px;
-  }
-
   @media (max-width: 900px) {
+    .news-article-shell {
+      padding: 0 14px 26px;
+    }
+
     .public-top-stack {
-      margin: 0 -16px;
-      padding: 0 16px;
+      margin: 0 -14px;
+      padding: 0 14px;
     }
 
     .public-site-topbar {
       grid-template-columns: 1fr;
-      padding: 12px 0;
     }
 
     .public-site-menu,
     .public-site-actions {
-      display: none;
+      justify-content: flex-start;
     }
 
     .public-season-nav-inner {
-      padding: 8px 0 9px;
       gap: 8px;
+      padding: 8px 16px 9px;
     }
 
     .news-article-layout {
       grid-template-columns: 1fr;
-      padding-top: 22px;
+      padding-top: 18px;
     }
 
     .news-article-sidebar {
@@ -682,11 +439,11 @@ const articlePageStyles = `
     }
 
     .news-article-title {
-      font-size: 34px;
+      font-size: 31px;
     }
 
     .news-article-subtitle {
-      font-size: 19px;
+      font-size: 17px;
     }
 
     .news-article-body {
@@ -789,115 +546,6 @@ async function readArticleMatchdayContext(article: EditorialArticle) {
   }
 }
 
-function formatKickoffTime(value: string) {
-  return new Intl.DateTimeFormat("pt-PT", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Lisbon"
-  }).format(new Date(value));
-}
-
-function formatMiniCardKickoff(value: string) {
-  const date = new Date(value);
-  const dayMonth = new Intl.DateTimeFormat("pt-PT", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone: "Europe/Lisbon"
-  }).format(date);
-  const time = formatKickoffTime(value);
-
-  return `${dayMonth} · ${time}`;
-}
-
-function statusLabel(status: string) {
-  const normalized = status.trim().toLowerCase();
-  if (normalized === "finished") return "Finalizado";
-  if (normalized === "scheduled") return "Agendado";
-  if (normalized === "live") return "AO VIVO";
-  if (normalized === "halftime") return "AO VIVO";
-  if (normalized === "postponed") return "Adiado";
-  if (normalized === "cancelled") return "Cancelado";
-  return status;
-}
-
-function statusKind(status: string) {
-  const normalized = status.trim().toLowerCase();
-  if (normalized === "finished") return "finished";
-  if (normalized === "live") return "live";
-  if (normalized === "halftime") return "halftime";
-  if (normalized === "scheduled") return "scheduled";
-  return "unknown";
-}
-
-function teamInitials(name?: string | null, shortName?: string | null) {
-  const source = shortName || name || "";
-  const initials = source
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 3)
-    .toUpperCase();
-
-  return initials || "FC";
-}
-
-function shortTeamLabel(name?: string | null, shortName?: string | null) {
-  const editorialName = name?.trim();
-  const fallback = shortName?.trim() || editorialName || "Equipa";
-
-  if (!editorialName) {
-    return fallback;
-  }
-
-  return editorialName.length <= 20 ? editorialName : fallback;
-}
-
-function TeamBadge({ logoUrl, name, shortName }: { logoUrl?: string | null; name?: string | null; shortName?: string | null }) {
-  return <PublicTeamBadge fallbackLabel={teamInitials(name, shortName)} logoUrl={logoUrl} />;
-}
-
-function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: boolean }) {
-  const kind = statusKind(match.status);
-  const broadcastChannelName = match.broadcastChannel?.name?.trim();
-  const hasScore = match.home_score !== null && match.away_score !== null;
-  const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
-  const liveStatus = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
-
-  return (
-    <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>
-      <span className="public-matchday-mini-team">
-        <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
-        <span>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</span>
-        {showScore ? <b className="public-matchday-mini-score">{match.home_score}</b> : null}
-      </span>
-      <span className="public-matchday-mini-team">
-        <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
-        <span>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</span>
-        {showScore ? <b className="public-matchday-mini-score">{match.away_score}</b> : null}
-      </span>
-      <span className="public-matchday-mini-status">
-        {kind === "finished" ? (
-          <span>Finalizado</span>
-        ) : kind === "live" || kind === "halftime" ? (
-          <span>{liveStatus}</span>
-        ) : kind === "scheduled" ? (
-          <>
-            <time className="public-matchday-mini-time" dateTime={match.kickoff_at}>{formatMiniCardKickoff(match.kickoff_at)}</time>
-            {broadcastChannelName ? (
-              <>
-                <span className="public-matchday-mini-separator" aria-hidden="true">·</span>
-                <span className="public-matchday-mini-channel">{broadcastChannelName}</span>
-              </>
-            ) : null}
-          </>
-        ) : (
-          <span>{statusLabel(match.status)}</span>
-        )}
-      </span>
-    </article>
-  );
-}
 export default async function NewsArticlePage({ params }: PageProps) {
   const { slug } = await params;
   const article = await readArticle(slug);
@@ -946,9 +594,6 @@ export default async function NewsArticlePage({ params }: PageProps) {
         }))
       : [];
   const currentSeasonHref = articleContext && seasonSegment ? `/competicoes/${articleContext.competition.slug}/${seasonSegment}/jornadas/1` : "/";
-  const liveMatches = articleContext?.matchesForMatchday.filter((match) => statusKind(match.status) === "live") ?? [];
-  const halftimeMatches = articleContext?.matchesForMatchday.filter((match) => statusKind(match.status) === "halftime") ?? [];
-  const focusedStripMatch = liveMatches[0] ?? halftimeMatches[0] ?? null;
 
   return (
     <div className="news-article-shell">
@@ -958,7 +603,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
           <a className="public-site-brand" href="/">
             Jornada<span>.pt</span>
           </a>
-          <nav className="public-site-menu" aria-label="Competições principais">
+          <nav className="public-site-menu" aria-label="CompetiÃ§Ãµes principais">
             {publicCompetitionMenu.map((item) => (
               <a
                 aria-current={articleContext?.competition.slug === item.slug ? "page" : undefined}
@@ -969,9 +614,9 @@ export default async function NewsArticlePage({ params }: PageProps) {
               </a>
             ))}
             {gamesPageHref ? <a href={gamesPageHref}>Jogos</a> : null}
-            {classificationHref ? <a href={classificationHref}>Classificação</a> : null}
+            {classificationHref ? <a href={classificationHref}>ClassificaÃ§Ã£o</a> : null}
           </nav>
-          <div className="public-site-actions" aria-label="Ações">
+          <div className="public-site-actions" aria-label="AÃ§Ãµes">
             <span className="public-site-search" aria-label="Pesquisar">
               Pesquisar
             </span>
@@ -979,55 +624,35 @@ export default async function NewsArticlePage({ params }: PageProps) {
           </div>
         </header>
         {articleContext ? (
-          <>
-            <section className="public-season-nav-bar" aria-label="Navegação de jornadas">
-              <div className="public-hidden-heading">
-                <h2>Jornadas</h2>
-                <p>Navegação principal da época {articleContext.season.label}.</p>
-              </div>
-              <div className="public-season-nav-inner">
-                <label className="public-season-select-wrap">
-                  <span>Época</span>
-                  <select className="public-season-select" data-season-select defaultValue={currentSeasonHref}>
-                    {seasonOptions.map((season) => (
-                      <option key={season.id} value={season.href}>
-                        {season.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <nav className="public-matchday-tabs" aria-label="Jornadas">
-                  {articleContext.matchdays.map((matchday) => (
-                    <a
-                      aria-current={matchday.id === articleContext.matchday.id ? "page" : undefined}
-                      className="public-matchday-tab"
-                      href={matchdayHref(matchday.number)}
-                      key={matchday.id}
-                    >
-                      J{String(matchday.number).padStart(2, "0")}
-                    </a>
+          <section className="public-season-nav-bar" aria-label="NavegaÃ§Ã£o de jornadas">
+            <div className="public-hidden-heading">
+              <h2>Jornadas</h2>
+              <p>NavegaÃ§Ã£o principal da Ã©poca {articleContext.season.label}.</p>
+            </div>
+            <div className="public-season-nav-inner">
+              <label className="public-season-select-wrap">
+                <span>Ã‰poca</span>
+                <select className="public-season-select" data-season-select defaultValue={currentSeasonHref}>
+                  {seasonOptions.map((season) => (
+                    <option key={season.id} value={season.href}>
+                      {season.label}
+                    </option>
                   ))}
-                </nav>
-              </div>
-            </section>
-            {articleContext.matchesForMatchday.length > 0 ? (
-              <section className="public-matchday-panel public-matchday-scoreboard-panel" aria-label="Visão rápida dos jogos">
-                <div className="public-matchday-strip-shell">
-                  <button className="public-matchday-strip-button" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
-                    ‹
-                  </button>
-                  <div className="public-matchday-strip" data-matchday-strip>
-                    {articleContext.matchesForMatchday.map((match) => (
-                      <CompactMatchCard focus={focusedStripMatch?.id === match.id} key={match.id} match={match} />
-                    ))}
-                  </div>
-                  <button className="public-matchday-strip-button" data-strip-scroll="right" type="button" aria-label="Ver jogos seguintes">
-                    ›
-                  </button>
-                </div>
-              </section>
-            ) : null}
-          </>
+                </select>
+              </label>
+              <nav className="public-matchday-nav" aria-label="Jornadas">
+                {articleContext.matchdays.map((matchday) => (
+                  <a
+                    aria-current={matchday.id === articleContext.matchday.id ? "page" : undefined}
+                    href={matchdayHref(matchday.number)}
+                    key={matchday.id}
+                  >
+                    J{String(matchday.number).padStart(2, "0")}
+                  </a>
+                ))}
+              </nav>
+            </div>
+          </section>
         ) : null}
       </div>
       <script
@@ -1040,18 +665,6 @@ export default async function NewsArticlePage({ params }: PageProps) {
                   if (select.value) window.location.href = select.value;
                 });
               }
-              var strip = document.querySelector("[data-matchday-strip]");
-              if (!strip) return;
-              var focused = strip.querySelector("[data-live-focus='true']");
-              if (focused && "scrollIntoView" in focused) {
-                focused.scrollIntoView({ block: "nearest", inline: "center" });
-              }
-              document.querySelectorAll("[data-strip-scroll]").forEach(function (button) {
-                button.addEventListener("click", function () {
-                  var direction = button.getAttribute("data-strip-scroll") === "left" ? -1 : 1;
-                  strip.scrollBy({ left: direction * Math.max(260, Math.round(strip.clientWidth * 0.85)), behavior: "smooth" });
-                });
-              });
             });
           `
         }}
@@ -1089,28 +702,20 @@ export default async function NewsArticlePage({ params }: PageProps) {
             Publicidade
           </div>
           {moreArticles.length > 0 ? (
-            <section className="news-article-side-panel" aria-label="Mais notícias">
-              <h2>Mais notícias</h2>
+            <section className="news-article-side-panel" aria-label="Artigos relacionados">
               <ul className="news-article-side-list">
-                {moreArticles.map((item) => {
-                  const itemLabel = firstText(item.label, item.category, item.type);
-                  const itemDate = formatDate(item.published_at ?? item.created_at);
-
-                  return (
-                    <li className="news-article-side-item" key={item.id}>
-                      {item.image_url ? (
-                        <img alt="" src={item.image_url} />
-                      ) : (
-                        <span className="news-article-side-thumb-placeholder" aria-hidden="true" />
-                      )}
-                      <div>
-                        {itemLabel ? <span>{itemLabel}</span> : null}
-                        <a href={publicArticleHref(item)}>{item.title}</a>
-                        {itemDate ? <div className="news-article-side-date">{itemDate}</div> : null}
-                      </div>
-                    </li>
-                  );
-                })}
+                {moreArticles.map((item) => (
+                  <li className="news-article-side-item" key={item.id}>
+                    {item.image_url ? (
+                      <img alt="" src={item.image_url} />
+                    ) : (
+                      <span className="news-article-side-thumb-placeholder" aria-hidden="true" />
+                    )}
+                    <div>
+                      <a href={publicArticleHref(item)}>{item.title}</a>
+                    </div>
+                  </li>
+                ))}
               </ul>
             </section>
           ) : null}
