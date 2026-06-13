@@ -4,18 +4,26 @@ export const dynamic = "force-dynamic";
 
 type EditorialArticle = {
   id: string;
+  slug: string;
   title: string;
-  summary: string | null;
-  image_url: string | null;
-  source_url: string | null;
+  subtitle?: string | null;
+  summary?: string | null;
+  excerpt?: string | null;
+  image_url?: string | null;
+  source_url?: string | null;
+  label?: string | null;
+  category?: string | null;
+  type?: string | null;
+  author?: string | null;
+  author_name?: string | null;
   status: string;
-  competition_id: string | null;
-  season_id: string | null;
-  matchday_id: string | null;
-  match_id: string | null;
-  published_at: string | null;
-  created_at: string;
-  updated_at: string;
+  competition_id?: string | null;
+  season_id?: string | null;
+  matchday_id?: string | null;
+  match_id?: string | null;
+  published_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 const editorialArticlesStyles = `
@@ -69,7 +77,7 @@ const editorialArticlesStyles = `
   .editorial-articles-hero span {
     display: block;
     margin-top: 10px;
-    max-width: 680px;
+    max-width: 760px;
     color: #cdd5df;
     font-size: 16px;
   }
@@ -152,7 +160,7 @@ const editorialArticlesStyles = `
 
   .editorial-articles-item {
     display: grid;
-    grid-template-columns: 84px minmax(0, 1fr) auto;
+    grid-template-columns: 92px minmax(0, 1fr) auto;
     gap: 14px;
     align-items: center;
     padding: 14px 20px;
@@ -166,7 +174,7 @@ const editorialArticlesStyles = `
   .editorial-articles-image {
     display: grid;
     place-items: center;
-    width: 84px;
+    width: 92px;
     aspect-ratio: 16 / 10;
     overflow: hidden;
     border: 1px solid #dce3eb;
@@ -184,7 +192,8 @@ const editorialArticlesStyles = `
     object-fit: cover;
   }
 
-  .editorial-articles-meta {
+  .editorial-articles-meta,
+  .editorial-articles-ids {
     display: flex;
     flex-wrap: wrap;
     gap: 7px;
@@ -201,7 +210,7 @@ const editorialArticlesStyles = `
 
   .editorial-articles-item h3 {
     color: #10151b;
-    font-size: 17px;
+    font-size: 18px;
     line-height: 1.15;
   }
 
@@ -218,6 +227,13 @@ const editorialArticlesStyles = `
     margin-top: 6px;
     color: #5b6571;
     line-height: 1.35;
+  }
+
+  .editorial-articles-slug {
+    margin-top: 5px;
+    color: #687380;
+    font-family: "Courier New", monospace;
+    font-size: 12px;
   }
 
   .editorial-articles-item-actions {
@@ -275,17 +291,25 @@ function formatDate(value?: string | null) {
   return new Date(value).toLocaleDateString("pt-PT");
 }
 
+function firstText(...values: Array<string | null | undefined>) {
+  return values.find((value) => typeof value === "string" && value.trim().length > 0)?.trim() ?? null;
+}
+
+function publicArticleHref(article: EditorialArticle) {
+  return `/noticias/${encodeURIComponent(article.slug)}`;
+}
+
 async function readEditorialArticles() {
   try {
     const articles = await fetchSupabaseAdminTable<EditorialArticle>(
-      "articles?select=id,title,summary,image_url,source_url,status,competition_id,season_id,matchday_id,match_id,published_at,created_at,updated_at&order=published_at.desc.nullslast&limit=100"
+      "editorial_articles?select=*&order=published_at.desc.nullslast&limit=100"
     );
 
     return { articles, error: null as string | null };
   } catch (error) {
     return {
       articles: [] as EditorialArticle[],
-      error: error instanceof Error ? error.message : "Nao foi possivel ler os artigos."
+      error: error instanceof Error ? error.message : "Nao foi possivel ler os artigos editoriais."
     };
   }
 }
@@ -300,13 +324,15 @@ export default async function AdminEditorialArticlesPage() {
         <div>
           <p>Jornada.pt</p>
           <h1>Artigos / Notícias</h1>
-          <span>Área de consulta editorial dos artigos e notícias já registados.</span>
+          <span>Área de consulta editorial dos artigos públicos registados em public.editorial_articles.</span>
         </div>
-        <nav className="editorial-articles-actions" aria-label="Navegação editorial">
+        <nav className="editorial-articles-actions" aria-label="Navegacao editorial">
           <a href="/admin/editorial/home">Home Editorial</a>
-          <a href="/admin/gestor">Centro de Gestão</a>
+          <a href="/admin/gestor">Centro de Gestao</a>
+          <a href="/admin/gestor?section=linha-editorial#linha-editorial">Composicao Editorial</a>
+          <a href="/admin/gestor?section=linha-editorial#linha-editorial">Editorial da Jornada</a>
           <a href="/admin">Backoffice</a>
-          <button disabled type="button" title="Ação de criação não encontrada no código vivo.">
+          <button disabled type="button" title="Acao de criacao ainda nao implementada nesta fase.">
             Novo
           </button>
         </nav>
@@ -315,8 +341,8 @@ export default async function AdminEditorialArticlesPage() {
       <section className="editorial-articles-panel">
         <header>
           <div>
-            <h2>Artigos / Notícias</h2>
-            <p>Lista lida da tabela real de artigos, com os links de origem preservados.</p>
+            <h2>Artigos editoriais publicos</h2>
+            <p>Lista lida da tabela Supabase editorial_articles, com ligacao publica em /noticias/[slug].</p>
           </div>
           <span className="editorial-articles-count">{articles.length} itens</span>
         </header>
@@ -324,12 +350,12 @@ export default async function AdminEditorialArticlesPage() {
         {error ? <div className="editorial-articles-warning">{error}</div> : null}
         {!error ? (
           <div className="editorial-articles-warning">
-            Não foi encontrada no código vivo uma ação, rota ou API de criação/edição de artigos. Por isso, o botão “Novo” fica visível mas desativado, e esta página preserva apenas a leitura real da tabela articles e dos respetivos links.
+            Esta fase recupera a leitura e os links publicos dos artigos editoriais. O botao Novo fica visivel mas desativado porque ainda nao ha CRUD/API de criacao nesta etapa.
           </div>
         ) : null}
 
         {!error && articles.length === 0 ? (
-          <div className="editorial-articles-empty">Não há artigos/notícias registados para apresentar.</div>
+          <div className="editorial-articles-empty">Nao ha artigos editoriais para apresentar.</div>
         ) : null}
 
         {articles.length > 0 ? (
@@ -338,6 +364,9 @@ export default async function AdminEditorialArticlesPage() {
               const publishedDate = formatDate(article.published_at);
               const createdDate = formatDate(article.created_at);
               const articleDate = publishedDate ?? createdDate;
+              const label = firstText(article.label, article.category, article.type);
+              const author = firstText(article.author, article.author_name);
+              const subtitle = firstText(article.subtitle, article.summary, article.excerpt);
 
               return (
                 <li className="editorial-articles-item" key={article.id}>
@@ -347,28 +376,30 @@ export default async function AdminEditorialArticlesPage() {
                   <div>
                     <div className="editorial-articles-meta">
                       <span>{article.status}</span>
+                      {label ? <span>{label}</span> : null}
+                      {author ? <span>{author}</span> : null}
                       {articleDate ? <span>{articleDate}</span> : null}
-                      {article.matchday_id ? <span>Jornada ligada</span> : null}
-                      {article.match_id ? <span>Jogo ligado</span> : null}
                     </div>
                     <h3>
-                      {article.source_url ? (
-                        <a href={article.source_url} rel="noreferrer" target="_blank">
-                          {article.title}
-                        </a>
-                      ) : (
-                        article.title
-                      )}
+                      <a href={publicArticleHref(article)}>{article.title}</a>
                     </h3>
-                    {article.summary ? <p>{article.summary}</p> : null}
+                    <div className="editorial-articles-slug">/{article.slug}</div>
+                    {subtitle ? <p>{subtitle}</p> : null}
+                    <div className="editorial-articles-ids">
+                      {article.matchday_id ? <span>matchday_id: {article.matchday_id}</span> : null}
+                      {article.competition_id ? <span>competition_id: {article.competition_id}</span> : null}
+                      {article.season_id ? <span>season_id: {article.season_id}</span> : null}
+                      {article.match_id ? <span>match_id: {article.match_id}</span> : null}
+                    </div>
                   </div>
                   <div className="editorial-articles-item-actions">
+                    <a href={publicArticleHref(article)}>Abrir publico</a>
                     {article.source_url ? (
                       <a href={article.source_url} rel="noreferrer" target="_blank">
-                        Abrir link
+                        Fonte
                       </a>
                     ) : (
-                      <span>Sem link</span>
+                      <span>Sem fonte</span>
                     )}
                   </div>
                 </li>
