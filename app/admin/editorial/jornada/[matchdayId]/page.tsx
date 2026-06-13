@@ -26,6 +26,20 @@ type MatchdayContext = {
   country: SupabaseCountry | null;
 };
 
+type EditorialArticleForSideBlock = {
+  id: string;
+  slug: string | null;
+  title: string | null;
+  subtitle: string | null;
+  body: string | null;
+  label: string | null;
+  author: string | null;
+  image_url: string | null;
+  published_at: string | null;
+  created_at: string | null;
+  status: string | null;
+};
+
 const ROUNDUP_EDITOR_SORT_ORDERS = Array.from({ length: 10 }, (_, index) => index + 1);
 const LATEST_NEWS_EDITOR_SORT_ORDERS = Array.from({ length: 8 }, (_, index) => index + 1);
 
@@ -384,6 +398,32 @@ function oneParam(params: Record<string, string | string[] | undefined>, key: st
   return Array.isArray(value) ? value[0] : value;
 }
 
+function cleanText(value: string | null | undefined) {
+  return value?.trim() ?? "";
+}
+
+function articlePublicHref(article: EditorialArticleForSideBlock) {
+  const slug = cleanText(article.slug);
+  return slug ? `/noticias/${encodeURIComponent(slug)}` : "";
+}
+
+function excerptFromBody(value: string | null | undefined) {
+  const text = cleanText(value)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (text.length <= 180) {
+    return text;
+  }
+
+  return `${text.slice(0, 177).trim()}...`;
+}
+
+function sideBlockTextFromArticle(article: EditorialArticleForSideBlock) {
+  return cleanText(article.subtitle) || excerptFromBody(article.body);
+}
+
 async function readFirst<T>(path: string): Promise<T | null> {
   const rows = await fetchSupabaseAdminTable<T>(`${path}&limit=1`);
   return rows[0] ?? null;
@@ -471,6 +511,12 @@ async function readMatchdayLatestNews(matchdayId: string): Promise<SupabaseMatch
       )}&order=sort_order.asc&limit=8`
     ).catch(() => []);
   }
+}
+
+async function readPublishedEditorialArticles(): Promise<EditorialArticleForSideBlock[]> {
+  return fetchSupabaseAdminTable<EditorialArticleForSideBlock>(
+    "editorial_articles?select=id,slug,title,subtitle,body,label,author,image_url,published_at,created_at,status&status=eq.published&order=published_at.desc.nullslast,created_at.desc.nullslast&limit=50"
+  ).catch(() => []);
 }
 
 type FeedbackScope = "manchete" | "bloco-lateral" | "composicao" | "destaques" | "resumo-jornada" | "bloco-complementar" | "ultimas-noticias";
@@ -572,6 +618,8 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const highlights = await readMatchdayHighlights(matchday.id);
   const roundupItems = await readMatchdayRoundupItems(matchday.id);
   const latestNews = await readMatchdayLatestNews(matchday.id);
+  const publishedEditorialArticles = await readPublishedEditorialArticles();
+  const sideBlockArticleOptions = publishedEditorialArticles.filter((article) => articlePublicHref(article));
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = editorial?.complementary_mode ?? "none";
   const latestZoneMode = editorial?.latest_zone_mode === "editorial_line" ? "editorial_line" : "latest_news";
@@ -945,7 +993,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             <p>Controla a chamada editorial curta da coluna lateral da capa.</p>
           </header>
           {scopedMessageFor(created, error, feedbackScope, "bloco-lateral")}
-          <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
+          <form className="editorial-admin-form" action="/api/admin/gestor" data-side-block-form method="post">
             <input type="hidden" name="action_type" value="save_matchday_editorial" />
             <input type="hidden" name="return_to" value={returnToBlocoLateral} />
             <input type="hidden" name="matchday_id" value={matchday.id} />
@@ -963,6 +1011,35 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             <input type="hidden" name="complementary_image_url" value={editorial?.complementary_image_url ?? ""} />
             <input type="hidden" name="complementary_link_url" value={editorial?.complementary_link_url ?? ""} />
             <input type="hidden" name="complementary_status" value={editorial?.complementary_status ?? "draft"} />
+            <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
+              <legend>Ligar artigo existente</legend>
+              <div className="editorial-admin-field">
+                <label htmlFor="side-block-article-source">Escolher artigo publicado</label>
+                <select id="side-block-article-source" data-side-block-article-select defaultValue="">
+                  <option value="">Escolher artigo publicado</option>
+                  {sideBlockArticleOptions.map((article) => (
+                    <option
+                      key={article.id}
+                      value={article.id}
+                      data-side-title={cleanText(article.title)}
+                      data-side-text={sideBlockTextFromArticle(article)}
+                      data-side-label={cleanText(article.label)}
+                      data-side-author={cleanText(article.author)}
+                      data-side-image-url={cleanText(article.image_url)}
+                      data-side-link-url={articlePublicHref(article)}
+                    >
+                      {cleanText(article.title) || cleanText(article.slug) || article.id}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button className="editorial-admin-button secondary" data-side-block-article-apply type="button">
+                Usar artigo no bloco lateral
+              </button>
+              <p className="editorial-admin-muted">
+                Preenche os campos abaixo com dados do artigo. Podes ajustar manualmente antes de guardar.
+              </p>
+            </fieldset>
             <div className="editorial-admin-field">
               <label htmlFor="side-block-status">Estado</label>
               <select id="side-block-status" name="side_block_status" defaultValue={editorial?.side_block_status ?? "draft"}>
@@ -1014,6 +1091,34 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               Guardar bloco lateral
             </button>
           </form>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function () {
+                  var form = document.querySelector('[data-side-block-form]');
+                  if (!form) return;
+                  var select = form.querySelector('[data-side-block-article-select]');
+                  var button = form.querySelector('[data-side-block-article-apply]');
+                  if (!select || !button) return;
+                  function setField(name, value) {
+                    if (!value) return;
+                    var field = form.querySelector('[name="' + name + '"]');
+                    if (field) field.value = value;
+                  }
+                  button.addEventListener('click', function () {
+                    var option = select.options[select.selectedIndex];
+                    if (!option || !option.value) return;
+                    setField('side_block_title', option.getAttribute('data-side-title') || '');
+                    setField('side_block_text', option.getAttribute('data-side-text') || '');
+                    setField('side_block_label', option.getAttribute('data-side-label') || '');
+                    setField('side_block_author', option.getAttribute('data-side-author') || '');
+                    setField('side_block_image_url', option.getAttribute('data-side-image-url') || '');
+                    setField('side_block_link_url', option.getAttribute('data-side-link-url') || '');
+                  });
+                })();
+              `
+            }}
+          />
         </aside>
       </div>
 
