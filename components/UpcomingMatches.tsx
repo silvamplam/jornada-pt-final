@@ -6,6 +6,24 @@ type UpcomingMatchesProps = {
   matches: ResolvedMatch[];
 };
 
+function fixtureVisualState(match: ResolvedMatch) {
+  if (match.status === "live" || match.status === "halftime") return "live";
+  if (match.status === "finished") return "finished";
+  return "scheduled";
+}
+
+function fixtureStatusText(match: ResolvedMatch) {
+  const visualState = fixtureVisualState(match);
+
+  if (visualState === "live") {
+    return match.minute ? `AO VIVO · ${match.minute}'` : "AO VIVO";
+  }
+
+  if (visualState === "finished") return "Finalizado";
+
+  return formatKickoff(match.kickoff) || "Agendado";
+}
+
 export function UpcomingMatches({ matches }: UpcomingMatchesProps) {
   return (
     <section className="panel fixtures-panel" aria-label="Próximos jogos e onde se vê">
@@ -15,10 +33,13 @@ export function UpcomingMatches({ matches }: UpcomingMatchesProps) {
       <ul className="fixtures-list">
         {matches.map((match) => {
           const broadcast = getBroadcastLogo(match);
+          const visualState = fixtureVisualState(match);
 
           return (
-            <li key={match.id}>
-              <time>{formatKickoff(match.kickoff)}</time>
+            <li className={`fixture-match fixture-match--${visualState}`} key={match.id}>
+              <time className="fixture-status" dateTime={match.kickoff}>
+                {fixtureStatusText(match)}
+              </time>
               <span>
                 <TeamBadge team={match.homeTeam} />
                 {match.homeTeam.name}
