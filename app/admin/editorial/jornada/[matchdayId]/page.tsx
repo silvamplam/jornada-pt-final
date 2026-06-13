@@ -873,7 +873,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
         {LATEST_NEWS_EDITOR_SORT_ORDERS.map((order) => {
           const item = latestNews.find((newsItem) => newsItem.sort_order === order);
           return (
-            <fieldset className="editorial-admin-fieldset editorial-admin-compact-card" key={order}>
+            <fieldset className="editorial-admin-fieldset editorial-admin-compact-card" data-latest-news-card={order} key={order}>
               <legend>Item {order}</legend>
               <input type="hidden" name={`latest_news_${order}_id`} value={item?.id ?? ""} />
               <input type="hidden" name={`latest_news_${order}_sort_order`} value={order} />
@@ -902,6 +902,31 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 <label htmlFor={`latest-news-${order}-link-url`}>Link para leitura completa</label>
                 <input id={`latest-news-${order}-link-url`} name={`latest_news_${order}_link_url`} defaultValue={item?.link_url ?? ""} placeholder="/competicoes/liga/2026-27/jornadas/1/noticias/slug" />
               </div>
+              <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
+                <legend>Ligar artigo publicado</legend>
+                <div className="editorial-admin-field">
+                  <label htmlFor={`latest-news-${order}-article-source`}>Preencher com artigo publicado</label>
+                  <select id={`latest-news-${order}-article-source`} data-latest-news-article-select defaultValue="">
+                    <option value="">Escolher artigo publicado</option>
+                    {sideBlockArticleOptions.map((article) => (
+                      <option
+                        key={article.id}
+                        value={article.id}
+                        data-latest-news-article-id={article.id}
+                        data-latest-news-title={cleanText(article.title)}
+                        data-latest-news-subtitle={sideBlockTextFromArticle(article)}
+                        data-latest-news-image-url={cleanText(article.image_url)}
+                        data-latest-news-link-url={articlePublicHref(article)}
+                      >
+                        {cleanText(article.title) || cleanText(article.slug) || article.id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="editorial-admin-muted">
+                  Ao escolher um artigo, este item recebe titulo, subtitulo, imagem, artigo associado e link interno. Pode ajustar manualmente antes de guardar.
+                </p>
+              </fieldset>
               {item?.image_url ? (
                 <div className="editorial-admin-preview">
                   <img alt="" src={item.image_url} />
@@ -921,6 +946,35 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
       <button className="editorial-admin-button" type="submit">
         Guardar zona
       </button>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function () {
+              var cards = Array.prototype.slice.call(document.querySelectorAll('[data-latest-news-card]'));
+              cards.forEach(function (card) {
+                var order = card.getAttribute('data-latest-news-card');
+                var select = card.querySelector('[data-latest-news-article-select]');
+                if (!order || !select) return;
+                function setLatestNewsField(name, value) {
+                  if (!value) return;
+                  var field = document.querySelector('[name="latest_news_' + order + '_' + name + '"]');
+                  if (field) field.value = value;
+                }
+                function applyLatestNewsArticle() {
+                  var option = select.options[select.selectedIndex];
+                  if (!option || !option.value) return;
+                  setLatestNewsField('article_id', option.dataset.latestNewsArticleId);
+                  setLatestNewsField('title', option.dataset.latestNewsTitle);
+                  setLatestNewsField('subtitle', option.dataset.latestNewsSubtitle);
+                  setLatestNewsField('image_url', option.dataset.latestNewsImageUrl);
+                  setLatestNewsField('link_url', option.dataset.latestNewsLinkUrl);
+                }
+                select.addEventListener('change', applyLatestNewsArticle);
+              });
+            })();
+          `
+        }}
+      />
     </form>
   );
 
