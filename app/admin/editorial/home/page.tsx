@@ -548,6 +548,11 @@ const homeEditorialStyles = `
     padding: 20px;
   }
 
+  .home-admin-card-grid.is-compact {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    padding: 0;
+  }
+
   .home-admin-card {
     overflow: hidden;
     border: 1px solid #e6ebf1;
@@ -841,28 +846,24 @@ const homeEditorialStyles = `
 
   .home-admin-game-list {
     display: grid;
-    gap: 0;
-    border: 1px solid #dce3eb;
-    border-radius: 8px;
-    overflow: hidden;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
   }
 
   .home-admin-game-row {
     display: grid;
-    grid-template-columns: 118px minmax(0, 1fr) 78px 92px;
-    gap: 12px;
-    align-items: center;
-    padding: 12px 14px;
-    border-bottom: 1px solid #eef2f6;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px 14px;
+    align-items: start;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
     background: #fff;
-  }
-
-  .home-admin-game-row:last-child {
-    border-bottom: 0;
+    padding: 14px;
   }
 
   .home-admin-game-row.is-selected {
     background: #f0fdf4;
+    border-color: #bbf7d0;
   }
 
   .home-admin-game-check {
@@ -873,6 +874,7 @@ const homeEditorialStyles = `
     font-size: 12px;
     font-weight: 900;
     text-transform: uppercase;
+    grid-column: 1 / 2;
   }
 
   .home-admin-game-check input {
@@ -884,6 +886,7 @@ const homeEditorialStyles = `
   .home-admin-game-main {
     display: grid;
     gap: 4px;
+    grid-column: 1 / -1;
     min-width: 0;
   }
 
@@ -894,7 +897,9 @@ const homeEditorialStyles = `
   }
 
   .home-admin-game-score {
-    justify-self: center;
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
     min-width: 56px;
     border-radius: 6px;
     padding: 6px 8px;
@@ -908,6 +913,7 @@ const homeEditorialStyles = `
   .home-admin-game-order {
     display: grid;
     gap: 4px;
+    grid-column: 1 / -1;
   }
 
   .home-admin-game-order span {
@@ -928,6 +934,10 @@ const homeEditorialStyles = `
 
   .home-admin-zone-form {
     display: contents;
+  }
+
+  .home-admin-mode-section[hidden] {
+    display: none;
   }
 
   .home-admin-selected-summary {
@@ -1001,63 +1011,83 @@ const homeEditorialStyles = `
     text-transform: uppercase;
   }
 
-  .home-admin-zone-panels {
+  .home-admin-zone-panels,
+  .home-admin-editorial-flow {
     display: grid;
-    grid-template-columns: minmax(0, 1.18fr) minmax(340px, 0.82fr);
     gap: 18px;
-    align-items: start;
   }
 
   .home-admin-zone-panel {
     display: block;
   }
 
-  .home-admin-zone-panel[data-zone="games"] {
-    order: 1;
-    grid-column: 1 / -1;
+  .home-admin-editorial-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+    gap: 18px;
+    align-items: start;
   }
 
-  .home-admin-edit-heading {
-    order: 2;
-    grid-column: 1 / -1;
+  .home-admin-composition {
+    margin-top: 0;
   }
 
-  .home-admin-zone-panel[data-zone="headline"] {
-    order: 3;
+  .home-admin-composition-body {
+    padding: 20px;
   }
 
-  .home-admin-zone-panel[data-zone="side"] {
-    order: 4;
+  .home-admin-composition-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
   }
 
-  .home-admin-composition-heading {
-    order: 5;
-    grid-column: 1 / -1;
+  .home-admin-composition-card {
+    display: grid;
+    gap: 14px;
+    align-content: start;
+    min-width: 0;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #f8fafc;
+    padding: 16px;
   }
 
-  .home-admin-zone-panel[data-zone="diagnostic"] {
-    order: 6;
+  .home-admin-composition-card h3,
+  .home-admin-composition-card h4,
+  .home-admin-composition-card p {
+    margin: 0;
   }
 
-  .home-admin-zone-panel[data-zone="complement"] {
-    order: 7;
+  .home-admin-composition-card h3 {
+    font-size: 17px;
+    line-height: 1.15;
+    text-transform: uppercase;
   }
 
-  .home-admin-reading-heading {
-    order: 8;
-    grid-column: 1 / -1;
+  .home-admin-composition-card h4 {
+    font-size: 15px;
+    line-height: 1.18;
+    text-transform: uppercase;
   }
 
-  .home-admin-zone-panel[data-zone="highlights"] {
-    order: 9;
+  .home-admin-composition-card > p {
+    color: #687380;
+    font-size: 14px;
+    line-height: 1.45;
   }
 
-  .home-admin-zone-panel[data-zone="roundup"] {
-    order: 10;
+  .home-admin-composition-side-stack {
+    display: grid;
+    gap: 16px;
+    align-content: start;
+    min-width: 0;
   }
 
-  .home-admin-zone-panel[data-zone="latest"] {
-    order: 11;
+  .home-admin-final-zone .home-admin-list li {
+    padding-left: 0;
+    padding-right: 0;
   }
 
   @media (max-width: 1100px) {
@@ -1066,7 +1096,10 @@ const homeEditorialStyles = `
     .home-admin-card-grid,
     .home-admin-form-grid,
     .home-admin-game-filter-grid,
-    .home-admin-zone-panels {
+    .home-admin-game-list,
+    .home-admin-zone-panels,
+    .home-admin-editorial-grid,
+    .home-admin-composition-grid {
       grid-template-columns: 1fr;
     }
   }
@@ -1556,6 +1589,11 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
     (item) => matchesById.has(item.match_id) && !filteredGameIds.has(item.match_id)
   );
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
+  const complementaryMode = editorial?.complementary_mode === "roundup_video"
+    ? "roundup_video"
+    : editorial?.complementary_mode === "complementary_story"
+      ? "complementary_story"
+      : "";
   const globalMessage = pageMessage(params);
 
   return (
@@ -1762,223 +1800,317 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                 )}
               </section>
 
-              <div className="home-admin-section-heading home-admin-edit-heading">
-                <div>
-                  <p className="home-admin-eyebrow">Editar editorial</p>
-                  <h2>Dados principais da Home</h2>
-                </div>
-                <span>site_editorials</span>
-              </div>
-
               {editorial ? (
-                <form className="home-admin-zone-form" action="/api/admin/editorial/home" method="post">
+                <form className="home-admin-editorial-flow" action="/api/admin/editorial/home" method="post">
                   <input type="hidden" name="action_type" value="update_site_editorial_home" />
                   <input type="hidden" name="site_editorial_id" value={editorial.id} />
 
-                  <section className="home-admin-zone-panel home-admin-panel" data-zone="headline" id="home-headline">
-                    <header>
-                      <div>
-                        <h2>Manchete principal</h2>
-                        <p>Atualiza apenas os campos principais da manchete em site_editorials.slug=home.</p>
-                      </div>
-                      <span className="home-admin-source">site_editorials</span>
-                    </header>
-                    <FeedbackMessage message={scopedMessage(params, "headline")} />
-                    <div className="home-admin-edit-form">
-                      <section className="home-admin-form-section">
-                        <h3>Conteudo da manchete</h3>
-                        <div className="home-admin-form-grid">
-                          <TextField label="Titulo" name="headline_title" value={editorial.headline_title} wide />
-                          <TextAreaField label="Subtitulo" name="headline_subtitle" value={editorial.headline_subtitle} />
-                          <TextField label="Imagem" name="headline_image_url" value={editorial.headline_image_url} wide />
-                          <TextField label="Link" name="headline_link_url" value={editorial.headline_link_url} wide />
-                          <TextField label="Cor do titulo" name="headline_title_color" value={editorial.headline_title_color} placeholder="#10151b" />
-                          <StatusField label="Estado geral" name="status" value={editorial.status} />
-                        </div>
-                      </section>
-                      <div className="home-admin-save-row">
-                        <p>Guarda a tabela-mae site_editorials. Nao altera a Home publica /.</p>
-                        <button name="save_context" type="submit" value="headline">Guardar manchete</button>
-                      </div>
-                    </div>
-                  </section>
-
-                  <section className="home-admin-zone-panel home-admin-panel" data-zone="side" id="home-side-block">
-                    <header>
-                      <div>
-                        <h2>Bloco lateral</h2>
-                        <p>Edita o snapshot editorial lateral guardado em site_editorials.</p>
-                      </div>
-                      <span className="home-admin-source">site_editorials</span>
-                    </header>
-                    <FeedbackMessage message={scopedMessage(params, "side")} />
-                    <div className="home-admin-edit-form">
-                      <section className="home-admin-form-section">
-                        <h3>Conteudo do bloco lateral</h3>
-                        <div className="home-admin-form-grid">
-                          <TextField label="Tipo" name="side_block_type" value={editorial.side_block_type} />
-                          <TextField label="Etiqueta" name="side_block_label" value={editorial.side_block_label} />
-                          <TextField label="Titulo" name="side_block_title" value={editorial.side_block_title} wide />
-                          <TextAreaField label="Texto" name="side_block_text" value={editorial.side_block_text} />
-                          <TextField label="Autor" name="side_block_author" value={editorial.side_block_author} />
-                          <StatusField label="Estado" name="side_block_status" value={editorial.side_block_status} />
-                          <TextField label="Imagem" name="side_block_image_url" value={editorial.side_block_image_url} wide />
-                          <TextField label="Link" name="side_block_link_url" value={editorial.side_block_link_url} wide />
-                          <TextField label="Cor do titulo" name="side_block_title_color" value={editorial.side_block_title_color} placeholder="#10151b" />
-                        </div>
-                      </section>
-                      <div className="home-admin-save-row">
-                        <p>Guarda a tabela-mae site_editorials. Nao edita tabelas filhas.</p>
-                        <button name="save_context" type="submit" value="side">Guardar bloco lateral</button>
-                      </div>
-                    </div>
-                  </section>
-
-                  <div className="home-admin-section-heading home-admin-composition-heading">
+                  <div className="home-admin-section-heading home-admin-edit-heading">
                     <div>
-                      <p className="home-admin-eyebrow">Composicao</p>
-                      <h2>Composicao abaixo da manchete</h2>
+                      <p className="home-admin-eyebrow">Editar editorial</p>
+                      <h2>Dados principais da Home</h2>
                     </div>
-                    <span>site_editorials + leitura site_*</span>
+                    <span>site_editorials</span>
                   </div>
 
-                  <section className="home-admin-zone-panel home-admin-panel" data-zone="complement" id="home-complement">
-                    <header>
-                      <div>
-                        <h2>Complemento</h2>
-                        <p>Edita o complemento da manchete guardado em site_editorials.</p>
-                      </div>
-                      <span className="home-admin-source">site_editorials</span>
-                    </header>
-                    <FeedbackMessage message={scopedMessage(params, "complement")} />
-                    <div className="home-admin-edit-form">
-                      <section className="home-admin-form-section">
-                        <h3>Conteudo do complemento</h3>
-                        <div className="home-admin-form-grid">
-                          <TextField label="Modo" name="complementary_mode" value={editorial.complementary_mode} />
-                          <TextField label="Etiqueta" name="complementary_label" value={editorial.complementary_label} />
-                          <TextField label="Titulo" name="complementary_title" value={editorial.complementary_title} wide />
-                          <TextAreaField label="Texto" name="complementary_text" value={editorial.complementary_text} />
-                          <TextField label="Imagem" name="complementary_image_url" value={editorial.complementary_image_url} wide />
-                          <TextField label="Link" name="complementary_link_url" value={editorial.complementary_link_url} wide />
-                          <StatusField label="Estado" name="complementary_status" value={editorial.complementary_status} />
-                          <TextField
-                            label="Roundup item"
-                            name="complementary_roundup_item_id"
-                            value={editorial.complementary_roundup_item_id}
-                            placeholder="UUID do item de roundup"
-                          />
+                  <div className="home-admin-editorial-grid">
+                    <section className="home-admin-zone-panel home-admin-panel" data-zone="headline" id="home-headline">
+                      <header>
+                        <div>
+                          <h2>Manchete principal</h2>
+                          <p>Atualiza apenas os campos principais da manchete em site_editorials.slug=home.</p>
                         </div>
-                      </section>
-                      <div className="home-admin-save-row">
-                        <p>Guarda a tabela-mae site_editorials. Nao edita roundup_items.</p>
-                        <button name="save_context" type="submit" value="complement">Guardar complemento</button>
+                        <span className="home-admin-source">site_editorials</span>
+                      </header>
+                      <FeedbackMessage message={scopedMessage(params, "headline")} />
+                      <div className="home-admin-edit-form">
+                        <section className="home-admin-form-section">
+                          <h3>Conteudo da manchete</h3>
+                          <div className="home-admin-form-grid">
+                            <TextField label="Titulo" name="headline_title" value={editorial.headline_title} wide />
+                            <TextAreaField label="Subtitulo" name="headline_subtitle" value={editorial.headline_subtitle} />
+                            <TextField label="Imagem" name="headline_image_url" value={editorial.headline_image_url} wide />
+                            <TextField label="Link" name="headline_link_url" value={editorial.headline_link_url} wide />
+                            <TextField label="Cor do titulo" name="headline_title_color" value={editorial.headline_title_color} placeholder="#10151b" />
+                            <StatusField label="Estado geral" name="status" value={editorial.status} />
+                          </div>
+                        </section>
+                        <div className="home-admin-save-row">
+                          <p>Guarda a tabela-mae site_editorials. Nao altera a Home publica /.</p>
+                          <button name="save_context" type="submit" value="headline">Guardar manchete</button>
+                        </div>
                       </div>
-                    </div>
-                  </section>
+                    </section>
 
-                  <section className="home-admin-zone-panel home-admin-panel" data-zone="diagnostic" id="home-composition">
+                    <section className="home-admin-zone-panel home-admin-panel" data-zone="side" id="home-side-block">
+                      <header>
+                        <div>
+                          <h2>Bloco lateral</h2>
+                          <p>Edita o snapshot editorial lateral guardado em site_editorials.</p>
+                        </div>
+                        <span className="home-admin-source">site_editorials</span>
+                      </header>
+                      <FeedbackMessage message={scopedMessage(params, "side")} />
+                      <div className="home-admin-edit-form">
+                        <section className="home-admin-form-section">
+                          <h3>Conteudo do bloco lateral</h3>
+                          <div className="home-admin-form-grid">
+                            <TextField label="Tipo" name="side_block_type" value={editorial.side_block_type} />
+                            <TextField label="Etiqueta" name="side_block_label" value={editorial.side_block_label} />
+                            <TextField label="Titulo" name="side_block_title" value={editorial.side_block_title} wide />
+                            <TextAreaField label="Texto" name="side_block_text" value={editorial.side_block_text} />
+                            <TextField label="Autor" name="side_block_author" value={editorial.side_block_author} />
+                            <StatusField label="Estado" name="side_block_status" value={editorial.side_block_status} />
+                            <TextField label="Imagem" name="side_block_image_url" value={editorial.side_block_image_url} wide />
+                            <TextField label="Link" name="side_block_link_url" value={editorial.side_block_link_url} wide />
+                            <TextField label="Cor do titulo" name="side_block_title_color" value={editorial.side_block_title_color} placeholder="#10151b" />
+                          </div>
+                        </section>
+                        <div className="home-admin-save-row">
+                          <p>Guarda a tabela-mae site_editorials. Nao edita tabelas filhas.</p>
+                          <button name="save_context" type="submit" value="side">Guardar bloco lateral</button>
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+
+                  <section className="home-admin-zone-panel home-admin-panel home-admin-composition" id="home-composition">
                     <header>
                       <div>
-                        <h2>Zona abaixo da manchete</h2>
-                        <p>Escolhe se a area inferior esquerda usa Destaques ou Videos / Resumo / Roundup.</p>
+                        <h2>Composicao abaixo da manchete</h2>
+                        <p>Controla os espacos editoriais da Home seguindo a arquitetura da Editorial da Jornada.</p>
                       </div>
-                      <span className="home-admin-source">site_editorials</span>
+                      <span className="home-admin-source">site_editorials + leitura site_*</span>
                     </header>
                     <FeedbackMessage message={scopedMessage(params, "composition")} />
-                    <div className="home-admin-edit-form">
-                      <section className="home-admin-form-section">
-                        <h3>Cabecalhos e modos</h3>
-                        <div className="home-admin-form-grid">
-                          <label className="home-admin-field">
-                            <span>Modo abaixo da manchete</span>
-                            <select name="below_headline_mode" defaultValue={belowHeadlineMode}>
-                              <option value="highlights">Destaques abaixo da manchete</option>
-                              <option value="roundup">Videos / Resumo / Roundup</option>
-                            </select>
-                          </label>
-                          <TextField label="Titulo abaixo da manchete" name="below_headline_heading" value={editorial.below_headline_heading} />
-                          <TextField
-                            label="Cor do titulo abaixo da manchete"
-                            name="below_headline_heading_color"
-                            value={editorial.below_headline_heading_color}
-                            placeholder="#10151b"
-                          />
-                          <TextField label="Titulo roundup/video" name="roundup_video_heading" value={editorial.roundup_video_heading} />
-                          <TextField
-                            label="Cor titulo roundup/video"
-                            name="roundup_video_heading_color"
-                            value={editorial.roundup_video_heading_color}
-                            placeholder="#10151b"
-                          />
-                        </div>
-                      </section>
-                      <section className="home-admin-form-section">
-                        <h3>Area ativa agora</h3>
-                        {belowHeadlineMode === "roundup" ? (
-                          <ul className="home-admin-list is-compact">
-                            {visibleRoundupItems.slice(0, 3).map((item) => (
-                              <li key={item.id}>
-                                <div className="home-admin-row-media">
-                                  <MediaPreview label={textValue(item.title, "Roundup")} src={item.image_url} />
-                                </div>
-                                <div className="home-admin-compact-meta">
-                                  <span className="home-admin-meta">{item.sort_order ?? "-"} | {textValue(item.type, "sem tipo")}</span>
-                                  <StatusPill status={item.status} />
-                                </div>
-                                <strong>{textValue(item.title, "Item sem conteudo")}</strong>
-                              </li>
-                            ))}
-                            {visibleRoundupItems.length === 0 ? (
-                              <li className="home-admin-empty-group">
-                                <strong>Sem videos/resumos com conteudo visivel.</strong>
-                                <small>A tabela site_editorial_roundup_items continua apenas em leitura nesta fase.</small>
-                              </li>
-                            ) : null}
-                          </ul>
-                        ) : (
-                          <div className="home-admin-card-grid is-compact">
-                            {highlights.slice(0, 3).map((item) => (
-                              <article className="home-admin-card" key={item.id}>
-                                <div className="home-admin-card-media">
-                                  <MediaPreview label={textValue(item.title, "Destaque")} src={item.image_url} />
-                                </div>
-                                <div className="home-admin-card-body">
-                                  <span className="home-admin-meta">{item.sort_order ?? "-"} | {textValue(item.label, "sem etiqueta")}</span>
-                                  <h3>{textValue(item.title, "Sem titulo")}</h3>
-                                  <StatusPill status={item.status} />
-                                </div>
-                              </article>
-                            ))}
-                            {highlights.length === 0 ? <p className="home-admin-empty">Sem destaques para apresentar.</p> : null}
+                    <div className="home-admin-composition-body" data-home-composition-form>
+                      <div className="home-admin-composition-grid">
+                        <div className="home-admin-composition-card">
+                          <h3>Zona abaixo da manchete</h3>
+                          <p>Escolhe que conjunto ocupa a area inferior esquerda da composicao.</p>
+                          <section className="home-admin-form-section">
+                            <h4>Modo da zona</h4>
+                            <div className="home-admin-form-grid">
+                              <label className="home-admin-field">
+                                <span>Tipo de conteudo abaixo da manchete</span>
+                                <select data-home-below-select name="below_headline_mode" defaultValue={belowHeadlineMode}>
+                                  <option value="highlights">Destaques abaixo da manchete</option>
+                                  <option value="roundup">Videos / Resumo / Roundup</option>
+                                </select>
+                              </label>
+                            </div>
+                          </section>
+                          <section
+                            className="home-admin-form-section home-admin-mode-section"
+                            data-home-below-section="highlights"
+                            hidden={belowHeadlineMode !== "highlights"}
+                          >
+                            <h4>Destaques abaixo da manchete</h4>
+                            <div className="home-admin-form-grid">
+                              <TextField label="Titulo abaixo da manchete" name="below_headline_heading" value={editorial.below_headline_heading} />
+                              <TextField
+                                label="Cor do titulo abaixo da manchete"
+                                name="below_headline_heading_color"
+                                value={editorial.below_headline_heading_color}
+                                placeholder="#10151b"
+                              />
+                            </div>
+                            <div className="home-admin-card-grid is-compact">
+                              {highlights.slice(0, 3).map((item) => (
+                                <article className="home-admin-card" key={item.id}>
+                                  <div className="home-admin-card-media">
+                                    <MediaPreview label={textValue(item.title, "Destaque")} src={item.image_url} />
+                                  </div>
+                                  <div className="home-admin-card-body">
+                                    <span className="home-admin-meta">{item.sort_order ?? "-"} | {textValue(item.label, "sem etiqueta")}</span>
+                                    <h3>{textValue(item.title, "Sem titulo")}</h3>
+                                    <StatusPill status={item.status} />
+                                  </div>
+                                </article>
+                              ))}
+                              {highlights.length === 0 ? <p className="home-admin-empty">Sem destaques para apresentar.</p> : null}
+                            </div>
+                            <p className="home-admin-muted-card home-admin-empty">
+                              Os itens de site_editorial_highlights continuam em leitura nesta fase.
+                            </p>
+                          </section>
+                          <section
+                            className="home-admin-form-section home-admin-mode-section"
+                            data-home-below-section="roundup"
+                            hidden={belowHeadlineMode !== "roundup"}
+                          >
+                            <h4>Videos / Resumo / Roundup</h4>
+                            <div className="home-admin-form-grid">
+                              <TextField label="Titulo roundup/video" name="roundup_video_heading" value={editorial.roundup_video_heading} />
+                              <TextField
+                                label="Cor titulo roundup/video"
+                                name="roundup_video_heading_color"
+                                value={editorial.roundup_video_heading_color}
+                                placeholder="#10151b"
+                              />
+                            </div>
+                            <ul className="home-admin-list is-compact">
+                              {visibleRoundupItems.slice(0, 3).map((item) => (
+                                <li key={item.id}>
+                                  <div className="home-admin-row-media">
+                                    <MediaPreview label={textValue(item.title, "Roundup")} src={item.image_url} />
+                                  </div>
+                                  <div className="home-admin-compact-meta">
+                                    <span className="home-admin-meta">{item.sort_order ?? "-"} | {textValue(item.type, "sem tipo")}</span>
+                                    <StatusPill status={item.status} />
+                                  </div>
+                                  <strong>{textValue(item.title, "Item sem conteudo")}</strong>
+                                </li>
+                              ))}
+                              {visibleRoundupItems.length === 0 ? (
+                                <li className="home-admin-empty-group">
+                                  <strong>Sem videos/resumos com conteudo visivel.</strong>
+                                  <small>A tabela site_editorial_roundup_items continua apenas em leitura nesta fase.</small>
+                                </li>
+                              ) : null}
+                            </ul>
+                          </section>
+                          <section className="home-admin-form-section">
+                            <h4>Resumo de leitura</h4>
+                            <DetailList
+                              rows={[
+                                ["site_editorials", editorial.id ? codeValue(editorial.id) : "Sem registo"],
+                                ["site_editorial_highlights", `${highlights.length} itens`],
+                                ["site_editorial_latest_news", `${latestNews.length} itens`],
+                                ["site_editorial_roundup_items", `${roundupItems.length} itens`],
+                                ["site_featured_matches", `${featuredMatches.length} jogos`]
+                              ]}
+                            />
+                          </section>
+                          <div className="home-admin-save-row">
+                            <p>Guarda apenas os modos/cabecalhos em site_editorials. A Home publica continua intacta.</p>
+                            <button name="save_context" type="submit" value="composition">Guardar composicao</button>
                           </div>
-                        )}
-                      </section>
-                      <section className="home-admin-form-section">
-                        <h3>Resumo de leitura</h3>
-                        <DetailList
-                          rows={[
-                            ["site_editorials", editorial.id ? codeValue(editorial.id) : "Sem registo"],
-                            ["site_editorial_highlights", `${highlights.length} itens`],
-                            ["site_editorial_latest_news", `${latestNews.length} itens`],
-                            ["site_editorial_roundup_items", `${roundupItems.length} itens`],
-                            ["site_featured_matches", `${featuredMatches.length} jogos`]
-                          ]}
-                        />
-                        {featuredMatches.length > 0 ? (
-                          <ul className="home-admin-list home-admin-featured-match-list">
-                            {featuredMatches.map((item, index) => (
-                              <li key={item.id ?? `${item.match_id}-${index}`}>
-                                <span className="home-admin-meta">posicao {item.sort_order ?? "-"}</span>
-                                <strong>{codeValue(item.match_id, "Sem match_id")}</strong>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : null}
-                      </section>
-                      <div className="home-admin-save-row">
-                        <p>Guarda apenas os modos/cabecalhos em site_editorials. A Home publica continua intacta.</p>
-                        <button name="save_context" type="submit" value="composition">Guardar composicao</button>
+                        </div>
+
+                        <div className="home-admin-composition-side-stack">
+                          <section className="home-admin-composition-card" id="home-complement">
+                            <h3>Bloco complementar</h3>
+                            <p>Escolhe o conteudo do espaco editorial da direita.</p>
+                            <FeedbackMessage message={scopedMessage(params, "complement")} />
+                            <section className="home-admin-form-section">
+                              <h4>Modo do complemento</h4>
+                              <div className="home-admin-form-grid">
+                                <label className="home-admin-field is-wide">
+                                  <span>Tipo de bloco complementar</span>
+                                  <select data-home-complement-select name="complementary_mode" defaultValue={complementaryMode}>
+                                    <option value="">Sem complemento</option>
+                                    <option value="complementary_story">Complemento da manchete</option>
+                                    <option value="roundup_video">Video do Resumo da Home</option>
+                                  </select>
+                                </label>
+                              </div>
+                            </section>
+                            <section
+                              className="home-admin-form-section home-admin-mode-section"
+                              data-home-complement-section="complementary_story"
+                              hidden={complementaryMode !== "complementary_story"}
+                            >
+                              <h4>Complemento da manchete</h4>
+                              <div className="home-admin-form-grid">
+                                <TextField label="Etiqueta" name="complementary_label" value={editorial.complementary_label} />
+                                <TextField label="Titulo" name="complementary_title" value={editorial.complementary_title} wide />
+                                <TextAreaField label="Texto" name="complementary_text" value={editorial.complementary_text} />
+                                <TextField label="Imagem" name="complementary_image_url" value={editorial.complementary_image_url} wide />
+                                <TextField label="Link" name="complementary_link_url" value={editorial.complementary_link_url} wide />
+                                <StatusField label="Estado" name="complementary_status" value={editorial.complementary_status} />
+                              </div>
+                            </section>
+                            <section
+                              className="home-admin-form-section home-admin-mode-section"
+                              data-home-complement-section="roundup_video"
+                              hidden={complementaryMode !== "roundup_video"}
+                            >
+                              <h4>Video do Resumo da Home</h4>
+                              <div className="home-admin-form-grid">
+                                <label className="home-admin-field is-wide">
+                                  <span>Item de resumo inicial</span>
+                                  <select name="complementary_roundup_item_id" defaultValue={editorial.complementary_roundup_item_id ?? ""}>
+                                    <option value="">Usar primeiro item publicado</option>
+                                    {roundupItems.map((item) => (
+                                      <option key={item.id} value={item.id}>
+                                        {item.sort_order ?? "-"} - {textValue(item.title, item.label, "Item sem titulo")}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                              </div>
+                              <ul className="home-admin-list is-compact">
+                                {visibleRoundupItems.slice(0, 3).map((item) => (
+                                  <li key={item.id}>
+                                    <div className="home-admin-row-media">
+                                      <MediaPreview label={textValue(item.title, "Roundup")} src={item.image_url} />
+                                    </div>
+                                    <div className="home-admin-compact-meta">
+                                      <span className="home-admin-meta">{item.sort_order ?? "-"} | {textValue(item.type, "sem tipo")}</span>
+                                      <StatusPill status={item.status} />
+                                    </div>
+                                    <strong>{textValue(item.title, "Item sem conteudo")}</strong>
+                                  </li>
+                                ))}
+                                {visibleRoundupItems.length === 0 ? (
+                                  <li className="home-admin-empty-group">
+                                    <strong>Sem itens de resumo com conteudo visivel.</strong>
+                                    <small>A relacao usa apenas complementary_mode e complementary_roundup_item_id. Nao ha schema novo.</small>
+                                  </li>
+                                ) : null}
+                              </ul>
+                            </section>
+                            <div className="home-admin-save-row">
+                              <p>Guarda a tabela-mae site_editorials. Nao edita roundup_items.</p>
+                              <button name="save_context" type="submit" value="complement">Guardar bloco complementar</button>
+                            </div>
+                          </section>
+
+                          <section className="home-admin-composition-card home-admin-final-zone" id="home-final-zone">
+                            <h3>Zona editorial final</h3>
+                            <p>
+                              Adaptacao da zona final da Editorial da Jornada. Nesta fase usa site_editorial_latest_news em
+                              leitura, sem inventar campos de modo/titulo em site_editorials.
+                            </p>
+                            {latestNews.length > 0 ? (
+                              <ul className="home-admin-list is-compact">
+                                {visibleLatestNews.map((item) => {
+                                  const itemHasContent = latestNewsHasReadableContent(item);
+                                  const emptyLabel = compactStateLabel(item.status, itemHasContent);
+
+                                  return (
+                                    <li className={itemHasContent ? undefined : "home-admin-muted-card"} key={item.id}>
+                                      <div className="home-admin-row-media">
+                                        <MediaPreview label={textValue(item.title, "Ultima noticia")} src={item.image_url} />
+                                      </div>
+                                      <div className="home-admin-compact-meta">
+                                        <span className="home-admin-meta">
+                                          {item.sort_order ?? "-"} | {textValue(item.time_label, "sem hora")}
+                                        </span>
+                                        <StatusPill status={item.status} />
+                                      </div>
+                                      <strong>{emptyLabel ?? textValue(item.title, "Item sem conteudo")}</strong>
+                                      <DetailList rows={[["Link", fieldLink(item.link_url)]]} />
+                                    </li>
+                                  );
+                                })}
+                                {emptyLatestNews.length > 0 ? (
+                                  <li className="home-admin-empty-group">
+                                    <div className="home-admin-compact-meta">
+                                      <StatusPill status="draft" />
+                                      <span className="home-admin-meta">{sortOrderList(emptyLatestNews)}</span>
+                                    </div>
+                                    <strong>{emptyGroupLabel(emptyLatestNews.length)}</strong>
+                                    <small>Itens sem hora, titulo, imagem ou link. Mantidos como diagnostico.</small>
+                                  </li>
+                                ) : null}
+                              </ul>
+                            ) : (
+                              <p className="home-admin-empty">Sem itens em site_editorial_latest_news para apresentar.</p>
+                            )}
+                          </section>
+                        </div>
                       </div>
                     </div>
                   </section>
@@ -2073,51 +2205,30 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                 )}
               </section>
 
-              <section className="home-admin-zone-panel home-admin-panel" data-zone="latest">
-                <header>
-                  <div>
-                    <h2>Ultimas noticias / ao minuto</h2>
-                    <p>Leitura apenas de site_editorial_latest_news, incluindo draft ou vazios.</p>
-                  </div>
-                  <span className="home-admin-source">{latestNews.length} itens</span>
-                </header>
-                {latestNews.length > 0 ? (
-                  <ul className="home-admin-list is-compact">
-                    {visibleLatestNews.map((item) => {
-                      const itemHasContent = latestNewsHasReadableContent(item);
-                      const emptyLabel = compactStateLabel(item.status, itemHasContent);
+              <script
+                dangerouslySetInnerHTML={{
+                  __html: `
+                    (function () {
+                      function syncSelect(selectSelector, sectionSelector, attributeName) {
+                        var select = document.querySelector(selectSelector);
+                        var sections = Array.prototype.slice.call(document.querySelectorAll(sectionSelector));
+                        if (!select || !sections.length) return;
+                        function sync() {
+                          var mode = select.value;
+                          sections.forEach(function (section) {
+                            section.hidden = section.getAttribute(attributeName) !== mode;
+                          });
+                        }
+                        select.addEventListener('change', sync);
+                        sync();
+                      }
 
-                      return (
-                        <li className={itemHasContent ? undefined : "home-admin-muted-card"} key={item.id}>
-                          <div className="home-admin-row-media">
-                            <MediaPreview label={textValue(item.title, "Ultima noticia")} src={item.image_url} />
-                          </div>
-                          <div className="home-admin-compact-meta">
-                            <span className="home-admin-meta">
-                              {item.sort_order ?? "-"} | {textValue(item.time_label, "sem hora")}
-                            </span>
-                            <StatusPill status={item.status} />
-                          </div>
-                          <strong>{emptyLabel ?? textValue(item.title, "Item sem conteudo")}</strong>
-                          <DetailList rows={[["Link", fieldLink(item.link_url)]]} />
-                        </li>
-                      );
-                    })}
-                    {emptyLatestNews.length > 0 ? (
-                      <li className="home-admin-empty-group">
-                        <div className="home-admin-compact-meta">
-                          <StatusPill status="draft" />
-                          <span className="home-admin-meta">{sortOrderList(emptyLatestNews)}</span>
-                        </div>
-                        <strong>{emptyGroupLabel(emptyLatestNews.length)}</strong>
-                        <small>Itens sem hora, titulo, imagem ou link. Mantidos como diagnostico.</small>
-                      </li>
-                    ) : null}
-                  </ul>
-                ) : (
-                  <p className="home-admin-empty">Sem ultimas noticias para apresentar.</p>
-                )}
-              </section>
+                      syncSelect('[data-home-below-select]', '[data-home-below-section]', 'data-home-below-section');
+                      syncSelect('[data-home-complement-select]', '[data-home-complement-section]', 'data-home-complement-section');
+                    })();
+                  `
+                }}
+              />
             </div>
         </section>
       </div>
