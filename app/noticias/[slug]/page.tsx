@@ -276,7 +276,7 @@ const articlePageStyles = `
 
   .news-article-title {
     margin: 0;
-    max-width: 700px;
+    max-width: 100%;
     color: #05080c;
     font-family: Georgia, "Times New Roman", serif;
     font-size: clamp(32px, 3vw, 43px);
