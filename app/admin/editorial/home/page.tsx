@@ -2478,6 +2478,15 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                           />
                                         </label>
                                         <label className="home-admin-field is-wide">
+                                          <span>Subtitulo / resumo</span>
+                                          <textarea
+                                            form="home-final-zone-form"
+                                            name={`final_news_${row.key}_subtitle`}
+                                            rows={3}
+                                            defaultValue={item?.subtitle ?? ""}
+                                          />
+                                        </label>
+                                        <label className="home-admin-field is-wide">
                                           <span>Imagem</span>
                                           <input
                                             form="home-final-zone-form"
@@ -2508,8 +2517,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                               ) : null}
                               <div className="home-admin-save-row">
                                 <p>
-                                  Guarda apenas site_editorial_latest_news. Usa ordem, hora, titulo, imagem, link e estado;
-                                  subtitulo/resumo nao e gravado porque nao foi confirmado como coluna real desta tabela.
+                                  Guarda apenas site_editorial_latest_news. Usa ordem, hora, titulo, subtitulo/resumo,
+                                  imagem, link e estado.
                                 </p>
                                 <button form="home-final-zone-form" type="submit">Guardar Zona Editorial Final</button>
                               </div>

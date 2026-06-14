@@ -368,7 +368,7 @@ async function updateFeaturedMatches(request: Request, formData: FormData) {
 }
 
 function hasFinalZoneContent(payload: Record<string, string | number | null>) {
-  return Boolean(payload.time_label || payload.title || payload.image_url || payload.link_url);
+  return Boolean(payload.time_label || payload.title || payload.subtitle || payload.image_url || payload.link_url);
 }
 
 function hasHighlightContent(payload: Record<string, string | number | null>) {
@@ -459,6 +459,7 @@ async function updateFinalZone(request: Request, formData: FormData) {
       sort_order: sortOrder,
       time_label: cleanText(formData.get(`final_news_${rowKey}_time_label`)),
       title: cleanText(formData.get(`final_news_${rowKey}_title`)),
+      subtitle: cleanText(formData.get(`final_news_${rowKey}_subtitle`)),
       image_url: cleanText(formData.get(`final_news_${rowKey}_image_url`)),
       link_url: cleanText(formData.get(`final_news_${rowKey}_link_url`)),
       status: cleanStatus(cleanText(formData.get(`final_news_${rowKey}_status`))),
