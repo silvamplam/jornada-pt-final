@@ -180,7 +180,7 @@ type PageProps = {
   }>;
 };
 
-type FeedbackScope = "games" | "headline" | "side" | "composition" | "complement" | "final-zone";
+type FeedbackScope = "games" | "headline" | "side" | "composition" | "complement" | "highlights" | "final-zone";
 
 const homeEditorialStyles = `
   body {
@@ -1173,7 +1173,14 @@ const homeEditorialStyles = `
     gap: 12px;
   }
 
-  .home-admin-final-editor-card {
+  .home-admin-highlights-form,
+  .home-admin-highlight-editor-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .home-admin-final-editor-card,
+  .home-admin-highlight-editor-card {
     display: grid;
     gap: 12px;
     min-width: 0;
@@ -1183,16 +1190,19 @@ const homeEditorialStyles = `
     padding: 12px;
   }
 
-  .home-admin-final-editor-card.is-primary {
+  .home-admin-final-editor-card.is-primary,
+  .home-admin-highlight-editor-card.is-primary {
     border-color: #d2dae5;
     background: #fbfcfe;
   }
 
-  .home-admin-final-editor-card.is-muted {
+  .home-admin-final-editor-card.is-muted,
+  .home-admin-highlight-editor-card.is-muted {
     background: #f7f9fc;
   }
 
-  .home-admin-final-editor-card legend {
+  .home-admin-final-editor-card legend,
+  .home-admin-highlight-editor-card legend {
     color: #6a7280;
     font-size: 11px;
     font-weight: 800;
@@ -1201,14 +1211,16 @@ const homeEditorialStyles = `
     padding: 0 4px;
   }
 
-  .home-admin-final-editor-preview {
+  .home-admin-final-editor-preview,
+  .home-admin-highlight-editor-preview {
     display: grid;
     grid-template-columns: 96px minmax(0, 1fr);
     gap: 10px 12px;
     align-items: start;
   }
 
-  .home-admin-final-editor-card.is-primary .home-admin-final-editor-preview {
+  .home-admin-final-editor-card.is-primary .home-admin-final-editor-preview,
+  .home-admin-highlight-editor-card.is-primary .home-admin-highlight-editor-preview {
     grid-template-columns: minmax(128px, 0.42fr) minmax(0, 0.58fr);
   }
 
@@ -1239,6 +1251,8 @@ const homeEditorialStyles = `
     .home-admin-list.home-admin-final-zone-list .home-admin-final-item.is-primary,
     .home-admin-final-editor-preview,
     .home-admin-final-editor-card.is-primary .home-admin-final-editor-preview,
+    .home-admin-highlight-editor-preview,
+    .home-admin-highlight-editor-card.is-primary .home-admin-highlight-editor-preview,
     .home-admin-game-row {
       display: grid;
       grid-template-columns: 1fr;
@@ -1395,6 +1409,10 @@ function roundupHasReadableContent(item: SiteEditorialRoundupItem) {
   return hasContent(item.title, item.subtitle, item.label, item.image_url, item.video_url, item.duration);
 }
 
+function highlightHasReadableContent(item: SiteEditorialHighlight) {
+  return hasContent(item.title, item.subtitle, item.label, item.image_url, item.link_url);
+}
+
 function latestNewsHasReadableContent(item: SiteEditorialLatestNews) {
   return hasContent(item.title, item.subtitle, item.image_url, item.link_url, item.time_label);
 }
@@ -1476,6 +1494,7 @@ function errorMessage(error: string | undefined, detail?: string) {
     "invalid-color": "Cor invalida. Use formato hex, por exemplo #10151b.",
     "missing-selection-set": "Nao foi possivel guardar: a lista de jogos disponiveis nao chegou ao servidor.",
     "invalid-featured-match": "A selecao contem um jogo invalido ou que ja nao existe.",
+    "invalid-highlight-item": "Os Destaques contem um item que nao pertence a esta Home.",
     "invalid-final-zone-item": "A Zona Editorial Final contem um item que nao pertence a esta Home.",
     "empty-featured-selection": "Por seguranca, esta fase nao guarda uma selecao vazia. Mantem pelo menos um jogo selecionado.",
     "required-field": "O Supabase recusou a gravacao por campo obrigatorio em falta.",
@@ -1515,6 +1534,7 @@ function scopedMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>, 
     side: "Bloco lateral guardado com sucesso.",
     composition: "Composicao abaixo da manchete guardada com sucesso.",
     complement: "Complemento guardado com sucesso.",
+    highlights: "Destaques abaixo da manchete guardados com sucesso.",
     "final-zone": "Zona Editorial Final guardada com sucesso."
   };
 
@@ -1627,6 +1647,30 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
   const { editorial, highlights, latestNews, roundupItems, featuredMatches, error } = await readHomeEditorialData();
   const gameSelection = await readHomeGameSelectionData();
   const visibleRoundupItems = roundupItems.filter(roundupHasReadableContent);
+  const fixedHighlightSlots = [1, 2, 3];
+  const usedHighlightIds = new Set<string>();
+  const highlightEditorRows = [
+    ...fixedHighlightSlots.map((order) => {
+      const item = highlights.find((candidate) => candidate.sort_order === order && !usedHighlightIds.has(candidate.id)) ?? null;
+      if (item) {
+        usedHighlightIds.add(item.id);
+      }
+
+      return {
+        key: item?.id ?? `slot-${order}`,
+        order,
+        item
+      };
+    }),
+    ...highlights
+      .filter((item) => !usedHighlightIds.has(item.id))
+      .map((item, index) => ({
+        key: item.id,
+        order: item.sort_order ?? fixedHighlightSlots.length + index + 1,
+        item
+      }))
+  ];
+  const emptyHighlights = highlights.filter((item) => !highlightHasReadableContent(item));
   const fixedFinalZoneSlots = [1, 2, 3, 4];
   const usedFinalZoneIds = new Set<string>();
   const finalZoneEditorRows = [
@@ -1933,6 +1977,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
 
               {editorial ? (
                 <>
+                <form className="home-admin-hidden-form" id="home-highlights-form" action="/api/admin/editorial/home" method="post" />
                 <form className="home-admin-hidden-form" id="home-final-zone-form" action="/api/admin/editorial/home" method="post" />
                 <form className="home-admin-editorial-flow" action="/api/admin/editorial/home" method="post">
                   <input type="hidden" name="action_type" value="update_site_editorial_home" />
@@ -2036,9 +2081,11 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                           <section
                             className="home-admin-form-section home-admin-mode-section"
                             data-home-below-section="highlights"
+                            id="home-highlights"
                             hidden={belowHeadlineMode !== "highlights"}
                           >
                             <h4>Destaques abaixo da manchete</h4>
+                            <FeedbackMessage message={scopedMessage(params, "highlights")} />
                             <div className="home-admin-form-grid">
                               <TextField label="Titulo abaixo da manchete" name="below_headline_heading" value={editorial.below_headline_heading} />
                               <TextField
@@ -2048,24 +2095,147 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                 placeholder="#10151b"
                               />
                             </div>
-                            <div className="home-admin-card-grid is-compact">
-                              {highlights.slice(0, 3).map((item) => (
-                                <article className="home-admin-card" key={item.id}>
-                                  <div className="home-admin-card-media">
-                                    <MediaPreview label={textValue(item.title, "Destaque")} src={item.image_url} />
-                                  </div>
-                                  <div className="home-admin-card-body">
-                                    <span className="home-admin-meta">{item.sort_order ?? "-"} | {textValue(item.label, "sem etiqueta")}</span>
-                                    <h3>{textValue(item.title, "Sem titulo")}</h3>
-                                    <StatusPill status={item.status} />
-                                  </div>
-                                </article>
-                              ))}
-                              {highlights.length === 0 ? <p className="home-admin-empty">Sem destaques para apresentar.</p> : null}
+                            <div className="home-admin-highlights-form" role="group" aria-label="Editar Destaques abaixo da manchete">
+                              <input form="home-highlights-form" type="hidden" name="action_type" value="update_highlights" />
+                              <input form="home-highlights-form" type="hidden" name="site_editorial_id" value={editorial.id} />
+                              {highlights.length === 0 ? (
+                                <p className="home-admin-muted-card home-admin-empty">
+                                  Ainda nao existem destaques guardados. Preenche uma das linhas abaixo para criar um destaque seguro em
+                                  site_editorial_highlights.
+                                </p>
+                              ) : null}
+                              <div className="home-admin-highlight-editor-list">
+                                {highlightEditorRows.map((row, index) => {
+                                  const item = row.item;
+                                  const itemHasContent = item ? highlightHasReadableContent(item) : false;
+                                  const emptyLabel = item ? compactStateLabel(item.status, itemHasContent) : null;
+                                  const cleanLink = item?.link_url?.trim();
+                                  const cardClass = [
+                                    "home-admin-highlight-editor-card",
+                                    index === 0 ? "is-primary" : "",
+                                    item && !itemHasContent ? "is-muted" : "",
+                                    item ? "" : "is-new"
+                                  ].filter(Boolean).join(" ");
+
+                                  return (
+                                    <fieldset className={cardClass} key={row.key}>
+                                      <legend>Destaque {row.order}</legend>
+                                      <input form="home-highlights-form" type="hidden" name="highlight_row" value={row.key} />
+                                      <input
+                                        form="home-highlights-form"
+                                        type="hidden"
+                                        name={`highlight_${row.key}_id`}
+                                        defaultValue={item?.id ?? ""}
+                                      />
+                                      <div className="home-admin-highlight-editor-preview">
+                                        <div className="home-admin-row-media">
+                                          <MediaPreview label={textValue(item?.title, "Destaque")} src={item?.image_url} />
+                                        </div>
+                                        <div className="home-admin-final-content">
+                                          <div className="home-admin-compact-meta">
+                                            <span className="home-admin-meta">
+                                              {item?.sort_order ?? row.order} | {textValue(item?.label, "sem etiqueta")}
+                                            </span>
+                                            <StatusPill status={item?.status} />
+                                          </div>
+                                          <strong>{emptyLabel ?? textValue(item?.title, "Novo destaque editorial")}</strong>
+                                          {item?.subtitle?.trim() ? <p>{item.subtitle}</p> : null}
+                                          <div className="home-admin-final-link-row">
+                                            {cleanLink ? (
+                                              <a className="home-admin-link-out" href={cleanLink} title={cleanLink}>
+                                                Abrir link
+                                              </a>
+                                            ) : (
+                                              <span className="home-admin-meta">Sem link</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="home-admin-form-grid">
+                                        <label className="home-admin-field">
+                                          <span>Ordem</span>
+                                          <input
+                                            form="home-highlights-form"
+                                            min={1}
+                                            name={`highlight_${row.key}_sort_order`}
+                                            type="number"
+                                            defaultValue={item?.sort_order ?? row.order}
+                                          />
+                                        </label>
+                                        <label className="home-admin-field">
+                                          <span>Etiqueta</span>
+                                          <input
+                                            form="home-highlights-form"
+                                            name={`highlight_${row.key}_label`}
+                                            type="text"
+                                            defaultValue={item?.label ?? ""}
+                                          />
+                                        </label>
+                                        <label className="home-admin-field">
+                                          <span>Estado</span>
+                                          <select
+                                            form="home-highlights-form"
+                                            name={`highlight_${row.key}_status`}
+                                            defaultValue={item?.status === "published" ? "published" : "draft"}
+                                          >
+                                            <option value="draft">Rascunho</option>
+                                            <option value="published">Publicado</option>
+                                          </select>
+                                        </label>
+                                        <label className="home-admin-field is-wide">
+                                          <span>Titulo</span>
+                                          <input
+                                            form="home-highlights-form"
+                                            name={`highlight_${row.key}_title`}
+                                            type="text"
+                                            defaultValue={item?.title ?? ""}
+                                          />
+                                        </label>
+                                        <label className="home-admin-field is-wide">
+                                          <span>Subtitulo</span>
+                                          <textarea
+                                            form="home-highlights-form"
+                                            name={`highlight_${row.key}_subtitle`}
+                                            rows={3}
+                                            defaultValue={item?.subtitle ?? ""}
+                                          />
+                                        </label>
+                                        <label className="home-admin-field is-wide">
+                                          <span>Imagem</span>
+                                          <input
+                                            form="home-highlights-form"
+                                            name={`highlight_${row.key}_image_url`}
+                                            type="url"
+                                            defaultValue={item?.image_url ?? ""}
+                                          />
+                                        </label>
+                                        <label className="home-admin-field is-wide">
+                                          <span>Link</span>
+                                          <input
+                                            form="home-highlights-form"
+                                            name={`highlight_${row.key}_link_url`}
+                                            type="text"
+                                            defaultValue={item?.link_url ?? ""}
+                                          />
+                                        </label>
+                                      </div>
+                                    </fieldset>
+                                  );
+                                })}
+                              </div>
+                              {emptyHighlights.length > 0 ? (
+                                <p className="home-admin-muted-card home-admin-empty">
+                                  {emptyGroupLabel(emptyHighlights.length)} nos destaques, nas posicoes {sortOrderList(emptyHighlights)}.
+                                  Estes itens continuam editaveis acima.
+                                </p>
+                              ) : null}
+                              <div className="home-admin-save-row">
+                                <p>
+                                  Guarda apenas site_editorial_highlights. Nao cria relacao com artigos e nao altera a Home publica /.
+                                </p>
+                                <button form="home-highlights-form" type="submit">Guardar destaques abaixo da manchete</button>
+                              </div>
                             </div>
-                            <p className="home-admin-muted-card home-admin-empty">
-                              Os itens de site_editorial_highlights continuam em leitura nesta fase.
-                            </p>
                           </section>
                           <section
                             className="home-admin-form-section home-admin-mode-section"
@@ -2208,7 +2378,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                 <h3>Zona editorial final</h3>
                                 <p>Edita os cartoes editoriais que fecham a composicao da Home.</p>
                               </div>
-                              <span className="home-admin-pill is-published">site_editorial_latest_news</span>
                             </div>
                             <FeedbackMessage message={scopedMessage(params, "final-zone")} />
                             <div className="home-admin-final-zone-form" role="group" aria-label="Editar Zona Editorial Final">
