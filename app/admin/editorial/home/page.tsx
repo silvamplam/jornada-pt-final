@@ -180,7 +180,7 @@ type PageProps = {
   }>;
 };
 
-type FeedbackScope = "games" | "headline" | "side" | "composition" | "complement";
+type FeedbackScope = "games" | "headline" | "side" | "composition" | "complement" | "final-zone";
 
 const homeEditorialStyles = `
   body {
@@ -1159,6 +1159,59 @@ const homeEditorialStyles = `
     align-items: center;
   }
 
+  .home-admin-hidden-form {
+    display: none;
+  }
+
+  .home-admin-final-zone-form {
+    display: grid;
+    gap: 12px;
+  }
+
+  .home-admin-final-zone-form .home-admin-final-zone-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .home-admin-final-editor-card {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+    border: 1px solid #e1e7ef;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 12px;
+  }
+
+  .home-admin-final-editor-card.is-primary {
+    border-color: #d2dae5;
+    background: #fbfcfe;
+  }
+
+  .home-admin-final-editor-card.is-muted {
+    background: #f7f9fc;
+  }
+
+  .home-admin-final-editor-card legend {
+    color: #6a7280;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0 4px;
+  }
+
+  .home-admin-final-editor-preview {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 10px 12px;
+    align-items: start;
+  }
+
+  .home-admin-final-editor-card.is-primary .home-admin-final-editor-preview {
+    grid-template-columns: minmax(128px, 0.42fr) minmax(0, 0.58fr);
+  }
+
   @media (max-width: 1100px) {
     .home-admin-grid,
     .home-admin-feature,
@@ -1184,6 +1237,8 @@ const homeEditorialStyles = `
     .home-admin-list.is-compact li,
     .home-admin-list.home-admin-final-zone-list .home-admin-final-item,
     .home-admin-list.home-admin-final-zone-list .home-admin-final-item.is-primary,
+    .home-admin-final-editor-preview,
+    .home-admin-final-editor-card.is-primary .home-admin-final-editor-preview,
     .home-admin-game-row {
       display: grid;
       grid-template-columns: 1fr;
@@ -1215,19 +1270,6 @@ function statusClass(value: string | null | undefined) {
   if (normalized === "published") return " is-published";
   if (normalized === "draft") return " is-draft";
   return "";
-}
-
-function fieldLink(value: string | null | undefined) {
-  const cleanValue = value?.trim();
-  if (!cleanValue) {
-    return <span className="home-admin-meta">Sem link</span>;
-  }
-
-  return (
-    <a className="home-admin-link-out" href={cleanValue} title={cleanValue}>
-      {cleanValue}
-    </a>
-  );
 }
 
 function codeValue(value: string | number | null | undefined, fallback = "Sem valor") {
@@ -1434,6 +1476,7 @@ function errorMessage(error: string | undefined, detail?: string) {
     "invalid-color": "Cor invalida. Use formato hex, por exemplo #10151b.",
     "missing-selection-set": "Nao foi possivel guardar: a lista de jogos disponiveis nao chegou ao servidor.",
     "invalid-featured-match": "A selecao contem um jogo invalido ou que ja nao existe.",
+    "invalid-final-zone-item": "A Zona Editorial Final contem um item que nao pertence a esta Home.",
     "empty-featured-selection": "Por seguranca, esta fase nao guarda uma selecao vazia. Mantem pelo menos um jogo selecionado.",
     "required-field": "O Supabase recusou a gravacao por campo obrigatorio em falta.",
     constraint: "O Supabase recusou a gravacao por constraint da tabela.",
@@ -1471,7 +1514,8 @@ function scopedMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>, 
     headline: "Manchete guardada com sucesso.",
     side: "Bloco lateral guardado com sucesso.",
     composition: "Composicao abaixo da manchete guardada com sucesso.",
-    complement: "Complemento guardado com sucesso."
+    complement: "Complemento guardado com sucesso.",
+    "final-zone": "Zona Editorial Final guardada com sucesso."
   };
 
   return { type: "success" as const, text: successMessages[scope] };
@@ -1583,8 +1627,29 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
   const { editorial, highlights, latestNews, roundupItems, featuredMatches, error } = await readHomeEditorialData();
   const gameSelection = await readHomeGameSelectionData();
   const visibleRoundupItems = roundupItems.filter(roundupHasReadableContent);
-  const emptyRoundupItems = roundupItems.filter((item) => !roundupHasReadableContent(item));
-  const visibleLatestNews = latestNews.filter(latestNewsHasReadableContent);
+  const fixedFinalZoneSlots = [1, 2, 3, 4];
+  const usedFinalZoneIds = new Set<string>();
+  const finalZoneEditorRows = [
+    ...fixedFinalZoneSlots.map((order) => {
+      const item = latestNews.find((candidate) => candidate.sort_order === order && !usedFinalZoneIds.has(candidate.id)) ?? null;
+      if (item) {
+        usedFinalZoneIds.add(item.id);
+      }
+
+      return {
+        key: item?.id ?? `slot-${order}`,
+        order,
+        item
+      };
+    }),
+    ...latestNews
+      .filter((item) => !usedFinalZoneIds.has(item.id))
+      .map((item, index) => ({
+        key: item.id,
+        order: item.sort_order ?? fixedFinalZoneSlots.length + index + 1,
+        item
+      }))
+  ];
   const emptyLatestNews = latestNews.filter((item) => !latestNewsHasReadableContent(item));
   const teamsById = new Map(gameSelection.teams.map((team) => [team.id, team]));
   const matchesById = new Map(gameSelection.matches.map((match) => [match.id, match]));
@@ -1867,6 +1932,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
               </section>
 
               {editorial ? (
+                <>
+                <form className="home-admin-hidden-form" id="home-final-zone-form" action="/api/admin/editorial/home" method="post" />
                 <form className="home-admin-editorial-flow" action="/api/admin/editorial/home" method="post">
                   <input type="hidden" name="action_type" value="update_site_editorial_home" />
                   <input type="hidden" name="site_editorial_id" value={editorial.id} />
@@ -2139,157 +2206,153 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                             <div className="home-admin-final-zone-header">
                               <div>
                                 <h3>Zona editorial final</h3>
-                                <p>Cartoes editoriais para fechar a composicao da Home.</p>
+                                <p>Edita os cartoes editoriais que fecham a composicao da Home.</p>
                               </div>
-                              <span className="home-admin-pill is-published">Ultimas noticias</span>
+                              <span className="home-admin-pill is-published">site_editorial_latest_news</span>
                             </div>
-                            {latestNews.length > 0 ? (
-                              <ul className="home-admin-list is-compact home-admin-final-zone-list">
-                                {visibleLatestNews.map((item, index) => {
-                                  const itemHasContent = latestNewsHasReadableContent(item);
-                                  const emptyLabel = compactStateLabel(item.status, itemHasContent);
-                                  const cleanLink = item.link_url?.trim();
-                                  const cleanSubtitle = item.subtitle?.trim();
+                            <FeedbackMessage message={scopedMessage(params, "final-zone")} />
+                            <div className="home-admin-final-zone-form" role="group" aria-label="Editar Zona Editorial Final">
+                              <input form="home-final-zone-form" type="hidden" name="action_type" value="update_final_zone" />
+                              <input form="home-final-zone-form" type="hidden" name="site_editorial_id" value={editorial.id} />
+                              {latestNews.length === 0 ? (
+                                <p className="home-admin-muted-card home-admin-empty">
+                                  Ainda nao existem itens guardados. Preenche uma das linhas abaixo para criar um item seguro em
+                                  site_editorial_latest_news.
+                                </p>
+                              ) : null}
+                              <div className="home-admin-final-zone-list">
+                                {finalZoneEditorRows.map((row, index) => {
+                                  const item = row.item;
+                                  const itemHasContent = item ? latestNewsHasReadableContent(item) : false;
+                                  const emptyLabel = item ? compactStateLabel(item.status, itemHasContent) : null;
+                                  const cleanLink = item?.link_url?.trim();
+                                  const cleanSubtitle = item?.subtitle?.trim();
+                                  const cardClass = [
+                                    "home-admin-final-editor-card",
+                                    index === 0 ? "is-primary" : "",
+                                    item && !itemHasContent ? "is-muted" : "",
+                                    item ? "" : "is-new"
+                                  ].filter(Boolean).join(" ");
 
                                   return (
-                                    <li
-                                      className={`home-admin-final-item${index === 0 ? " is-primary" : ""}${itemHasContent ? "" : " home-admin-muted-card"}`}
-                                      key={item.id}
-                                    >
-                                      <div className="home-admin-row-media">
-                                        <MediaPreview label={textValue(item.title, "Ultima noticia")} src={item.image_url} />
-                                      </div>
-                                      <div className="home-admin-final-content">
-                                        <div className="home-admin-compact-meta">
-                                          <span className="home-admin-meta">
-                                            {item.sort_order ?? "-"} | {textValue(item.time_label, "sem hora")}
-                                          </span>
-                                          <StatusPill status={item.status} />
+                                    <fieldset className={cardClass} key={row.key}>
+                                      <legend>Item {row.order}</legend>
+                                      <input form="home-final-zone-form" type="hidden" name="final_news_row" value={row.key} />
+                                      <input
+                                        form="home-final-zone-form"
+                                        type="hidden"
+                                        name={`final_news_${row.key}_id`}
+                                        defaultValue={item?.id ?? ""}
+                                      />
+                                      <div className="home-admin-final-editor-preview">
+                                        <div className="home-admin-row-media">
+                                          <MediaPreview label={textValue(item?.title, "Ultima noticia")} src={item?.image_url} />
                                         </div>
-                                        <strong>{emptyLabel ?? textValue(item.title, "Item sem conteudo")}</strong>
-                                        {cleanSubtitle ? <p>{cleanSubtitle}</p> : null}
-                                        <div className="home-admin-final-link-row">
-                                          {cleanLink ? (
-                                            <a className="home-admin-link-out" href={cleanLink} title={cleanLink}>
-                                              Abrir link
-                                            </a>
-                                          ) : (
-                                            <span className="home-admin-meta">Sem link</span>
-                                          )}
+                                        <div className="home-admin-final-content">
+                                          <div className="home-admin-compact-meta">
+                                            <span className="home-admin-meta">
+                                              {item?.sort_order ?? row.order} | {textValue(item?.time_label, "sem hora")}
+                                            </span>
+                                            <StatusPill status={item?.status} />
+                                          </div>
+                                          <strong>{emptyLabel ?? textValue(item?.title, "Novo item editorial")}</strong>
+                                          {cleanSubtitle ? <p>{cleanSubtitle}</p> : null}
+                                          <div className="home-admin-final-link-row">
+                                            {cleanLink ? (
+                                              <a className="home-admin-link-out" href={cleanLink} title={cleanLink}>
+                                                Abrir link
+                                              </a>
+                                            ) : (
+                                              <span className="home-admin-meta">Sem link</span>
+                                            )}
+                                          </div>
                                         </div>
                                       </div>
-                                    </li>
+                                      <div className="home-admin-form-grid">
+                                        <label className="home-admin-field">
+                                          <span>Ordem</span>
+                                          <input
+                                            form="home-final-zone-form"
+                                            min={1}
+                                            name={`final_news_${row.key}_sort_order`}
+                                            type="number"
+                                            defaultValue={item?.sort_order ?? row.order}
+                                          />
+                                        </label>
+                                        <label className="home-admin-field">
+                                          <span>Hora / etiqueta temporal</span>
+                                          <input
+                                            form="home-final-zone-form"
+                                            name={`final_news_${row.key}_time_label`}
+                                            type="text"
+                                            defaultValue={item?.time_label ?? ""}
+                                          />
+                                        </label>
+                                        <label className="home-admin-field">
+                                          <span>Estado</span>
+                                          <select
+                                            form="home-final-zone-form"
+                                            name={`final_news_${row.key}_status`}
+                                            defaultValue={item?.status === "published" ? "published" : "draft"}
+                                          >
+                                            <option value="draft">Rascunho</option>
+                                            <option value="published">Publicado</option>
+                                          </select>
+                                        </label>
+                                        <label className="home-admin-field is-wide">
+                                          <span>Titulo</span>
+                                          <input
+                                            form="home-final-zone-form"
+                                            name={`final_news_${row.key}_title`}
+                                            type="text"
+                                            defaultValue={item?.title ?? ""}
+                                          />
+                                        </label>
+                                        <label className="home-admin-field is-wide">
+                                          <span>Imagem</span>
+                                          <input
+                                            form="home-final-zone-form"
+                                            name={`final_news_${row.key}_image_url`}
+                                            type="url"
+                                            defaultValue={item?.image_url ?? ""}
+                                          />
+                                        </label>
+                                        <label className="home-admin-field is-wide">
+                                          <span>Link</span>
+                                          <input
+                                            form="home-final-zone-form"
+                                            name={`final_news_${row.key}_link_url`}
+                                            type="text"
+                                            defaultValue={item?.link_url ?? ""}
+                                          />
+                                        </label>
+                                      </div>
+                                    </fieldset>
                                   );
                                 })}
-                                {emptyLatestNews.length > 0 ? (
-                                  <li className="home-admin-empty-group">
-                                    <div className="home-admin-compact-meta">
-                                      <StatusPill status="draft" />
-                                      <span className="home-admin-meta">{sortOrderList(emptyLatestNews)}</span>
-                                    </div>
-                                    <strong>{emptyGroupLabel(emptyLatestNews.length)}</strong>
-                                    <small>Itens sem hora, titulo, imagem ou link. Mantidos como diagnostico.</small>
-                                  </li>
-                                ) : null}
-                              </ul>
-                            ) : (
-                              <p className="home-admin-empty">Sem itens editoriais para apresentar nesta zona.</p>
-                            )}
+                              </div>
+                              {emptyLatestNews.length > 0 ? (
+                                <p className="home-admin-muted-card home-admin-empty">
+                                  {emptyGroupLabel(emptyLatestNews.length)} em rascunho, nas posicoes {sortOrderList(emptyLatestNews)}.
+                                  Estes itens continuam editaveis acima sem criar campos novos.
+                                </p>
+                              ) : null}
+                              <div className="home-admin-save-row">
+                                <p>
+                                  Guarda apenas site_editorial_latest_news. Usa ordem, hora, titulo, imagem, link e estado;
+                                  subtitulo/resumo nao e gravado porque nao foi confirmado como coluna real desta tabela.
+                                </p>
+                                <button form="home-final-zone-form" type="submit">Guardar Zona Editorial Final</button>
+                              </div>
+                            </div>
                           </section>
                         </div>
                       </div>
                     </div>
                   </section>
                 </form>
+                </>
               ) : null}
-
-              <div className="home-admin-section-heading home-admin-reading-heading">
-                <div>
-                  <p className="home-admin-eyebrow">Leitura editorial</p>
-                  <h2>Tabelas filhas da Home</h2>
-                </div>
-                <span>site_*</span>
-              </div>
-
-              <section className="home-admin-zone-panel home-admin-panel" data-zone="highlights">
-                <header>
-                  <div>
-                    <h2>Destaques abaixo da manchete</h2>
-                    <p>Leitura apenas de site_editorial_highlights. Esta fase nao cria edicao desta tabela filha.</p>
-                  </div>
-                  <span className="home-admin-source">{highlights.length} itens</span>
-                </header>
-                {highlights.length > 0 ? (
-                  <div className="home-admin-card-grid">
-                    {highlights.map((item) => (
-                      <article className="home-admin-card" key={item.id}>
-                        <div className="home-admin-card-media">
-                          <MediaPreview label={textValue(item.title, "Destaque")} src={item.image_url} />
-                        </div>
-                        <div className="home-admin-card-body">
-                          <span className="home-admin-meta">
-                            {item.sort_order ?? "-"} | {textValue(item.label, "sem etiqueta")}
-                          </span>
-                          <h3>{textValue(item.title, "Sem titulo")}</h3>
-                          <p>{textValue(item.subtitle, "Sem subtitulo.")}</p>
-                          <StatusPill status={item.status} />
-                          <DetailList rows={[["Link", fieldLink(item.link_url)]]} />
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="home-admin-empty">Sem destaques para apresentar.</p>
-                )}
-              </section>
-
-              <section className="home-admin-zone-panel home-admin-panel" data-zone="roundup">
-                <header>
-                  <div>
-                    <h2>Videos / resumo / roundup</h2>
-                    <p>Leitura apenas de site_editorial_roundup_items. Rascunhos vazios continuam agrupados.</p>
-                  </div>
-                  <span className="home-admin-source">{roundupItems.length} itens</span>
-                </header>
-                {roundupItems.length > 0 ? (
-                  <ul className="home-admin-list is-compact">
-                    {visibleRoundupItems.map((item) => {
-                      const itemHasContent = roundupHasReadableContent(item);
-                      const emptyLabel = compactStateLabel(item.status, itemHasContent);
-
-                      return (
-                        <li className={itemHasContent ? undefined : "home-admin-muted-card"} key={item.id}>
-                          <div className="home-admin-row-media">
-                            <MediaPreview label={textValue(item.title, "Roundup")} src={item.image_url} />
-                          </div>
-                          <div className="home-admin-compact-meta">
-                            <span className="home-admin-meta">
-                              {item.sort_order ?? "-"} | {textValue(item.type, "sem tipo")}
-                            </span>
-                            <StatusPill status={item.status} />
-                            {item.duration ? <span className="home-admin-pill">{item.duration}</span> : null}
-                          </div>
-                          <strong>{emptyLabel ?? textValue(item.title, "Item sem conteudo")}</strong>
-                          {itemHasContent ? <p>{textValue(item.subtitle, item.label, "Sem texto adicional.")}</p> : null}
-                          <DetailList rows={[["Video", fieldLink(item.video_url)]]} />
-                        </li>
-                      );
-                    })}
-                    {emptyRoundupItems.length > 0 ? (
-                      <li className="home-admin-empty-group">
-                        <div className="home-admin-compact-meta">
-                          <StatusPill status="draft" />
-                          <span className="home-admin-meta">{sortOrderList(emptyRoundupItems)}</span>
-                        </div>
-                        <strong>{emptyGroupLabel(emptyRoundupItems.length)}</strong>
-                        <small>Itens sem titulo, imagem, video ou texto editorial relevante. Mantidos como diagnostico.</small>
-                      </li>
-                    ) : null}
-                  </ul>
-                ) : (
-                  <p className="home-admin-empty">Sem itens de video/resumo para apresentar.</p>
-                )}
-              </section>
 
               <script
                 dangerouslySetInnerHTML={{
