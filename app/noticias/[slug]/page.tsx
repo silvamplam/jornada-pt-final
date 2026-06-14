@@ -1,9 +1,11 @@
 ﻿import { notFound } from "next/navigation";
 
+import PublicTeamBadge from "@/components/public/PublicTeamBadge";
 import { getPublicCompetitionMenu } from "@/lib/public-competition-menu";
 import {
   getPublicMatchdayDiagnostic,
-  seasonLabelToUrlSegment
+  seasonLabelToUrlSegment,
+  type PublicSeasonMatch
 } from "@/lib/public-matchday";
 import {
   fetchSupabaseAdminTable,
@@ -237,11 +239,11 @@ const articlePageStyles = `
 
   .news-article-layout {
     display: grid;
-    grid-template-columns: minmax(0, 740px) 320px;
-    gap: 38px;
-    width: min(1120px, calc(100% - 32px));
+    grid-template-columns: minmax(0, 780px) 320px;
+    gap: 42px;
+    width: min(1180px, calc(100% - 32px));
     margin: 0 auto;
-    padding: 22px 0 52px;
+    padding: 28px 0 56px;
   }
 
   .news-article-main {
@@ -252,14 +254,15 @@ const articlePageStyles = `
     display: flex;
     flex-wrap: wrap;
     gap: 7px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
 
   .news-article-label {
     display: inline-block;
-    padding: 5px 8px;
-    background: #0f263a;
-    color: #ffffff;
+    padding: 5px 7px 4px;
+    border-radius: 2px;
+    background: #ffe04f;
+    color: #111820;
     font-size: 12px;
     font-weight: 900;
     line-height: 1;
@@ -267,34 +270,35 @@ const articlePageStyles = `
   }
 
   .news-article-label + .news-article-label {
-    background: #2d7b36;
+    background: transparent;
+    color: #c40012;
   }
 
   .news-article-title {
     margin: 0;
-    max-width: 690px;
+    max-width: 760px;
     color: #05080c;
-    font-size: clamp(30px, 3vw, 42px);
-    line-height: 1.08;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(40px, 4.6vw, 56px);
+    font-weight: 900;
+    line-height: 1.04;
     letter-spacing: 0;
   }
 
   .news-article-subtitle {
-    margin: 12px 0 0;
-    max-width: 660px;
-    color: #56616f;
-    font-size: 18px;
+    margin: 14px 0 0;
+    max-width: 720px;
+    color: #293442;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 21px;
     font-weight: 500;
-    line-height: 1.48;
+    line-height: 1.42;
   }
 
   .news-article-meta {
     display: grid;
     gap: 6px;
-    margin: 16px 0 22px;
-    padding: 10px 0;
-    border-top: 1px solid #e1e6ec;
-    border-bottom: 1px solid #e1e6ec;
+    margin: 22px 0 22px;
     color: #5e6976;
     font-size: 14px;
   }
@@ -306,7 +310,7 @@ const articlePageStyles = `
   }
 
   .news-article-image {
-    margin: 0 0 28px;
+    margin: 0 0 30px;
     background: #eef2f6;
   }
 
@@ -333,6 +337,90 @@ const articlePageStyles = `
 
   .news-article-body p {
     margin: 0 0 22px;
+  }
+
+  .news-article-games-strip {
+    width: min(1180px, calc(100% - 32px));
+    margin: 14px auto 0;
+    padding: 8px 0 0;
+    border-top: 1px solid #edf1f5;
+  }
+
+  .news-article-games-scroller {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 0 0 8px;
+    scrollbar-width: thin;
+  }
+
+  .news-article-game-card {
+    display: grid;
+    flex: 0 0 176px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    align-items: center;
+    min-height: 84px;
+    padding: 8px 9px;
+    border: 1px solid #eef2f6;
+    border-radius: 6px;
+    background: #ffffff;
+    box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
+    color: #111820;
+    font-size: 13px;
+  }
+
+  .news-article-game-team {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 5px;
+    align-items: center;
+    min-width: 0;
+    color: #0d141d;
+    font-weight: 900;
+    line-height: 1.1;
+  }
+
+  .news-article-game-team span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .news-article-game-card .public-team-badge {
+    width: 24px;
+    height: 24px;
+    font-size: 9px;
+  }
+
+  .news-article-game-score {
+    min-width: 18px;
+    color: #05080c;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1;
+    text-align: right;
+  }
+
+  .news-article-game-meta {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 0 0 29px;
+    color: #435160;
+    font-size: 10.5px;
+    font-weight: 850;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+
+  .news-article-game-channel {
+    overflow: hidden;
+    color: #405061;
+    text-overflow: ellipsis;
   }
 
   .news-article-sidebar {
@@ -462,12 +550,17 @@ const articlePageStyles = `
       padding-top: 18px;
     }
 
+    .news-article-games-strip {
+      width: min(100%, calc(100% - 8px));
+      margin-top: 10px;
+    }
+
     .news-article-sidebar {
       position: static;
     }
 
     .news-article-title {
-      font-size: 31px;
+      font-size: 34px;
     }
 
     .news-article-subtitle {
@@ -508,6 +601,113 @@ function formatShortDate(value?: string | null) {
 
 function publicArticleHref(article: EditorialArticle) {
   return `/noticias/${encodeURIComponent(article.slug)}`;
+}
+
+function formatKickoffTime(value: string) {
+  return new Intl.DateTimeFormat("pt-PT", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Lisbon"
+  }).format(new Date(value));
+}
+
+function formatMiniCardKickoff(value: string) {
+  const date = new Date(value);
+  const dayMonth = new Intl.DateTimeFormat("pt-PT", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "Europe/Lisbon"
+  }).format(date);
+
+  return `${dayMonth} · ${formatKickoffTime(value)}`;
+}
+
+function statusKind(status: string) {
+  const normalized = status.trim().toLowerCase();
+  if (normalized === "finished") return "finished";
+  if (normalized === "live") return "live";
+  if (normalized === "halftime") return "halftime";
+  if (normalized === "scheduled") return "scheduled";
+  return "unknown";
+}
+
+function statusLabel(status: string) {
+  const normalized = status.trim().toLowerCase();
+  if (normalized === "finished") return "Finalizado";
+  if (normalized === "scheduled") return "Agendado";
+  if (normalized === "live") return "AO VIVO";
+  if (normalized === "halftime") return "AO VIVO";
+  if (normalized === "postponed") return "Adiado";
+  if (normalized === "cancelled") return "Cancelado";
+  return status;
+}
+
+function teamInitials(name?: string | null, shortName?: string | null) {
+  const source = shortName || name || "";
+  const initials = source
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 3)
+    .toUpperCase();
+
+  return initials || "FC";
+}
+
+function shortTeamLabel(name?: string | null, shortName?: string | null) {
+  const editorialName = name?.trim();
+  const fallback = shortName?.trim() || editorialName || "Equipa";
+
+  if (!editorialName) {
+    return fallback;
+  }
+
+  return editorialName.length <= 20 ? editorialName : fallback;
+}
+
+function TeamBadge({ logoUrl, name, shortName }: { logoUrl?: string | null; name?: string | null; shortName?: string | null }) {
+  return <PublicTeamBadge fallbackLabel={teamInitials(name, shortName)} logoUrl={logoUrl} />;
+}
+
+function ArticleMatchCard({ match }: { match: PublicSeasonMatch }) {
+  const kind = statusKind(match.status);
+  const hasScore = match.home_score !== null && match.away_score !== null;
+  const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
+  const liveStatus = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
+  const channelName = match.broadcastChannel?.name?.trim();
+
+  return (
+    <article className="news-article-game-card">
+      <span className="news-article-game-team">
+        <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
+        <span>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</span>
+        {showScore ? <b className="news-article-game-score">{match.home_score}</b> : null}
+      </span>
+      <span className="news-article-game-team">
+        <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
+        <span>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</span>
+        {showScore ? <b className="news-article-game-score">{match.away_score}</b> : null}
+      </span>
+      <span className="news-article-game-meta">
+        {kind === "scheduled" ? (
+          <>
+            <time dateTime={match.kickoff_at}>{formatMiniCardKickoff(match.kickoff_at)}</time>
+            {channelName ? (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="news-article-game-channel">{channelName}</span>
+              </>
+            ) : null}
+          </>
+        ) : kind === "live" || kind === "halftime" ? (
+          <span>{liveStatus}</span>
+        ) : (
+          <span>{kind === "finished" ? "Finalizado" : statusLabel(match.status)}</span>
+        )}
+      </span>
+    </article>
+  );
 }
 
 function articleParagraphs(body?: string | null) {
@@ -602,6 +802,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
   const author = firstText(article.author, article.author_name);
   const publishedAt = formatDate(article.published_at ?? article.created_at);
   const paragraphs = articleParagraphs(article.body);
+  const articleMatches = articleContext?.matchesForMatchday ?? [];
   const seasonSegment = articleContext ? seasonLabelToUrlSegment(articleContext.season.label) : null;
   const matchdayHref = (matchdayNumber: number) =>
     articleContext && seasonSegment
@@ -707,6 +908,15 @@ export default async function NewsArticlePage({ params }: PageProps) {
           `
         }}
       />
+      {articleMatches.length > 0 ? (
+        <section className="news-article-games-strip" aria-label="Jogos da jornada associados a esta notícia">
+          <div className="news-article-games-scroller">
+            {articleMatches.map((match) => (
+              <ArticleMatchCard key={match.id} match={match} />
+            ))}
+          </div>
+        </section>
+      ) : null}
       <main className="news-article-layout">
         <article className="news-article-main">
           {label ? (
@@ -719,8 +929,8 @@ export default async function NewsArticlePage({ params }: PageProps) {
           {subtitle ? <p className="news-article-subtitle">{subtitle}</p> : null}
 
           <div className="news-article-meta">
-            {publishedAt ? <span>Publicado em: {publishedAt}</span> : null}
             {author ? <span className="news-article-author">{author}</span> : null}
+            {publishedAt ? <time dateTime={article.published_at ?? article.created_at ?? undefined}>{publishedAt}</time> : null}
           </div>
 
           {article.image_url ? (
@@ -743,8 +953,8 @@ export default async function NewsArticlePage({ params }: PageProps) {
             <section className="news-article-side-panel" aria-label="Artigos relacionados">
               <ul className="news-article-side-list">
                 {moreArticles.map((item) => {
-                  const itemLabel = firstText(item.label);
-                  const itemSubtitle = firstText(item.subtitle);
+                  const itemLabel = firstText(item.label, item.category, item.type);
+                  const itemSubtitle = firstText(item.subtitle, item.summary, item.excerpt);
                   const itemDate = formatShortDate(item.published_at);
 
                   return (
