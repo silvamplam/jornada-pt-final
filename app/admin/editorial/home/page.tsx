@@ -59,6 +59,7 @@ type SiteEditorialLatestNews = {
   sort_order: number | null;
   time_label: string | null;
   title: string | null;
+  subtitle?: string | null;
   image_url: string | null;
   link_url: string | null;
   status: string | null;
@@ -757,8 +758,8 @@ const homeEditorialStyles = `
 
   .home-admin-featured-games-form {
     display: grid;
-    gap: 18px;
-    padding: 20px;
+    gap: 12px;
+    padding: 16px;
   }
 
   .home-admin-game-row small {
@@ -776,7 +777,7 @@ const homeEditorialStyles = `
 
   .home-admin-game-selection-form {
     display: grid;
-    gap: 14px;
+    gap: 10px;
   }
 
   .home-admin-game-filter-grid {
@@ -847,18 +848,18 @@ const homeEditorialStyles = `
   .home-admin-game-list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 8px;
   }
 
   .home-admin-game-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 12px 14px;
-    align-items: start;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 8px 10px;
+    align-items: center;
     border: 1px solid #dce3eb;
     border-radius: 8px;
     background: #fff;
-    padding: 14px;
+    padding: 9px 10px;
   }
 
   .home-admin-game-row.is-selected {
@@ -868,25 +869,25 @@ const homeEditorialStyles = `
 
   .home-admin-game-check {
     display: inline-flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
     color: #10151b;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 900;
     text-transform: uppercase;
-    grid-column: 1 / 2;
+    grid-column: 1;
   }
 
   .home-admin-game-check input {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     accent-color: #e5252a;
   }
 
   .home-admin-game-main {
     display: grid;
-    gap: 4px;
-    grid-column: 1 / -1;
+    gap: 2px;
+    grid-column: 2;
     min-width: 0;
   }
 
@@ -897,23 +898,25 @@ const homeEditorialStyles = `
   }
 
   .home-admin-game-score {
-    grid-column: 2;
-    grid-row: 1;
+    grid-column: 3;
+    grid-row: auto;
     justify-self: end;
-    min-width: 56px;
+    min-width: 42px;
     border-radius: 6px;
-    padding: 6px 8px;
+    padding: 5px 7px;
     background: #eef2f6;
     color: #10151b;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 900;
     text-align: center;
   }
 
   .home-admin-game-order {
     display: grid;
-    gap: 4px;
-    grid-column: 1 / -1;
+    gap: 3px;
+    grid-column: 4;
+    justify-self: end;
+    min-width: 58px;
   }
 
   .home-admin-game-order span {
@@ -925,11 +928,11 @@ const homeEditorialStyles = `
   }
 
   .home-admin-game-order input {
-    width: 100%;
+    width: 58px;
     box-sizing: border-box;
     border: 1px solid #cfd8e3;
     border-radius: 6px;
-    padding: 7px 8px;
+    padding: 5px 6px;
   }
 
   .home-admin-zone-form {
@@ -1090,6 +1093,72 @@ const homeEditorialStyles = `
     padding-right: 0;
   }
 
+  .home-admin-final-zone-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .home-admin-final-zone-list {
+    gap: 10px;
+  }
+
+  .home-admin-list.home-admin-final-zone-list .home-admin-final-item {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 10px 12px;
+    align-items: start;
+    border: 1px solid #e6ebf1;
+    border-radius: 8px;
+    background: #fff;
+    padding: 10px;
+  }
+
+  .home-admin-list.home-admin-final-zone-list .home-admin-final-item.is-primary {
+    grid-template-columns: minmax(128px, 0.42fr) minmax(0, 0.58fr);
+    border-color: #d7dee8;
+    background: #ffffff;
+  }
+
+  .home-admin-list.home-admin-final-zone-list .home-admin-row-media {
+    grid-row: auto;
+  }
+
+  .home-admin-list.home-admin-final-zone-list .home-admin-final-item.is-primary .home-admin-row-media {
+    aspect-ratio: 16 / 11;
+  }
+
+  .home-admin-final-content {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .home-admin-final-zone-list strong {
+    font-size: 16px;
+    line-height: 1.2;
+  }
+
+  .home-admin-list.home-admin-final-zone-list .home-admin-final-item.is-primary strong {
+    font-size: 19px;
+    line-height: 1.12;
+  }
+
+  .home-admin-final-zone-list p {
+    color: #4d5763;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .home-admin-final-link-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
   @media (max-width: 1100px) {
     .home-admin-grid,
     .home-admin-feature,
@@ -1113,6 +1182,8 @@ const homeEditorialStyles = `
     .home-admin-panel > header,
     .home-admin-detail-list,
     .home-admin-list.is-compact li,
+    .home-admin-list.home-admin-final-zone-list .home-admin-final-item,
+    .home-admin-list.home-admin-final-zone-list .home-admin-final-item.is-primary,
     .home-admin-game-row {
       display: grid;
       grid-template-columns: 1fr;
@@ -1283,7 +1354,7 @@ function roundupHasReadableContent(item: SiteEditorialRoundupItem) {
 }
 
 function latestNewsHasReadableContent(item: SiteEditorialLatestNews) {
-  return hasContent(item.title, item.image_url, item.link_url, item.time_label);
+  return hasContent(item.title, item.subtitle, item.image_url, item.link_url, item.time_label);
 }
 
 function DetailList({ rows }: { rows: Array<[string, ReactNode]> }) {
@@ -1589,11 +1660,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
     (item) => matchesById.has(item.match_id) && !filteredGameIds.has(item.match_id)
   );
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
-  const complementaryMode = editorial?.complementary_mode === "roundup_video"
-    ? "roundup_video"
-    : editorial?.complementary_mode === "complementary_story"
-      ? "complementary_story"
-      : "";
+  const complementaryMode = belowHeadlineMode === "roundup" ? "roundup_video" : "complementary_story";
   const globalMessage = pageMessage(params);
 
   return (
@@ -1762,7 +1829,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                   <strong>{matchTitle(match, teamsById)}</strong>
                                   <small>
                                     {formatDateTime(match.kickoff_at)} | {matchStatusLabel(match)}
-                                    {match.venue ? ` | ${match.venue}` : ""}
                                   </small>
                                 </div>
                                 <span className="home-admin-game-score">{matchScoreLabel(match)}</span>
@@ -1999,12 +2065,14 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                 <label className="home-admin-field is-wide">
                                   <span>Tipo de bloco complementar</span>
                                   <select data-home-complement-select name="complementary_mode" defaultValue={complementaryMode}>
-                                    <option value="">Sem complemento</option>
                                     <option value="complementary_story">Complemento da manchete</option>
                                     <option value="roundup_video">Video do Resumo da Home</option>
                                   </select>
                                 </label>
                               </div>
+                              <p className="home-admin-muted-card home-admin-empty">
+                                Este modo acompanha a escolha da coluna esquerda: Destaques usam Complemento; Videos/Resumo/Roundup usam Video do Resumo.
+                              </p>
                             </section>
                             <section
                               className="home-admin-form-section home-admin-mode-section"
@@ -2068,30 +2136,48 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                           </section>
 
                           <section className="home-admin-composition-card home-admin-final-zone" id="home-final-zone">
-                            <h3>Zona editorial final</h3>
-                            <p>
-                              Adaptacao da zona final da Editorial da Jornada. Nesta fase usa site_editorial_latest_news em
-                              leitura, sem inventar campos de modo/titulo em site_editorials.
-                            </p>
+                            <div className="home-admin-final-zone-header">
+                              <div>
+                                <h3>Zona editorial final</h3>
+                                <p>Cartoes editoriais para fechar a composicao da Home.</p>
+                              </div>
+                              <span className="home-admin-pill is-published">Ultimas noticias</span>
+                            </div>
                             {latestNews.length > 0 ? (
-                              <ul className="home-admin-list is-compact">
-                                {visibleLatestNews.map((item) => {
+                              <ul className="home-admin-list is-compact home-admin-final-zone-list">
+                                {visibleLatestNews.map((item, index) => {
                                   const itemHasContent = latestNewsHasReadableContent(item);
                                   const emptyLabel = compactStateLabel(item.status, itemHasContent);
+                                  const cleanLink = item.link_url?.trim();
+                                  const cleanSubtitle = item.subtitle?.trim();
 
                                   return (
-                                    <li className={itemHasContent ? undefined : "home-admin-muted-card"} key={item.id}>
+                                    <li
+                                      className={`home-admin-final-item${index === 0 ? " is-primary" : ""}${itemHasContent ? "" : " home-admin-muted-card"}`}
+                                      key={item.id}
+                                    >
                                       <div className="home-admin-row-media">
                                         <MediaPreview label={textValue(item.title, "Ultima noticia")} src={item.image_url} />
                                       </div>
-                                      <div className="home-admin-compact-meta">
-                                        <span className="home-admin-meta">
-                                          {item.sort_order ?? "-"} | {textValue(item.time_label, "sem hora")}
-                                        </span>
-                                        <StatusPill status={item.status} />
+                                      <div className="home-admin-final-content">
+                                        <div className="home-admin-compact-meta">
+                                          <span className="home-admin-meta">
+                                            {item.sort_order ?? "-"} | {textValue(item.time_label, "sem hora")}
+                                          </span>
+                                          <StatusPill status={item.status} />
+                                        </div>
+                                        <strong>{emptyLabel ?? textValue(item.title, "Item sem conteudo")}</strong>
+                                        {cleanSubtitle ? <p>{cleanSubtitle}</p> : null}
+                                        <div className="home-admin-final-link-row">
+                                          {cleanLink ? (
+                                            <a className="home-admin-link-out" href={cleanLink} title={cleanLink}>
+                                              Abrir link
+                                            </a>
+                                          ) : (
+                                            <span className="home-admin-meta">Sem link</span>
+                                          )}
+                                        </div>
                                       </div>
-                                      <strong>{emptyLabel ?? textValue(item.title, "Item sem conteudo")}</strong>
-                                      <DetailList rows={[["Link", fieldLink(item.link_url)]]} />
                                     </li>
                                   );
                                 })}
@@ -2107,7 +2193,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                 ) : null}
                               </ul>
                             ) : (
-                              <p className="home-admin-empty">Sem itens em site_editorial_latest_news para apresentar.</p>
+                              <p className="home-admin-empty">Sem itens editoriais para apresentar nesta zona.</p>
                             )}
                           </section>
                         </div>
@@ -2209,22 +2295,33 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                 dangerouslySetInnerHTML={{
                   __html: `
                     (function () {
-                      function syncSelect(selectSelector, sectionSelector, attributeName) {
-                        var select = document.querySelector(selectSelector);
-                        var sections = Array.prototype.slice.call(document.querySelectorAll(sectionSelector));
-                        if (!select || !sections.length) return;
-                        function sync() {
-                          var mode = select.value;
-                          sections.forEach(function (section) {
-                            section.hidden = section.getAttribute(attributeName) !== mode;
-                          });
-                        }
-                        select.addEventListener('change', sync);
-                        sync();
+                      var belowSelect = document.querySelector('[data-home-below-select]');
+                      var complementSelect = document.querySelector('[data-home-complement-select]');
+                      var belowSections = Array.prototype.slice.call(document.querySelectorAll('[data-home-below-section]'));
+                      var complementSections = Array.prototype.slice.call(document.querySelectorAll('[data-home-complement-section]'));
+                      function expectedComplementMode() {
+                        return belowSelect && belowSelect.value === 'roundup' ? 'roundup_video' : 'complementary_story';
                       }
-
-                      syncSelect('[data-home-below-select]', '[data-home-below-section]', 'data-home-below-section');
-                      syncSelect('[data-home-complement-select]', '[data-home-complement-section]', 'data-home-complement-section');
+                      function syncBelowSections() {
+                        var mode = belowSelect ? belowSelect.value : 'highlights';
+                        belowSections.forEach(function (section) {
+                          section.hidden = section.getAttribute('data-home-below-section') !== mode;
+                        });
+                      }
+                      function syncComplementSections() {
+                        var mode = expectedComplementMode();
+                        if (complementSelect) complementSelect.value = mode;
+                        complementSections.forEach(function (section) {
+                          section.hidden = section.getAttribute('data-home-complement-section') !== mode;
+                        });
+                      }
+                      function syncComposition() {
+                        syncBelowSections();
+                        syncComplementSections();
+                      }
+                      if (belowSelect) belowSelect.addEventListener('change', syncComposition);
+                      if (complementSelect) complementSelect.addEventListener('change', syncComplementSections);
+                      syncComposition();
                     })();
                   `
                 }}
