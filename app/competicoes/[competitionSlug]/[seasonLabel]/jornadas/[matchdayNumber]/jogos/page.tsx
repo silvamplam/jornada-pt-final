@@ -333,8 +333,9 @@ const gamesPageStyles = `
   }
 
   .public-games-group {
-    display: grid;
-    gap: 2px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .public-games-group + .public-games-group {
@@ -342,6 +343,7 @@ const gamesPageStyles = `
   }
 
   .public-games-group h3 {
+    flex: 0 0 100%;
     margin: 0 0 3px;
     color: #7a8796;
     font-size: 11px;
@@ -351,15 +353,17 @@ const gamesPageStyles = `
 
   .public-games-card {
     display: grid;
-    grid-template-columns: 30px minmax(0, 1fr) 92px minmax(0, 1fr) 30px;
-    column-gap: 7px;
-    row-gap: 3px;
+    flex: 0 0 176px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
     align-items: center;
-    padding: 8px 0;
-    border: 0;
-    border-bottom: 1px solid #edf1f5;
-    border-radius: 0;
+    min-height: 84px;
+    padding: 8px 9px;
+    border: 1px solid #eef2f6;
+    border-radius: 6px;
     background: #ffffff;
+    box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
+    font-size: 13px;
   }
 
   .public-games-card-finished {
@@ -379,57 +383,30 @@ const gamesPageStyles = `
     background: #ffffff;
   }
 
-  .public-games-crest {
+  .public-games-team-line {
     display: grid;
-    place-items: center;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 5px;
+    align-items: center;
     min-width: 0;
-  }
-
-  .public-games-crest-home {
-    grid-column: 1;
-    justify-self: start;
-  }
-
-  .public-games-crest-away {
-    grid-column: 5;
-    justify-self: end;
-  }
-
-  .public-games-team-copy {
-    min-width: 0;
-  }
-
-  .public-games-team-copy-home {
-    grid-column: 2;
-    justify-self: stretch;
-    text-align: left;
-  }
-
-  .public-games-team-copy-away {
-    grid-column: 4;
-    justify-self: stretch;
-    text-align: right;
-  }
-
-  .public-games-team-copy strong,
-  .public-games-score strong {
-    display: block;
-    color: #10151b;
-    font-size: 14px;
     font-weight: 900;
+  }
+
+  .public-games-team-line span {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .public-games-team-copy small,
-  .public-games-score small {
-    display: block;
-    margin-top: 3px;
-    color: #66717f;
-    font-size: 10px;
-    font-weight: 800;
-    text-transform: uppercase;
+  .public-games-team-score {
+    min-width: 16px;
+    color: #10151b;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1;
+    text-align: right;
   }
 
   .public-games-team-winner strong {
@@ -438,10 +415,10 @@ const gamesPageStyles = `
 
           .public-team-badge {
             display: grid;
-            flex: 0 0 30px;
+            flex: 0 0 24px;
             place-items: center;
-            width: 30px;
-            height: 30px;
+            width: 24px;
+            height: 24px;
     overflow: hidden;
     border: 1px solid #d8dee6;
     border-radius: 999px;
@@ -457,84 +434,36 @@ const gamesPageStyles = `
     object-fit: contain;
   }
 
-  .public-games-score {
-    grid-column: 3;
-    min-width: 0;
-    inline-size: 100%;
-    justify-self: center;
-    text-align: center;
-  }
-
-  .public-games-score strong {
-    font-size: 16px;
-  }
-
-  .public-games-status {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2px 6px;
-    border-radius: 999px;
-    background: #eef2f6;
-    font-size: 9.5px;
-  }
-
-  .public-games-status-finished {
-    background: #e9edf2;
-    color: #4e5b69;
-  }
-
-  .public-games-status-live,
-  .public-games-status-halftime {
-    background: #edf7f1;
-    color: #286943;
-  }
-
-  .public-games-status-live::before,
-  .public-games-status-halftime::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    margin-right: 4px;
-    border-radius: 999px;
-    background: #17a34a;
-  }
-
-  .public-games-status-scheduled {
-    background: #f4f1e8;
-    color: #6b5a22;
-  }
-
-  .public-games-status-unknown {
-    background: #eef2f6;
-    color: #506075;
-  }
-
   .public-games-meta {
-    grid-column: 1 / -1;
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
+    justify-content: flex-start;
+    gap: 4px;
+    min-width: 0;
+    padding: 2px 0 0 29px;
     color: #607086;
-    font-size: 11px;
+    font-size: 10.5px;
+    font-weight: 800;
+    line-height: 1.15;
+    white-space: nowrap;
   }
 
   .public-games-tv {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 2px 6px;
-    border: 1px solid #dce3eb;
-    border-radius: 999px;
-    background: #ffffff;
+    gap: 4px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
     color: #263241;
     font-weight: 800;
   }
 
   .public-games-tv img {
-    width: 24px;
-    height: 16px;
+    width: 22px;
+    height: 14px;
     object-fit: contain;
   }
 
@@ -810,6 +739,17 @@ function teamInitials(name?: string | null, shortName?: string | null) {
   return initials || "FC";
 }
 
+function shortTeamLabel(name?: string | null, shortName?: string | null) {
+  const editorialName = name?.trim();
+  const fallback = shortName?.trim() || editorialName || "Equipa";
+
+  if (!editorialName) {
+    return fallback;
+  }
+
+  return editorialName.length <= 20 ? editorialName : fallback;
+}
+
 function isWinner(match: PublicSeasonMatch, side: "home" | "away") {
   if (match.status !== "finished" || match.home_score === null || match.away_score === null || match.home_score === match.away_score) {
     return false;
@@ -863,6 +803,31 @@ function MatchCard({ match }: { match: PublicSeasonMatch }) {
       </div>
       <div className="public-games-meta">
         <span>{statusKind(match.status) === "scheduled" ? formatKickoffTime(match.kickoff_at) : formatKickoff(match.kickoff_at)}</span>
+        <BroadcastBadge match={match} />
+      </div>
+    </article>
+  );
+}
+
+function ReferenceGamesCard({ match }: { match: PublicSeasonMatch }) {
+  const kind = statusKind(match.status);
+  const showScore = (kind === "finished" || kind === "live" || kind === "halftime") && match.home_score !== null && match.away_score !== null;
+  const statusText = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} - ${match.minute}'` : statusLabel(match.status);
+
+  return (
+    <article className={`public-games-card public-games-card-${kind}`} key={match.id}>
+      <span className="public-games-team-line">
+        <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
+        <span>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</span>
+        {showScore ? <b className="public-games-team-score">{match.home_score}</b> : null}
+      </span>
+      <span className="public-games-team-line">
+        <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
+        <span>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</span>
+        {showScore ? <b className="public-games-team-score">{match.away_score}</b> : null}
+      </span>
+      <div className="public-games-meta">
+        <span>{kind === "scheduled" ? formatKickoffTime(match.kickoff_at) : statusText}</span>
         <BroadcastBadge match={match} />
       </div>
     </article>
@@ -1044,7 +1009,7 @@ export default async function PublicMatchdayGamesPage({ params }: PublicMatchday
                   <section className="public-games-group" aria-label={`Jogos: ${group.label}`} key={group.key}>
                     <h3>{group.label}</h3>
                     {group.matches.map((match) => (
-                      <MatchCard key={match.id} match={match} />
+                      <ReferenceGamesCard key={match.id} match={match} />
                     ))}
                   </section>
                 ))}

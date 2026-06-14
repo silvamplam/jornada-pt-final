@@ -330,17 +330,17 @@ const publicMatchdayStyles = `
   .public-matchday-mini-card {
     position: relative;
     display: grid;
-    flex: 0 0 196px;
+    flex: 0 0 176px;
     grid-template-columns: minmax(0, 1fr);
-    gap: 3px;
+    gap: 4px;
     align-items: start;
-    min-height: 76px;
-    padding: 6px 7px 7px;
+    min-height: 84px;
+    padding: 8px 9px;
     border: 1px solid #eef2f6;
     border-radius: 6px;
     background: #ffffff;
     box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
-    font-size: 11.5px;
+    font-size: 13px;
   }
 
   .public-matchday-mini-card + .public-matchday-mini-card::before {
@@ -406,15 +406,15 @@ const publicMatchdayStyles = `
     min-width: 16px;
     color: #10151b;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 900;
     line-height: 1;
     text-align: right;
   }
 
   .public-matchday-mini-card .public-team-badge {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     background: #ffffff;
   }
 
@@ -425,11 +425,11 @@ const publicMatchdayStyles = `
     justify-content: flex-start;
     gap: 4px;
     min-width: 0;
-    padding: 2px 0 0 27px;
+    padding: 2px 0 0 29px;
     border-radius: 0;
     background: transparent;
     color: #607086;
-    font-size: 10px;
+    font-size: 10.5px;
     font-weight: 800;
     line-height: 1.15;
     text-transform: none;
@@ -442,14 +442,14 @@ const publicMatchdayStyles = `
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 2px 6px;
-    border-radius: 999px;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
     font-weight: 900;
   }
 
   .public-matchday-mini-card-live .public-matchday-mini-status > span,
   .public-matchday-mini-card-halftime .public-matchday-mini-status > span {
-    background: #edf7f1;
     color: #286943;
   }
 
@@ -463,12 +463,10 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-card-finished .public-matchday-mini-status > span {
-    background: #e9edf2;
     color: #4e5b69;
   }
 
   .public-matchday-mini-card-unknown .public-matchday-mini-status > span {
-    background: #eef2f6;
     color: #506075;
   }
 
@@ -478,9 +476,9 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-card-scheduled .public-matchday-mini-time {
-    padding: 2px 6px;
-    border-radius: 999px;
-    background: #f4f1e8;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
     color: #6b5a22;
     font-weight: 900;
   }

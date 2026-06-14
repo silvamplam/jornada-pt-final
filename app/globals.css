@@ -3429,6 +3429,163 @@ tbody tr:nth-child(odd) {
   color: #286943;
 }
 
+/* JOGOS-VISUAL-1C: reference image card model for public match lists. */
+.page-shell .fixtures-list {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 10px 10px;
+}
+
+.page-shell .fixtures-list .fixture-match {
+  display: grid;
+  flex: 0 0 176px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  align-items: start;
+  min-height: 84px;
+  padding: 8px 9px;
+  border: 1px solid #eef2f6;
+  border-left-width: 1px;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
+  font-size: 13px;
+}
+
+.page-shell .fixtures-list .fixture-match > span {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 5px;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  color: #10151b;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-shell .fixtures-list .fixture-match .team-badge {
+  width: 24px;
+  height: 24px;
+  flex-basis: 24px;
+  border-width: 1px;
+  font-size: 7px;
+}
+
+.page-shell .fixtures-list .fixture-match > b,
+.page-shell .fixtures-list .fixture-competition,
+.page-shell .fixtures-list .fixture-date {
+  display: none;
+}
+
+.page-shell .fixtures-list .fixture-status,
+.page-shell .fixture-match--finished .fixture-status,
+.page-shell .fixture-match--live .fixture-status,
+.page-shell .fixture-match--scheduled .fixture-status {
+  justify-content: flex-start;
+  min-width: 0;
+  padding: 2px 0 0 29px;
+  background: transparent;
+  color: #607086;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.page-shell .fixtures-list .tv-logo {
+  justify-self: start;
+  width: auto;
+  height: auto;
+  margin-left: 29px;
+  color: #607086;
+  font-size: 10.5px;
+}
+
+.page-shell .fixtures-list .tv-logo img {
+  width: 22px;
+  max-height: 14px;
+}
+
+.page-shell .live-panel-status {
+  margin: 8px 10px 0;
+}
+
+.page-shell .live-panel-status span,
+.page-shell .live-panel--finished .live-panel-status span,
+.page-shell .live-panel--live .live-panel-status span {
+  padding: 0;
+  background: transparent;
+  color: #607086;
+  font-size: 10.5px;
+}
+
+.page-shell .live-score {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "homeBadge homeName score"
+    "awayBadge awayName score";
+  gap: 5px;
+  align-items: center;
+  width: 176px;
+  min-height: 84px;
+  margin: 8px 10px 10px;
+  padding: 8px 9px;
+  border: 1px solid #eef2f6;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
+  font-size: 13px;
+}
+
+.page-shell .live-score .team-badge {
+  width: 24px;
+  height: 24px;
+  flex-basis: 24px;
+  border-width: 1px;
+  font-size: 7px;
+}
+
+.page-shell .live-score .team-badge:first-child {
+  grid-area: homeBadge;
+}
+
+.page-shell .live-score .team-badge:last-child {
+  grid-area: awayBadge;
+}
+
+.page-shell .live-score strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #10151b;
+  font-size: 13px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-shell .live-score strong:first-of-type {
+  grid-area: homeName;
+}
+
+.page-shell .live-score strong:last-of-type {
+  grid-area: awayName;
+}
+
+.page-shell .live-score b {
+  grid-area: score;
+  align-self: center;
+  color: #10151b;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16px;
+  line-height: 1;
+  text-align: right;
+}
+
 /* Separate the homepage editorial blocks from the page background. */
 .home-reference-grid {
   padding: 10px;
