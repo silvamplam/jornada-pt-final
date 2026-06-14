@@ -172,6 +172,9 @@ type PageProps = {
     featured_saved?: string;
     error?: string;
     detail?: string;
+    home_competition_id?: string;
+    home_season_id?: string;
+    home_matchday_id?: string;
   }>;
 };
 
@@ -750,99 +753,105 @@ const homeEditorialStyles = `
     padding: 20px;
   }
 
-  .home-admin-featured-games-layout {
-    display: grid;
-    grid-template-columns: 320px minmax(0, 1fr);
-    gap: 18px;
-    align-items: start;
-  }
-
-  .home-admin-game-competition h3,
-  .home-admin-game-season h4 {
-    margin: 0;
-  }
-
-  .home-admin-game-row small,
-  .home-admin-game-matchday > summary span,
-  .home-admin-game-season > summary span,
-  .home-admin-game-competition > summary span {
+  .home-admin-game-row small {
     color: #64748b;
     font-size: 12px;
     line-height: 1.35;
   }
 
-  .home-admin-game-groups {
+  .home-admin-game-filter-form {
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #fbfcfe;
+    padding: 14px;
+  }
+
+  .home-admin-game-selection-form {
     display: grid;
     gap: 14px;
-    min-width: 0;
   }
 
-  .home-admin-game-competition,
-  .home-admin-game-season,
-  .home-admin-game-matchday {
+  .home-admin-game-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+    gap: 12px;
+    align-items: end;
+  }
+
+  .home-admin-game-filter-grid label {
+    display: grid;
+    gap: 6px;
+    color: #334155;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .home-admin-game-filter-grid select {
+    width: 100%;
+    box-sizing: border-box;
     border: 1px solid #e6ebf1;
-    border-radius: 8px;
     background: #fff;
-    min-width: 0;
-    overflow: hidden;
+    border-radius: 7px;
+    color: #10151b;
+    font-size: 14px;
+    padding: 10px 11px;
   }
 
-  .home-admin-game-competition > summary,
-  .home-admin-game-season > summary,
-  .home-admin-game-matchday > summary {
-    cursor: pointer;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    justify-content: space-between;
-    padding: 13px 14px;
-    list-style: none;
-  }
-
-  .home-admin-game-competition > summary::-webkit-details-marker,
-  .home-admin-game-season > summary::-webkit-details-marker,
-  .home-admin-game-matchday > summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .home-admin-game-competition > summary {
+  .home-admin-game-filter-grid button {
+    min-height: 41px;
+    border: 0;
+    border-radius: 7px;
     background: #10151b;
     color: #fff;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 900;
+    padding: 0 16px;
+    text-transform: uppercase;
   }
 
-  .home-admin-game-competition > summary span {
-    color: #cbd5e1;
-  }
-
-  .home-admin-game-season {
-    margin: 12px;
-  }
-
-  .home-admin-game-season > summary {
-    background: #f8fafc;
-  }
-
-  .home-admin-game-matchday {
-    margin: 10px 12px;
-  }
-
-  .home-admin-game-matchday > summary {
+  .home-admin-game-context {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
     background: #fff;
-    border-bottom: 1px solid #eef2f6;
+    padding: 12px 14px;
+  }
+
+  .home-admin-game-context strong {
+    margin-right: 4px;
+  }
+
+  .home-admin-game-context span {
+    border-radius: 999px;
+    background: #eef2f6;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 5px 9px;
   }
 
   .home-admin-game-list {
     display: grid;
     gap: 0;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    overflow: hidden;
   }
 
   .home-admin-game-row {
     display: grid;
-    grid-template-columns: 126px minmax(0, 1fr) 82px 88px;
+    grid-template-columns: 118px minmax(0, 1fr) 78px 92px;
     gap: 12px;
     align-items: center;
     padding: 12px 14px;
     border-bottom: 1px solid #eef2f6;
+    background: #fff;
   }
 
   .home-admin-game-row:last-child {
@@ -1048,16 +1057,12 @@ const homeEditorialStyles = `
     white-space: nowrap;
   }
 
-  .home-admin-featured-games-layout {
-    grid-template-columns: 1fr;
-  }
-
   @media (max-width: 1100px) {
     .home-admin-grid,
     .home-admin-feature,
     .home-admin-card-grid,
     .home-admin-form-grid,
-    .home-admin-featured-games-layout,
+    .home-admin-game-filter-grid,
     .home-admin-zone-layout {
       grid-template-columns: 1fr;
     }
@@ -1477,6 +1482,54 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
     matchesByMatchday.set(match.matchday_id, list);
   }
 
+  const selectedMatchForDefault = selectedFeaturedMatches
+    .map((item) => matchesById.get(item.match_id))
+    .find((match): match is HomeMatch => Boolean(match));
+  const competitionIdsWithMatches = new Set(gameSelection.matches.map((match) => match.competition_id));
+  const competitionsForFilter = gameSelection.competitions.filter((competition) => competitionIdsWithMatches.has(competition.id));
+  const requestedCompetitionId = params.home_competition_id ?? "";
+  const selectedCompetitionId = competitionsForFilter.some((competition) => competition.id === requestedCompetitionId)
+    ? requestedCompetitionId
+    : selectedMatchForDefault && competitionIdsWithMatches.has(selectedMatchForDefault.competition_id)
+      ? selectedMatchForDefault.competition_id
+      : competitionsForFilter[0]?.id ?? "";
+  const seasonIdsWithMatches = new Set(
+    gameSelection.matches
+      .filter((match) => match.competition_id === selectedCompetitionId)
+      .map((match) => match.season_id)
+  );
+  const seasonsForSelectedCompetition = gameSelection.seasons.filter(
+    (season) => season.competition_id === selectedCompetitionId && seasonIdsWithMatches.has(season.id)
+  );
+  const requestedSeasonId = params.home_season_id ?? "";
+  const selectedSeasonId = seasonsForSelectedCompetition.some((season) => season.id === requestedSeasonId)
+    ? requestedSeasonId
+    : selectedMatchForDefault &&
+        selectedMatchForDefault.competition_id === selectedCompetitionId &&
+        seasonsForSelectedCompetition.some((season) => season.id === selectedMatchForDefault.season_id)
+      ? selectedMatchForDefault.season_id
+      : seasonsForSelectedCompetition.find((season) => season.is_current)?.id ?? seasonsForSelectedCompetition[0]?.id ?? "";
+  const matchdaysForSelectedSeason = (matchdaysBySeason.get(selectedSeasonId) ?? []).filter(
+    (matchday) => (matchesByMatchday.get(matchday.id)?.length ?? 0) > 0
+  );
+  const requestedMatchdayId = params.home_matchday_id ?? "";
+  const selectedMatchdayId = matchdaysForSelectedSeason.some((matchday) => matchday.id === requestedMatchdayId)
+    ? requestedMatchdayId
+    : selectedMatchForDefault &&
+        selectedMatchForDefault.season_id === selectedSeasonId &&
+        selectedMatchForDefault.matchday_id &&
+        matchdaysForSelectedSeason.some((matchday) => matchday.id === selectedMatchForDefault.matchday_id)
+      ? selectedMatchForDefault.matchday_id
+      : matchdaysForSelectedSeason[0]?.id ?? "";
+  const selectedCompetition = gameSelection.competitions.find((competition) => competition.id === selectedCompetitionId);
+  const selectedSeason = gameSelection.seasons.find((season) => season.id === selectedSeasonId);
+  const selectedMatchday = gameSelection.matchdays.find((matchday) => matchday.id === selectedMatchdayId);
+  const filteredGames = selectedMatchdayId ? matchesByMatchday.get(selectedMatchdayId) ?? [] : [];
+  const filteredGameIds = new Set(filteredGames.map((match) => match.id));
+  const selectedFeaturedMatchesOutsideFilter = selectedFeaturedMatches.filter(
+    (item) => matchesById.has(item.match_id) && !filteredGameIds.has(item.match_id)
+  );
+
   return (
     <main className="home-admin-shell">
       <style>{homeEditorialStyles}</style>
@@ -1573,8 +1626,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                 {gameSelection.error ? (
                   <div className="home-admin-error">Erro ao ler jogos reais: {gameSelection.error}</div>
                 ) : gameSelection.matches.length > 0 ? (
-                  <form className="home-admin-featured-games-form" action="/api/admin/editorial/home" method="post">
-                    <input type="hidden" name="action_type" value="update_featured_matches" />
+                  <div className="home-admin-featured-games-form">
                     <div className="home-admin-selected-summary">
                       <strong>{selectedFeaturedMatches.length} jogos selecionados para a barra da Home</strong>
                       {selectedFeaturedMatches.length > 0 ? (
@@ -1599,116 +1651,126 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       )}
                     </div>
 
-                    <div className="home-admin-featured-games-layout">
-                      <div className="home-admin-game-groups">
-                        {gameSelection.competitions.map((competition) => {
-                          const competitionSeasons = gameSelection.seasons
-                            .filter((season) => season.competition_id === competition.id)
-                            .map((season) => {
-                              const seasonMatchdays = (matchdaysBySeason.get(season.id) ?? [])
-                                .map((matchday) => ({
-                                  matchday,
-                                  matches: matchesByMatchday.get(matchday.id) ?? []
-                                }))
-                                .filter((item) => item.matches.length > 0);
-
-                              return {
-                                season,
-                                matchdays: seasonMatchdays
-                              };
-                            })
-                            .filter((season) => season.matchdays.length > 0);
-                          const competitionMatchCount = competitionSeasons.reduce(
-                            (total, season) =>
-                              total + season.matchdays.reduce((seasonTotal, matchday) => seasonTotal + matchday.matches.length, 0),
-                            0
-                          );
-
-                          if (competitionSeasons.length === 0) {
-                            return null;
-                          }
-
-                          return (
-                            <details className="home-admin-game-competition" key={competition.id} open={competitionSeasons.some((season) =>
-                              season.matchdays.some((matchday) => matchday.matches.some((match) => selectedIds.has(match.id)))
-                            )}>
-                              <summary>
-                                <h3>{competition.name}</h3>
-                                <span>{competitionMatchCount} jogos</span>
-                              </summary>
-                              {competitionSeasons.map(({ season, matchdays }) => (
-                                <details className="home-admin-game-season" key={season.id} open={matchdays.some((matchday) =>
-                                  matchday.matches.some((match) => selectedIds.has(match.id))
-                                )}>
-                                  <summary>
-                                    <h4>{season.label}</h4>
-                                    <span>{matchdays.reduce((total, item) => total + item.matches.length, 0)} jogos</span>
-                                  </summary>
-                                  {matchdays.map(({ matchday, matches }) => (
-                                    <details className="home-admin-game-matchday" key={matchday.id} open={matches.some((match) => selectedIds.has(match.id))}>
-                                      <summary>
-                                        <strong>
-                                          J{matchday.number} - {matchday.label}
-                                        </strong>
-                                        <span>{matches.length} jogos</span>
-                                      </summary>
-                                      <div className="home-admin-game-list">
-                                        {matches.map((match) => {
-                                          const selected = selectedIds.has(match.id);
-                                          const orderValue = selectedOrderByMatchId.get(match.id);
-
-                                          return (
-                                            <article className={`home-admin-game-row${selected ? " is-selected" : ""}`} key={match.id}>
-                                              <input type="hidden" name="available_match_id" value={match.id} />
-                                              <label className="home-admin-game-check">
-                                                <input
-                                                  defaultChecked={selected}
-                                                  name="featured_match_id"
-                                                  type="checkbox"
-                                                  value={match.id}
-                                                />
-                                                <span>Selecionar</span>
-                                              </label>
-                                              <div className="home-admin-game-main">
-                                                <strong>{matchTitle(match, teamsById)}</strong>
-                                                <small>
-                                                  {formatDateTime(match.kickoff_at)} | {matchStatusLabel(match)}
-                                                  {match.venue ? ` | ${match.venue}` : ""}
-                                                </small>
-                                              </div>
-                                              <span className="home-admin-game-score">{matchScoreLabel(match)}</span>
-                                              <label className="home-admin-game-order">
-                                                <span>Ordem</span>
-                                                <input
-                                                  min={1}
-                                                  name={`featured_order_${match.id}`}
-                                                  placeholder="auto"
-                                                  type="number"
-                                                  defaultValue={typeof orderValue === "number" ? orderValue : ""}
-                                                />
-                                              </label>
-                                            </article>
-                                          );
-                                        })}
-                                      </div>
-                                    </details>
-                                  ))}
-                                </details>
-                              ))}
-                            </details>
-                          );
-                        })}
+                    <form className="home-admin-game-filter-form" action="/admin/editorial/home" method="get">
+                      <div className="home-admin-game-filter-grid">
+                        <label>
+                          Competicao
+                          <select name="home_competition_id" defaultValue={selectedCompetitionId}>
+                            {competitionsForFilter.length > 0 ? null : <option value="">Sem competicoes com jogos</option>}
+                            {competitionsForFilter.map((competition) => (
+                              <option key={competition.id} value={competition.id}>
+                                {competition.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label>
+                          Epoca
+                          <select name="home_season_id" defaultValue={selectedSeasonId}>
+                            {seasonsForSelectedCompetition.length > 0 ? null : <option value="">Sem epocas com jogos</option>}
+                            {seasonsForSelectedCompetition.map((season) => (
+                              <option key={season.id} value={season.id}>
+                                {season.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label>
+                          Jornada
+                          <select name="home_matchday_id" defaultValue={selectedMatchdayId}>
+                            {matchdaysForSelectedSeason.length > 0 ? null : <option value="">Sem jornadas com jogos</option>}
+                            {matchdaysForSelectedSeason.map((matchday) => (
+                              <option key={matchday.id} value={matchday.id}>
+                                J{matchday.number} - {matchday.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <button type="submit">Ver jogos</button>
                       </div>
-                    </div>
+                    </form>
 
-                    <div className="home-admin-save-row">
-                      <p>
-                        Esta acao grava apenas site_featured_matches. Nao altera jogos, competicoes, epocas, jornadas,
-                        classificacao, Home publica ou ResultsRail.
-                      </p>
-                      <button type="submit">Guardar jogos da barra da Home</button>
-                    </div>
-                  </form>
+                    <form className="home-admin-game-selection-form" action="/api/admin/editorial/home" method="post">
+                      <input type="hidden" name="action_type" value="update_featured_matches" />
+                      <div className="home-admin-game-context">
+                        <strong>Contexto visivel</strong>
+                        <span>{selectedCompetition?.name ?? "Sem competicao"}</span>
+                        <span>{selectedSeason?.label ?? "Sem epoca"}</span>
+                        <span>
+                          {selectedMatchday ? `J${selectedMatchday.number} - ${selectedMatchday.label}` : "Sem jornada"}
+                        </span>
+                        <span>{filteredGames.length} jogos</span>
+                      </div>
+
+                      {gameSelection.matches.map((match) => (
+                        <input key={match.id} type="hidden" name="available_match_id" value={match.id} />
+                      ))}
+                      {selectedFeaturedMatchesOutsideFilter.map((item) => (
+                        <input key={`selected-${item.match_id}`} type="hidden" name="featured_match_id" value={item.match_id} />
+                      ))}
+                      {selectedFeaturedMatchesOutsideFilter.map((item) => (
+                        <input
+                          key={`order-${item.match_id}`}
+                          type="hidden"
+                          name={`featured_order_${item.match_id}`}
+                          value={typeof item.sort_order === "number" ? item.sort_order : ""}
+                        />
+                      ))}
+
+                      {filteredGames.length > 0 ? (
+                        <div className="home-admin-game-list">
+                          {filteredGames.map((match) => {
+                            const selected = selectedIds.has(match.id);
+                            const orderValue = selectedOrderByMatchId.get(match.id);
+
+                            return (
+                              <article className={`home-admin-game-row${selected ? " is-selected" : ""}`} key={match.id}>
+                                <label className="home-admin-game-check">
+                                  <input
+                                    defaultChecked={selected}
+                                    name="featured_match_id"
+                                    type="checkbox"
+                                    value={match.id}
+                                  />
+                                  <span>Selecionar</span>
+                                </label>
+                                <div className="home-admin-game-main">
+                                  <strong>{matchTitle(match, teamsById)}</strong>
+                                  <small>
+                                    {formatDateTime(match.kickoff_at)} | {matchStatusLabel(match)}
+                                    {match.venue ? ` | ${match.venue}` : ""}
+                                  </small>
+                                </div>
+                                <span className="home-admin-game-score">{matchScoreLabel(match)}</span>
+                                <label className="home-admin-game-order">
+                                  <span>Ordem</span>
+                                  <input
+                                    min={1}
+                                    name={`featured_order_${match.id}`}
+                                    placeholder="auto"
+                                    type="number"
+                                    defaultValue={typeof orderValue === "number" ? orderValue : ""}
+                                  />
+                                </label>
+                              </article>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="home-admin-empty">
+                          Escolhe uma competicao, epoca e jornada com jogos para editar a selecao visivel.
+                        </p>
+                      )}
+
+                      <div className="home-admin-save-row">
+                        <p>
+                          Esta acao grava apenas site_featured_matches. Nao altera jogos, competicoes, epocas, jornadas,
+                          classificacao, Home publica ou ResultsRail.
+                        </p>
+                        <button type="submit">Guardar jogos da barra da Home</button>
+                      </div>
+                    </form>
+                  </div>
                 ) : (
                   <p className="home-admin-empty">Nao ha jogos reais disponiveis para selecao.</p>
                 )}
