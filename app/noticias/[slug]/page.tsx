@@ -276,12 +276,12 @@ const articlePageStyles = `
 
   .news-article-title {
     margin: 0;
-    max-width: 735px;
+    max-width: 700px;
     color: #05080c;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: clamp(34px, 3.55vw, 48px);
+    font-size: clamp(32px, 3vw, 43px);
     font-weight: 900;
-    line-height: 1.07;
+    line-height: 1.09;
     letter-spacing: 0;
   }
 
@@ -298,15 +298,15 @@ const articlePageStyles = `
   .news-article-meta {
     display: grid;
     gap: 4px;
-    margin: 18px 0 22px;
+    margin: 16px 0 22px;
     color: #5e6976;
-    font-size: 13px;
+    font-size: 12.5px;
   }
 
   .news-article-author {
-    color: #354150;
-    font-size: 14px;
-    font-weight: 650;
+    color: #4d5967;
+    font-size: 13px;
+    font-weight: 600;
   }
 
   .news-article-image {
@@ -340,9 +340,11 @@ const articlePageStyles = `
   }
 
   .news-article-games-strip {
-    width: min(1180px, calc(100% - 32px));
-    margin: 0 auto;
-    padding: 5px 0 0;
+    width: calc(100% + 48px);
+    margin: 0 -24px;
+    margin-left: -24px;
+    margin-right: -24px;
+    padding: 5px 24px 0;
     border-top: 1px solid #edf1f5;
   }
 
@@ -578,8 +580,10 @@ const articlePageStyles = `
     }
 
     .news-article-games-strip {
-      width: min(100%, calc(100% - 8px));
+      width: calc(100% + 28px);
+      margin: 0 -14px;
       margin-top: 0;
+      padding: 5px 14px 0;
     }
 
     .news-article-games-shell {
@@ -983,7 +987,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
           {subtitle ? <p className="news-article-subtitle">{subtitle}</p> : null}
 
           <div className="news-article-meta">
-            {author ? <span className="news-article-author">Por {author}</span> : null}
+            {author ? <span className="news-article-author">{author}</span> : null}
             {publishedAt ? <time dateTime={article.published_at ?? article.created_at ?? undefined}>{publishedAt}</time> : null}
           </div>
 
