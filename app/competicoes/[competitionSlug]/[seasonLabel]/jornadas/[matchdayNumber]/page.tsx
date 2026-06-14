@@ -2762,7 +2762,9 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
   const headlineImageUrl = referenceHeadline
     ? cleanReferenceSnapshotText(referenceHeadline.image_url_snapshot)
     : publishedHeadline?.image_url?.trim() || null;
-  const headlineLinkUrl = referenceHeadline ? cleanReferenceSnapshotText(referenceHeadline.link_url_snapshot) : null;
+  const headlineLinkUrl = referenceHeadline
+    ? cleanReferenceSnapshotText(referenceHeadline.link_url_snapshot)
+    : cleanReferenceSnapshotText(publishedHeadline?.headline_link_url);
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = editorial?.complementary_mode ?? "none";
   const belowHeadlineHeading =

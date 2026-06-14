@@ -104,6 +104,7 @@ export type SupabaseMatchdayEditorial = {
   summary: string | null;
   title_color: string | null;
   image_url: string | null;
+  headline_link_url?: string | null;
   below_headline_mode?: "highlights" | "roundup";
   below_headline_heading?: string | null;
   below_headline_heading_color?: string | null;
