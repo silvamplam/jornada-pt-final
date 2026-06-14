@@ -170,6 +170,7 @@ type PageProps = {
   searchParams?: Promise<{
     saved?: string;
     featured_saved?: string;
+    failed?: string;
     error?: string;
     detail?: string;
     home_competition_id?: string;
@@ -177,6 +178,8 @@ type PageProps = {
     home_matchday_id?: string;
   }>;
 };
+
+type FeedbackScope = "games" | "headline" | "side" | "composition" | "complement";
 
 const homeEditorialStyles = `
   body {
@@ -1000,48 +1003,61 @@ const homeEditorialStyles = `
 
   .home-admin-zone-panels {
     display: grid;
+    grid-template-columns: minmax(0, 1.18fr) minmax(340px, 0.82fr);
     gap: 18px;
+    align-items: start;
   }
 
   .home-admin-zone-panel {
     display: block;
   }
 
-  .home-admin-zone-panel[data-zone="headline"] {
+  .home-admin-zone-panel[data-zone="games"] {
     order: 1;
+    grid-column: 1 / -1;
   }
 
-  .home-admin-zone-panel[data-zone="side"] {
+  .home-admin-edit-heading {
     order: 2;
+    grid-column: 1 / -1;
   }
 
-  .home-admin-zone-panel[data-zone="complement"] {
+  .home-admin-zone-panel[data-zone="headline"] {
     order: 3;
   }
 
-  .home-admin-zone-panel[data-zone="diagnostic"] {
+  .home-admin-zone-panel[data-zone="side"] {
     order: 4;
   }
 
-  .home-admin-zone-panel[data-zone="games"] {
+  .home-admin-composition-heading {
     order: 5;
-    margin-top: 0;
+    grid-column: 1 / -1;
   }
 
-  .home-admin-reading-heading {
+  .home-admin-zone-panel[data-zone="diagnostic"] {
     order: 6;
   }
 
-  .home-admin-zone-panel[data-zone="highlights"] {
+  .home-admin-zone-panel[data-zone="complement"] {
     order: 7;
   }
 
-  .home-admin-zone-panel[data-zone="roundup"] {
+  .home-admin-reading-heading {
     order: 8;
+    grid-column: 1 / -1;
+  }
+
+  .home-admin-zone-panel[data-zone="highlights"] {
+    order: 9;
+  }
+
+  .home-admin-zone-panel[data-zone="roundup"] {
+    order: 10;
   }
 
   .home-admin-zone-panel[data-zone="latest"] {
-    order: 9;
+    order: 11;
   }
 
   @media (max-width: 1100px) {
@@ -1049,7 +1065,8 @@ const homeEditorialStyles = `
     .home-admin-feature,
     .home-admin-card-grid,
     .home-admin-form-grid,
-    .home-admin-game-filter-grid {
+    .home-admin-game-filter-grid,
+    .home-admin-zone-panels {
       grid-template-columns: 1fr;
     }
   }
@@ -1305,15 +1322,7 @@ function StatusField({ label, name, value }: { label: string; name: string; valu
   );
 }
 
-function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
-  if (params.featured_saved) {
-    return { type: "success" as const, text: "Selecao de jogos da barra da Home guardada em site_featured_matches." };
-  }
-
-  if (params.saved) {
-    return { type: "success" as const, text: "Dados principais da Home guardados em site_editorials." };
-  }
-
+function errorMessage(error: string | undefined, detail?: string) {
   const messages: Record<string, string> = {
     "invalid-action": "A acao pedida nao existe.",
     "missing-home-editorial": "Nao foi encontrado o registo site_editorials com slug home.",
@@ -1328,12 +1337,48 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
     "save-failed": "Nao foi possivel guardar os dados principais da Home."
   };
 
-  if (!params.error) {
+  const base = messages[error ?? ""] ?? "Nao foi possivel guardar os dados principais da Home.";
+  return detail ? `${base} Detalhe: ${detail}` : base;
+}
+
+function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
+  if (params.error && !params.failed) {
+    return { type: "error" as const, text: errorMessage(params.error, params.detail) };
+  }
+
+  return null;
+}
+
+function scopedMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>, scope: FeedbackScope) {
+  if (params.failed === scope && params.error) {
+    return { type: "error" as const, text: errorMessage(params.error, params.detail) };
+  }
+
+  if (scope === "games" && (params.saved === "games" || params.featured_saved)) {
+    return { type: "success" as const, text: "Jogos da barra guardados com sucesso." };
+  }
+
+  if (params.saved !== scope) {
     return null;
   }
 
-  const base = messages[params.error] ?? "Nao foi possivel guardar os dados principais da Home.";
-  return { type: "error" as const, text: params.detail ? `${base} Detalhe: ${params.detail}` : base };
+  const successMessages: Record<FeedbackScope, string> = {
+    games: "Jogos da barra guardados com sucesso.",
+    headline: "Manchete guardada com sucesso.",
+    side: "Bloco lateral guardado com sucesso.",
+    composition: "Composicao abaixo da manchete guardada com sucesso.",
+    complement: "Complemento guardado com sucesso."
+  };
+
+  return { type: "success" as const, text: successMessages[scope] };
+}
+
+function FeedbackMessage({ message }: { message: ReturnType<typeof scopedMessage> | ReturnType<typeof pageMessage> }) {
+  if (!message) {
+    return null;
+  }
+
+  return <div className={message.type === "success" ? "home-admin-success" : "home-admin-error"}>{message.text}</div>;
 }
 
 async function readHomeEditorialData(): Promise<HomeEditorialData> {
@@ -1437,7 +1482,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
   const emptyRoundupItems = roundupItems.filter((item) => !roundupHasReadableContent(item));
   const visibleLatestNews = latestNews.filter(latestNewsHasReadableContent);
   const emptyLatestNews = latestNews.filter((item) => !latestNewsHasReadableContent(item));
-  const message = pageMessage(params);
   const teamsById = new Map(gameSelection.teams.map((team) => [team.id, team]));
   const matchesById = new Map(gameSelection.matches.map((match) => [match.id, match]));
   const selectedIds = selectedMatchSet(featuredMatches);
@@ -1511,6 +1555,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
   const selectedFeaturedMatchesOutsideFilter = selectedFeaturedMatches.filter(
     (item) => matchesById.has(item.match_id) && !filteredGameIds.has(item.match_id)
   );
+  const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
+  const globalMessage = pageMessage(params);
 
   return (
     <main className="home-admin-shell">
@@ -1543,21 +1589,11 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
         {!error && !editorial ? (
           <div className="home-admin-error">Nao foi encontrado registo em site_editorials com slug=&quot;home&quot;.</div>
         ) : null}
-        {message ? (
-          <div className={message.type === "success" ? "home-admin-success" : "home-admin-error"}>{message.text}</div>
-        ) : null}
+        <FeedbackMessage message={globalMessage} />
 
         <section className="home-admin-section-stack">
-          <div className="home-admin-section-heading">
-            <div>
-              <p className="home-admin-eyebrow">Edicao segura</p>
-              <h2>Dados principais da Home</h2>
-            </div>
-            <span>site_editorials</span>
-          </div>
-
           <div className="home-admin-zone-panels">
-              <section className="home-admin-zone-panel home-admin-panel home-admin-featured-games" data-zone="games">
+              <section className="home-admin-zone-panel home-admin-panel home-admin-featured-games" data-zone="games" id="home-games">
                 <header>
                   <div>
                     <h2>Jogos da barra da Home</h2>
@@ -1568,6 +1604,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                   </div>
                   <span className="home-admin-source">site_featured_matches</span>
                 </header>
+                <FeedbackMessage message={scopedMessage(params, "games")} />
                 {gameSelection.error ? (
                   <div className="home-admin-error">Erro ao ler jogos reais: {gameSelection.error}</div>
                 ) : gameSelection.matches.length > 0 ? (
@@ -1596,7 +1633,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       )}
                     </div>
 
-                    <form className="home-admin-game-filter-form" action="/admin/editorial/home" method="get">
+                    <form className="home-admin-game-filter-form" action="/admin/editorial/home#home-games" method="get">
                       <div className="home-admin-game-filter-grid">
                         <label>
                           Competicao
@@ -1637,6 +1674,10 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
 
                     <form className="home-admin-game-selection-form" action="/api/admin/editorial/home" method="post">
                       <input type="hidden" name="action_type" value="update_featured_matches" />
+                      <input type="hidden" name="save_context" value="games" />
+                      <input type="hidden" name="home_competition_id" value={selectedCompetitionId} />
+                      <input type="hidden" name="home_season_id" value={selectedSeasonId} />
+                      <input type="hidden" name="home_matchday_id" value={selectedMatchdayId} />
                       <div className="home-admin-game-context">
                         <strong>Contexto visivel</strong>
                         <span>{selectedCompetition?.name ?? "Sem competicao"}</span>
@@ -1721,12 +1762,20 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                 )}
               </section>
 
+              <div className="home-admin-section-heading home-admin-edit-heading">
+                <div>
+                  <p className="home-admin-eyebrow">Editar editorial</p>
+                  <h2>Dados principais da Home</h2>
+                </div>
+                <span>site_editorials</span>
+              </div>
+
               {editorial ? (
                 <form className="home-admin-zone-form" action="/api/admin/editorial/home" method="post">
                   <input type="hidden" name="action_type" value="update_site_editorial_home" />
                   <input type="hidden" name="site_editorial_id" value={editorial.id} />
 
-                  <section className="home-admin-zone-panel home-admin-panel" data-zone="headline">
+                  <section className="home-admin-zone-panel home-admin-panel" data-zone="headline" id="home-headline">
                     <header>
                       <div>
                         <h2>Manchete principal</h2>
@@ -1734,6 +1783,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       </div>
                       <span className="home-admin-source">site_editorials</span>
                     </header>
+                    <FeedbackMessage message={scopedMessage(params, "headline")} />
                     <div className="home-admin-edit-form">
                       <section className="home-admin-form-section">
                         <h3>Conteudo da manchete</h3>
@@ -1748,12 +1798,12 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       </section>
                       <div className="home-admin-save-row">
                         <p>Guarda a tabela-mae site_editorials. Nao altera a Home publica /.</p>
-                        <button type="submit">Guardar dados principais</button>
+                        <button name="save_context" type="submit" value="headline">Guardar manchete</button>
                       </div>
                     </div>
                   </section>
 
-                  <section className="home-admin-zone-panel home-admin-panel" data-zone="side">
+                  <section className="home-admin-zone-panel home-admin-panel" data-zone="side" id="home-side-block">
                     <header>
                       <div>
                         <h2>Bloco lateral</h2>
@@ -1761,6 +1811,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       </div>
                       <span className="home-admin-source">site_editorials</span>
                     </header>
+                    <FeedbackMessage message={scopedMessage(params, "side")} />
                     <div className="home-admin-edit-form">
                       <section className="home-admin-form-section">
                         <h3>Conteudo do bloco lateral</h3>
@@ -1778,12 +1829,20 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       </section>
                       <div className="home-admin-save-row">
                         <p>Guarda a tabela-mae site_editorials. Nao edita tabelas filhas.</p>
-                        <button type="submit">Guardar bloco lateral</button>
+                        <button name="save_context" type="submit" value="side">Guardar bloco lateral</button>
                       </div>
                     </div>
                   </section>
 
-                  <section className="home-admin-zone-panel home-admin-panel" data-zone="complement">
+                  <div className="home-admin-section-heading home-admin-composition-heading">
+                    <div>
+                      <p className="home-admin-eyebrow">Composicao</p>
+                      <h2>Composicao abaixo da manchete</h2>
+                    </div>
+                    <span>site_editorials + leitura site_*</span>
+                  </div>
+
+                  <section className="home-admin-zone-panel home-admin-panel" data-zone="complement" id="home-complement">
                     <header>
                       <div>
                         <h2>Complemento</h2>
@@ -1791,6 +1850,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       </div>
                       <span className="home-admin-source">site_editorials</span>
                     </header>
+                    <FeedbackMessage message={scopedMessage(params, "complement")} />
                     <div className="home-admin-edit-form">
                       <section className="home-admin-form-section">
                         <h3>Conteudo do complemento</h3>
@@ -1812,24 +1872,31 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       </section>
                       <div className="home-admin-save-row">
                         <p>Guarda a tabela-mae site_editorials. Nao edita roundup_items.</p>
-                        <button type="submit">Guardar complemento</button>
+                        <button name="save_context" type="submit" value="complement">Guardar complemento</button>
                       </div>
                     </div>
                   </section>
 
-                  <section className="home-admin-zone-panel home-admin-panel" data-zone="diagnostic">
+                  <section className="home-admin-zone-panel home-admin-panel" data-zone="diagnostic" id="home-composition">
                     <header>
                       <div>
-                        <h2>Diagnostico / leitura</h2>
-                        <p>Zona compacta para cabecalhos/modos e leitura tecnica das fontes site_*.</p>
+                        <h2>Zona abaixo da manchete</h2>
+                        <p>Escolhe se a area inferior esquerda usa Destaques ou Videos / Resumo / Roundup.</p>
                       </div>
-                      <span className="home-admin-source">site_*</span>
+                      <span className="home-admin-source">site_editorials</span>
                     </header>
+                    <FeedbackMessage message={scopedMessage(params, "composition")} />
                     <div className="home-admin-edit-form">
                       <section className="home-admin-form-section">
                         <h3>Cabecalhos e modos</h3>
                         <div className="home-admin-form-grid">
-                          <TextField label="Modo abaixo da manchete" name="below_headline_mode" value={editorial.below_headline_mode} />
+                          <label className="home-admin-field">
+                            <span>Modo abaixo da manchete</span>
+                            <select name="below_headline_mode" defaultValue={belowHeadlineMode}>
+                              <option value="highlights">Destaques abaixo da manchete</option>
+                              <option value="roundup">Videos / Resumo / Roundup</option>
+                            </select>
+                          </label>
                           <TextField label="Titulo abaixo da manchete" name="below_headline_heading" value={editorial.below_headline_heading} />
                           <TextField
                             label="Cor do titulo abaixo da manchete"
@@ -1845,6 +1912,47 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                             placeholder="#10151b"
                           />
                         </div>
+                      </section>
+                      <section className="home-admin-form-section">
+                        <h3>Area ativa agora</h3>
+                        {belowHeadlineMode === "roundup" ? (
+                          <ul className="home-admin-list is-compact">
+                            {visibleRoundupItems.slice(0, 3).map((item) => (
+                              <li key={item.id}>
+                                <div className="home-admin-row-media">
+                                  <MediaPreview label={textValue(item.title, "Roundup")} src={item.image_url} />
+                                </div>
+                                <div className="home-admin-compact-meta">
+                                  <span className="home-admin-meta">{item.sort_order ?? "-"} | {textValue(item.type, "sem tipo")}</span>
+                                  <StatusPill status={item.status} />
+                                </div>
+                                <strong>{textValue(item.title, "Item sem conteudo")}</strong>
+                              </li>
+                            ))}
+                            {visibleRoundupItems.length === 0 ? (
+                              <li className="home-admin-empty-group">
+                                <strong>Sem videos/resumos com conteudo visivel.</strong>
+                                <small>A tabela site_editorial_roundup_items continua apenas em leitura nesta fase.</small>
+                              </li>
+                            ) : null}
+                          </ul>
+                        ) : (
+                          <div className="home-admin-card-grid is-compact">
+                            {highlights.slice(0, 3).map((item) => (
+                              <article className="home-admin-card" key={item.id}>
+                                <div className="home-admin-card-media">
+                                  <MediaPreview label={textValue(item.title, "Destaque")} src={item.image_url} />
+                                </div>
+                                <div className="home-admin-card-body">
+                                  <span className="home-admin-meta">{item.sort_order ?? "-"} | {textValue(item.label, "sem etiqueta")}</span>
+                                  <h3>{textValue(item.title, "Sem titulo")}</h3>
+                                  <StatusPill status={item.status} />
+                                </div>
+                              </article>
+                            ))}
+                            {highlights.length === 0 ? <p className="home-admin-empty">Sem destaques para apresentar.</p> : null}
+                          </div>
+                        )}
                       </section>
                       <section className="home-admin-form-section">
                         <h3>Resumo de leitura</h3>
@@ -1870,7 +1978,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       </section>
                       <div className="home-admin-save-row">
                         <p>Guarda apenas os modos/cabecalhos em site_editorials. A Home publica continua intacta.</p>
-                        <button type="submit">Guardar cabecalhos e modos</button>
+                        <button name="save_context" type="submit" value="composition">Guardar composicao</button>
                       </div>
                     </div>
                   </section>

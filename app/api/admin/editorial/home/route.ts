@@ -133,10 +133,45 @@ function cleanColor(value: string | null) {
   throw new HomeEditorialAdminError("invalid-color");
 }
 
-function redirectTo(request: Request, params: Record<string, string>) {
+const contextAnchors = {
+  games: "home-games",
+  headline: "home-headline",
+  side: "home-side-block",
+  composition: "home-composition",
+  complement: "home-complement"
+} as const;
+
+type SaveContext = keyof typeof contextAnchors;
+
+function cleanSaveContext(value: string | null): SaveContext | null {
+  if (!value) {
+    return null;
+  }
+
+  return Object.prototype.hasOwnProperty.call(contextAnchors, value) ? (value as SaveContext) : null;
+}
+
+function gameFilterParams(formData: FormData) {
+  const params: Record<string, string> = {};
+
+  for (const key of ["home_competition_id", "home_season_id", "home_matchday_id"]) {
+    const value = cleanText(formData.get(key));
+    if (value) {
+      params[key] = value;
+    }
+  }
+
+  return params;
+}
+
+function redirectTo(request: Request, params: Record<string, string>, anchor?: string | null) {
   const url = new URL("/admin/editorial/home", request.url);
   for (const [key, value] of Object.entries(params)) {
     url.searchParams.set(key, value);
+  }
+
+  if (anchor) {
+    url.hash = anchor;
   }
 
   return NextResponse.redirect(url, { status: 303 });
@@ -315,15 +350,18 @@ async function updateFeaturedMatches(request: Request, formData: FormData) {
     });
   }
 
-  return redirectTo(request, { featured_saved: "1" });
+  return redirectTo(request, { saved: "games", ...gameFilterParams(formData) }, contextAnchors.games);
 }
 
 export async function POST(request: Request) {
   const formData = await request.formData();
   const actionType = cleanText(formData.get("action_type"));
+  const saveContext = actionType === "update_featured_matches"
+    ? "games"
+    : cleanSaveContext(cleanText(formData.get("save_context"))) ?? "headline";
 
   if (actionType !== "update_site_editorial_home" && actionType !== "update_featured_matches") {
-    return redirectTo(request, { error: "invalid-action" });
+    return redirectTo(request, { error: "invalid-action", failed: saveContext }, contextAnchors[saveContext]);
   }
 
   try {
@@ -346,11 +384,13 @@ export async function POST(request: Request) {
       }
     );
 
-    return redirectTo(request, { saved: "1" });
+    return redirectTo(request, { saved: saveContext }, contextAnchors[saveContext]);
   } catch (error) {
     return redirectTo(request, {
       error: classifyError(error),
-      detail: sanitizeErrorText(error instanceof Error ? error.message : String(error))
-    });
+      failed: saveContext,
+      detail: sanitizeErrorText(error instanceof Error ? error.message : String(error)),
+      ...(saveContext === "games" ? gameFilterParams(formData) : {})
+    }, contextAnchors[saveContext]);
   }
 }
