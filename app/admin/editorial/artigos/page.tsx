@@ -108,13 +108,6 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
   const selectedArticle = selectedArticleFromQuery(articles, params.articleId, params.mode);
   const isEditing = Boolean(selectedArticle);
   const message = pageMessage(params);
-  const selectedMatchdayId = selectedArticle?.matchday_id?.trim() ?? "";
-  const editorialMatchdayHref = selectedMatchdayId
-    ? `/admin/editorial/jornada/${encodeURIComponent(selectedMatchdayId)}`
-    : null;
-  const compositionMatchdayHref = selectedMatchdayId
-    ? `/admin/editorial/composicao/${encodeURIComponent(selectedMatchdayId)}`
-    : null;
 
   return (
     <main className="editorial-admin-shell">
@@ -128,20 +121,8 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
           </div>
           <nav className="editorial-admin-actions" aria-label="Navegação editorial">
             <a href="/admin/editorial/home">Home Editorial</a>
-            {compositionMatchdayHref ? (
-              <a href={compositionMatchdayHref}>Composição Editorial</a>
-            ) : (
-              <button className="article-admin-disabled" disabled title="Selecione um artigo com jornada associada." type="button">
-                Composição Editorial
-              </button>
-            )}
-            {editorialMatchdayHref ? (
-              <a href={editorialMatchdayHref}>Editorial da Jornada</a>
-            ) : (
-              <button className="article-admin-disabled" disabled title="Selecione um artigo com jornada associada." type="button">
-                Editorial da Jornada
-              </button>
-            )}
+            <a href="/admin/editorial/composicao">Composição Editorial</a>
+            <a href="/admin/editorial/jornada">Editorial da Jornada</a>
             <a href="/admin/gestor">Centro de Gestão</a>
             <a href="/admin">Backoffice</a>
           </nav>
