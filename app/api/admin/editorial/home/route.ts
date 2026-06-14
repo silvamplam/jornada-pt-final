@@ -1,9 +1,20 @@
+import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 
 import { fetchSupabaseAdminTable, writeSupabaseAdmin } from "@/lib/supabase";
 
 type SiteEditorialIdRow = {
   id: string;
+};
+
+type MatchIdRow = {
+  id: string;
+};
+
+type SiteFeaturedMatchRow = {
+  id: string;
+  match_id: string | null;
+  sort_order: number | null;
 };
 
 class HomeEditorialAdminError extends Error {
@@ -52,6 +63,50 @@ function cleanText(value: FormDataEntryValue | null) {
 
   const cleanValue = value.trim();
   return cleanValue.length > 0 ? cleanValue : null;
+}
+
+function cleanMatchId(value: FormDataEntryValue | null) {
+  const cleanValue = cleanText(value);
+  if (!cleanValue) {
+    return null;
+  }
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanValue)) {
+    throw new HomeEditorialAdminError("invalid-featured-match");
+  }
+
+  return cleanValue;
+}
+
+function cleanInteger(value: FormDataEntryValue | null) {
+  const cleanValue = cleanText(value);
+  if (!cleanValue) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(cleanValue, 10);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function uniqueCleanMatchIds(values: FormDataEntryValue[]) {
+  const ids: string[] = [];
+  const seen = new Set<string>();
+
+  for (const value of values) {
+    const id = cleanMatchId(value);
+    if (!id || seen.has(id)) {
+      continue;
+    }
+
+    seen.add(id);
+    ids.push(id);
+  }
+
+  return ids;
 }
 
 function cleanStatus(value: string | null) {
@@ -143,15 +198,139 @@ function buildPayload(formData: FormData) {
   return payload;
 }
 
+function chunkList<T>(items: T[], size: number) {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+
+  return chunks;
+}
+
+async function readExistingMatchIds(matchIds: string[]) {
+  const existing = new Set<string>();
+
+  for (const chunk of chunkList(matchIds, 80)) {
+    if (chunk.length === 0) {
+      continue;
+    }
+
+    const rows = await fetchSupabaseAdminTable<MatchIdRow>(
+      `matches?select=id&id=in.(${chunk.map((id) => encodeURIComponent(id)).join(",")})`
+    );
+
+    for (const row of rows) {
+      existing.add(row.id);
+    }
+  }
+
+  return existing;
+}
+
+function orderedSelectedMatches(formData: FormData, selectedIds: string[]) {
+  return selectedIds
+    .map((matchId, index) => ({
+      matchId,
+      index,
+      requestedOrder: cleanInteger(formData.get(`featured_order_${matchId}`)) ?? index + 1
+    }))
+    .sort((a, b) => a.requestedOrder - b.requestedOrder || a.index - b.index)
+    .map((item, index) => ({
+      match_id: item.matchId,
+      sort_order: index + 1
+    }));
+}
+
+async function updateFeaturedMatches(request: Request, formData: FormData) {
+  const availableIds = uniqueCleanMatchIds(formData.getAll("available_match_id"));
+  const selectedIds = uniqueCleanMatchIds(formData.getAll("featured_match_id"));
+
+  if (availableIds.length === 0) {
+    throw new HomeEditorialAdminError("missing-selection-set");
+  }
+
+  if (selectedIds.length === 0) {
+    throw new HomeEditorialAdminError("empty-featured-selection");
+  }
+
+  const availableSet = new Set(availableIds);
+  if (selectedIds.some((matchId) => !availableSet.has(matchId))) {
+    throw new HomeEditorialAdminError("invalid-featured-match");
+  }
+
+  const existingMatchIds = await readExistingMatchIds(availableIds);
+  if (availableIds.some((matchId) => !existingMatchIds.has(matchId))) {
+    throw new HomeEditorialAdminError("invalid-featured-match");
+  }
+
+  const currentRows = await fetchSupabaseAdminTable<SiteFeaturedMatchRow>(
+    "site_featured_matches?select=id,match_id,sort_order&limit=1000"
+  );
+  const currentByMatchId = new Map(
+    currentRows.filter((row): row is SiteFeaturedMatchRow & { match_id: string } => Boolean(row.match_id)).map((row) => [row.match_id, row])
+  );
+  const selectedSet = new Set(selectedIds);
+  const rowsToRemove = currentRows
+    .filter((row): row is SiteFeaturedMatchRow & { match_id: string } => Boolean(row.match_id))
+    .filter((row) => availableSet.has(row.match_id) && !selectedSet.has(row.match_id));
+
+  for (const chunk of chunkList(rowsToRemove, 80)) {
+    await writeSupabaseAdmin(
+      `site_featured_matches?match_id=in.(${chunk.map((row) => encodeURIComponent(row.match_id)).join(",")})`,
+      { method: "DELETE" }
+    );
+  }
+
+  const ordered = orderedSelectedMatches(formData, selectedIds);
+  const now = new Date().toISOString();
+  const rowsToInsert: Array<{ id: string; match_id: string; sort_order: number; created_at: string; updated_at: string }> = [];
+
+  for (const item of ordered) {
+    const current = currentByMatchId.get(item.match_id);
+
+    if (current) {
+      await writeSupabaseAdmin(`site_featured_matches?id=eq.${encodeURIComponent(current.id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          sort_order: item.sort_order,
+          updated_at: now
+        })
+      });
+    } else {
+      rowsToInsert.push({
+        id: randomUUID(),
+        match_id: item.match_id,
+        sort_order: item.sort_order,
+        created_at: now,
+        updated_at: now
+      });
+    }
+  }
+
+  if (rowsToInsert.length > 0) {
+    await writeSupabaseAdmin("site_featured_matches", {
+      method: "POST",
+      body: JSON.stringify(rowsToInsert)
+    });
+  }
+
+  return redirectTo(request, { featured_saved: "1" });
+}
+
 export async function POST(request: Request) {
   const formData = await request.formData();
   const actionType = cleanText(formData.get("action_type"));
 
-  if (actionType !== "update_site_editorial_home") {
+  if (actionType !== "update_site_editorial_home" && actionType !== "update_featured_matches") {
     return redirectTo(request, { error: "invalid-action" });
   }
 
   try {
+    if (actionType === "update_featured_matches") {
+      return await updateFeaturedMatches(request, formData);
+    }
+
     const siteEditorialId = cleanText(formData.get("site_editorial_id"));
     if (!siteEditorialId) {
       throw new HomeEditorialAdminError("missing-home-editorial");

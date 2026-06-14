@@ -90,6 +90,73 @@ type SiteFeaturedMatch = {
   updated_at?: string | null;
 };
 
+type HomeCompetition = {
+  id: string;
+  name: string;
+  slug: string | null;
+  country: string | null;
+  logo_url: string | null;
+  is_active: boolean | null;
+};
+
+type HomeSeason = {
+  id: string;
+  competition_id: string;
+  label: string;
+  starts_on: string | null;
+  ends_on: string | null;
+  is_current: boolean | null;
+};
+
+type HomeMatchday = {
+  id: string;
+  season_id: string;
+  number: number;
+  label: string;
+  starts_on: string | null;
+  ends_on: string | null;
+  status: string | null;
+};
+
+type HomeTeam = {
+  id: string;
+  name: string;
+  short_name: string | null;
+  logo_url: string | null;
+};
+
+type HomeBroadcastChannel = {
+  id: string;
+  name: string;
+  logo_url: string | null;
+};
+
+type HomeMatch = {
+  id: string;
+  competition_id: string;
+  season_id: string;
+  matchday_id: string | null;
+  home_team_id: string;
+  away_team_id: string;
+  status: string | null;
+  minute: number | null;
+  kickoff_at: string | null;
+  home_score: number | null;
+  away_score: number | null;
+  venue: string | null;
+  broadcast_channel_id: string | null;
+};
+
+type HomeGameSelectionData = {
+  competitions: HomeCompetition[];
+  seasons: HomeSeason[];
+  matchdays: HomeMatchday[];
+  matches: HomeMatch[];
+  teams: HomeTeam[];
+  broadcastChannels: HomeBroadcastChannel[];
+  error: string | null;
+};
+
 type HomeEditorialData = {
   editorial: SiteEditorial | null;
   highlights: SiteEditorialHighlight[];
@@ -102,6 +169,7 @@ type HomeEditorialData = {
 type PageProps = {
   searchParams?: Promise<{
     saved?: string;
+    featured_saved?: string;
     error?: string;
     detail?: string;
   }>;
@@ -672,12 +740,221 @@ const homeEditorialStyles = `
     max-width: 24ch;
   }
 
+  .home-admin-featured-games {
+    margin-top: 18px;
+  }
+
+  .home-admin-featured-games-form {
+    display: grid;
+    gap: 18px;
+    padding: 20px;
+  }
+
+  .home-admin-featured-games-layout {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+
+  .home-admin-selected-games {
+    position: sticky;
+    top: 18px;
+    display: grid;
+    gap: 12px;
+    border: 1px solid #e6ebf1;
+    border-radius: 8px;
+    padding: 14px;
+    background: #fbfcfe;
+  }
+
+  .home-admin-selected-games h3,
+  .home-admin-game-competition h3,
+  .home-admin-game-season h4 {
+    margin: 0;
+  }
+
+  .home-admin-selected-games ol {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding-left: 20px;
+  }
+
+  .home-admin-selected-games li {
+    min-width: 0;
+  }
+
+  .home-admin-selected-games strong {
+    display: block;
+    font-size: 13px;
+    line-height: 1.25;
+  }
+
+  .home-admin-selected-games small,
+  .home-admin-game-row small,
+  .home-admin-game-matchday > summary span,
+  .home-admin-game-season > summary span,
+  .home-admin-game-competition > summary span {
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .home-admin-game-groups {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .home-admin-game-competition,
+  .home-admin-game-season,
+  .home-admin-game-matchday {
+    border: 1px solid #e6ebf1;
+    border-radius: 8px;
+    background: #fff;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .home-admin-game-competition > summary,
+  .home-admin-game-season > summary,
+  .home-admin-game-matchday > summary {
+    cursor: pointer;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 14px;
+    list-style: none;
+  }
+
+  .home-admin-game-competition > summary::-webkit-details-marker,
+  .home-admin-game-season > summary::-webkit-details-marker,
+  .home-admin-game-matchday > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .home-admin-game-competition > summary {
+    background: #10151b;
+    color: #fff;
+  }
+
+  .home-admin-game-competition > summary span {
+    color: #cbd5e1;
+  }
+
+  .home-admin-game-season {
+    margin: 12px;
+  }
+
+  .home-admin-game-season > summary {
+    background: #f8fafc;
+  }
+
+  .home-admin-game-matchday {
+    margin: 10px 12px;
+  }
+
+  .home-admin-game-matchday > summary {
+    background: #fff;
+    border-bottom: 1px solid #eef2f6;
+  }
+
+  .home-admin-game-list {
+    display: grid;
+    gap: 0;
+  }
+
+  .home-admin-game-row {
+    display: grid;
+    grid-template-columns: 126px minmax(0, 1fr) 82px 88px;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid #eef2f6;
+  }
+
+  .home-admin-game-row:last-child {
+    border-bottom: 0;
+  }
+
+  .home-admin-game-row.is-selected {
+    background: #f0fdf4;
+  }
+
+  .home-admin-game-check {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    color: #10151b;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .home-admin-game-check input {
+    width: 18px;
+    height: 18px;
+    accent-color: #e5252a;
+  }
+
+  .home-admin-game-main {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .home-admin-game-main strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .home-admin-game-score {
+    justify-self: center;
+    min-width: 56px;
+    border-radius: 6px;
+    padding: 6px 8px;
+    background: #eef2f6;
+    color: #10151b;
+    font-size: 13px;
+    font-weight: 900;
+    text-align: center;
+  }
+
+  .home-admin-game-order {
+    display: grid;
+    gap: 4px;
+  }
+
+  .home-admin-game-order span {
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .home-admin-game-order input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #cfd8e3;
+    border-radius: 6px;
+    padding: 7px 8px;
+  }
+
   @media (max-width: 1100px) {
     .home-admin-grid,
     .home-admin-feature,
     .home-admin-card-grid,
-    .home-admin-form-grid {
+    .home-admin-form-grid,
+    .home-admin-featured-games-layout {
       grid-template-columns: 1fr;
+    }
+
+    .home-admin-selected-games {
+      position: static;
     }
   }
 
@@ -689,7 +966,8 @@ const homeEditorialStyles = `
     .home-admin-hero,
     .home-admin-panel > header,
     .home-admin-detail-list,
-    .home-admin-list.is-compact li {
+    .home-admin-list.is-compact li,
+    .home-admin-game-row {
       display: grid;
       grid-template-columns: 1fr;
     }
@@ -761,6 +1039,65 @@ function MediaPreview({ src, label }: { src: string | null | undefined; label: s
 
 function StatusPill({ status }: { status: string | null | undefined }) {
   return <span className={`home-admin-pill${statusClass(status)}`}>{statusText(status)}</span>;
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) {
+    return "Sem data";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("pt-PT", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function matchStatusLabel(match: HomeMatch) {
+  if (match.status === "live") {
+    return match.minute ? `Ao vivo ${match.minute}'` : "Ao vivo";
+  }
+
+  if (match.status === "halftime") return "Intervalo";
+  if (match.status === "finished") return "Finalizado";
+  if (match.status === "postponed") return "Adiado";
+  if (match.status === "cancelled") return "Cancelado";
+
+  return "Agendado";
+}
+
+function matchScoreLabel(match: HomeMatch) {
+  if (typeof match.home_score === "number" && typeof match.away_score === "number") {
+    return `${match.home_score}-${match.away_score}`;
+  }
+
+  return "vs";
+}
+
+function teamLabel(team: HomeTeam | undefined, fallback: string) {
+  return textValue(team?.short_name, team?.name, fallback);
+}
+
+function matchTitle(match: HomeMatch, teamsById: Map<string, HomeTeam>) {
+  return `${teamLabel(teamsById.get(match.home_team_id), "Casa")} vs ${teamLabel(teamsById.get(match.away_team_id), "Fora")}`;
+}
+
+function selectedSortOrder(featuredMatches: SiteFeaturedMatch[]) {
+  return new Map(
+    featuredMatches
+      .filter((item): item is SiteFeaturedMatch & { match_id: string } => Boolean(item.match_id))
+      .map((item) => [item.match_id, item.sort_order])
+  );
+}
+
+function selectedMatchSet(featuredMatches: SiteFeaturedMatch[]) {
+  return new Set(featuredMatches.map((item) => item.match_id).filter((value): value is string => Boolean(value)));
 }
 
 function hasContent(...values: Array<string | number | null | undefined>) {
@@ -873,6 +1210,10 @@ function StatusField({ label, name, value }: { label: string; name: string; valu
 }
 
 function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
+  if (params.featured_saved) {
+    return { type: "success" as const, text: "Selecao de jogos da barra da Home guardada em site_featured_matches." };
+  }
+
   if (params.saved) {
     return { type: "success" as const, text: "Dados principais da Home guardados em site_editorials." };
   }
@@ -882,6 +1223,9 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
     "missing-home-editorial": "Nao foi encontrado o registo site_editorials com slug home.",
     "invalid-status": "Estado invalido. Use draft ou published.",
     "invalid-color": "Cor invalida. Use formato hex, por exemplo #10151b.",
+    "missing-selection-set": "Nao foi possivel guardar: a lista de jogos disponiveis nao chegou ao servidor.",
+    "invalid-featured-match": "A selecao contem um jogo invalido ou que ja nao existe.",
+    "empty-featured-selection": "Por seguranca, esta fase nao guarda uma selecao vazia. Mantem pelo menos um jogo selecionado.",
     "required-field": "O Supabase recusou a gravacao por campo obrigatorio em falta.",
     constraint: "O Supabase recusou a gravacao por constraint da tabela.",
     permission: "O Supabase recusou a gravacao por permissoes.",
@@ -948,14 +1292,81 @@ async function readHomeEditorialData(): Promise<HomeEditorialData> {
   }
 }
 
+async function readHomeGameSelectionData(): Promise<HomeGameSelectionData> {
+  try {
+    const [competitions, seasons, matchdays, matches, teams, broadcastChannels] = await Promise.all([
+      fetchSupabaseAdminTable<HomeCompetition>(
+        "competitions?select=id,name,slug,country,logo_url,is_active&order=name.asc"
+      ),
+      fetchSupabaseAdminTable<HomeSeason>(
+        "seasons?select=id,competition_id,label,starts_on,ends_on,is_current&order=label.desc"
+      ),
+      fetchSupabaseAdminTable<HomeMatchday>(
+        "matchdays?select=id,season_id,number,label,starts_on,ends_on,status&order=number.asc"
+      ),
+      fetchSupabaseAdminTable<HomeMatch>(
+        "matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,status,minute,kickoff_at,home_score,away_score,venue,broadcast_channel_id&order=kickoff_at.asc&limit=1000"
+      ),
+      fetchSupabaseAdminTable<HomeTeam>("teams?select=id,name,short_name,logo_url&order=name.asc"),
+      fetchSupabaseAdminTable<HomeBroadcastChannel>("broadcast_channels?select=id,name,logo_url&order=name.asc")
+    ]);
+
+    return {
+      competitions,
+      seasons,
+      matchdays,
+      matches,
+      teams,
+      broadcastChannels,
+      error: null
+    };
+  } catch (error) {
+    return {
+      competitions: [],
+      seasons: [],
+      matchdays: [],
+      matches: [],
+      teams: [],
+      broadcastChannels: [],
+      error: error instanceof Error ? error.message : "Nao foi possivel ler os jogos reais para selecao da Home."
+    };
+  }
+}
+
 export default async function AdminEditorialHomePage({ searchParams }: PageProps) {
   const params = searchParams ? await searchParams : {};
   const { editorial, highlights, latestNews, roundupItems, featuredMatches, error } = await readHomeEditorialData();
+  const gameSelection = await readHomeGameSelectionData();
   const visibleRoundupItems = roundupItems.filter(roundupHasReadableContent);
   const emptyRoundupItems = roundupItems.filter((item) => !roundupHasReadableContent(item));
   const visibleLatestNews = latestNews.filter(latestNewsHasReadableContent);
   const emptyLatestNews = latestNews.filter((item) => !latestNewsHasReadableContent(item));
   const message = pageMessage(params);
+  const teamsById = new Map(gameSelection.teams.map((team) => [team.id, team]));
+  const matchesById = new Map(gameSelection.matches.map((match) => [match.id, match]));
+  const selectedIds = selectedMatchSet(featuredMatches);
+  const selectedOrderByMatchId = selectedSortOrder(featuredMatches);
+  const selectedFeaturedMatches = [...featuredMatches]
+    .filter((item): item is SiteFeaturedMatch & { match_id: string } => Boolean(item.match_id))
+    .sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999));
+  const matchdaysBySeason = new Map<string, HomeMatchday[]>();
+  const matchesByMatchday = new Map<string, HomeMatch[]>();
+
+  for (const matchday of gameSelection.matchdays) {
+    const list = matchdaysBySeason.get(matchday.season_id) ?? [];
+    list.push(matchday);
+    matchdaysBySeason.set(matchday.season_id, list);
+  }
+
+  for (const match of gameSelection.matches) {
+    if (!match.matchday_id) {
+      continue;
+    }
+
+    const list = matchesByMatchday.get(match.matchday_id) ?? [];
+    list.push(match);
+    matchesByMatchday.set(match.matchday_id, list);
+  }
 
   return (
     <main className="home-admin-shell">
@@ -1082,6 +1493,166 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
             </form>
           </section>
         ) : null}
+
+        <section className="home-admin-panel home-admin-featured-games">
+          <header>
+            <div>
+              <h2>Jogos da barra da Home</h2>
+              <p>
+                Seleciona manualmente os jogos guardados em site_featured_matches. A Home publica / ainda nao usa esta
+                selecao.
+              </p>
+            </div>
+            <span className="home-admin-source">site_featured_matches</span>
+          </header>
+          {gameSelection.error ? (
+            <div className="home-admin-error">Erro ao ler jogos reais: {gameSelection.error}</div>
+          ) : gameSelection.matches.length > 0 ? (
+            <form className="home-admin-featured-games-form" action="/api/admin/editorial/home" method="post">
+              <input type="hidden" name="action_type" value="update_featured_matches" />
+              <div className="home-admin-featured-games-layout">
+                <aside className="home-admin-selected-games">
+                  <div>
+                    <h3>Selecionados agora</h3>
+                    <p className="home-admin-empty" style={{ padding: "8px 0 0" }}>
+                      Ordem atual da barra, lida de site_featured_matches.
+                    </p>
+                  </div>
+                  {selectedFeaturedMatches.length > 0 ? (
+                    <ol>
+                      {selectedFeaturedMatches.map((item) => {
+                        const match = matchesById.get(item.match_id);
+
+                        return (
+                          <li key={item.id ?? item.match_id}>
+                            <strong>{match ? matchTitle(match, teamsById) : "Jogo sem detalhe carregado"}</strong>
+                            <small>
+                              posicao {item.sort_order ?? "-"} | {match ? formatDateTime(match.kickoff_at) : item.match_id}
+                            </small>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  ) : (
+                    <p className="home-admin-empty" style={{ padding: 0 }}>
+                      Ainda nao ha jogos selecionados.
+                    </p>
+                  )}
+                </aside>
+
+                <div className="home-admin-game-groups">
+                  {gameSelection.competitions.map((competition) => {
+                    const competitionSeasons = gameSelection.seasons
+                      .filter((season) => season.competition_id === competition.id)
+                      .map((season) => {
+                        const seasonMatchdays = (matchdaysBySeason.get(season.id) ?? [])
+                          .map((matchday) => ({
+                            matchday,
+                            matches: matchesByMatchday.get(matchday.id) ?? []
+                          }))
+                          .filter((item) => item.matches.length > 0);
+
+                        return {
+                          season,
+                          matchdays: seasonMatchdays
+                        };
+                      })
+                      .filter((season) => season.matchdays.length > 0);
+                    const competitionMatchCount = competitionSeasons.reduce(
+                      (total, season) =>
+                        total + season.matchdays.reduce((seasonTotal, matchday) => seasonTotal + matchday.matches.length, 0),
+                      0
+                    );
+
+                    if (competitionSeasons.length === 0) {
+                      return null;
+                    }
+
+                    return (
+                      <details className="home-admin-game-competition" key={competition.id} open={competitionSeasons.some((season) =>
+                        season.matchdays.some((matchday) => matchday.matches.some((match) => selectedIds.has(match.id)))
+                      )}>
+                        <summary>
+                          <h3>{competition.name}</h3>
+                          <span>{competitionMatchCount} jogos</span>
+                        </summary>
+                        {competitionSeasons.map(({ season, matchdays }) => (
+                          <details className="home-admin-game-season" key={season.id} open={matchdays.some((matchday) =>
+                            matchday.matches.some((match) => selectedIds.has(match.id))
+                          )}>
+                            <summary>
+                              <h4>{season.label}</h4>
+                              <span>{matchdays.reduce((total, item) => total + item.matches.length, 0)} jogos</span>
+                            </summary>
+                            {matchdays.map(({ matchday, matches }) => (
+                              <details className="home-admin-game-matchday" key={matchday.id} open={matches.some((match) => selectedIds.has(match.id))}>
+                                <summary>
+                                  <strong>
+                                    J{matchday.number} - {matchday.label}
+                                  </strong>
+                                  <span>{matches.length} jogos</span>
+                                </summary>
+                                <div className="home-admin-game-list">
+                                  {matches.map((match) => {
+                                    const selected = selectedIds.has(match.id);
+                                    const orderValue = selectedOrderByMatchId.get(match.id);
+
+                                    return (
+                                      <article className={`home-admin-game-row${selected ? " is-selected" : ""}`} key={match.id}>
+                                        <input type="hidden" name="available_match_id" value={match.id} />
+                                        <label className="home-admin-game-check">
+                                          <input
+                                            defaultChecked={selected}
+                                            name="featured_match_id"
+                                            type="checkbox"
+                                            value={match.id}
+                                          />
+                                          <span>Selecionar</span>
+                                        </label>
+                                        <div className="home-admin-game-main">
+                                          <strong>{matchTitle(match, teamsById)}</strong>
+                                          <small>
+                                            {formatDateTime(match.kickoff_at)} | {matchStatusLabel(match)}
+                                            {match.venue ? ` | ${match.venue}` : ""}
+                                          </small>
+                                        </div>
+                                        <span className="home-admin-game-score">{matchScoreLabel(match)}</span>
+                                        <label className="home-admin-game-order">
+                                          <span>Ordem</span>
+                                          <input
+                                            min={1}
+                                            name={`featured_order_${match.id}`}
+                                            placeholder="auto"
+                                            type="number"
+                                            defaultValue={typeof orderValue === "number" ? orderValue : ""}
+                                          />
+                                        </label>
+                                      </article>
+                                    );
+                                  })}
+                                </div>
+                              </details>
+                            ))}
+                          </details>
+                        ))}
+                      </details>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="home-admin-save-row">
+                <p>
+                  Esta acao grava apenas site_featured_matches. Nao altera jogos, competicoes, epocas, jornadas,
+                  classificacao, Home publica ou ResultsRail.
+                </p>
+                <button type="submit">Guardar jogos da barra da Home</button>
+              </div>
+            </form>
+          ) : (
+            <p className="home-admin-empty">Nao ha jogos reais disponiveis para selecao.</p>
+          )}
+        </section>
 
         <div className="home-admin-grid">
           <div className="home-admin-stack">
