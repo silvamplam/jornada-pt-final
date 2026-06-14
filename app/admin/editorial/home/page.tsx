@@ -757,41 +757,11 @@ const homeEditorialStyles = `
     align-items: start;
   }
 
-  .home-admin-selected-games {
-    position: sticky;
-    top: 18px;
-    display: grid;
-    gap: 12px;
-    border: 1px solid #e6ebf1;
-    border-radius: 8px;
-    padding: 14px;
-    background: #fbfcfe;
-  }
-
-  .home-admin-selected-games h3,
   .home-admin-game-competition h3,
   .home-admin-game-season h4 {
     margin: 0;
   }
 
-  .home-admin-selected-games ol {
-    display: grid;
-    gap: 10px;
-    margin: 0;
-    padding-left: 20px;
-  }
-
-  .home-admin-selected-games li {
-    min-width: 0;
-  }
-
-  .home-admin-selected-games strong {
-    display: block;
-    font-size: 13px;
-    line-height: 1.25;
-  }
-
-  .home-admin-selected-games small,
   .home-admin-game-row small,
   .home-admin-game-matchday > summary span,
   .home-admin-game-season > summary span,
@@ -944,16 +914,155 @@ const homeEditorialStyles = `
     padding: 7px 8px;
   }
 
+  .home-admin-zone-shell {
+    margin-top: 18px;
+  }
+
+  .home-admin-zone-radio {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .home-admin-zone-layout {
+    display: grid;
+    grid-template-columns: 270px minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+
+  .home-admin-zone-menu {
+    position: sticky;
+    top: 18px;
+    display: grid;
+    gap: 8px;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #fff;
+    padding: 10px;
+    box-shadow: 0 18px 40px rgba(8, 15, 24, 0.08);
+  }
+
+  .home-admin-zone-menu label {
+    cursor: pointer;
+    display: grid;
+    gap: 3px;
+    border-radius: 7px;
+    padding: 11px 12px;
+    color: #10151b;
+    font-size: 13px;
+  }
+
+  .home-admin-zone-menu strong {
+    font-size: 13px;
+    line-height: 1.15;
+  }
+
+  .home-admin-zone-menu span {
+    color: #687380;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .home-admin-zone-panel {
+    display: none;
+  }
+
+  .home-admin-zone-form {
+    display: contents;
+  }
+
+  .home-admin-zone-panels {
+    min-width: 0;
+  }
+
+  #home-zone-games:checked ~ .home-admin-zone-layout .home-admin-zone-panel[data-zone="games"],
+  #home-zone-headline:checked ~ .home-admin-zone-layout .home-admin-zone-panel[data-zone="headline"],
+  #home-zone-side:checked ~ .home-admin-zone-layout .home-admin-zone-panel[data-zone="side"],
+  #home-zone-complement:checked ~ .home-admin-zone-layout .home-admin-zone-panel[data-zone="complement"],
+  #home-zone-highlights:checked ~ .home-admin-zone-layout .home-admin-zone-panel[data-zone="highlights"],
+  #home-zone-roundup:checked ~ .home-admin-zone-layout .home-admin-zone-panel[data-zone="roundup"],
+  #home-zone-latest:checked ~ .home-admin-zone-layout .home-admin-zone-panel[data-zone="latest"],
+  #home-zone-diagnostic:checked ~ .home-admin-zone-layout .home-admin-zone-panel[data-zone="diagnostic"] {
+    display: block;
+  }
+
+  #home-zone-games:checked ~ .home-admin-zone-layout label[for="home-zone-games"],
+  #home-zone-headline:checked ~ .home-admin-zone-layout label[for="home-zone-headline"],
+  #home-zone-side:checked ~ .home-admin-zone-layout label[for="home-zone-side"],
+  #home-zone-complement:checked ~ .home-admin-zone-layout label[for="home-zone-complement"],
+  #home-zone-highlights:checked ~ .home-admin-zone-layout label[for="home-zone-highlights"],
+  #home-zone-roundup:checked ~ .home-admin-zone-layout label[for="home-zone-roundup"],
+  #home-zone-latest:checked ~ .home-admin-zone-layout label[for="home-zone-latest"],
+  #home-zone-diagnostic:checked ~ .home-admin-zone-layout label[for="home-zone-diagnostic"] {
+    background: #10151b;
+    color: #fff;
+  }
+
+  #home-zone-games:checked ~ .home-admin-zone-layout label[for="home-zone-games"] span,
+  #home-zone-headline:checked ~ .home-admin-zone-layout label[for="home-zone-headline"] span,
+  #home-zone-side:checked ~ .home-admin-zone-layout label[for="home-zone-side"] span,
+  #home-zone-complement:checked ~ .home-admin-zone-layout label[for="home-zone-complement"] span,
+  #home-zone-highlights:checked ~ .home-admin-zone-layout label[for="home-zone-highlights"] span,
+  #home-zone-roundup:checked ~ .home-admin-zone-layout label[for="home-zone-roundup"] span,
+  #home-zone-latest:checked ~ .home-admin-zone-layout label[for="home-zone-latest"] span,
+  #home-zone-diagnostic:checked ~ .home-admin-zone-layout label[for="home-zone-diagnostic"] span {
+    color: #cbd5e1;
+  }
+
+  .home-admin-selected-summary {
+    display: grid;
+    gap: 10px;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #fbfcfe;
+    padding: 14px;
+  }
+
+  .home-admin-selected-summary strong {
+    font-size: 15px;
+  }
+
+  .home-admin-selected-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .home-admin-selected-chip {
+    display: inline-flex;
+    max-width: 260px;
+    min-height: 28px;
+    align-items: center;
+    border-radius: 999px;
+    background: #eef2f6;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 800;
+    overflow: hidden;
+    padding: 0 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .home-admin-featured-games-layout {
+    grid-template-columns: 1fr;
+  }
+
   @media (max-width: 1100px) {
     .home-admin-grid,
     .home-admin-feature,
     .home-admin-card-grid,
     .home-admin-form-grid,
-    .home-admin-featured-games-layout {
+    .home-admin-featured-games-layout,
+    .home-admin-zone-layout {
       grid-template-columns: 1fr;
     }
 
-    .home-admin-selected-games {
+    .home-admin-zone-menu {
       position: static;
     }
   }
@@ -1377,8 +1486,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
             <p className="home-admin-eyebrow">Jornada.pt</p>
             <h1>Home Editorial</h1>
             <span>
-              Leitura real das tabelas site_* da Home. A Home publica / ainda nao foi alterada e continua no modelo
-              antigo/contextual.
+              Edicao controlada da Home Editorial nas tabelas site_*. A Home publica / ainda nao foi ligada a site_* e
+              continua no modelo antigo/contextual.
             </span>
           </div>
           <nav className="home-admin-actions" aria-label="Navegacao editorial">
@@ -1391,8 +1500,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
         </section>
 
         <div className="home-admin-notice">
-          Esta pagina e apenas diagnostico/leitura: nao cria formularios, nao grava dados e nao muda a Home publica.
-          Fonte esperada: public.site_editorials e tabelas public.site_editorial_* ligadas ao slug home.
+          Esta pagina edita a Home Editorial, mas a Home publica / ainda nao foi ligada a site_*. Os campos principais
+          gravam site_editorials; os jogos gravam apenas site_featured_matches.
         </div>
 
         {error ? <div className="home-admin-error">Erro ao ler site_*: {error}</div> : null}
@@ -1403,521 +1512,492 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
           <div className={message.type === "success" ? "home-admin-success" : "home-admin-error"}>{message.text}</div>
         ) : null}
 
-        {editorial ? (
-          <section className="home-admin-panel">
-            <header>
-              <div>
-                <h2>Editar dados principais da Home</h2>
-                <p>Atualiza apenas campos da tabela-mae site_editorials no registo slug=home.</p>
-              </div>
-              <span className="home-admin-source">site_editorials</span>
-            </header>
-            <form className="home-admin-edit-form" action="/api/admin/editorial/home" method="post">
-              <input type="hidden" name="action_type" value="update_site_editorial_home" />
-              <input type="hidden" name="site_editorial_id" value={editorial.id} />
+        <section className="home-admin-zone-shell">
+          <input className="home-admin-zone-radio" defaultChecked id="home-zone-games" name="home-zone" type="radio" />
+          <input className="home-admin-zone-radio" id="home-zone-headline" name="home-zone" type="radio" />
+          <input className="home-admin-zone-radio" id="home-zone-side" name="home-zone" type="radio" />
+          <input className="home-admin-zone-radio" id="home-zone-complement" name="home-zone" type="radio" />
+          <input className="home-admin-zone-radio" id="home-zone-highlights" name="home-zone" type="radio" />
+          <input className="home-admin-zone-radio" id="home-zone-roundup" name="home-zone" type="radio" />
+          <input className="home-admin-zone-radio" id="home-zone-latest" name="home-zone" type="radio" />
+          <input className="home-admin-zone-radio" id="home-zone-diagnostic" name="home-zone" type="radio" />
 
-              <section className="home-admin-form-section">
-                <h3>Manchete da Home</h3>
-                <div className="home-admin-form-grid">
-                  <TextField label="Titulo" name="headline_title" value={editorial.headline_title} wide />
-                  <TextAreaField label="Subtitulo" name="headline_subtitle" value={editorial.headline_subtitle} />
-                  <TextField label="Imagem" name="headline_image_url" value={editorial.headline_image_url} wide />
-                  <TextField label="Link" name="headline_link_url" value={editorial.headline_link_url} wide />
-                  <TextField label="Cor do titulo" name="headline_title_color" value={editorial.headline_title_color} placeholder="#10151b" />
-                  <StatusField label="Estado geral" name="status" value={editorial.status} />
-                </div>
-              </section>
+          <div className="home-admin-zone-layout">
+            <aside className="home-admin-zone-menu" aria-label="Zonas da Home Editorial">
+              <label htmlFor="home-zone-games">
+                <strong>Jogos da barra da Home</strong>
+                <span>{selectedFeaturedMatches.length} selecionados</span>
+              </label>
+              <label htmlFor="home-zone-headline">
+                <strong>Manchete principal</strong>
+                <span>{statusText(editorial?.status)}</span>
+              </label>
+              <label htmlFor="home-zone-side">
+                <strong>Bloco lateral</strong>
+                <span>{statusText(editorial?.side_block_status)}</span>
+              </label>
+              <label htmlFor="home-zone-complement">
+                <strong>Complemento</strong>
+                <span>{statusText(editorial?.complementary_status)}</span>
+              </label>
+              <label htmlFor="home-zone-highlights">
+                <strong>Destaques abaixo da manchete</strong>
+                <span>{highlights.length} itens</span>
+              </label>
+              <label htmlFor="home-zone-roundup">
+                <strong>Videos / Resumo / Roundup</strong>
+                <span>{roundupItems.length} itens</span>
+              </label>
+              <label htmlFor="home-zone-latest">
+                <strong>Ultimas noticias / Ao minuto</strong>
+                <span>{latestNews.length} itens</span>
+              </label>
+              <label htmlFor="home-zone-diagnostic">
+                <strong>Diagnostico / leitura</strong>
+                <span>fontes site_*</span>
+              </label>
+            </aside>
 
-              <section className="home-admin-form-section">
-                <h3>Bloco lateral</h3>
-                <div className="home-admin-form-grid">
-                  <TextField label="Tipo" name="side_block_type" value={editorial.side_block_type} />
-                  <TextField label="Etiqueta" name="side_block_label" value={editorial.side_block_label} />
-                  <TextField label="Titulo" name="side_block_title" value={editorial.side_block_title} wide />
-                  <TextAreaField label="Texto" name="side_block_text" value={editorial.side_block_text} />
-                  <TextField label="Autor" name="side_block_author" value={editorial.side_block_author} />
-                  <StatusField label="Estado" name="side_block_status" value={editorial.side_block_status} />
-                  <TextField label="Imagem" name="side_block_image_url" value={editorial.side_block_image_url} wide />
-                  <TextField label="Link" name="side_block_link_url" value={editorial.side_block_link_url} wide />
-                  <TextField label="Cor do titulo" name="side_block_title_color" value={editorial.side_block_title_color} placeholder="#10151b" />
-                </div>
-              </section>
-
-              <section className="home-admin-form-section">
-                <h3>Complemento</h3>
-                <div className="home-admin-form-grid">
-                  <TextField label="Modo" name="complementary_mode" value={editorial.complementary_mode} />
-                  <TextField label="Etiqueta" name="complementary_label" value={editorial.complementary_label} />
-                  <TextField label="Titulo" name="complementary_title" value={editorial.complementary_title} wide />
-                  <TextAreaField label="Texto" name="complementary_text" value={editorial.complementary_text} />
-                  <TextField label="Imagem" name="complementary_image_url" value={editorial.complementary_image_url} wide />
-                  <TextField label="Link" name="complementary_link_url" value={editorial.complementary_link_url} wide />
-                  <StatusField label="Estado" name="complementary_status" value={editorial.complementary_status} />
-                  <TextField
-                    label="Roundup item"
-                    name="complementary_roundup_item_id"
-                    value={editorial.complementary_roundup_item_id}
-                    placeholder="UUID do item de roundup"
-                  />
-                </div>
-              </section>
-
-              <section className="home-admin-form-section">
-                <h3>Cabecalhos e modos</h3>
-                <div className="home-admin-form-grid">
-                  <TextField label="Modo abaixo da manchete" name="below_headline_mode" value={editorial.below_headline_mode} />
-                  <TextField label="Titulo abaixo da manchete" name="below_headline_heading" value={editorial.below_headline_heading} />
-                  <TextField
-                    label="Cor do titulo abaixo da manchete"
-                    name="below_headline_heading_color"
-                    value={editorial.below_headline_heading_color}
-                    placeholder="#10151b"
-                  />
-                  <TextField label="Titulo roundup/video" name="roundup_video_heading" value={editorial.roundup_video_heading} />
-                  <TextField
-                    label="Cor titulo roundup/video"
-                    name="roundup_video_heading_color"
-                    value={editorial.roundup_video_heading_color}
-                    placeholder="#10151b"
-                  />
-                </div>
-              </section>
-
-              <div className="home-admin-save-row">
-                <p>
-                  Esta acao guarda apenas os dados principais em site_editorials. Nao altera a Home publica, nem edita
-                  destaques, ultimas noticias, roundup ou jogos em destaque.
-                </p>
-                <button type="submit">Guardar dados principais da Home</button>
-              </div>
-            </form>
-          </section>
-        ) : null}
-
-        <section className="home-admin-panel home-admin-featured-games">
-          <header>
-            <div>
-              <h2>Jogos da barra da Home</h2>
-              <p>
-                Seleciona manualmente os jogos guardados em site_featured_matches. A Home publica / ainda nao usa esta
-                selecao.
-              </p>
-            </div>
-            <span className="home-admin-source">site_featured_matches</span>
-          </header>
-          {gameSelection.error ? (
-            <div className="home-admin-error">Erro ao ler jogos reais: {gameSelection.error}</div>
-          ) : gameSelection.matches.length > 0 ? (
-            <form className="home-admin-featured-games-form" action="/api/admin/editorial/home" method="post">
-              <input type="hidden" name="action_type" value="update_featured_matches" />
-              <div className="home-admin-featured-games-layout">
-                <aside className="home-admin-selected-games">
+            <div className="home-admin-zone-panels">
+              <section className="home-admin-zone-panel home-admin-panel home-admin-featured-games" data-zone="games">
+                <header>
                   <div>
-                    <h3>Selecionados agora</h3>
-                    <p className="home-admin-empty" style={{ padding: "8px 0 0" }}>
-                      Ordem atual da barra, lida de site_featured_matches.
+                    <h2>Jogos da barra da Home</h2>
+                    <p>
+                      Primeira zona operacional da Home Editorial. Grava apenas a selecao em site_featured_matches; a Home
+                      publica / ainda nao usa esta selecao.
                     </p>
                   </div>
-                  {selectedFeaturedMatches.length > 0 ? (
-                    <ol>
-                      {selectedFeaturedMatches.map((item) => {
-                        const match = matchesById.get(item.match_id);
+                  <span className="home-admin-source">site_featured_matches</span>
+                </header>
+                {gameSelection.error ? (
+                  <div className="home-admin-error">Erro ao ler jogos reais: {gameSelection.error}</div>
+                ) : gameSelection.matches.length > 0 ? (
+                  <form className="home-admin-featured-games-form" action="/api/admin/editorial/home" method="post">
+                    <input type="hidden" name="action_type" value="update_featured_matches" />
+                    <div className="home-admin-selected-summary">
+                      <strong>{selectedFeaturedMatches.length} jogos selecionados para a barra da Home</strong>
+                      {selectedFeaturedMatches.length > 0 ? (
+                        <div className="home-admin-selected-chips" aria-label="Jogos selecionados">
+                          {selectedFeaturedMatches.slice(0, 10).map((item) => {
+                            const match = matchesById.get(item.match_id);
 
-                        return (
-                          <li key={item.id ?? item.match_id}>
-                            <strong>{match ? matchTitle(match, teamsById) : "Jogo sem detalhe carregado"}</strong>
-                            <small>
-                              posicao {item.sort_order ?? "-"} | {match ? formatDateTime(match.kickoff_at) : item.match_id}
-                            </small>
-                          </li>
-                        );
-                      })}
-                    </ol>
-                  ) : (
-                    <p className="home-admin-empty" style={{ padding: 0 }}>
-                      Ainda nao ha jogos selecionados.
-                    </p>
-                  )}
-                </aside>
+                            return (
+                              <span className="home-admin-selected-chip" key={item.id ?? item.match_id}>
+                                {item.sort_order ?? "-"} - {match ? matchTitle(match, teamsById) : item.match_id}
+                              </span>
+                            );
+                          })}
+                          {selectedFeaturedMatches.length > 10 ? (
+                            <span className="home-admin-selected-chip">+{selectedFeaturedMatches.length - 10} jogos</span>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <p className="home-admin-empty" style={{ padding: 0 }}>
+                          Ainda nao ha jogos selecionados.
+                        </p>
+                      )}
+                    </div>
 
-                <div className="home-admin-game-groups">
-                  {gameSelection.competitions.map((competition) => {
-                    const competitionSeasons = gameSelection.seasons
-                      .filter((season) => season.competition_id === competition.id)
-                      .map((season) => {
-                        const seasonMatchdays = (matchdaysBySeason.get(season.id) ?? [])
-                          .map((matchday) => ({
-                            matchday,
-                            matches: matchesByMatchday.get(matchday.id) ?? []
-                          }))
-                          .filter((item) => item.matches.length > 0);
+                    <div className="home-admin-featured-games-layout">
+                      <div className="home-admin-game-groups">
+                        {gameSelection.competitions.map((competition) => {
+                          const competitionSeasons = gameSelection.seasons
+                            .filter((season) => season.competition_id === competition.id)
+                            .map((season) => {
+                              const seasonMatchdays = (matchdaysBySeason.get(season.id) ?? [])
+                                .map((matchday) => ({
+                                  matchday,
+                                  matches: matchesByMatchday.get(matchday.id) ?? []
+                                }))
+                                .filter((item) => item.matches.length > 0);
 
-                        return {
-                          season,
-                          matchdays: seasonMatchdays
-                        };
-                      })
-                      .filter((season) => season.matchdays.length > 0);
-                    const competitionMatchCount = competitionSeasons.reduce(
-                      (total, season) =>
-                        total + season.matchdays.reduce((seasonTotal, matchday) => seasonTotal + matchday.matches.length, 0),
-                      0
-                    );
+                              return {
+                                season,
+                                matchdays: seasonMatchdays
+                              };
+                            })
+                            .filter((season) => season.matchdays.length > 0);
+                          const competitionMatchCount = competitionSeasons.reduce(
+                            (total, season) =>
+                              total + season.matchdays.reduce((seasonTotal, matchday) => seasonTotal + matchday.matches.length, 0),
+                            0
+                          );
 
-                    if (competitionSeasons.length === 0) {
-                      return null;
-                    }
+                          if (competitionSeasons.length === 0) {
+                            return null;
+                          }
 
-                    return (
-                      <details className="home-admin-game-competition" key={competition.id} open={competitionSeasons.some((season) =>
-                        season.matchdays.some((matchday) => matchday.matches.some((match) => selectedIds.has(match.id)))
-                      )}>
-                        <summary>
-                          <h3>{competition.name}</h3>
-                          <span>{competitionMatchCount} jogos</span>
-                        </summary>
-                        {competitionSeasons.map(({ season, matchdays }) => (
-                          <details className="home-admin-game-season" key={season.id} open={matchdays.some((matchday) =>
-                            matchday.matches.some((match) => selectedIds.has(match.id))
-                          )}>
-                            <summary>
-                              <h4>{season.label}</h4>
-                              <span>{matchdays.reduce((total, item) => total + item.matches.length, 0)} jogos</span>
-                            </summary>
-                            {matchdays.map(({ matchday, matches }) => (
-                              <details className="home-admin-game-matchday" key={matchday.id} open={matches.some((match) => selectedIds.has(match.id))}>
-                                <summary>
-                                  <strong>
-                                    J{matchday.number} - {matchday.label}
-                                  </strong>
-                                  <span>{matches.length} jogos</span>
-                                </summary>
-                                <div className="home-admin-game-list">
-                                  {matches.map((match) => {
-                                    const selected = selectedIds.has(match.id);
-                                    const orderValue = selectedOrderByMatchId.get(match.id);
+                          return (
+                            <details className="home-admin-game-competition" key={competition.id} open={competitionSeasons.some((season) =>
+                              season.matchdays.some((matchday) => matchday.matches.some((match) => selectedIds.has(match.id)))
+                            )}>
+                              <summary>
+                                <h3>{competition.name}</h3>
+                                <span>{competitionMatchCount} jogos</span>
+                              </summary>
+                              {competitionSeasons.map(({ season, matchdays }) => (
+                                <details className="home-admin-game-season" key={season.id} open={matchdays.some((matchday) =>
+                                  matchday.matches.some((match) => selectedIds.has(match.id))
+                                )}>
+                                  <summary>
+                                    <h4>{season.label}</h4>
+                                    <span>{matchdays.reduce((total, item) => total + item.matches.length, 0)} jogos</span>
+                                  </summary>
+                                  {matchdays.map(({ matchday, matches }) => (
+                                    <details className="home-admin-game-matchday" key={matchday.id} open={matches.some((match) => selectedIds.has(match.id))}>
+                                      <summary>
+                                        <strong>
+                                          J{matchday.number} - {matchday.label}
+                                        </strong>
+                                        <span>{matches.length} jogos</span>
+                                      </summary>
+                                      <div className="home-admin-game-list">
+                                        {matches.map((match) => {
+                                          const selected = selectedIds.has(match.id);
+                                          const orderValue = selectedOrderByMatchId.get(match.id);
 
-                                    return (
-                                      <article className={`home-admin-game-row${selected ? " is-selected" : ""}`} key={match.id}>
-                                        <input type="hidden" name="available_match_id" value={match.id} />
-                                        <label className="home-admin-game-check">
-                                          <input
-                                            defaultChecked={selected}
-                                            name="featured_match_id"
-                                            type="checkbox"
-                                            value={match.id}
-                                          />
-                                          <span>Selecionar</span>
-                                        </label>
-                                        <div className="home-admin-game-main">
-                                          <strong>{matchTitle(match, teamsById)}</strong>
-                                          <small>
-                                            {formatDateTime(match.kickoff_at)} | {matchStatusLabel(match)}
-                                            {match.venue ? ` | ${match.venue}` : ""}
-                                          </small>
-                                        </div>
-                                        <span className="home-admin-game-score">{matchScoreLabel(match)}</span>
-                                        <label className="home-admin-game-order">
-                                          <span>Ordem</span>
-                                          <input
-                                            min={1}
-                                            name={`featured_order_${match.id}`}
-                                            placeholder="auto"
-                                            type="number"
-                                            defaultValue={typeof orderValue === "number" ? orderValue : ""}
-                                          />
-                                        </label>
-                                      </article>
-                                    );
-                                  })}
-                                </div>
-                              </details>
+                                          return (
+                                            <article className={`home-admin-game-row${selected ? " is-selected" : ""}`} key={match.id}>
+                                              <input type="hidden" name="available_match_id" value={match.id} />
+                                              <label className="home-admin-game-check">
+                                                <input
+                                                  defaultChecked={selected}
+                                                  name="featured_match_id"
+                                                  type="checkbox"
+                                                  value={match.id}
+                                                />
+                                                <span>Selecionar</span>
+                                              </label>
+                                              <div className="home-admin-game-main">
+                                                <strong>{matchTitle(match, teamsById)}</strong>
+                                                <small>
+                                                  {formatDateTime(match.kickoff_at)} | {matchStatusLabel(match)}
+                                                  {match.venue ? ` | ${match.venue}` : ""}
+                                                </small>
+                                              </div>
+                                              <span className="home-admin-game-score">{matchScoreLabel(match)}</span>
+                                              <label className="home-admin-game-order">
+                                                <span>Ordem</span>
+                                                <input
+                                                  min={1}
+                                                  name={`featured_order_${match.id}`}
+                                                  placeholder="auto"
+                                                  type="number"
+                                                  defaultValue={typeof orderValue === "number" ? orderValue : ""}
+                                                />
+                                              </label>
+                                            </article>
+                                          );
+                                        })}
+                                      </div>
+                                    </details>
+                                  ))}
+                                </details>
+                              ))}
+                            </details>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="home-admin-save-row">
+                      <p>
+                        Esta acao grava apenas site_featured_matches. Nao altera jogos, competicoes, epocas, jornadas,
+                        classificacao, Home publica ou ResultsRail.
+                      </p>
+                      <button type="submit">Guardar jogos da barra da Home</button>
+                    </div>
+                  </form>
+                ) : (
+                  <p className="home-admin-empty">Nao ha jogos reais disponiveis para selecao.</p>
+                )}
+              </section>
+
+              {editorial ? (
+                <form className="home-admin-zone-form" action="/api/admin/editorial/home" method="post">
+                  <input type="hidden" name="action_type" value="update_site_editorial_home" />
+                  <input type="hidden" name="site_editorial_id" value={editorial.id} />
+
+                  <section className="home-admin-zone-panel home-admin-panel" data-zone="headline">
+                    <header>
+                      <div>
+                        <h2>Manchete principal</h2>
+                        <p>Atualiza apenas os campos principais da manchete em site_editorials.slug=home.</p>
+                      </div>
+                      <span className="home-admin-source">site_editorials</span>
+                    </header>
+                    <div className="home-admin-edit-form">
+                      <section className="home-admin-form-section">
+                        <h3>Conteudo da manchete</h3>
+                        <div className="home-admin-form-grid">
+                          <TextField label="Titulo" name="headline_title" value={editorial.headline_title} wide />
+                          <TextAreaField label="Subtitulo" name="headline_subtitle" value={editorial.headline_subtitle} />
+                          <TextField label="Imagem" name="headline_image_url" value={editorial.headline_image_url} wide />
+                          <TextField label="Link" name="headline_link_url" value={editorial.headline_link_url} wide />
+                          <TextField label="Cor do titulo" name="headline_title_color" value={editorial.headline_title_color} placeholder="#10151b" />
+                          <StatusField label="Estado geral" name="status" value={editorial.status} />
+                        </div>
+                      </section>
+                      <div className="home-admin-save-row">
+                        <p>Guarda a tabela-mae site_editorials. Nao altera a Home publica /.</p>
+                        <button type="submit">Guardar dados principais</button>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="home-admin-zone-panel home-admin-panel" data-zone="side">
+                    <header>
+                      <div>
+                        <h2>Bloco lateral</h2>
+                        <p>Edita o snapshot editorial lateral guardado em site_editorials.</p>
+                      </div>
+                      <span className="home-admin-source">site_editorials</span>
+                    </header>
+                    <div className="home-admin-edit-form">
+                      <section className="home-admin-form-section">
+                        <h3>Conteudo do bloco lateral</h3>
+                        <div className="home-admin-form-grid">
+                          <TextField label="Tipo" name="side_block_type" value={editorial.side_block_type} />
+                          <TextField label="Etiqueta" name="side_block_label" value={editorial.side_block_label} />
+                          <TextField label="Titulo" name="side_block_title" value={editorial.side_block_title} wide />
+                          <TextAreaField label="Texto" name="side_block_text" value={editorial.side_block_text} />
+                          <TextField label="Autor" name="side_block_author" value={editorial.side_block_author} />
+                          <StatusField label="Estado" name="side_block_status" value={editorial.side_block_status} />
+                          <TextField label="Imagem" name="side_block_image_url" value={editorial.side_block_image_url} wide />
+                          <TextField label="Link" name="side_block_link_url" value={editorial.side_block_link_url} wide />
+                          <TextField label="Cor do titulo" name="side_block_title_color" value={editorial.side_block_title_color} placeholder="#10151b" />
+                        </div>
+                      </section>
+                      <div className="home-admin-save-row">
+                        <p>Guarda a tabela-mae site_editorials. Nao edita tabelas filhas.</p>
+                        <button type="submit">Guardar bloco lateral</button>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="home-admin-zone-panel home-admin-panel" data-zone="complement">
+                    <header>
+                      <div>
+                        <h2>Complemento</h2>
+                        <p>Edita o complemento da manchete guardado em site_editorials.</p>
+                      </div>
+                      <span className="home-admin-source">site_editorials</span>
+                    </header>
+                    <div className="home-admin-edit-form">
+                      <section className="home-admin-form-section">
+                        <h3>Conteudo do complemento</h3>
+                        <div className="home-admin-form-grid">
+                          <TextField label="Modo" name="complementary_mode" value={editorial.complementary_mode} />
+                          <TextField label="Etiqueta" name="complementary_label" value={editorial.complementary_label} />
+                          <TextField label="Titulo" name="complementary_title" value={editorial.complementary_title} wide />
+                          <TextAreaField label="Texto" name="complementary_text" value={editorial.complementary_text} />
+                          <TextField label="Imagem" name="complementary_image_url" value={editorial.complementary_image_url} wide />
+                          <TextField label="Link" name="complementary_link_url" value={editorial.complementary_link_url} wide />
+                          <StatusField label="Estado" name="complementary_status" value={editorial.complementary_status} />
+                          <TextField
+                            label="Roundup item"
+                            name="complementary_roundup_item_id"
+                            value={editorial.complementary_roundup_item_id}
+                            placeholder="UUID do item de roundup"
+                          />
+                        </div>
+                      </section>
+                      <div className="home-admin-save-row">
+                        <p>Guarda a tabela-mae site_editorials. Nao edita roundup_items.</p>
+                        <button type="submit">Guardar complemento</button>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="home-admin-zone-panel home-admin-panel" data-zone="diagnostic">
+                    <header>
+                      <div>
+                        <h2>Diagnostico / leitura</h2>
+                        <p>Zona compacta para cabecalhos/modos e leitura tecnica das fontes site_*.</p>
+                      </div>
+                      <span className="home-admin-source">site_*</span>
+                    </header>
+                    <div className="home-admin-edit-form">
+                      <section className="home-admin-form-section">
+                        <h3>Cabecalhos e modos</h3>
+                        <div className="home-admin-form-grid">
+                          <TextField label="Modo abaixo da manchete" name="below_headline_mode" value={editorial.below_headline_mode} />
+                          <TextField label="Titulo abaixo da manchete" name="below_headline_heading" value={editorial.below_headline_heading} />
+                          <TextField
+                            label="Cor do titulo abaixo da manchete"
+                            name="below_headline_heading_color"
+                            value={editorial.below_headline_heading_color}
+                            placeholder="#10151b"
+                          />
+                          <TextField label="Titulo roundup/video" name="roundup_video_heading" value={editorial.roundup_video_heading} />
+                          <TextField
+                            label="Cor titulo roundup/video"
+                            name="roundup_video_heading_color"
+                            value={editorial.roundup_video_heading_color}
+                            placeholder="#10151b"
+                          />
+                        </div>
+                      </section>
+                      <section className="home-admin-form-section">
+                        <h3>Resumo de leitura</h3>
+                        <DetailList
+                          rows={[
+                            ["site_editorials", editorial.id ? codeValue(editorial.id) : "Sem registo"],
+                            ["site_editorial_highlights", `${highlights.length} itens`],
+                            ["site_editorial_latest_news", `${latestNews.length} itens`],
+                            ["site_editorial_roundup_items", `${roundupItems.length} itens`],
+                            ["site_featured_matches", `${featuredMatches.length} jogos`]
+                          ]}
+                        />
+                        {featuredMatches.length > 0 ? (
+                          <ul className="home-admin-list home-admin-featured-match-list">
+                            {featuredMatches.map((item, index) => (
+                              <li key={item.id ?? `${item.match_id}-${index}`}>
+                                <span className="home-admin-meta">posicao {item.sort_order ?? "-"}</span>
+                                <strong>{codeValue(item.match_id, "Sem match_id")}</strong>
+                              </li>
                             ))}
-                          </details>
-                        ))}
-                      </details>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="home-admin-save-row">
-                <p>
-                  Esta acao grava apenas site_featured_matches. Nao altera jogos, competicoes, epocas, jornadas,
-                  classificacao, Home publica ou ResultsRail.
-                </p>
-                <button type="submit">Guardar jogos da barra da Home</button>
-              </div>
-            </form>
-          ) : (
-            <p className="home-admin-empty">Nao ha jogos reais disponiveis para selecao.</p>
-          )}
-        </section>
-
-        <div className="home-admin-grid">
-          <div className="home-admin-stack">
-            <section className="home-admin-panel">
-              <header>
-                <div>
-                  <h2>Manchete da Home</h2>
-                  <p>Dados lidos de site_editorials.slug=home.</p>
-                </div>
-                <span className="home-admin-source">site_editorials</span>
-              </header>
-              {editorial ? (
-                <div className="home-admin-feature">
-                  <div className="home-admin-media">
-                    <MediaPreview label="Imagem da manchete da Home" src={editorial.headline_image_url} />
-                  </div>
-                  <div>
-                    <span className="home-admin-meta">{statusText(editorial.status)}</span>
-                    <h3 style={editorial.headline_title_color ? { color: editorial.headline_title_color } : undefined}>
-                      {textValue(editorial.headline_title, "Sem titulo de manchete")}
-                    </h3>
-                    <p>{textValue(editorial.headline_subtitle, "Sem subtitulo de manchete.")}</p>
-                    <div className="home-admin-status-row">
-                      <StatusPill status={editorial.status} />
-                      {editorial.headline_title_color ? (
-                        <span className="home-admin-pill">cor {editorial.headline_title_color}</span>
-                      ) : null}
+                          </ul>
+                        ) : null}
+                      </section>
+                      <div className="home-admin-save-row">
+                        <p>Guarda apenas os modos/cabecalhos em site_editorials. A Home publica continua intacta.</p>
+                        <button type="submit">Guardar cabecalhos e modos</button>
+                      </div>
                     </div>
-                    <DetailList
-                      rows={[
-                        ["Link", fieldLink(editorial.headline_link_url)],
-                        ["Imagem", codeValue(editorial.headline_image_url, "Sem imagem")],
-                        ["Atualizado", codeValue(editorial.updated_at, "Sem data")]
-                      ]}
-                    />
+                  </section>
+                </form>
+              ) : null}
+
+              <section className="home-admin-zone-panel home-admin-panel" data-zone="highlights">
+                <header>
+                  <div>
+                    <h2>Destaques abaixo da manchete</h2>
+                    <p>Leitura apenas de site_editorial_highlights. Esta fase nao cria edicao desta tabela filha.</p>
                   </div>
-                </div>
-              ) : (
-                <p className="home-admin-empty">Sem registo principal da Home.</p>
-              )}
-            </section>
-
-            <section className="home-admin-panel">
-              <header>
-                <div>
-                  <h2>Destaques abaixo da manchete</h2>
-                  <p>Ordenados por sort_order e ligados ao site_editorial_id da Home.</p>
-                </div>
-                <span className="home-admin-source">{highlights.length} itens</span>
-              </header>
-              {highlights.length > 0 ? (
-                <div className="home-admin-card-grid">
-                  {highlights.map((item) => (
-                    <article className="home-admin-card" key={item.id}>
-                      <div className="home-admin-card-media">
-                        <MediaPreview label={textValue(item.title, "Destaque")} src={item.image_url} />
-                      </div>
-                      <div className="home-admin-card-body">
-                        <span className="home-admin-meta">
-                          {item.sort_order ?? "-"} | {textValue(item.label, "sem etiqueta")}
-                        </span>
-                        <h3>{textValue(item.title, "Sem titulo")}</h3>
-                        <p>{textValue(item.subtitle, "Sem subtitulo.")}</p>
-                        <StatusPill status={item.status} />
-                        <DetailList rows={[["Link", fieldLink(item.link_url)]]} />
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <p className="home-admin-empty">Sem destaques para apresentar.</p>
-              )}
-            </section>
-
-            <section className="home-admin-panel">
-              <header>
-                <div>
-                  <h2>Videos / resumo / roundup</h2>
-                  <p>Itens editoriais da zona de resumo da Home.</p>
-                </div>
-                <span className="home-admin-source">{roundupItems.length} itens</span>
-              </header>
-              {roundupItems.length > 0 ? (
-                <ul className="home-admin-list is-compact">
-                  {visibleRoundupItems.map((item) => {
-                    const itemHasContent = roundupHasReadableContent(item);
-                    const emptyLabel = compactStateLabel(item.status, itemHasContent);
-
-                    return (
-                      <li className={itemHasContent ? undefined : "home-admin-muted-card"} key={item.id}>
-                        <div className="home-admin-row-media">
-                          <MediaPreview label={textValue(item.title, "Roundup")} src={item.image_url} />
+                  <span className="home-admin-source">{highlights.length} itens</span>
+                </header>
+                {highlights.length > 0 ? (
+                  <div className="home-admin-card-grid">
+                    {highlights.map((item) => (
+                      <article className="home-admin-card" key={item.id}>
+                        <div className="home-admin-card-media">
+                          <MediaPreview label={textValue(item.title, "Destaque")} src={item.image_url} />
                         </div>
-                        <div className="home-admin-compact-meta">
+                        <div className="home-admin-card-body">
                           <span className="home-admin-meta">
-                            {item.sort_order ?? "-"} | {textValue(item.type, "sem tipo")}
+                            {item.sort_order ?? "-"} | {textValue(item.label, "sem etiqueta")}
                           </span>
+                          <h3>{textValue(item.title, "Sem titulo")}</h3>
+                          <p>{textValue(item.subtitle, "Sem subtitulo.")}</p>
                           <StatusPill status={item.status} />
-                          {item.duration ? <span className="home-admin-pill">{item.duration}</span> : null}
+                          <DetailList rows={[["Link", fieldLink(item.link_url)]]} />
                         </div>
-                        <strong>{emptyLabel ?? textValue(item.title, "Item sem conteudo")}</strong>
-                        {itemHasContent ? <p>{textValue(item.subtitle, item.label, "Sem texto adicional.")}</p> : null}
-                        <DetailList rows={[["Video", fieldLink(item.video_url)]]} />
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="home-admin-empty">Sem destaques para apresentar.</p>
+                )}
+              </section>
+
+              <section className="home-admin-zone-panel home-admin-panel" data-zone="roundup">
+                <header>
+                  <div>
+                    <h2>Videos / resumo / roundup</h2>
+                    <p>Leitura apenas de site_editorial_roundup_items. Rascunhos vazios continuam agrupados.</p>
+                  </div>
+                  <span className="home-admin-source">{roundupItems.length} itens</span>
+                </header>
+                {roundupItems.length > 0 ? (
+                  <ul className="home-admin-list is-compact">
+                    {visibleRoundupItems.map((item) => {
+                      const itemHasContent = roundupHasReadableContent(item);
+                      const emptyLabel = compactStateLabel(item.status, itemHasContent);
+
+                      return (
+                        <li className={itemHasContent ? undefined : "home-admin-muted-card"} key={item.id}>
+                          <div className="home-admin-row-media">
+                            <MediaPreview label={textValue(item.title, "Roundup")} src={item.image_url} />
+                          </div>
+                          <div className="home-admin-compact-meta">
+                            <span className="home-admin-meta">
+                              {item.sort_order ?? "-"} | {textValue(item.type, "sem tipo")}
+                            </span>
+                            <StatusPill status={item.status} />
+                            {item.duration ? <span className="home-admin-pill">{item.duration}</span> : null}
+                          </div>
+                          <strong>{emptyLabel ?? textValue(item.title, "Item sem conteudo")}</strong>
+                          {itemHasContent ? <p>{textValue(item.subtitle, item.label, "Sem texto adicional.")}</p> : null}
+                          <DetailList rows={[["Video", fieldLink(item.video_url)]]} />
+                        </li>
+                      );
+                    })}
+                    {emptyRoundupItems.length > 0 ? (
+                      <li className="home-admin-empty-group">
+                        <div className="home-admin-compact-meta">
+                          <StatusPill status="draft" />
+                          <span className="home-admin-meta">{sortOrderList(emptyRoundupItems)}</span>
+                        </div>
+                        <strong>{emptyGroupLabel(emptyRoundupItems.length)}</strong>
+                        <small>Itens sem titulo, imagem, video ou texto editorial relevante. Mantidos como diagnostico.</small>
                       </li>
-                    );
-                  })}
-                  {emptyRoundupItems.length > 0 ? (
-                    <li className="home-admin-empty-group">
-                      <div className="home-admin-compact-meta">
-                        <StatusPill status="draft" />
-                        <span className="home-admin-meta">{sortOrderList(emptyRoundupItems)}</span>
-                      </div>
-                      <strong>{emptyGroupLabel(emptyRoundupItems.length)}</strong>
-                      <small>Itens sem titulo, imagem, video ou texto editorial relevante. Mantidos como diagnostico.</small>
-                    </li>
-                  ) : null}
-                </ul>
-              ) : (
-                <p className="home-admin-empty">Sem itens de video/resumo para apresentar.</p>
-              )}
-            </section>
+                    ) : null}
+                  </ul>
+                ) : (
+                  <p className="home-admin-empty">Sem itens de video/resumo para apresentar.</p>
+                )}
+              </section>
+
+              <section className="home-admin-zone-panel home-admin-panel" data-zone="latest">
+                <header>
+                  <div>
+                    <h2>Ultimas noticias / ao minuto</h2>
+                    <p>Leitura apenas de site_editorial_latest_news, incluindo draft ou vazios.</p>
+                  </div>
+                  <span className="home-admin-source">{latestNews.length} itens</span>
+                </header>
+                {latestNews.length > 0 ? (
+                  <ul className="home-admin-list is-compact">
+                    {visibleLatestNews.map((item) => {
+                      const itemHasContent = latestNewsHasReadableContent(item);
+                      const emptyLabel = compactStateLabel(item.status, itemHasContent);
+
+                      return (
+                        <li className={itemHasContent ? undefined : "home-admin-muted-card"} key={item.id}>
+                          <div className="home-admin-row-media">
+                            <MediaPreview label={textValue(item.title, "Ultima noticia")} src={item.image_url} />
+                          </div>
+                          <div className="home-admin-compact-meta">
+                            <span className="home-admin-meta">
+                              {item.sort_order ?? "-"} | {textValue(item.time_label, "sem hora")}
+                            </span>
+                            <StatusPill status={item.status} />
+                          </div>
+                          <strong>{emptyLabel ?? textValue(item.title, "Item sem conteudo")}</strong>
+                          <DetailList rows={[["Link", fieldLink(item.link_url)]]} />
+                        </li>
+                      );
+                    })}
+                    {emptyLatestNews.length > 0 ? (
+                      <li className="home-admin-empty-group">
+                        <div className="home-admin-compact-meta">
+                          <StatusPill status="draft" />
+                          <span className="home-admin-meta">{sortOrderList(emptyLatestNews)}</span>
+                        </div>
+                        <strong>{emptyGroupLabel(emptyLatestNews.length)}</strong>
+                        <small>Itens sem hora, titulo, imagem ou link. Mantidos como diagnostico.</small>
+                      </li>
+                    ) : null}
+                  </ul>
+                ) : (
+                  <p className="home-admin-empty">Sem ultimas noticias para apresentar.</p>
+                )}
+              </section>
+            </div>
           </div>
-
-          <aside className="home-admin-stack">
-            <section className="home-admin-panel">
-              <header>
-                <div>
-                  <h2>Bloco lateral</h2>
-                  <p>Snapshot editorial guardado em site_editorials.</p>
-                </div>
-                <span className="home-admin-source">site_editorials</span>
-              </header>
-              {editorial ? (
-                <div className="home-admin-feature home-admin-side-feature">
-                  <div className="home-admin-media">
-                    <MediaPreview label="Imagem do bloco lateral" src={editorial.side_block_image_url} />
-                  </div>
-                  <div>
-                    <span className="home-admin-meta">{textValue(editorial.side_block_label, "sem etiqueta")}</span>
-                    <h3 style={editorial.side_block_title_color ? { color: editorial.side_block_title_color } : undefined}>
-                      {textValue(editorial.side_block_title, "Sem titulo")}
-                    </h3>
-                    <p>{textValue(editorial.side_block_text, "Sem texto.")}</p>
-                    <div className="home-admin-status-row">
-                      <StatusPill status={editorial.side_block_status} />
-                      {editorial.side_block_type ? <span className="home-admin-pill">{editorial.side_block_type}</span> : null}
-                    </div>
-                    <DetailList
-                      rows={[
-                        ["Autor", editorial.side_block_author || "Sem autor"],
-                        ["Link", fieldLink(editorial.side_block_link_url)],
-                        ["Imagem", codeValue(editorial.side_block_image_url, "Sem imagem")]
-                      ]}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <p className="home-admin-empty">Sem bloco lateral.</p>
-              )}
-            </section>
-
-            <section className="home-admin-panel">
-              <header>
-                <div>
-                  <h2>Complemento</h2>
-                  <p>Complemento abaixo/ao lado da manchete.</p>
-                </div>
-                <span className="home-admin-source">site_editorials</span>
-              </header>
-              {editorial ? (
-                <div className="home-admin-feature home-admin-side-feature">
-                  <div className="home-admin-media">
-                    <MediaPreview label="Imagem do complemento" src={editorial.complementary_image_url} />
-                  </div>
-                  <div>
-                    <span className="home-admin-meta">{textValue(editorial.complementary_label, "sem etiqueta")}</span>
-                    <h3>{textValue(editorial.complementary_title, "Sem titulo")}</h3>
-                    <p>{textValue(editorial.complementary_text, "Sem texto.")}</p>
-                    <div className="home-admin-status-row">
-                      <StatusPill status={editorial.complementary_status} />
-                      {editorial.complementary_mode ? <span className="home-admin-pill">{editorial.complementary_mode}</span> : null}
-                    </div>
-                    <DetailList
-                      rows={[
-                        ["Link", fieldLink(editorial.complementary_link_url)],
-                        ["Roundup item", codeValue(editorial.complementary_roundup_item_id, "Sem relacao")],
-                        ["Imagem", codeValue(editorial.complementary_image_url, "Sem imagem")]
-                      ]}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <p className="home-admin-empty">Sem complemento.</p>
-              )}
-            </section>
-
-            <section className="home-admin-panel">
-              <header>
-                <div>
-                  <h2>Ultimas noticias / ao minuto</h2>
-                  <p>Itens de diagnostico, incluindo draft ou vazios.</p>
-                </div>
-                <span className="home-admin-source">{latestNews.length} itens</span>
-              </header>
-              {latestNews.length > 0 ? (
-                <ul className="home-admin-list is-compact">
-                  {visibleLatestNews.map((item) => {
-                    const itemHasContent = latestNewsHasReadableContent(item);
-                    const emptyLabel = compactStateLabel(item.status, itemHasContent);
-
-                    return (
-                      <li className={itemHasContent ? undefined : "home-admin-muted-card"} key={item.id}>
-                        <div className="home-admin-row-media">
-                          <MediaPreview label={textValue(item.title, "Ultima noticia")} src={item.image_url} />
-                        </div>
-                        <div className="home-admin-compact-meta">
-                          <span className="home-admin-meta">
-                            {item.sort_order ?? "-"} | {textValue(item.time_label, "sem hora")}
-                          </span>
-                          <StatusPill status={item.status} />
-                        </div>
-                        <strong>{emptyLabel ?? textValue(item.title, "Item sem conteudo")}</strong>
-                        <DetailList rows={[["Link", fieldLink(item.link_url)]]} />
-                      </li>
-                    );
-                  })}
-                  {emptyLatestNews.length > 0 ? (
-                    <li className="home-admin-empty-group">
-                      <div className="home-admin-compact-meta">
-                        <StatusPill status="draft" />
-                        <span className="home-admin-meta">{sortOrderList(emptyLatestNews)}</span>
-                      </div>
-                      <strong>{emptyGroupLabel(emptyLatestNews.length)}</strong>
-                      <small>Itens sem hora, titulo, imagem ou link. Mantidos como diagnostico.</small>
-                    </li>
-                  ) : null}
-                </ul>
-              ) : (
-                <p className="home-admin-empty">Sem ultimas noticias para apresentar.</p>
-              )}
-            </section>
-
-            <section className="home-admin-panel">
-              <header>
-                <div>
-                  <h2>Jogos em destaque</h2>
-                  <p>Leitura simples de site_featured_matches.</p>
-                </div>
-                <span className="home-admin-source">{featuredMatches.length} jogos</span>
-              </header>
-              {featuredMatches.length > 0 ? (
-                <ul className="home-admin-list home-admin-featured-match-list">
-                  {featuredMatches.map((item, index) => (
-                    <li key={item.id ?? `${item.match_id}-${index}`}>
-                      <span className="home-admin-meta">posicao {item.sort_order ?? "-"}</span>
-                      <strong>{codeValue(item.match_id, "Sem match_id")}</strong>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="home-admin-empty">Sem jogos em destaque para apresentar.</p>
-              )}
-            </section>
-          </aside>
-        </div>
+        </section>
       </div>
     </main>
   );
