@@ -327,14 +327,14 @@ const gamesPageStyles = `
   .public-games-list {
     display: grid;
     gap: 14px;
-    inline-size: 100%;
+    inline-size: min(100%, 620px);
     justify-self: start;
     padding: 4px 0 0;
   }
 
   .public-games-group {
     display: grid;
-    gap: 6px;
+    gap: 2px;
   }
 
   .public-games-group + .public-games-group {
@@ -347,11 +347,6 @@ const gamesPageStyles = `
     font-size: 11px;
     font-weight: 900;
     text-transform: uppercase;
-  }
-
-  .public-games-scoreboard {
-    gap: 8px;
-    padding: 0 0 8px;
   }
 
   .public-games-card {
@@ -796,10 +791,10 @@ function matchResult(match: PublicSeasonMatch) {
   const hasScore = match.home_score !== null && match.away_score !== null;
   const kind = statusKind(match.status);
   if ((kind !== "finished" && kind !== "live" && kind !== "halftime") || !hasScore) {
-    return "v";
+    return "vs";
   }
 
-  return `${match.home_score}-${match.away_score}`;
+  return `${match.home_score} - ${match.away_score}`;
 }
 
 function teamInitials(name?: string | null, shortName?: string | null) {
@@ -840,44 +835,6 @@ function BroadcastBadge({ match }: { match: PublicSeasonMatch }) {
   );
 }
 
-function shortTeamLabel(name?: string | null, shortName?: string | null) {
-  const editorialName = name?.trim();
-  const fallback = shortName?.trim() || editorialName || "Equipa";
-
-  if (!editorialName) {
-    return fallback;
-  }
-
-  return editorialName.length <= 20 ? editorialName : fallback;
-}
-
-function matchVisualState(match: PublicSeasonMatch) {
-  const kind = statusKind(match.status);
-  if (kind === "live" || kind === "halftime") return "live";
-  if (kind === "finished") return "finished";
-  return "scheduled";
-}
-
-function matchCardStatusText(match: PublicSeasonMatch) {
-  const kind = statusKind(match.status);
-  if (kind === "live" || kind === "halftime") {
-    return match.minute ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
-  }
-  if (kind === "finished") return "Finalizado";
-  return "Agendado";
-}
-
-function matchCardMomentText(match: PublicSeasonMatch) {
-  const kind = statusKind(match.status);
-  if (kind === "live" || kind === "halftime") return match.minute ? `${match.minute}'` : statusLabel(match.status);
-  if (kind === "finished") return "Final";
-  return formatKickoffTime(match.kickoff_at);
-}
-
-function matchCardMetaText(match: PublicSeasonMatch) {
-  return match.broadcastChannel?.name?.trim() || "Jornada";
-}
-
 function MatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const statusText = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
@@ -908,28 +865,6 @@ function MatchCard({ match }: { match: PublicSeasonMatch }) {
         <span>{statusKind(match.status) === "scheduled" ? formatKickoffTime(match.kickoff_at) : formatKickoff(match.kickoff_at)}</span>
         <BroadcastBadge match={match} />
       </div>
-    </article>
-  );
-}
-
-function MatchRailCard({ match }: { match: PublicSeasonMatch }) {
-  const kind = statusKind(match.status);
-  const visualState = matchVisualState(match);
-
-  return (
-    <article className={`match-card match-card-${kind} match-card--${visualState}`} key={match.id}>
-      <p className="match-status">
-        <span>{matchCardStatusText(match)}</span>
-        <em>{matchCardMetaText(match)}</em>
-      </p>
-      <div className="match-teams">
-        <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
-        <strong>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</strong>
-        <b>{matchResult(match)}</b>
-        <strong>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</strong>
-        <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
-      </div>
-      <small>{matchCardMomentText(match)}</small>
     </article>
   );
 }
@@ -1108,11 +1043,9 @@ export default async function PublicMatchdayGamesPage({ params }: PublicMatchday
                 {matchGroups.map((group) => (
                   <section className="public-games-group" aria-label={`Jogos: ${group.label}`} key={group.key}>
                     <h3>{group.label}</h3>
-                    <div className="scoreboard public-games-scoreboard">
-                      {group.matches.map((match) => (
-                        <MatchRailCard key={match.id} match={match} />
-                      ))}
-                    </div>
+                    {group.matches.map((match) => (
+                      <MatchCard key={match.id} match={match} />
+                    ))}
                   </section>
                 ))}
               </div>

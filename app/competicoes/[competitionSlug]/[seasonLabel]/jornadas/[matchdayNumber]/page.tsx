@@ -296,21 +296,21 @@ const publicMatchdayStyles = `
 
   .public-matchday-strip {
     display: flex;
-    gap: 8px;
+    gap: 14px;
     overflow-x: auto;
     scroll-behavior: smooth;
     scroll-padding: 14px;
-    padding: 0;
+    padding: 8px;
     background: #ffffff;
   }
 
   .public-matchday-strip-shell {
     display: grid;
-    grid-template-columns: 42px minmax(0, 1fr) 42px;
-    gap: 4px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 6px;
     align-items: center;
-    min-height: 88px;
-    padding: 0;
+    min-height: 104px;
+    padding: 0 10px;
     background: #ffffff;
   }
 
@@ -2416,10 +2416,10 @@ function matchResult(match: PublicSeasonMatch) {
   const hasScore = match.home_score !== null && match.away_score !== null;
   const kind = statusKind(match.status);
   if ((kind !== "finished" && kind !== "live" && kind !== "halftime") || !hasScore) {
-    return "v";
+    return "vs";
   }
 
-  return `${match.home_score}-${match.away_score}`;
+  return `${match.home_score} - ${match.away_score}`;
 }
 
 function teamInitials(name?: string | null, shortName?: string | null) {
@@ -2503,73 +2503,79 @@ function BroadcastBadge({ match }: { match: PublicSeasonMatch }) {
   );
 }
 
-function matchVisualState(match: PublicSeasonMatch) {
-  const kind = statusKind(match.status);
-  if (kind === "live" || kind === "halftime") return "live";
-  if (kind === "finished") return "finished";
-  return "scheduled";
-}
-
-function matchCardStatusText(match: PublicSeasonMatch) {
-  const kind = statusKind(match.status);
-  if (kind === "live" || kind === "halftime") {
-    return match.minute ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
-  }
-  if (kind === "finished") return "Finalizado";
-  return "Agendado";
-}
-
-function matchCardMomentText(match: PublicSeasonMatch) {
-  const kind = statusKind(match.status);
-  if (kind === "live" || kind === "halftime") return match.minute ? `${match.minute}'` : statusLabel(match.status);
-  if (kind === "finished") return "Final";
-  return formatMiniCardKickoff(match.kickoff_at);
-}
-
-function matchCardMetaText(match: PublicSeasonMatch) {
-  return match.broadcastChannel?.name?.trim() || match.venue?.trim() || "Jornada";
-}
-
 function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: boolean }) {
   const kind = statusKind(match.status);
-  const visualState = matchVisualState(match);
+  const broadcastChannelName = match.broadcastChannel?.name?.trim();
+  const hasScore = match.home_score !== null && match.away_score !== null;
+  const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
+  const liveStatus = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
 
   return (
-    <article className={`match-card match-card-${kind} match-card--${visualState}`} data-live-focus={focus ? "true" : undefined}>
-      <p className="match-status">
-        <span>{matchCardStatusText(match)}</span>
-        <em>{matchCardMetaText(match)}</em>
-      </p>
-      <div className="match-teams">
+    <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>
+      <span className="public-matchday-mini-team">
         <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
-        <strong>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</strong>
-        <b>{matchResult(match)}</b>
-        <strong>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</strong>
+        <span>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</span>
+        {showScore ? <b className="public-matchday-mini-score">{match.home_score}</b> : null}
+      </span>
+      <span className="public-matchday-mini-team">
         <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
-      </div>
-      <small>{matchCardMomentText(match)}</small>
+        <span>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</span>
+        {showScore ? <b className="public-matchday-mini-score">{match.away_score}</b> : null}
+      </span>
+      <span className="public-matchday-mini-status">
+        {kind === "finished" ? (
+          <span>Finalizado</span>
+        ) : kind === "live" || kind === "halftime" ? (
+          <span>{liveStatus}</span>
+        ) : kind === "scheduled" ? (
+          <>
+            <time className="public-matchday-mini-time" dateTime={match.kickoff_at}>{formatMiniCardKickoff(match.kickoff_at)}</time>
+            {broadcastChannelName ? (
+              <>
+                <span className="public-matchday-mini-separator" aria-hidden="true">·</span>
+                <span className="public-matchday-mini-channel">{broadcastChannelName}</span>
+              </>
+            ) : null}
+          </>
+        ) : (
+          <span>{statusLabel(match.status)}</span>
+        )}
+      </span>
     </article>
   );
 }
 
 function MatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
-  const visualState = matchVisualState(match);
+  const statusText = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
+  const homeWinner = isWinner(match, "home");
+  const awayWinner = isWinner(match, "away");
 
   return (
-    <article className={`match-card match-card-${kind} match-card--${visualState}`} key={match.id}>
-      <p className="match-status">
-        <span>{matchCardStatusText(match)}</span>
-        <em>{matchCardMetaText(match)}</em>
-      </p>
-      <div className="match-teams">
+    <article className={`public-matchday-card public-matchday-card-${kind}`} key={match.id}>
+      <div className={`public-matchday-team ${homeWinner ? "public-matchday-team-winner" : ""}`}>
+        <div className="public-matchday-team-copy">
+          <strong>{match.homeTeam?.name ?? "Equipa da casa"}</strong>
+          <small>Casa</small>
+        </div>
         <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
-        <strong>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</strong>
-        <b>{matchResult(match)}</b>
-        <strong>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</strong>
-        <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
       </div>
-      <small>{matchCardMomentText(match)}</small>
+      <div className="public-matchday-score">
+        <strong>{matchResult(match)}</strong>
+        <small className={`public-matchday-status public-matchday-status-${kind}`}>{statusText}</small>
+      </div>
+      <div className={`public-matchday-team ${awayWinner ? "public-matchday-team-winner" : ""}`}>
+        <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
+        <div className="public-matchday-team-copy">
+          <strong>{match.awayTeam?.name ?? "Equipa visitante"}</strong>
+          <small>Fora</small>
+        </div>
+      </div>
+      <div className="public-matchday-meta">
+        <span>{formatKickoff(match.kickoff_at)}</span>
+        {match.venue ? <span>{match.venue}</span> : null}
+        <BroadcastBadge match={match} />
+      </div>
     </article>
   );
 }
@@ -2918,11 +2924,11 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
         }}
       />
       <section className="public-matchday-panel public-matchday-scoreboard-panel" aria-label="Visao rapida dos jogos">
-        <div className="results-line public-matchday-strip-shell">
-          <button className="score-arrow" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
+        <div className="public-matchday-strip-shell">
+          <button className="public-matchday-strip-button" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
             ‹
           </button>
-          <div className="scoreboard public-matchday-strip" data-matchday-strip>
+          <div className="public-matchday-strip" data-matchday-strip>
             {context.matchesForMatchday.length > 0 ? (
               context.matchesForMatchday.map((match) => (
                 <CompactMatchCard focus={focusedStripMatch?.id === match.id} key={match.id} match={match} />
@@ -2931,7 +2937,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
               <p>Ainda nao ha jogos nesta jornada.</p>
             )}
           </div>
-          <button className="score-arrow" data-strip-scroll="right" type="button" aria-label="Ver jogos seguintes">
+          <button className="public-matchday-strip-button" data-strip-scroll="right" type="button" aria-label="Ver jogos seguintes">
             ›
           </button>
         </div>
