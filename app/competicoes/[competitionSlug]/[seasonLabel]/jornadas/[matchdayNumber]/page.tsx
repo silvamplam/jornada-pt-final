@@ -330,17 +330,17 @@ const publicMatchdayStyles = `
   .public-matchday-mini-card {
     position: relative;
     display: grid;
-    flex: 0 0 218px;
+    flex: 0 0 196px;
     grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
+    gap: 3px;
     align-items: start;
-    min-height: 84px;
-    padding: 7px 8px 8px;
+    min-height: 76px;
+    padding: 6px 7px 7px;
     border: 1px solid #eef2f6;
     border-radius: 6px;
     background: #ffffff;
     box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
-    font-size: 12.5px;
+    font-size: 11.5px;
   }
 
   .public-matchday-mini-card + .public-matchday-mini-card::before {
@@ -382,7 +382,7 @@ const publicMatchdayStyles = `
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     overflow: hidden;
     font-weight: 800;
     text-transform: none;
@@ -403,18 +403,18 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-score {
-    min-width: 18px;
+    min-width: 16px;
     color: #10151b;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: 17px;
+    font-size: 15px;
     font-weight: 900;
     line-height: 1;
     text-align: right;
   }
 
   .public-matchday-mini-card .public-team-badge {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     background: #ffffff;
   }
 
@@ -425,11 +425,11 @@ const publicMatchdayStyles = `
     justify-content: flex-start;
     gap: 4px;
     min-width: 0;
-    padding: 3px 0 0 30px;
+    padding: 2px 0 0 27px;
     border-radius: 0;
     background: transparent;
     color: #607086;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     line-height: 1.15;
     text-transform: none;
@@ -442,7 +442,7 @@ const publicMatchdayStyles = `
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 3px 7px;
+    padding: 2px 6px;
     border-radius: 999px;
     font-weight: 900;
   }
@@ -478,7 +478,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-card-scheduled .public-matchday-mini-time {
-    padding: 3px 7px;
+    padding: 2px 6px;
     border-radius: 999px;
     background: #f4f1e8;
     color: #6b5a22;
@@ -1675,11 +1675,11 @@ const publicMatchdayStyles = `
   .public-matchday-card {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    gap: 12px;
+    gap: 10px;
     align-items: center;
-    width: min(820px, 100%);
+    width: min(760px, 100%);
     margin: 0 auto;
-    padding: 12px 14px;
+    padding: 10px 12px;
     border: 1px solid #e3e9f0;
     border-radius: 8px;
     background: #ffffff;
@@ -1721,7 +1721,7 @@ const publicMatchdayStyles = `
   .public-matchday-team {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     min-width: 0;
   }
 
@@ -1740,15 +1740,15 @@ const publicMatchdayStyles = `
   .public-matchday-team strong,
   .public-matchday-score strong {
     display: block;
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .public-matchday-team small,
   .public-matchday-score small {
     display: block;
-    margin-top: 4px;
+    margin-top: 3px;
     color: #66717f;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     text-transform: uppercase;
   }
@@ -1761,8 +1761,8 @@ const publicMatchdayStyles = `
     display: grid;
     flex: 0 0 auto;
     place-items: center;
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     overflow: hidden;
     border: 1px solid #d8dee6;
     border-radius: 999px;
@@ -1779,12 +1779,12 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-score {
-    min-width: 86px;
+    min-width: 72px;
     text-align: center;
   }
 
   .public-matchday-score strong {
-    font-size: 22px;
+    font-size: 18px;
     letter-spacing: 0;
   }
 
@@ -1792,10 +1792,10 @@ const publicMatchdayStyles = `
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 3px 7px;
+    padding: 2px 6px;
     border-radius: 999px;
     background: #eef2f6;
-    font-size: 10.5px;
+    font-size: 9.5px;
   }
 
   .public-matchday-status-finished {
@@ -1838,9 +1838,9 @@ const publicMatchdayStyles = `
     justify-content: center;
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
     color: #607086;
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .public-matchday-tv {

@@ -351,11 +351,11 @@ const gamesPageStyles = `
 
   .public-games-card {
     display: grid;
-    grid-template-columns: 34px minmax(0, 1fr) 120px minmax(0, 1fr) 34px;
-    column-gap: 8px;
-    row-gap: 4px;
+    grid-template-columns: 30px minmax(0, 1fr) 92px minmax(0, 1fr) 30px;
+    column-gap: 7px;
+    row-gap: 3px;
     align-items: center;
-    padding: 10px 0;
+    padding: 8px 0;
     border: 0;
     border-bottom: 1px solid #edf1f5;
     border-radius: 0;
@@ -415,7 +415,7 @@ const gamesPageStyles = `
   .public-games-score strong {
     display: block;
     color: #10151b;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 900;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -425,9 +425,9 @@ const gamesPageStyles = `
   .public-games-team-copy small,
   .public-games-score small {
     display: block;
-    margin-top: 4px;
+    margin-top: 3px;
     color: #66717f;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     text-transform: uppercase;
   }
@@ -438,10 +438,10 @@ const gamesPageStyles = `
 
           .public-team-badge {
             display: grid;
-            flex: 0 0 34px;
+            flex: 0 0 30px;
             place-items: center;
-            width: 34px;
-            height: 34px;
+            width: 30px;
+            height: 30px;
     overflow: hidden;
     border: 1px solid #d8dee6;
     border-radius: 999px;
@@ -466,17 +466,17 @@ const gamesPageStyles = `
   }
 
   .public-games-score strong {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .public-games-status {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 3px 7px;
+    padding: 2px 6px;
     border-radius: 999px;
     background: #eef2f6;
-    font-size: 10.5px;
+    font-size: 9.5px;
   }
 
   .public-games-status-finished {
@@ -515,16 +515,16 @@ const gamesPageStyles = `
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
     color: #607086;
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .public-games-tv {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 2px 7px;
+    padding: 2px 6px;
     border: 1px solid #dce3eb;
     border-radius: 999px;
     background: #ffffff;
@@ -533,8 +533,8 @@ const gamesPageStyles = `
   }
 
   .public-games-tv img {
-    width: 28px;
-    height: 18px;
+    width: 24px;
+    height: 16px;
     object-fit: contain;
   }
 
