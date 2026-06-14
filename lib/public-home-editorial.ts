@@ -363,69 +363,71 @@ async function readFeaturedMatches(): Promise<ResolvedMatch[]> {
   const channelsById = new Map(channels.map((item) => [item.id, item]));
   const matchesById = new Map(matches.map((item) => [item.id, item]));
 
-  return featuredRows
-    .map((featuredRow) => {
-      const match = matchesById.get(featuredRow.match_id);
-      if (!match) {
-        return null;
-      }
+  const resolvedMatches: ResolvedMatch[] = [];
 
-      const seasonRow = seasonsById.get(match.season_id);
-      const competitionRow = competitionsById.get(match.competition_id);
-      const homeTeamRow = teamsById.get(match.home_team_id);
-      const awayTeamRow = teamsById.get(match.away_team_id);
+  for (const featuredRow of featuredRows) {
+    const match = matchesById.get(featuredRow.match_id);
+    if (!match) {
+      continue;
+    }
 
-      if (!seasonRow || !competitionRow || !homeTeamRow || !awayTeamRow) {
-        return null;
-      }
+    const seasonRow = seasonsById.get(match.season_id);
+    const competitionRow = competitionsById.get(match.competition_id);
+    const homeTeamRow = teamsById.get(match.home_team_id);
+    const awayTeamRow = teamsById.get(match.away_team_id);
 
-      const matchday = toMatchday(match.matchday_id ? matchdaysById.get(match.matchday_id) : undefined, match.matchday_id ?? match.id);
-      const season: Season = {
-        id: seasonRow.id,
-        label: seasonRow.label,
-        currentMatchdayId: matchday.id,
-        matchdays: [{ ...matchday, matchIds: [match.id] }]
-      };
-      const competition = toCompetition(competitionRow, season);
-      const channel = match.broadcast_channel_id ? channelsById.get(match.broadcast_channel_id) : undefined;
+    if (!seasonRow || !competitionRow || !homeTeamRow || !awayTeamRow) {
+      continue;
+    }
 
-      return {
-        id: match.id,
-        competitionId: match.competition_id,
-        seasonId: match.season_id,
-        matchdayId: matchday.id,
-        homeTeamId: match.home_team_id,
-        awayTeamId: match.away_team_id,
-        status: mapMatchStatus(match.status),
-        minute: match.minute ?? undefined,
-        kickoff: match.kickoff_at,
-        score: {
-          home: match.home_score,
-          away: match.away_score
-        },
-        venue: cleanText(match.venue) ?? "",
-        broadcast: channel
-          ? {
-              channel: channel.name,
-              platform: cleanText(channel.platform) ?? channel.name,
-              region: cleanText(channel.country) ?? "Portugal",
-              coverage: "Direto",
-              logoUrl: cleanText(channel.logo_url) ?? undefined
-            }
-          : undefined,
-        articleIds: [],
-        eventIds: [],
-        goalIds: [],
-        competition,
-        matchday,
-        homeTeam: toTeam(homeTeamRow),
-        awayTeam: toTeam(awayTeamRow),
-        articles: [],
-        events: [],
-        goals: []
-      } satisfies ResolvedMatch;
-    })
-    .filter((match): match is ResolvedMatch => Boolean(match));
+    const matchday = toMatchday(match.matchday_id ? matchdaysById.get(match.matchday_id) : undefined, match.matchday_id ?? match.id);
+    const season: Season = {
+      id: seasonRow.id,
+      label: seasonRow.label,
+      currentMatchdayId: matchday.id,
+      matchdays: [{ ...matchday, matchIds: [match.id] }]
+    };
+    const competition = toCompetition(competitionRow, season);
+    const channel = match.broadcast_channel_id ? channelsById.get(match.broadcast_channel_id) : undefined;
+
+    resolvedMatches.push({
+      id: match.id,
+      competitionId: match.competition_id,
+      seasonId: match.season_id,
+      matchdayId: matchday.id,
+      homeTeamId: match.home_team_id,
+      awayTeamId: match.away_team_id,
+      status: mapMatchStatus(match.status),
+      minute: match.minute ?? undefined,
+      kickoff: match.kickoff_at,
+      score: {
+        home: match.home_score,
+        away: match.away_score
+      },
+      venue: cleanText(match.venue) ?? "",
+      broadcast: channel
+        ? {
+            channel: channel.name,
+            platform: cleanText(channel.platform) ?? channel.name,
+            region: cleanText(channel.country) ?? "Portugal",
+            coverage: "Direto",
+            logoUrl: cleanText(channel.logo_url) ?? undefined
+          }
+        : undefined,
+      articleIds: [],
+      eventIds: [],
+      goalIds: [],
+      competition,
+      matchday,
+      homeTeam: toTeam(homeTeamRow),
+      awayTeam: toTeam(awayTeamRow),
+      articles: [],
+      events: [],
+      goals: []
+    });
+  }
+
+  return resolvedMatches;
 }
 
 export async function getPublicHomeEditorialOverlay(context: HomeContext): Promise<PublicHomeEditorialOverlay | null> {
