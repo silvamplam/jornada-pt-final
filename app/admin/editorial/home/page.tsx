@@ -1,22 +1,111 @@
-import {
-  applyBroadcastOverridesToHomeContext,
-  formatKickoff,
-  getHomeContext,
-  getScoreLabel,
-  type Article,
-  type ResolvedMatch
-} from "@/lib/jornada";
-import { getPublicBroadcastOverrides } from "@/lib/supabase";
+import type { ReactNode } from "react";
+import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
-const editorialHomeStyles = `
+type SiteEditorial = {
+  id: string;
+  slug: string | null;
+  status: string | null;
+  headline_title: string | null;
+  headline_subtitle: string | null;
+  headline_image_url: string | null;
+  headline_link_url: string | null;
+  headline_title_color: string | null;
+  side_block_type: string | null;
+  side_block_label: string | null;
+  side_block_title: string | null;
+  side_block_text: string | null;
+  side_block_author: string | null;
+  side_block_image_url: string | null;
+  side_block_link_url: string | null;
+  side_block_status: string | null;
+  side_block_title_color: string | null;
+  complementary_mode: string | null;
+  complementary_label: string | null;
+  complementary_title: string | null;
+  complementary_text: string | null;
+  complementary_image_url: string | null;
+  complementary_link_url: string | null;
+  complementary_status: string | null;
+  complementary_roundup_item_id: string | null;
+  below_headline_mode: string | null;
+  below_headline_heading: string | null;
+  below_headline_heading_color: string | null;
+  roundup_video_heading: string | null;
+  roundup_video_heading_color: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  published_at?: string | null;
+};
+
+type SiteEditorialHighlight = {
+  id: string;
+  site_editorial_id: string | null;
+  sort_order: number | null;
+  label: string | null;
+  title: string | null;
+  subtitle: string | null;
+  image_url: string | null;
+  link_url: string | null;
+  status: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+type SiteEditorialLatestNews = {
+  id: string;
+  site_editorial_id: string | null;
+  sort_order: number | null;
+  time_label: string | null;
+  title: string | null;
+  image_url: string | null;
+  link_url: string | null;
+  status: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+type SiteEditorialRoundupItem = {
+  id: string;
+  site_editorial_id: string | null;
+  sort_order: number | null;
+  type: string | null;
+  label: string | null;
+  title: string | null;
+  subtitle: string | null;
+  duration: string | null;
+  image_url: string | null;
+  video_url: string | null;
+  status: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+type SiteFeaturedMatch = {
+  id?: string | null;
+  match_id: string | null;
+  sort_order: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+type HomeEditorialData = {
+  editorial: SiteEditorial | null;
+  highlights: SiteEditorialHighlight[];
+  latestNews: SiteEditorialLatestNews[];
+  roundupItems: SiteEditorialRoundupItem[];
+  featuredMatches: SiteFeaturedMatch[];
+  error: string | null;
+};
+
+const homeEditorialStyles = `
   body {
     margin: 0;
     background: #eef2f6;
   }
 
-  .editorial-home-shell {
+  .home-admin-shell {
     min-height: 100vh;
     padding: 28px;
     background: #eef2f6;
@@ -24,495 +113,736 @@ const editorialHomeStyles = `
     font-family: Arial, Helvetica, sans-serif;
   }
 
-  .editorial-home-hero {
+  .home-admin-container {
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+
+  .home-admin-hero,
+  .home-admin-panel {
+    border-radius: 8px;
+    box-shadow: 0 18px 40px rgba(8, 15, 24, 0.12);
+  }
+
+  .home-admin-hero {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
     gap: 20px;
     padding: 28px;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #10151b, #25303c);
-    color: #ffffff;
-    box-shadow: 0 18px 40px rgba(8, 15, 24, 0.16);
+    background: #10151b;
+    color: #fff;
   }
 
-  .editorial-home-hero p,
-  .editorial-home-hero h1,
-  .editorial-home-panel h2,
-  .editorial-home-panel h3,
-  .editorial-home-panel p,
-  .editorial-home-card h3,
-  .editorial-home-card p {
+  .home-admin-hero p,
+  .home-admin-hero h1,
+  .home-admin-panel h2,
+  .home-admin-panel h3,
+  .home-admin-panel p {
     margin: 0;
   }
 
-  .editorial-home-hero p {
+  .home-admin-eyebrow,
+  .home-admin-source,
+  .home-admin-meta {
     color: #e5252a;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 900;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
   }
 
-  .editorial-home-hero h1 {
+  .home-admin-hero h1 {
     margin-top: 8px;
-    font-size: 42px;
+    font-size: 40px;
     line-height: 1;
   }
 
-  .editorial-home-hero span {
+  .home-admin-hero span {
     display: block;
     margin-top: 10px;
-    max-width: 720px;
-    color: #cdd5df;
-    font-size: 16px;
+    max-width: 820px;
+    color: #cbd5e1;
+    font-size: 15px;
+    line-height: 1.45;
   }
 
-  .editorial-home-actions {
+  .home-admin-actions {
     display: flex;
-    flex: 0 0 auto;
     flex-wrap: wrap;
     gap: 10px;
-    align-items: center;
     justify-content: flex-end;
   }
 
-  .editorial-home-actions a,
-  .editorial-home-link {
-    display: inline-block;
-    flex: 0 0 auto;
-    padding: 11px 16px;
+  .home-admin-actions a,
+  .home-admin-link {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
     border: 1px solid rgba(255, 255, 255, 0.28);
     border-radius: 6px;
+    padding: 0 14px;
     background: transparent;
-    color: #ffffff;
-    font-size: 13px;
+    color: #fff;
+    font-size: 12px;
     font-weight: 900;
-    line-height: 1;
     text-decoration: none;
     text-transform: uppercase;
   }
 
-  .editorial-home-grid {
+  .home-admin-link {
+    border-color: #10151b;
+    background: #10151b;
+  }
+
+  .home-admin-notice,
+  .home-admin-error {
+    margin-top: 18px;
+    border-radius: 8px;
+    padding: 14px 16px;
+    line-height: 1.45;
+  }
+
+  .home-admin-notice {
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #1e3a8a;
+  }
+
+  .home-admin-error {
+    border: 1px solid #fecaca;
+    background: #fff1f2;
+    color: #991b1b;
+  }
+
+  .home-admin-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+    grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
     gap: 18px;
     margin-top: 18px;
   }
 
-  .editorial-home-stack {
+  .home-admin-stack {
     display: grid;
     gap: 18px;
+    align-content: start;
   }
 
-  .editorial-home-panel {
+  .home-admin-panel {
     overflow: hidden;
     border: 1px solid #dce3eb;
-    border-radius: 8px;
-    background: #ffffff;
-    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
+    background: #fff;
   }
 
-  .editorial-home-panel > header {
+  .home-admin-panel > header {
     display: flex;
+    gap: 16px;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
     padding: 18px 20px;
     border-bottom: 1px solid #e6ebf1;
   }
 
-  .editorial-home-panel h2 {
+  .home-admin-panel h2 {
     font-size: 21px;
     text-transform: uppercase;
   }
 
-  .editorial-home-panel header p {
+  .home-admin-panel header p {
     margin-top: 6px;
     color: #687380;
     font-size: 14px;
     line-height: 1.4;
   }
 
-  .editorial-home-source {
-    flex: 0 0 auto;
-    color: #e5252a;
-    font-size: 11px;
-    font-weight: 900;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
-  .editorial-home-featured {
+  .home-admin-feature {
     display: grid;
     grid-template-columns: minmax(220px, 0.42fr) minmax(0, 0.58fr);
     gap: 18px;
     padding: 20px;
   }
 
-  .editorial-home-featured img,
-  .editorial-home-card img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .editorial-home-media {
+  .home-admin-media {
     min-height: 230px;
     overflow: hidden;
     border-radius: 8px;
     background: #dce3eb;
   }
 
-  .editorial-home-kicker,
-  .editorial-home-meta {
-    color: #e5252a;
-    font-size: 12px;
-    font-weight: 900;
+  .home-admin-media img,
+  .home-admin-card img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .home-admin-placeholder {
+    display: grid;
+    min-height: 120px;
+    place-items: center;
+    padding: 18px;
+    color: #7b8591;
+    font-size: 13px;
+    font-weight: 800;
+    text-align: center;
     text-transform: uppercase;
   }
 
-  .editorial-home-featured h2 {
+  .home-admin-feature h3 {
     margin-top: 8px;
     font-size: 30px;
-    line-height: 1.04;
-    text-transform: none;
+    line-height: 1.05;
   }
 
-  .editorial-home-featured p {
-    margin-top: 10px;
+  .home-admin-feature p,
+  .home-admin-card p,
+  .home-admin-detail-list dd {
     color: #4d5763;
     line-height: 1.45;
   }
 
-  .editorial-home-featured .editorial-home-link,
-  .editorial-home-card .editorial-home-link {
-    margin-top: 14px;
-    border-color: #10151b;
-    background: #10151b;
-    color: #ffffff;
+  .home-admin-status-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
   }
 
-  .editorial-home-card-grid {
+  .home-admin-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    border-radius: 999px;
+    padding: 0 9px;
+    background: #eef2f6;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .home-admin-pill.is-published {
+    background: #e8f5ed;
+    color: #17633b;
+  }
+
+  .home-admin-pill.is-draft {
+    background: #fff4d6;
+    color: #7a5200;
+  }
+
+  .home-admin-card-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
     padding: 20px;
   }
 
-  .editorial-home-card {
+  .home-admin-card {
     overflow: hidden;
     border: 1px solid #e6ebf1;
     border-radius: 8px;
-    background: #ffffff;
+    background: #fff;
   }
 
-  .editorial-home-card-media {
+  .home-admin-card-media {
     aspect-ratio: 16 / 9;
     overflow: hidden;
     background: #dce3eb;
   }
 
-  .editorial-home-card-body {
+  .home-admin-card-body {
+    display: grid;
+    gap: 8px;
     padding: 14px;
   }
 
-  .editorial-home-card h3 {
-    margin-top: 6px;
+  .home-admin-card h3 {
     font-size: 17px;
     line-height: 1.16;
   }
 
-  .editorial-home-card h3 a,
-  .editorial-home-list a {
-    color: inherit;
-    text-decoration: none;
-  }
-
-  .editorial-home-card h3 a:hover,
-  .editorial-home-list a:hover {
-    text-decoration: underline;
-  }
-
-  .editorial-home-card p {
-    margin-top: 8px;
-    color: #5b6571;
-    font-size: 14px;
-    line-height: 1.35;
-  }
-
-  .editorial-home-list {
+  .home-admin-list {
     display: grid;
     margin: 0;
     padding: 0;
     list-style: none;
   }
 
-  .editorial-home-list li {
+  .home-admin-list li {
     display: grid;
-    gap: 6px;
+    gap: 7px;
     padding: 14px 20px;
     border-bottom: 1px solid #eef2f6;
   }
 
-  .editorial-home-list li:last-child {
+  .home-admin-list li:last-child {
     border-bottom: 0;
   }
 
-  .editorial-home-list strong {
+  .home-admin-list strong {
     font-size: 15px;
-    line-height: 1.2;
+    line-height: 1.25;
   }
 
-  .editorial-home-list small {
+  .home-admin-detail-list {
+    display: grid;
+    grid-template-columns: 160px minmax(0, 1fr);
+    gap: 8px 12px;
+    margin: 14px 0 0;
+  }
+
+  .home-admin-detail-list dt {
     color: #7b8591;
     font-size: 11px;
     font-weight: 900;
     text-transform: uppercase;
   }
 
-  .editorial-home-match-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    gap: 12px;
-    align-items: center;
+  .home-admin-detail-list dd {
+    margin: 0;
+    word-break: break-word;
   }
 
-  .editorial-home-match-row span:first-child {
-    text-align: right;
-  }
-
-  .editorial-home-match-row b {
-    color: #e5252a;
-    font-size: 13px;
-  }
-
-  .editorial-home-note {
+  .home-admin-empty {
     padding: 18px 20px;
-    background: #fff8ee;
-    color: #6f4d1d;
+    color: #687380;
+    font-size: 14px;
     line-height: 1.45;
   }
 
-  @media (max-width: 1040px) {
-    .editorial-home-grid,
-    .editorial-home-featured,
-    .editorial-home-card-grid {
+  .home-admin-link-out {
+    color: #10151b;
+    font-weight: 800;
+    text-decoration: none;
+  }
+
+  .home-admin-link-out:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 1100px) {
+    .home-admin-grid,
+    .home-admin-feature,
+    .home-admin-card-grid {
       grid-template-columns: 1fr;
     }
   }
 
-  @media (max-width: 920px) {
-    .editorial-home-shell {
+  @media (max-width: 760px) {
+    .home-admin-shell {
       padding: 16px;
     }
 
-    .editorial-home-hero,
-    .editorial-home-panel > header {
+    .home-admin-hero,
+    .home-admin-panel > header,
+    .home-admin-detail-list {
       display: grid;
       grid-template-columns: 1fr;
     }
 
-    .editorial-home-actions {
+    .home-admin-actions {
       justify-content: flex-start;
     }
   }
 `;
 
-function articleHref(article: Article) {
-  return article.sourceUrl ?? "#";
+function textValue(...values: Array<string | null | undefined>) {
+  for (const value of values) {
+    const cleanValue = value?.trim();
+    if (cleanValue) {
+      return cleanValue;
+    }
+  }
+
+  return "";
 }
 
-function matchLabel(match: ResolvedMatch) {
-  return `${match.competition.name} · ${match.matchday.label}`;
+function statusText(value: string | null | undefined) {
+  return textValue(value, "sem estado");
 }
 
-function matchStatusLabel(match: ResolvedMatch) {
-  if (match.status === "live") return match.minute ? `Ao vivo · ${match.minute}'` : "Ao vivo";
-  if (match.status === "halftime") return "Intervalo";
-  if (match.status === "finished") return "Finalizado";
-  return formatKickoff(match.kickoff);
+function statusClass(value: string | null | undefined) {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === "published") return " is-published";
+  if (normalized === "draft") return " is-draft";
+  return "";
+}
+
+function fieldLink(value: string | null | undefined) {
+  const cleanValue = value?.trim();
+  if (!cleanValue) {
+    return <span>Sem link</span>;
+  }
+
+  return (
+    <a className="home-admin-link-out" href={cleanValue}>
+      {cleanValue}
+    </a>
+  );
+}
+
+function MediaPreview({ src, label }: { src: string | null | undefined; label: string }) {
+  const cleanSrc = src?.trim();
+
+  if (!cleanSrc) {
+    return <div className="home-admin-placeholder">Sem imagem</div>;
+  }
+
+  return <img alt={label} src={cleanSrc} />;
+}
+
+function StatusPill({ status }: { status: string | null | undefined }) {
+  return <span className={`home-admin-pill${statusClass(status)}`}>{statusText(status)}</span>;
+}
+
+function DetailList({ rows }: { rows: Array<[string, ReactNode]> }) {
+  return (
+    <dl className="home-admin-detail-list">
+      {rows.map(([label, value]) => (
+        <div key={label}>
+          <dt>{label}</dt>
+          <dd>{value || <span>Sem valor</span>}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+async function readHomeEditorialData(): Promise<HomeEditorialData> {
+  try {
+    const editorials = await fetchSupabaseAdminTable<SiteEditorial>(
+      "site_editorials?select=*&slug=eq.home&limit=1"
+    );
+    const editorial = editorials[0] ?? null;
+
+    if (!editorial?.id) {
+      return {
+        editorial: null,
+        highlights: [],
+        latestNews: [],
+        roundupItems: [],
+        featuredMatches: [],
+        error: null
+      };
+    }
+
+    const encodedId = encodeURIComponent(editorial.id);
+    const [highlights, latestNews, roundupItems, featuredMatches] = await Promise.all([
+      fetchSupabaseAdminTable<SiteEditorialHighlight>(
+        `site_editorial_highlights?select=*&site_editorial_id=eq.${encodedId}&order=sort_order.asc`
+      ),
+      fetchSupabaseAdminTable<SiteEditorialLatestNews>(
+        `site_editorial_latest_news?select=*&site_editorial_id=eq.${encodedId}&order=sort_order.asc`
+      ),
+      fetchSupabaseAdminTable<SiteEditorialRoundupItem>(
+        `site_editorial_roundup_items?select=*&site_editorial_id=eq.${encodedId}&order=sort_order.asc`
+      ),
+      fetchSupabaseAdminTable<SiteFeaturedMatch>("site_featured_matches?select=*&order=sort_order.asc")
+    ]);
+
+    return {
+      editorial,
+      highlights,
+      latestNews,
+      roundupItems,
+      featuredMatches,
+      error: null
+    };
+  } catch (error) {
+    return {
+      editorial: null,
+      highlights: [],
+      latestNews: [],
+      roundupItems: [],
+      featuredMatches: [],
+      error: error instanceof Error ? error.message : "Nao foi possivel ler as tabelas site_*."
+    };
+  }
 }
 
 export default async function AdminEditorialHomePage() {
-  const context = applyBroadcastOverridesToHomeContext(getHomeContext(), await getPublicBroadcastOverrides());
-  const topicArticles = context.topArticles.slice(0, 4);
-  const featuredArticles = context.topArticles.slice(1, 5);
-  const latestArticles = context.topArticles.slice(0, 4);
-  const upcoming = [
-    ...context.contexts.flatMap((item) => item.upcomingMatches.slice(0, 1)),
-    ...context.contexts.flatMap((item) => item.upcomingMatches.slice(1))
-  ].slice(0, 6);
+  const { editorial, highlights, latestNews, roundupItems, featuredMatches, error } = await readHomeEditorialData();
 
   return (
-    <main className="editorial-home-shell">
-      <style>{editorialHomeStyles}</style>
-      <section className="editorial-home-hero">
-        <div>
-          <p>Jornada.pt</p>
-          <h1>Home Editorial</h1>
-          <span>Leitura interna do estado editorial que alimenta a Home pública do Jornada.pt.</span>
+    <main className="home-admin-shell">
+      <style>{homeEditorialStyles}</style>
+      <div className="home-admin-container">
+        <section className="home-admin-hero">
+          <div>
+            <p className="home-admin-eyebrow">Jornada.pt</p>
+            <h1>Home Editorial</h1>
+            <span>
+              Leitura real das tabelas site_* da Home. A Home publica / ainda nao foi alterada e continua no modelo
+              antigo/contextual.
+            </span>
+          </div>
+          <nav className="home-admin-actions" aria-label="Navegacao editorial">
+            <a href="/admin/editorial/artigos">Artigos / Noticias</a>
+            <a href="/admin/editorial/composicao">Composicao Editorial</a>
+            <a href="/admin/editorial/jornada">Editorial da Jornada</a>
+            <a href="/admin/gestor">Centro de Gestao</a>
+            <a href="/admin">Backoffice</a>
+          </nav>
+        </section>
+
+        <div className="home-admin-notice">
+          Esta pagina e apenas diagnostico/leitura: nao cria formularios, nao grava dados e nao muda a Home publica.
+          Fonte esperada: public.site_editorials e tabelas public.site_editorial_* ligadas ao slug home.
         </div>
-        <nav className="editorial-home-actions" aria-label="Navegação editorial">
-          <a href="/admin">Backoffice</a>
-          <a href="/admin/gestor">Centro de Gestão</a>
-          <a href="/admin/editorial/artigos">Artigos / Notícias</a>
-          <a href="/">Ver Home pública</a>
-        </nav>
-      </section>
 
-      <div className="editorial-home-grid">
-        <div className="editorial-home-stack">
-          <section className="editorial-home-panel">
-            <header>
-              <div>
-                <h2>Manchete da Home pública</h2>
-                <p>Conteúdo actualmente usado por app/page.tsx através de HomeDashboard.</p>
-              </div>
-              <span className="editorial-home-source">getHomeContext</span>
-            </header>
-            <div className="editorial-home-featured">
-              <div className="editorial-home-media">
-                <img alt="" src={context.featured.headline.image} />
-              </div>
-              <div>
-                <span className="editorial-home-kicker">
-                  {context.featured.competition.name} · {context.featured.matchday.label} · {context.featured.season.label}
-                </span>
-                <h2>{context.featured.headline.title}</h2>
-                <p>{context.featured.headline.dek}</p>
-                {context.featured.headlineMatch ? (
-                  <p>
-                    Jogo associado: {context.featured.headlineMatch.homeTeam.name} {getScoreLabel(context.featured.headlineMatch)}{" "}
-                    {context.featured.headlineMatch.awayTeam.name}
-                  </p>
-                ) : null}
-                <a className="editorial-home-link" href={context.featured.headline.sourceUrl ?? "#"}>
-                  Abrir fonte
-                </a>
-              </div>
-            </div>
-          </section>
+        {error ? <div className="home-admin-error">Erro ao ler site_*: {error}</div> : null}
+        {!error && !editorial ? (
+          <div className="home-admin-error">Nao foi encontrado registo em site_editorials com slug=&quot;home&quot;.</div>
+        ) : null}
 
-          <section className="editorial-home-panel">
-            <header>
-              <div>
-                <h2>Em destaque</h2>
-                <p>Mesma selecção editorial usada na grelha de notícias da Home pública.</p>
-              </div>
-              <span className="editorial-home-source">{featuredArticles.length} itens</span>
-            </header>
-            <div className="editorial-home-card-grid">
-              {featuredArticles.map((article) => (
-                <article className="editorial-home-card" key={article.id}>
-                  <div className="editorial-home-card-media">
-                    <img alt="" src={article.image} />
+        <div className="home-admin-grid">
+          <div className="home-admin-stack">
+            <section className="home-admin-panel">
+              <header>
+                <div>
+                  <h2>Manchete da Home</h2>
+                  <p>Dados lidos de site_editorials.slug=home.</p>
+                </div>
+                <span className="home-admin-source">site_editorials</span>
+              </header>
+              {editorial ? (
+                <div className="home-admin-feature">
+                  <div className="home-admin-media">
+                    <MediaPreview label="Imagem da manchete da Home" src={editorial.headline_image_url} />
                   </div>
-                  <div className="editorial-home-card-body">
-                    <span className="editorial-home-meta">{article.category} · {article.publishedAtMoment}</span>
-                    <h3>
-                      <a href={articleHref(article)}>{article.title}</a>
+                  <div>
+                    <span className="home-admin-meta">{statusText(editorial.status)}</span>
+                    <h3 style={editorial.headline_title_color ? { color: editorial.headline_title_color } : undefined}>
+                      {textValue(editorial.headline_title, "Sem titulo de manchete")}
                     </h3>
-                    <p>{article.dek}</p>
+                    <p>{textValue(editorial.headline_subtitle, "Sem subtitulo de manchete.")}</p>
+                    <div className="home-admin-status-row">
+                      <StatusPill status={editorial.status} />
+                      {editorial.headline_title_color ? (
+                        <span className="home-admin-pill">cor {editorial.headline_title_color}</span>
+                      ) : null}
+                    </div>
+                    <DetailList
+                      rows={[
+                        ["Link", fieldLink(editorial.headline_link_url)],
+                        ["Imagem", editorial.headline_image_url || "Sem imagem"],
+                        ["Atualizado", editorial.updated_at || "Sem data"]
+                      ]}
+                    />
                   </div>
-                </article>
-              ))}
-            </div>
-          </section>
+                </div>
+              ) : (
+                <p className="home-admin-empty">Sem registo principal da Home.</p>
+              )}
+            </section>
 
-          <section className="editorial-home-panel">
-            <header>
-              <div>
-                <h2>Jogos / resultados principais</h2>
-                <p>Resumo competitivo que aparece no topo da Home pública.</p>
-              </div>
-              <span className="editorial-home-source">{context.mixedMatches.slice(0, 6).length} jogos</span>
-            </header>
-            <ul className="editorial-home-list">
-              {context.mixedMatches.slice(0, 6).map((match) => (
-                <li key={match.id}>
-                  <small>{matchLabel(match)} · {matchStatusLabel(match)}</small>
-                  <div className="editorial-home-match-row">
-                    <span>{match.homeTeam.name}</span>
-                    <b>{getScoreLabel(match)}</b>
-                    <span>{match.awayTeam.name}</span>
+            <section className="home-admin-panel">
+              <header>
+                <div>
+                  <h2>Destaques abaixo da manchete</h2>
+                  <p>Ordenados por sort_order e ligados ao site_editorial_id da Home.</p>
+                </div>
+                <span className="home-admin-source">{highlights.length} itens</span>
+              </header>
+              {highlights.length > 0 ? (
+                <div className="home-admin-card-grid">
+                  {highlights.map((item) => (
+                    <article className="home-admin-card" key={item.id}>
+                      <div className="home-admin-card-media">
+                        <MediaPreview label={textValue(item.title, "Destaque")} src={item.image_url} />
+                      </div>
+                      <div className="home-admin-card-body">
+                        <span className="home-admin-meta">
+                          {item.sort_order ?? "-"} | {textValue(item.label, "sem etiqueta")}
+                        </span>
+                        <h3>{textValue(item.title, "Sem titulo")}</h3>
+                        <p>{textValue(item.subtitle, "Sem subtitulo.")}</p>
+                        <StatusPill status={item.status} />
+                        <DetailList rows={[["Link", fieldLink(item.link_url)]]} />
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="home-admin-empty">Sem destaques para apresentar.</p>
+              )}
+            </section>
+
+            <section className="home-admin-panel">
+              <header>
+                <div>
+                  <h2>Videos / resumo / roundup</h2>
+                  <p>Itens editoriais da zona de resumo da Home.</p>
+                </div>
+                <span className="home-admin-source">{roundupItems.length} itens</span>
+              </header>
+              {roundupItems.length > 0 ? (
+                <div className="home-admin-card-grid">
+                  {roundupItems.map((item) => (
+                    <article className="home-admin-card" key={item.id}>
+                      <div className="home-admin-card-media">
+                        <MediaPreview label={textValue(item.title, "Roundup")} src={item.image_url} />
+                      </div>
+                      <div className="home-admin-card-body">
+                        <span className="home-admin-meta">
+                          {item.sort_order ?? "-"} | {textValue(item.type, "sem tipo")}
+                        </span>
+                        <h3>{textValue(item.title, "Sem titulo")}</h3>
+                        <p>{textValue(item.subtitle, "Sem subtitulo.")}</p>
+                        <StatusPill status={item.status} />
+                        <DetailList
+                          rows={[
+                            ["Etiqueta", item.label || "Sem etiqueta"],
+                            ["Duracao", item.duration || "Sem duracao"],
+                            ["Video", fieldLink(item.video_url)]
+                          ]}
+                        />
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="home-admin-empty">Sem itens de video/resumo para apresentar.</p>
+              )}
+            </section>
+          </div>
+
+          <aside className="home-admin-stack">
+            <section className="home-admin-panel">
+              <header>
+                <div>
+                  <h2>Bloco lateral</h2>
+                  <p>Snapshot editorial guardado em site_editorials.</p>
+                </div>
+                <span className="home-admin-source">site_editorials</span>
+              </header>
+              {editorial ? (
+                <div className="home-admin-feature">
+                  <div className="home-admin-media">
+                    <MediaPreview label="Imagem do bloco lateral" src={editorial.side_block_image_url} />
                   </div>
-                </li>
-              ))}
-            </ul>
-          </section>
+                  <div>
+                    <span className="home-admin-meta">{textValue(editorial.side_block_label, "sem etiqueta")}</span>
+                    <h3 style={editorial.side_block_title_color ? { color: editorial.side_block_title_color } : undefined}>
+                      {textValue(editorial.side_block_title, "Sem titulo")}
+                    </h3>
+                    <p>{textValue(editorial.side_block_text, "Sem texto.")}</p>
+                    <div className="home-admin-status-row">
+                      <StatusPill status={editorial.side_block_status} />
+                      {editorial.side_block_type ? <span className="home-admin-pill">{editorial.side_block_type}</span> : null}
+                    </div>
+                    <DetailList
+                      rows={[
+                        ["Autor", editorial.side_block_author || "Sem autor"],
+                        ["Link", fieldLink(editorial.side_block_link_url)],
+                        ["Imagem", editorial.side_block_image_url || "Sem imagem"]
+                      ]}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <p className="home-admin-empty">Sem bloco lateral.</p>
+              )}
+            </section>
+
+            <section className="home-admin-panel">
+              <header>
+                <div>
+                  <h2>Complemento</h2>
+                  <p>Complemento abaixo/ao lado da manchete.</p>
+                </div>
+                <span className="home-admin-source">site_editorials</span>
+              </header>
+              {editorial ? (
+                <div className="home-admin-feature">
+                  <div className="home-admin-media">
+                    <MediaPreview label="Imagem do complemento" src={editorial.complementary_image_url} />
+                  </div>
+                  <div>
+                    <span className="home-admin-meta">{textValue(editorial.complementary_label, "sem etiqueta")}</span>
+                    <h3>{textValue(editorial.complementary_title, "Sem titulo")}</h3>
+                    <p>{textValue(editorial.complementary_text, "Sem texto.")}</p>
+                    <div className="home-admin-status-row">
+                      <StatusPill status={editorial.complementary_status} />
+                      {editorial.complementary_mode ? <span className="home-admin-pill">{editorial.complementary_mode}</span> : null}
+                    </div>
+                    <DetailList
+                      rows={[
+                        ["Link", fieldLink(editorial.complementary_link_url)],
+                        ["Roundup item", editorial.complementary_roundup_item_id || "Sem relacao"],
+                        ["Imagem", editorial.complementary_image_url || "Sem imagem"]
+                      ]}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <p className="home-admin-empty">Sem complemento.</p>
+              )}
+            </section>
+
+            <section className="home-admin-panel">
+              <header>
+                <div>
+                  <h2>Ultimas noticias / ao minuto</h2>
+                  <p>Itens de diagnostico, incluindo draft ou vazios.</p>
+                </div>
+                <span className="home-admin-source">{latestNews.length} itens</span>
+              </header>
+              {latestNews.length > 0 ? (
+                <ul className="home-admin-list">
+                  {latestNews.map((item) => (
+                    <li key={item.id}>
+                      <span className="home-admin-meta">
+                        {item.sort_order ?? "-"} | {textValue(item.time_label, "sem hora")}
+                      </span>
+                      <strong>{textValue(item.title, "Sem titulo")}</strong>
+                      <StatusPill status={item.status} />
+                      <DetailList
+                        rows={[
+                          ["Imagem", item.image_url || "Sem imagem"],
+                          ["Link", fieldLink(item.link_url)]
+                        ]}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="home-admin-empty">Sem ultimas noticias para apresentar.</p>
+              )}
+            </section>
+
+            <section className="home-admin-panel">
+              <header>
+                <div>
+                  <h2>Jogos em destaque</h2>
+                  <p>Leitura simples de site_featured_matches.</p>
+                </div>
+                <span className="home-admin-source">{featuredMatches.length} jogos</span>
+              </header>
+              {featuredMatches.length > 0 ? (
+                <ul className="home-admin-list">
+                  {featuredMatches.map((item, index) => (
+                    <li key={item.id ?? `${item.match_id}-${index}`}>
+                      <span className="home-admin-meta">posicao {item.sort_order ?? "-"}</span>
+                      <strong>{item.match_id || "Sem match_id"}</strong>
+                      <DetailList
+                        rows={[
+                          ["match_id", item.match_id || "Sem match_id"],
+                          ["sort_order", item.sort_order ?? "Sem ordem"]
+                        ]}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="home-admin-empty">Sem jogos em destaque para apresentar.</p>
+              )}
+            </section>
+          </aside>
         </div>
-
-        <aside className="editorial-home-stack">
-          <section className="editorial-home-panel">
-            <header>
-              <div>
-                <h2>Tema atual</h2>
-                <p>Primeiros artigos usados no painel lateral esquerdo da Home pública.</p>
-              </div>
-              <span className="editorial-home-source">{topicArticles.length} itens</span>
-            </header>
-            <ul className="editorial-home-list">
-              {topicArticles.map((article) => (
-                <li key={article.id}>
-                  <small>{article.category} · {article.publishedAtMoment}</small>
-                  <strong>
-                    <a href={articleHref(article)}>{article.title}</a>
-                  </strong>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="editorial-home-panel">
-            <header>
-              <div>
-                <h2>Últimas notícias / Ao minuto</h2>
-                <p>Lista curta usada na coluna direita da Home pública.</p>
-              </div>
-              <span className="editorial-home-source">{latestArticles.length} itens</span>
-            </header>
-            <ul className="editorial-home-list">
-              {latestArticles.map((article) => (
-                <li key={article.id}>
-                  <small>{article.publishedAtMoment} · {article.category}</small>
-                  <strong>
-                    <a href={articleHref(article)}>{article.title}</a>
-                  </strong>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="editorial-home-panel">
-            <header>
-              <div>
-                <h2>Próximos jogos</h2>
-                <p>Entrada competitiva complementar usada na Home pública.</p>
-              </div>
-              <span className="editorial-home-source">{upcoming.length} jogos</span>
-            </header>
-            <ul className="editorial-home-list">
-              {upcoming.map((match) => (
-                <li key={match.id}>
-                  <small>{matchLabel(match)} · {formatKickoff(match.kickoff)}</small>
-                  <div className="editorial-home-match-row">
-                    <span>{match.homeTeam.name}</span>
-                    <b>vs</b>
-                    <span>{match.awayTeam.name}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="editorial-home-panel">
-            <div className="editorial-home-note">
-              A Home pública não usa uma tabela site_editorials nem um editor autónomo encontrado no código vivo. Esta área mostra os conteúdos reais actualmente publicados pela Home através de getHomeContext.
-              A barra de jogos da Home é calculada a partir do modelo contextual antigo, em data/jornada-data.json; a zona operacional viva de jogos fica no <a href="/admin/gestor?section=jogos#jogos">Centro de Gestão</a>, mas não existe ainda um seletor específico para escolher manualmente os jogos da barra da Home.
-            </div>
-          </section>
-        </aside>
       </div>
     </main>
   );
