@@ -24,6 +24,11 @@ type ArticleDeleteRow = {
   title: string | null;
 };
 
+type ArticleSlugRow = {
+  id: string;
+  slug: string | null;
+};
+
 type CompetitionContextRow = {
   id: string;
 };
@@ -57,11 +62,46 @@ type ArticlePayload = {
 
 type ArticleScope = "global" | "competition" | "season" | "matchday";
 
+type LinkRemovalTarget =
+  | "matchday_editorials"
+  | "matchday_highlights"
+  | "matchday_latest_news"
+  | "matchday_reference_composition_items"
+  | "site_editorials"
+  | "site_editorial_highlights"
+  | "site_editorial_latest_news";
+
+type LinkRemovalField =
+  | "headline_link_url"
+  | "complementary_link_url"
+  | "side_block_link_url"
+  | "link_url"
+  | "link_url_snapshot";
+
+type LinkValueRow = {
+  id: string;
+  headline_link_url?: string | null;
+  complementary_link_url?: string | null;
+  side_block_link_url?: string | null;
+  link_url?: string | null;
+  link_url_snapshot?: string | null;
+};
+
 class ArticleAdminError extends Error {
   constructor(public code: string, message = code) {
     super(message);
   }
 }
+
+const allowedLinkRemovalTargets: Record<LinkRemovalTarget, LinkRemovalField[]> = {
+  matchday_editorials: ["headline_link_url", "complementary_link_url", "side_block_link_url"],
+  matchday_highlights: ["link_url"],
+  matchday_latest_news: ["link_url"],
+  matchday_reference_composition_items: ["link_url_snapshot"],
+  site_editorials: ["headline_link_url", "complementary_link_url", "side_block_link_url"],
+  site_editorial_highlights: ["link_url"],
+  site_editorial_latest_news: ["link_url"],
+};
 
 type ParsedSupabaseError = {
   code: string;
@@ -230,6 +270,14 @@ async function readArticleForDelete(articleId: string) {
   return rows[0] ?? null;
 }
 
+async function readArticleBySlug(slug: string) {
+  const rows = await fetchSupabaseAdminTable<ArticleSlugRow>(
+    `editorial_articles?select=id,slug&slug=eq.${encodeURIComponent(slug)}&limit=1`,
+  );
+
+  return rows[0] ?? null;
+}
+
 async function readCompetition(competitionId: string) {
   const rows = await fetchSupabaseAdminTable<CompetitionContextRow>(
     `competitions?select=id&id=eq.${encodeURIComponent(competitionId)}&limit=1`,
@@ -312,6 +360,43 @@ function scopeForContext(context: {
   }
 
   return "global";
+}
+
+function cleanUuid(value: FormDataEntryValue | null) {
+  const cleanValue = cleanText(value);
+  if (!cleanValue || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanValue)) {
+    throw new ArticleAdminError("invalid-link-target");
+  }
+
+  return cleanValue;
+}
+
+function cleanLinkRemovalTarget(table: string | null, field: string | null) {
+  if (!table || !field || !(table in allowedLinkRemovalTargets)) {
+    throw new ArticleAdminError("invalid-link-target");
+  }
+
+  const typedTable = table as LinkRemovalTarget;
+  if (!allowedLinkRemovalTargets[typedTable].includes(field as LinkRemovalField)) {
+    throw new ArticleAdminError("invalid-link-target");
+  }
+
+  return {
+    table: typedTable,
+    field: field as LinkRemovalField,
+  };
+}
+
+function publicArticlePath(slug: string) {
+  return `/noticias/${encodeURIComponent(slug)}`;
+}
+
+async function readLinkTargetValue(target: { table: LinkRemovalTarget; field: LinkRemovalField }, targetId: string) {
+  const rows = await fetchSupabaseAdminTable<LinkValueRow>(
+    `${target.table}?select=id,${target.field}&id=eq.${encodeURIComponent(targetId)}&limit=1`,
+  );
+
+  return rows[0] ?? null;
 }
 
 async function buildPayload(formData: FormData, currentArticleId: string | null): Promise<ArticlePayload> {
@@ -413,6 +498,47 @@ async function deleteArticle(request: Request, formData: FormData) {
   return redirectTo(request, "/admin/editorial/artigos", { removed: "1" });
 }
 
+async function removeArticleLink(request: Request, formData: FormData) {
+  const slug = normalizeSlug(cleanText(formData.get("slug")) ?? "");
+  if (!slug) {
+    throw new ArticleAdminError("missing-article");
+  }
+
+  const article = await readArticleBySlug(slug);
+  if (!article?.slug) {
+    throw new ArticleAdminError("missing-article");
+  }
+
+  const target = cleanLinkRemovalTarget(cleanText(formData.get("target_table")), cleanText(formData.get("target_field")));
+  const targetId = cleanUuid(formData.get("target_id"));
+  const expectedUrl = publicArticlePath(article.slug);
+  const submittedExpectedUrl = cleanText(formData.get("expected_url"));
+
+  if (submittedExpectedUrl && submittedExpectedUrl !== expectedUrl) {
+    throw new ArticleAdminError("link-mismatch");
+  }
+
+  const row = await readLinkTargetValue(target, targetId);
+  if (!row) {
+    throw new ArticleAdminError("missing-link-target");
+  }
+
+  const currentValue = row[target.field];
+  if (currentValue !== expectedUrl) {
+    throw new ArticleAdminError("link-mismatch");
+  }
+
+  await writeSupabaseAdmin(`${target.table}?id=eq.${encodeURIComponent(targetId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      [target.field]: null,
+    }),
+  });
+
+  const returnTo = safeReturnTo(cleanText(formData.get("return_to"))) ?? "/admin/editorial/artigos";
+  return redirectTo(request, returnTo, { link_removed: "1" });
+}
+
 export async function POST(request: Request) {
   const formData = await request.formData();
   const actionType = cleanText(formData.get("action_type"));
@@ -434,6 +560,10 @@ export async function POST(request: Request) {
 
     if (actionType === "delete_article") {
       return await deleteArticle(request, formData);
+    }
+
+    if (actionType === "remove_article_link") {
+      return await removeArticleLink(request, formData);
     }
 
     return redirectTo(request, "/admin/editorial/artigos", { error: "invalid-action" });

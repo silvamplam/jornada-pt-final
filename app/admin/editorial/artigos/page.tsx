@@ -21,6 +21,7 @@ type PageProps = {
     saved?: string;
     created?: string;
     removed?: string;
+    link_removed?: string;
     detail?: string;
   }>;
 };
@@ -44,6 +45,9 @@ type LinkPlacement = {
   position: string;
   detail?: string;
   table: string;
+  recordId: string;
+  field: string;
+  currentUrl: string;
   matchdayId?: string | null;
 };
 
@@ -82,6 +86,9 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
   if (params.removed) {
     return "Artigo removido.";
   }
+  if (params.link_removed) {
+    return "Ligação removida.";
+  }
 
   const messages: Record<string, string> = {
     "invalid-action": "A ação pedida não existe.",
@@ -93,6 +100,10 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
     "missing-service": "Não foi possível aceder ao serviço Supabase de administração.",
     "missing-article": "O artigo selecionado já não existe.",
     "delete-not-confirmed": "Confirme a remoção antes de apagar o artigo.",
+    "invalid-link-target": "A ligação pedida não é permitida.",
+    "missing-link-target": "A ligação pedida já não existe.",
+    "link-mismatch": "A ligação atual já não aponta para este artigo.",
+    "link-removed": "Ligação removida.",
     "required-field": "O Supabase recusou a gravação por campo obrigatório em falta.",
     constraint: "O Supabase recusou a gravação por constraint da tabela.",
     permission: "O Supabase recusou a gravação por permissões/RLS.",
@@ -213,10 +224,39 @@ const articleContextLinkStyles = `
     line-height: 1.35;
   }
 
+  .article-admin-link-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
   .article-admin-link-source {
     color: #6b7280 !important;
     font-family: Consolas, "Liberation Mono", monospace;
     font-size: 11px !important;
+  }
+
+  .article-admin-remove-link-form {
+    margin: 0;
+  }
+
+  .article-admin-remove-link-form button {
+    min-height: 32px;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 0 10px;
+    background: #fff7f7;
+    color: #991b1b;
+    font-size: 12px;
+    font-weight: 850;
+    cursor: pointer;
+  }
+
+  .article-admin-remove-link-form button:hover {
+    border-color: #fca5a5;
+    background: #fee2e2;
   }
 
   .article-admin-empty-note {
@@ -451,21 +491,54 @@ async function readArticleLinkPlacements(article: EditorialArticle, context: Con
       : [];
   const compositionsById = new Map(compositionRows.map((row) => [row.id, row]));
   const placements: LinkPlacement[] = [];
-  const pushMatchdayPlacement = (row: { matchday_id?: string | null }, area: string, position: string, table: string, detail?: string) => {
+  const pushPlacement = (
+    base: {
+      area: string;
+      position: string;
+      table: string;
+      recordId: string;
+      field: string;
+      detail?: string;
+      matchdayId?: string | null;
+    },
+  ) => {
     placements.push({
+      area: base.area,
+      position: base.position,
+      detail: firstText(base.detail, placementMatchdayDetail(base.matchdayId, context)),
+      table: base.table,
+      recordId: base.recordId,
+      field: base.field,
+      currentUrl: publicPath,
+      matchdayId: base.matchdayId,
+    });
+  };
+  const pushMatchdayPlacement = (
+    row: { id: string; matchday_id?: string | null },
+    area: string,
+    position: string,
+    table: string,
+    field: string,
+    detail?: string,
+  ) => {
+    pushPlacement({
       area,
       position,
-      detail: firstText(detail, placementMatchdayDetail(row.matchday_id, context)),
+      detail,
       table,
+      recordId: row.id,
+      field,
       matchdayId: row.matchday_id,
     });
   };
 
-  headlineRows.forEach((row) => pushMatchdayPlacement(row, "Editorial da Jornada", "Manchete", "matchday_editorials"));
-  complementaryRows.forEach((row) => pushMatchdayPlacement(row, "Editorial da Jornada", "Complemento", "matchday_editorials"));
-  sideRows.forEach((row) => pushMatchdayPlacement(row, "Editorial da Jornada", "Bloco lateral", "matchday_editorials"));
+  headlineRows.forEach((row) => pushMatchdayPlacement(row, "Editorial da Jornada", "Manchete", "matchday_editorials", "headline_link_url"));
+  complementaryRows.forEach((row) =>
+    pushMatchdayPlacement(row, "Editorial da Jornada", "Complemento", "matchday_editorials", "complementary_link_url"),
+  );
+  sideRows.forEach((row) => pushMatchdayPlacement(row, "Editorial da Jornada", "Bloco lateral", "matchday_editorials", "side_block_link_url"));
   highlightRows.forEach((row) =>
-    pushMatchdayPlacement(row, "Destaques da Jornada", `Posicao ${row.sort_order ?? "sem ordem"}`, "matchday_highlights", row.title ?? undefined),
+    pushMatchdayPlacement(row, "Destaques da Jornada", `Posicao ${row.sort_order ?? "sem ordem"}`, "matchday_highlights", "link_url", row.title ?? undefined),
   );
   latestRows.forEach((row) =>
     pushMatchdayPlacement(
@@ -473,36 +546,49 @@ async function readArticleLinkPlacements(article: EditorialArticle, context: Con
       "Zona Editorial Final da Jornada",
       row.time_label ? `${row.time_label} / Posicao ${row.sort_order ?? "sem ordem"}` : `Posicao ${row.sort_order ?? "sem ordem"}`,
       "matchday_latest_news",
+      "link_url",
       row.title ?? undefined,
     ),
   );
   referenceRows.forEach((row) => {
     const composition = row.composition_id ? compositionsById.get(row.composition_id) : null;
-    pushMatchdayPlacement(
-      { matchday_id: composition?.matchday_id ?? null },
-      "Composicao Editorial",
-      firstText(row.slot_type, row.source_type) || "Item",
-      "matchday_reference_composition_items",
-      firstText(row.title_snapshot, composition?.internal_name, row.composition_id ? `Composicao ${compactId(row.composition_id)}` : null),
-    );
+    pushPlacement({
+      area: "Composicao Editorial",
+      position: firstText(row.slot_type, row.source_type) || "Item",
+      detail: firstText(row.title_snapshot, composition?.internal_name, row.composition_id ? `Composicao ${compactId(row.composition_id)}` : null),
+      table: "matchday_reference_composition_items",
+      recordId: row.id,
+      field: "link_url_snapshot",
+      matchdayId: composition?.matchday_id ?? null,
+    });
   });
-  siteHeadlineRows.forEach(() => placements.push({ area: "Home Editorial", position: "Manchete", table: "site_editorials" }));
-  siteComplementaryRows.forEach(() => placements.push({ area: "Home Editorial", position: "Complemento", table: "site_editorials" }));
-  siteSideRows.forEach(() => placements.push({ area: "Home Editorial", position: "Bloco lateral", table: "site_editorials" }));
+  siteHeadlineRows.forEach((row) =>
+    pushPlacement({ area: "Home Editorial", position: "Manchete", table: "site_editorials", recordId: row.id, field: "headline_link_url" }),
+  );
+  siteComplementaryRows.forEach((row) =>
+    pushPlacement({ area: "Home Editorial", position: "Complemento", table: "site_editorials", recordId: row.id, field: "complementary_link_url" }),
+  );
+  siteSideRows.forEach((row) =>
+    pushPlacement({ area: "Home Editorial", position: "Bloco lateral", table: "site_editorials", recordId: row.id, field: "side_block_link_url" }),
+  );
   siteHighlightRows.forEach((row) =>
-    placements.push({
+    pushPlacement({
       area: "Home Editorial",
       position: `Destaque ${row.sort_order ?? "sem ordem"}`,
       detail: row.title ?? undefined,
       table: "site_editorial_highlights",
+      recordId: row.id,
+      field: "link_url",
     }),
   );
   siteLatestRows.forEach((row) =>
-    placements.push({
+    pushPlacement({
       area: "Home Editorial",
       position: `Zona Editorial Final ${row.sort_order ?? "sem ordem"}`,
       detail: row.title ?? undefined,
       table: "site_editorial_latest_news",
+      recordId: row.id,
+      field: "link_url",
     }),
   );
 
@@ -639,7 +725,30 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
                           {placement.area} - {placement.position}
                         </strong>
                         {placement.detail ? <span>{placement.detail}</span> : null}
-                        <span className="article-admin-link-source">{placement.table}</span>
+                        <div className="article-admin-link-footer">
+                          <span className="article-admin-link-source">
+                            {placement.table}.{placement.field} / {compactId(placement.recordId)}
+                          </span>
+                          <form className="article-admin-remove-link-form" action="/api/admin/editorial/artigos" method="post">
+                            <input type="hidden" name="action_type" value="remove_article_link" />
+                            <input type="hidden" name="slug" value={selectedArticle.slug ?? ""} />
+                            <input type="hidden" name="target_table" value={placement.table} />
+                            <input type="hidden" name="target_id" value={placement.recordId} />
+                            <input type="hidden" name="target_field" value={placement.field} />
+                            <input type="hidden" name="expected_url" value={placement.currentUrl} />
+                            <input
+                              type="hidden"
+                              name="return_to"
+                              value={`/admin/editorial/artigos?articleId=${encodeURIComponent(selectedArticle.id)}`}
+                            />
+                            <button
+                              type="submit"
+                              title="Remove apenas esta ligacao. O artigo e o item editorial nao sao apagados."
+                            >
+                              Remover ligacao
+                            </button>
+                          </form>
+                        </div>
                       </li>
                     ))}
                   </ul>
