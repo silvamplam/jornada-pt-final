@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { LiveUpdate, ResolvedMatch } from "@/lib/jornada";
-import { getMatchMoment, getScoreLabel } from "@/lib/jornada";
+import { getBroadcastLogo, getMatchMoment, getScoreLabel } from "@/lib/jornada";
 import { TeamBadge } from "@/components/TeamBadge";
 
 type TimelineStyle = CSSProperties & {
@@ -31,6 +31,31 @@ function livePanelStatusText(match: ResolvedMatch) {
   return getMatchMoment(match) || "Agendado";
 }
 
+function LiveMatchCard({ match }: { match: ResolvedMatch }) {
+  const visualState = livePanelVisualState(match);
+  const broadcast = getBroadcastLogo(match);
+
+  return (
+    <article className={`match-card match-card-${match.status} match-card--${visualState}`}>
+      <p className="match-status">
+        <span>{livePanelStatusText(match)}</span>
+        <em title={broadcast.title}>
+          {broadcast.src ? <img className="competition-mini-logo" src={broadcast.src} alt="" /> : null}
+          {broadcast.src ? broadcast.title : broadcast.label}
+        </em>
+      </p>
+      <div className="match-teams">
+        <TeamBadge team={match.homeTeam} />
+        <strong>{match.homeTeam.shortName}</strong>
+        <b>{getScoreLabel(match)}</b>
+        <strong>{match.awayTeam.shortName}</strong>
+        <TeamBadge team={match.awayTeam} />
+      </div>
+      <small>{getMatchMoment(match)}</small>
+    </article>
+  );
+}
+
 export function LiveCenter({ matches, updates }: LiveCenterProps) {
   const liveMatch =
     matches.find((match) => match.status === "live") ??
@@ -46,16 +71,9 @@ export function LiveCenter({ matches, updates }: LiveCenterProps) {
       </header>
       {liveMatch ? (
         <>
-          <p className="live-panel-status">
-            <span>{livePanelStatusText(liveMatch)}</span>
-          </p>
-          <div className="live-score">
-            <TeamBadge team={liveMatch.homeTeam} />
-            <strong>{liveMatch.homeTeam.name}</strong>
-            <b>{getScoreLabel(liveMatch)}</b>
-            <strong>{liveMatch.awayTeam.name}</strong>
-            <TeamBadge team={liveMatch.awayTeam} />
-          </div>
+          <section className="scoreboard live-scoreboard" aria-label="Jogo em destaque no centro ao vivo">
+            <LiveMatchCard match={liveMatch} />
+          </section>
           <div className="timeline" aria-label={`Momento do jogo: ${getMatchMoment(liveMatch)}`}>
             <span style={{ "--x": "15%" } as TimelineStyle} />
             <span style={{ "--x": "42%" } as TimelineStyle} />
