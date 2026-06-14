@@ -243,7 +243,7 @@ const articlePageStyles = `
     gap: 42px;
     width: min(1180px, calc(100% - 32px));
     margin: 0 auto;
-    padding: 28px 0 56px;
+    padding: 24px 0 56px;
   }
 
   .news-article-main {
@@ -276,37 +276,37 @@ const articlePageStyles = `
 
   .news-article-title {
     margin: 0;
-    max-width: 760px;
+    max-width: 735px;
     color: #05080c;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: clamp(40px, 4.6vw, 56px);
+    font-size: clamp(34px, 3.55vw, 48px);
     font-weight: 900;
-    line-height: 1.04;
+    line-height: 1.07;
     letter-spacing: 0;
   }
 
   .news-article-subtitle {
     margin: 14px 0 0;
-    max-width: 720px;
+    max-width: 690px;
     color: #293442;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: 21px;
+    font-size: 20px;
     font-weight: 500;
-    line-height: 1.42;
+    line-height: 1.45;
   }
 
   .news-article-meta {
     display: grid;
-    gap: 6px;
-    margin: 22px 0 22px;
+    gap: 4px;
+    margin: 18px 0 22px;
     color: #5e6976;
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .news-article-author {
-    color: #17202b;
-    font-size: 15px;
-    font-weight: 800;
+    color: #354150;
+    font-size: 14px;
+    font-weight: 650;
   }
 
   .news-article-image {
@@ -341,9 +341,36 @@ const articlePageStyles = `
 
   .news-article-games-strip {
     width: min(1180px, calc(100% - 32px));
-    margin: 14px auto 0;
-    padding: 8px 0 0;
+    margin: 0 auto;
+    padding: 5px 0 0;
     border-top: 1px solid #edf1f5;
+  }
+
+  .news-article-games-shell {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) 28px;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .news-article-games-button {
+    display: grid;
+    place-items: center;
+    min-height: 84px;
+    border: 1px solid #e1e7ee;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #253140;
+    font-size: 20px;
+    font-weight: 900;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(12, 22, 34, 0.04);
+  }
+
+  .news-article-games-button:hover {
+    border-color: #cbd5df;
+    background: #f8fafc;
   }
 
   .news-article-games-scroller {
@@ -552,7 +579,17 @@ const articlePageStyles = `
 
     .news-article-games-strip {
       width: min(100%, calc(100% - 8px));
-      margin-top: 10px;
+      margin-top: 0;
+    }
+
+    .news-article-games-shell {
+      grid-template-columns: 24px minmax(0, 1fr) 24px;
+      gap: 6px;
+    }
+
+    .news-article-games-button {
+      min-height: 84px;
+      font-size: 17px;
     }
 
     .news-article-sidebar {
@@ -560,7 +597,7 @@ const articlePageStyles = `
     }
 
     .news-article-title {
-      font-size: 34px;
+      font-size: 31px;
     }
 
     .news-article-subtitle {
@@ -904,16 +941,33 @@ export default async function NewsArticlePage({ params }: PageProps) {
                   if (select.value) window.location.href = select.value;
                 });
               }
+              var gamesStrip = document.querySelector("[data-news-article-games-strip]");
+              if (gamesStrip) {
+                document.querySelectorAll("[data-news-article-games-scroll]").forEach(function (button) {
+                  button.addEventListener("click", function () {
+                    var direction = button.getAttribute("data-news-article-games-scroll") === "left" ? -1 : 1;
+                    gamesStrip.scrollBy({ left: direction * Math.max(240, Math.round(gamesStrip.clientWidth * 0.85)), behavior: "smooth" });
+                  });
+                });
+              }
             });
           `
         }}
       />
       {articleMatches.length > 0 ? (
         <section className="news-article-games-strip" aria-label="Jogos da jornada associados a esta notícia">
-          <div className="news-article-games-scroller">
-            {articleMatches.map((match) => (
-              <ArticleMatchCard key={match.id} match={match} />
-            ))}
+          <div className="news-article-games-shell">
+            <button className="news-article-games-button" data-news-article-games-scroll="left" type="button" aria-label="Ver jogos anteriores">
+              ‹
+            </button>
+            <div className="news-article-games-scroller" data-news-article-games-strip>
+              {articleMatches.map((match) => (
+                <ArticleMatchCard key={match.id} match={match} />
+              ))}
+            </div>
+            <button className="news-article-games-button" data-news-article-games-scroll="right" type="button" aria-label="Ver jogos seguintes">
+              ›
+            </button>
           </div>
         </section>
       ) : null}
@@ -929,7 +983,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
           {subtitle ? <p className="news-article-subtitle">{subtitle}</p> : null}
 
           <div className="news-article-meta">
-            {author ? <span className="news-article-author">{author}</span> : null}
+            {author ? <span className="news-article-author">Por {author}</span> : null}
             {publishedAt ? <time dateTime={article.published_at ?? article.created_at ?? undefined}>{publishedAt}</time> : null}
           </div>
 
