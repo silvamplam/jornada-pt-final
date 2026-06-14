@@ -25,6 +25,28 @@ type PageProps = {
   }>;
 };
 
+type ContextOptions = {
+  competitions: CompetitionOption[];
+  seasons: SeasonOption[];
+  matchdays: MatchdayOption[];
+};
+
+type ArticleContextSummary = {
+  competitionLabel: string;
+  seasonLabel: string;
+  matchdayLabel: string;
+  scopeLabel: string;
+  stateLabel: string;
+};
+
+type LinkPlacement = {
+  area: string;
+  position: string;
+  detail?: string;
+  table: string;
+  matchdayId?: string | null;
+};
+
 async function readEditorialArticles() {
   try {
     const articles = await fetchSupabaseAdminTable<EditorialArticle>(
@@ -86,8 +108,189 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
   return params.detail ? `${base} Detalhe: ${params.detail}` : base;
 }
 
+const articleContextLinkStyles = `
+  .article-admin-sidebar-context {
+    display: block;
+    overflow: hidden;
+    color: #4b5563;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .article-admin-diagnostic {
+    display: grid;
+    gap: 16px;
+    padding: 18px 22px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fbfdff;
+  }
+
+  .article-admin-diagnostic-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .article-admin-diagnostic-header h3 {
+    margin: 0;
+    color: #111827;
+    font-size: 15px;
+  }
+
+  .article-admin-public-link {
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 850;
+    text-decoration: none;
+  }
+
+  .article-admin-public-link:hover {
+    text-decoration: underline;
+  }
+
+  .article-admin-context-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .article-admin-context-card {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+    background: #ffffff;
+  }
+
+  .article-admin-context-card span {
+    color: #6b7280;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .article-admin-context-card strong {
+    overflow: hidden;
+    color: #111827;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .article-admin-link-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .article-admin-link-item {
+    display: grid;
+    gap: 4px;
+    padding: 11px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+    background: #ffffff;
+  }
+
+  .article-admin-link-item strong {
+    color: #111827;
+    font-size: 13px;
+  }
+
+  .article-admin-link-item span {
+    color: #4b5563;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .article-admin-link-source {
+    color: #6b7280 !important;
+    font-family: Consolas, "Liberation Mono", monospace;
+    font-size: 11px !important;
+  }
+
+  .article-admin-empty-note {
+    margin: 0;
+    padding: 12px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 900px) {
+    .article-admin-context-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .article-admin-context-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+`;
+
 function statusLabel(status: string | null) {
   return status?.trim() || "sem estado";
+}
+
+function compactId(value?: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  return value.length > 12 ? `${value.slice(0, 8)}...` : value;
+}
+
+function publicArticlePath(article: EditorialArticle) {
+  const slug = article.slug?.trim();
+  return slug ? `/noticias/${encodeURIComponent(slug)}` : null;
+}
+
+function readableScope(article: EditorialArticle) {
+  if (article.matchday_id) return "matchday";
+  if (article.season_id) return "season";
+  if (article.competition_id) return "competition";
+  return firstText(article.scope) || "global";
+}
+
+function readableMatchdayLabel(matchday?: MatchdayOption | null) {
+  if (!matchday) {
+    return "";
+  }
+
+  const numberLabel = typeof matchday.number === "number" ? `Jornada ${String(matchday.number).padStart(2, "0")}` : "";
+  return firstText(matchday.label, numberLabel, matchday.id);
+}
+
+function resolveArticleContext(article: EditorialArticle, context: ContextOptions): ArticleContextSummary {
+  const matchday = article.matchday_id ? context.matchdays.find((item) => item.id === article.matchday_id) ?? null : null;
+  const seasonId = matchday?.season_id ?? article.season_id;
+  const season = seasonId ? context.seasons.find((item) => item.id === seasonId) ?? null : null;
+  const competitionId = season?.competition_id ?? article.competition_id;
+  const competition = competitionId ? context.competitions.find((item) => item.id === competitionId) ?? null : null;
+  const hasAnyContext = Boolean(article.matchday_id || article.season_id || article.competition_id);
+
+  return {
+    competitionLabel: firstText(competition?.name, competition?.slug) || (hasAnyContext ? "Contexto incompleto" : "Sem competicao associada"),
+    seasonLabel: firstText(season?.label) || (hasAnyContext ? "Contexto incompleto" : "Sem epoca associada"),
+    matchdayLabel: readableMatchdayLabel(matchday) || (article.matchday_id ? "Contexto incompleto" : "Sem jornada associada"),
+    scopeLabel: readableScope(article),
+    stateLabel: statusLabel(article.status),
+  };
 }
 
 function selectedArticleFromQuery(articles: EditorialArticle[], articleId?: string, mode?: string) {
@@ -102,12 +305,218 @@ function selectedArticleFromQuery(articles: EditorialArticle[], articleId?: stri
   return articles.find((article) => article.id === articleId) ?? null;
 }
 
+async function safeRead<T>(query: string) {
+  try {
+    return await fetchSupabaseAdminTable<T>(query);
+  } catch {
+    return [] as T[];
+  }
+}
+
+function placementMatchdayDetail(matchdayId: string | null | undefined, context: ContextOptions) {
+  if (!matchdayId) {
+    return "";
+  }
+
+  const summary = resolveArticleContext(
+    {
+      id: "",
+      slug: null,
+      title: null,
+      subtitle: null,
+      body: null,
+      label: null,
+      author: null,
+      status: null,
+      scope: null,
+      image_url: null,
+      image_caption: null,
+      published_at: null,
+      created_at: null,
+      updated_at: null,
+      competition_id: null,
+      season_id: null,
+      matchday_id: matchdayId,
+    },
+    context,
+  );
+
+  return [summary.competitionLabel, summary.seasonLabel, summary.matchdayLabel].filter(Boolean).join(" / ");
+}
+
+async function readArticleLinkPlacements(article: EditorialArticle, context: ContextOptions) {
+  const publicPath = publicArticlePath(article);
+  if (!publicPath) {
+    return { publicPath: null as string | null, placements: [] as LinkPlacement[] };
+  }
+
+  type MatchdayEditorialLinkRow = {
+    id: string;
+    matchday_id: string | null;
+    headline_link_url?: string | null;
+    complementary_link_url?: string | null;
+    side_block_link_url?: string | null;
+  };
+  type MatchdayHighlightLinkRow = {
+    id: string;
+    matchday_id: string | null;
+    sort_order: number | null;
+    title: string | null;
+    link_url: string | null;
+  };
+  type MatchdayLatestLinkRow = {
+    id: string;
+    matchday_id: string | null;
+    sort_order: number | null;
+    time_label: string | null;
+    title: string | null;
+    link_url: string | null;
+  };
+  type ReferenceItemLinkRow = {
+    id: string;
+    composition_id: string | null;
+    slot_type: string | null;
+    source_type: string | null;
+    sort_order: number | null;
+    title_snapshot: string | null;
+    link_url_snapshot: string | null;
+  };
+  type ReferenceCompositionRow = {
+    id: string;
+    matchday_id: string | null;
+    status: string | null;
+    is_current?: boolean | null;
+    internal_name?: string | null;
+  };
+  type SiteEditorialLinkRow = {
+    id: string;
+    headline_link_url?: string | null;
+    complementary_link_url?: string | null;
+    side_block_link_url?: string | null;
+  };
+  type SiteEditorialListLinkRow = {
+    id: string;
+    sort_order: number | null;
+    title: string | null;
+    link_url: string | null;
+  };
+
+  const encodedPath = encodeURIComponent(publicPath);
+  const [
+    headlineRows,
+    complementaryRows,
+    sideRows,
+    highlightRows,
+    latestRows,
+    referenceRows,
+    siteHeadlineRows,
+    siteComplementaryRows,
+    siteSideRows,
+    siteHighlightRows,
+    siteLatestRows,
+  ] = await Promise.all([
+    safeRead<MatchdayEditorialLinkRow>(`matchday_editorials?select=id,matchday_id,headline_link_url&headline_link_url=eq.${encodedPath}&limit=50`),
+    safeRead<MatchdayEditorialLinkRow>(
+      `matchday_editorials?select=id,matchday_id,complementary_link_url&complementary_link_url=eq.${encodedPath}&limit=50`,
+    ),
+    safeRead<MatchdayEditorialLinkRow>(`matchday_editorials?select=id,matchday_id,side_block_link_url&side_block_link_url=eq.${encodedPath}&limit=50`),
+    safeRead<MatchdayHighlightLinkRow>(
+      `matchday_highlights?select=id,matchday_id,sort_order,title,link_url&link_url=eq.${encodedPath}&limit=100`,
+    ),
+    safeRead<MatchdayLatestLinkRow>(
+      `matchday_latest_news?select=id,matchday_id,sort_order,time_label,title,link_url&link_url=eq.${encodedPath}&limit=100`,
+    ),
+    safeRead<ReferenceItemLinkRow>(
+      `matchday_reference_composition_items?select=id,composition_id,slot_type,source_type,sort_order,title_snapshot,link_url_snapshot&link_url_snapshot=eq.${encodedPath}&limit=100`,
+    ),
+    safeRead<SiteEditorialLinkRow>(`site_editorials?select=id,headline_link_url&headline_link_url=eq.${encodedPath}&limit=20`),
+    safeRead<SiteEditorialLinkRow>(`site_editorials?select=id,complementary_link_url&complementary_link_url=eq.${encodedPath}&limit=20`),
+    safeRead<SiteEditorialLinkRow>(`site_editorials?select=id,side_block_link_url&side_block_link_url=eq.${encodedPath}&limit=20`),
+    safeRead<SiteEditorialListLinkRow>(
+      `site_editorial_highlights?select=id,sort_order,title,link_url&link_url=eq.${encodedPath}&limit=100`,
+    ),
+    safeRead<SiteEditorialListLinkRow>(
+      `site_editorial_latest_news?select=id,sort_order,title,link_url&link_url=eq.${encodedPath}&limit=100`,
+    ),
+  ]);
+
+  const compositionIds = Array.from(new Set(referenceRows.map((row) => row.composition_id).filter(Boolean))) as string[];
+  const compositionRows =
+    compositionIds.length > 0
+      ? await safeRead<ReferenceCompositionRow>(
+          `matchday_reference_compositions?select=id,matchday_id,status,is_current,internal_name&id=in.(${compositionIds
+            .map((id) => encodeURIComponent(id))
+            .join(",")})&limit=100`,
+        )
+      : [];
+  const compositionsById = new Map(compositionRows.map((row) => [row.id, row]));
+  const placements: LinkPlacement[] = [];
+  const pushMatchdayPlacement = (row: { matchday_id?: string | null }, area: string, position: string, table: string, detail?: string) => {
+    placements.push({
+      area,
+      position,
+      detail: firstText(detail, placementMatchdayDetail(row.matchday_id, context)),
+      table,
+      matchdayId: row.matchday_id,
+    });
+  };
+
+  headlineRows.forEach((row) => pushMatchdayPlacement(row, "Editorial da Jornada", "Manchete", "matchday_editorials"));
+  complementaryRows.forEach((row) => pushMatchdayPlacement(row, "Editorial da Jornada", "Complemento", "matchday_editorials"));
+  sideRows.forEach((row) => pushMatchdayPlacement(row, "Editorial da Jornada", "Bloco lateral", "matchday_editorials"));
+  highlightRows.forEach((row) =>
+    pushMatchdayPlacement(row, "Destaques da Jornada", `Posicao ${row.sort_order ?? "sem ordem"}`, "matchday_highlights", row.title ?? undefined),
+  );
+  latestRows.forEach((row) =>
+    pushMatchdayPlacement(
+      row,
+      "Zona Editorial Final da Jornada",
+      row.time_label ? `${row.time_label} / Posicao ${row.sort_order ?? "sem ordem"}` : `Posicao ${row.sort_order ?? "sem ordem"}`,
+      "matchday_latest_news",
+      row.title ?? undefined,
+    ),
+  );
+  referenceRows.forEach((row) => {
+    const composition = row.composition_id ? compositionsById.get(row.composition_id) : null;
+    pushMatchdayPlacement(
+      { matchday_id: composition?.matchday_id ?? null },
+      "Composicao Editorial",
+      firstText(row.slot_type, row.source_type) || "Item",
+      "matchday_reference_composition_items",
+      firstText(row.title_snapshot, composition?.internal_name, row.composition_id ? `Composicao ${compactId(row.composition_id)}` : null),
+    );
+  });
+  siteHeadlineRows.forEach(() => placements.push({ area: "Home Editorial", position: "Manchete", table: "site_editorials" }));
+  siteComplementaryRows.forEach(() => placements.push({ area: "Home Editorial", position: "Complemento", table: "site_editorials" }));
+  siteSideRows.forEach(() => placements.push({ area: "Home Editorial", position: "Bloco lateral", table: "site_editorials" }));
+  siteHighlightRows.forEach((row) =>
+    placements.push({
+      area: "Home Editorial",
+      position: `Destaque ${row.sort_order ?? "sem ordem"}`,
+      detail: row.title ?? undefined,
+      table: "site_editorial_highlights",
+    }),
+  );
+  siteLatestRows.forEach((row) =>
+    placements.push({
+      area: "Home Editorial",
+      position: `Zona Editorial Final ${row.sort_order ?? "sem ordem"}`,
+      detail: row.title ?? undefined,
+      table: "site_editorial_latest_news",
+    }),
+  );
+
+  return { publicPath, placements };
+}
+
 export default async function AdminEditorialArticlesPage({ searchParams }: PageProps) {
   const params = searchParams ? await searchParams : {};
   const [{ articles, error }, context] = await Promise.all([readEditorialArticles(), loadContextOptions()]);
   const selectedArticle = selectedArticleFromQuery(articles, params.articleId, params.mode);
   const isEditing = Boolean(selectedArticle);
   const message = pageMessage(params);
+  const selectedContext = selectedArticle ? resolveArticleContext(selectedArticle, context) : null;
+  const selectedLinkData = selectedArticle ? await readArticleLinkPlacements(selectedArticle, context) : { publicPath: null, placements: [] as LinkPlacement[] };
 
   return (
     <main className="editorial-admin-shell">
@@ -150,6 +559,7 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
                 {articles.map((article) => {
                   const articleDate = firstText(formatShortDate(article.published_at), formatShortDate(article.created_at));
                   const isSelected = selectedArticle?.id === article.id;
+                  const articleContext = resolveArticleContext(article, context);
 
                   return (
                     <li key={article.id}>
@@ -165,6 +575,9 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
                         <span className="article-admin-sidebar-meta">
                           {article.slug ? <span>/{article.slug}</span> : null}
                           {articleDate ? <span>{articleDate}</span> : null}
+                        </span>
+                        <span className="article-admin-sidebar-context">
+                          {articleContext.competitionLabel} / {articleContext.seasonLabel} / {articleContext.matchdayLabel}
                         </span>
                       </a>
                     </li>
@@ -183,6 +596,58 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
                   : "Preencha o formulário para criar um novo rascunho ou artigo publicado."}
               </p>
             </div>
+
+            {selectedArticle && selectedContext ? (
+              <section className="article-admin-diagnostic" aria-label="Contexto e ligacoes editoriais do artigo">
+                <div className="article-admin-diagnostic-header">
+                  <h3>Contexto</h3>
+                  {selectedLinkData.publicPath ? (
+                    <a className="article-admin-public-link" href={selectedLinkData.publicPath} target="_blank" rel="noreferrer">
+                      {selectedLinkData.publicPath}
+                    </a>
+                  ) : null}
+                </div>
+                <div className="article-admin-context-grid">
+                  <div className="article-admin-context-card">
+                    <span>Competicao / Liga</span>
+                    <strong>{selectedContext.competitionLabel}</strong>
+                  </div>
+                  <div className="article-admin-context-card">
+                    <span>Epoca</span>
+                    <strong>{selectedContext.seasonLabel}</strong>
+                  </div>
+                  <div className="article-admin-context-card">
+                    <span>Jornada</span>
+                    <strong>{selectedContext.matchdayLabel}</strong>
+                  </div>
+                  <div className="article-admin-context-card">
+                    <span>Estado / Ambito</span>
+                    <strong>
+                      {selectedContext.stateLabel} / {selectedContext.scopeLabel}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="article-admin-diagnostic-header">
+                  <h3>Ligado em</h3>
+                </div>
+                {selectedLinkData.placements.length > 0 ? (
+                  <ul className="article-admin-link-list">
+                    {selectedLinkData.placements.map((placement, index) => (
+                      <li className="article-admin-link-item" key={`${placement.table}-${placement.position}-${index}`}>
+                        <strong>
+                          {placement.area} - {placement.position}
+                        </strong>
+                        {placement.detail ? <span>{placement.detail}</span> : null}
+                        <span className="article-admin-link-source">{placement.table}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="article-admin-empty-note">Este artigo ainda nao esta ligado a nenhuma zona editorial.</p>
+                )}
+              </section>
+            ) : null}
 
             <ArticleEditorForm
               mode={isEditing ? "edit" : "create"}
@@ -217,6 +682,7 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
       </div>
 
       <style>{editorialArticleAdminStyles}</style>
+      <style>{articleContextLinkStyles}</style>
     </main>
   );
 }
