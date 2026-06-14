@@ -355,7 +355,7 @@ const gamesPageStyles = `
     column-gap: 8px;
     row-gap: 4px;
     align-items: center;
-    padding: 11px 0;
+    padding: 10px 0;
     border: 0;
     border-bottom: 1px solid #edf1f5;
     border-radius: 0;
@@ -363,16 +363,16 @@ const gamesPageStyles = `
   }
 
   .public-games-card-finished {
-    background: #fafbfc;
+    background: #ffffff;
   }
 
   .public-games-card-live,
   .public-games-card-halftime {
-    background: #f5fcf8;
+    background: #ffffff;
   }
 
   .public-games-card-scheduled {
-    background: #fffaf0;
+    background: #ffffff;
   }
 
   .public-games-card-unknown {
@@ -415,7 +415,7 @@ const gamesPageStyles = `
   .public-games-score strong {
     display: block;
     color: #10151b;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 900;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -427,7 +427,7 @@ const gamesPageStyles = `
     display: block;
     margin-top: 4px;
     color: #66717f;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
     text-transform: uppercase;
   }
@@ -466,16 +466,17 @@ const gamesPageStyles = `
   }
 
   .public-games-score strong {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .public-games-status {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 4px 8px;
+    padding: 3px 7px;
     border-radius: 999px;
     background: #eef2f6;
+    font-size: 10.5px;
   }
 
   .public-games-status-finished {
@@ -485,8 +486,8 @@ const gamesPageStyles = `
 
   .public-games-status-live,
   .public-games-status-halftime {
-    background: #dff7e8;
-    color: #137a3a;
+    background: #edf7f1;
+    color: #286943;
   }
 
   .public-games-status-live::before,
@@ -500,8 +501,8 @@ const gamesPageStyles = `
   }
 
   .public-games-status-scheduled {
-    background: #fff2bf;
-    color: #745400;
+    background: #f4f1e8;
+    color: #6b5a22;
   }
 
   .public-games-status-unknown {
@@ -516,7 +517,7 @@ const gamesPageStyles = `
     justify-content: center;
     gap: 10px;
     color: #607086;
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .public-games-tv {

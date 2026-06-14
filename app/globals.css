@@ -3221,6 +3221,169 @@ tbody tr:nth-child(odd) {
   background: #17a34a;
 }
 
+/* JOGOS-VISUAL-1: neutral match cards with smaller editorial scale. */
+.page-shell .scoreboard .match-card,
+.page-shell .home-reference .match-card {
+  min-height: 84px;
+  gap: 5px;
+  padding: 7px 9px;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  box-shadow: inset 0 0 0 1px rgba(210, 219, 230, 0.72), 0 7px 16px rgba(13, 23, 35, 0.06);
+}
+
+.page-shell .match-card::before {
+  height: 3px;
+  opacity: 1;
+  z-index: 0;
+  background: #d6dde6;
+}
+
+.page-shell .match-card--finished,
+.page-shell .match-card-finished,
+.page-shell .match-card--live,
+.page-shell .match-card-live,
+.page-shell .match-card-halftime,
+.page-shell .match-card--scheduled,
+.page-shell .match-card-scheduled,
+.page-shell .home-reference .match-card:nth-child(3n + 1),
+.page-shell .home-reference .match-card:nth-child(3n + 2),
+.page-shell .home-reference .match-card:nth-child(3n) {
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  box-shadow: inset 0 0 0 1px rgba(210, 219, 230, 0.72), 0 7px 16px rgba(13, 23, 35, 0.06);
+}
+
+.page-shell .match-card--finished::before,
+.page-shell .match-card-finished::before {
+  background: #aeb8c4;
+}
+
+.page-shell .match-card--live::before,
+.page-shell .match-card-live::before,
+.page-shell .match-card-halftime::before {
+  background: #45a867;
+}
+
+.page-shell .match-card--scheduled::before,
+.page-shell .match-card-scheduled::before {
+  background: #c7a64a;
+}
+
+.page-shell .match-card p,
+.page-shell .match-card small {
+  color: #66717f;
+  font-size: 11px;
+}
+
+.page-shell .match-teams strong {
+  font-size: 13px;
+}
+
+.page-shell .match-teams b {
+  padding: 1px 7px;
+  font-size: 23px;
+}
+
+.page-shell .match-status span,
+.page-shell .match-card--finished .match-status span,
+.page-shell .match-card-finished .match-status span,
+.page-shell .match-card--live .match-status span,
+.page-shell .match-card-live .match-status span,
+.page-shell .match-card-halftime .match-status span,
+.page-shell .match-card--scheduled .match-status span,
+.page-shell .match-card-scheduled .match-status span {
+  padding: 2px 6px;
+  background: #eef2f6;
+  color: #566170;
+  font-size: 10.5px;
+}
+
+.page-shell .match-card--live .match-status span,
+.page-shell .match-card-live .match-status span,
+.page-shell .match-card-halftime .match-status span {
+  background: #edf7f1;
+  color: #286943;
+}
+
+.page-shell .match-card--scheduled .match-status span,
+.page-shell .match-card-scheduled .match-status span {
+  background: #f4f1e8;
+  color: #6b5a22;
+}
+
+.page-shell .fixtures-list .fixture-match {
+  border-left-width: 3px;
+  background: #ffffff;
+  font-size: 12px;
+}
+
+.page-shell .fixtures-list .fixture-match--finished,
+.page-shell .fixtures-list .fixture-match--live,
+.page-shell .fixtures-list .fixture-match--scheduled {
+  background: #ffffff;
+}
+
+.page-shell .fixtures-list .fixture-match--finished {
+  border-left-color: #aeb8c4;
+}
+
+.page-shell .fixtures-list .fixture-match--live {
+  border-left-color: #45a867;
+}
+
+.page-shell .fixtures-list .fixture-match--scheduled {
+  border-left-color: #c7a64a;
+}
+
+.page-shell .fixtures-list .fixture-status,
+.page-shell .fixture-match--finished .fixture-status,
+.page-shell .fixture-match--live .fixture-status,
+.page-shell .fixture-match--scheduled .fixture-status {
+  min-width: 66px;
+  padding: 3px 7px;
+  background: #eef2f6;
+  color: #566170;
+  font-size: 10.5px;
+}
+
+.page-shell .fixture-match--live .fixture-status {
+  background: #edf7f1;
+  color: #286943;
+}
+
+.page-shell .fixture-match--scheduled .fixture-status {
+  background: #f4f1e8;
+  color: #6b5a22;
+}
+
+.page-shell .live-panel--finished,
+.page-shell .live-panel--live,
+.page-shell .live-panel--scheduled {
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+.page-shell .live-score {
+  padding: 12px 13px 7px;
+  font-size: 12px;
+}
+
+.page-shell .live-score b {
+  font-size: 21px;
+}
+
+.page-shell .live-panel-status span,
+.page-shell .live-panel--finished .live-panel-status span,
+.page-shell .live-panel--live .live-panel-status span {
+  padding: 3px 8px;
+  background: #eef2f6;
+  color: #566170;
+  font-size: 10.5px;
+}
+
+.page-shell .live-panel--live .live-panel-status span {
+  background: #edf7f1;
+  color: #286943;
+}
+
 /* Separate the homepage editorial blocks from the page background. */
 .home-reference-grid {
   padding: 10px;
