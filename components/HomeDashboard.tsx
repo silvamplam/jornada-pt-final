@@ -1,5 +1,4 @@
 import type { HomeContext } from "@/lib/jornada";
-import type { PublicHomeEditorialOverlay } from "@/lib/public-home-editorial";
 import { GoalsList } from "@/components/GoalsList";
 import { HeroHeadline } from "@/components/HeroHeadline";
 import { InstitutionalStrip } from "@/components/InstitutionalStrip";
@@ -11,27 +10,19 @@ import { UpcomingMatches } from "@/components/UpcomingMatches";
 
 type HomeDashboardProps = {
   context: HomeContext;
-  editorial?: PublicHomeEditorialOverlay | null;
 };
 
-export function HomeDashboard({ context, editorial = null }: HomeDashboardProps) {
+export function HomeDashboard({ context }: HomeDashboardProps) {
   const upcoming = [
     ...context.contexts.flatMap((item) => item.upcomingMatches.slice(0, 1)),
     ...context.contexts.flatMap((item) => item.upcomingMatches.slice(1))
   ].slice(0, 6);
-  const topicArticles = editorial?.sideBlock
-    ? [editorial.sideBlock, ...context.topArticles].slice(0, 4)
-    : context.topArticles.slice(0, 4);
-  const featuredArticles = editorial?.highlights.length ? editorial.highlights : context.topArticles.slice(1, 5);
-  const resultsMatches = editorial?.featuredMatches.length ? editorial.featuredMatches : context.mixedMatches.slice(0, 6);
-  const headline = editorial?.headline ?? context.featured.headline;
-  const headlineMatch = editorial?.headlineMatch ?? context.featured.headlineMatch;
-  const latestArticles = editorial?.latestNews.length ? editorial.latestNews : context.topArticles;
-  const latestTitle = editorial ? editorial.latestZoneTitle ?? "" : undefined;
+  const topicArticles = context.topArticles.slice(0, 4);
+  const featuredArticles = context.topArticles.slice(1, 5);
 
   return (
     <div className="home-reference">
-      <ResultsRail matches={resultsMatches} title="Resultados principais" />
+      <ResultsRail matches={context.mixedMatches.slice(0, 6)} title="Resultados principais" />
 
       <div className="home-reference-grid">
         <aside className="panel home-topic-panel" aria-label="Tema atual">
@@ -57,35 +48,15 @@ export function HomeDashboard({ context, editorial = null }: HomeDashboardProps)
         <main className="main-column home-main-column">
           <HeroHeadline
             competition={context.featured.competition}
-            headline={headline}
+            headline={context.featured.headline}
             label={`${context.featured.matchday.label} · ${context.featured.season.label}`}
-            match={headlineMatch}
+            match={context.featured.headlineMatch}
           />
-          <NewsGrid
-            articles={featuredArticles}
-            competitions={context.competitions}
-            title={editorial?.highlightsTitle ?? "Em destaque"}
-          />
-          {editorial?.complement ? (
-            <NewsGrid articles={[editorial.complement]} competitions={context.competitions} compact title="" />
-          ) : null}
-          {editorial?.roundupItems.length ? (
-            <NewsGrid
-              articles={editorial.roundupItems}
-              competitions={context.competitions}
-              compact
-              title={editorial.roundupTitle ?? "Resumo"}
-            />
-          ) : null}
+          <NewsGrid articles={featuredArticles} competitions={context.competitions} title="Em destaque" />
         </main>
 
         <aside className="home-right-column">
-          <LatestList
-            articles={latestArticles}
-            competitions={context.competitions}
-            title={latestTitle}
-            titleColor={editorial?.latestZoneTitleColor}
-          />
+          <LatestList articles={context.topArticles} competitions={context.competitions} />
           <GoalsList goals={context.goals} />
         </aside>
       </div>
