@@ -258,13 +258,14 @@ const homeEditorialStyles = `
 
   .home-admin-feature {
     display: grid;
-    grid-template-columns: minmax(220px, 0.42fr) minmax(0, 0.58fr);
-    gap: 18px;
+    grid-template-columns: minmax(180px, 0.36fr) minmax(0, 0.64fr);
+    gap: 16px;
     padding: 20px;
   }
 
   .home-admin-media {
-    min-height: 230px;
+    min-height: 180px;
+    max-height: 260px;
     overflow: hidden;
     border-radius: 8px;
     background: #dce3eb;
@@ -349,6 +350,7 @@ const homeEditorialStyles = `
 
   .home-admin-card-media {
     aspect-ratio: 16 / 9;
+    max-height: 150px;
     overflow: hidden;
     background: #dce3eb;
   }
@@ -387,6 +389,45 @@ const homeEditorialStyles = `
     line-height: 1.25;
   }
 
+  .home-admin-list.is-compact li {
+    grid-template-columns: 78px minmax(0, 1fr);
+    gap: 10px 12px;
+    align-items: start;
+  }
+
+  .home-admin-list.is-compact .home-admin-row-media {
+    grid-row: span 3;
+  }
+
+  .home-admin-row-media {
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border-radius: 6px;
+    background: #e5ebf2;
+  }
+
+  .home-admin-row-media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .home-admin-row-media .home-admin-placeholder {
+    min-height: 100%;
+    padding: 8px;
+    font-size: 10px;
+  }
+
+  .home-admin-muted-card {
+    border-left: 3px solid #d7dee8;
+    background: #f8fafc;
+  }
+
+  .home-admin-muted-card strong {
+    color: #64748b;
+  }
+
   .home-admin-detail-list {
     display: grid;
     grid-template-columns: 160px minmax(0, 1fr);
@@ -414,13 +455,41 @@ const homeEditorialStyles = `
   }
 
   .home-admin-link-out {
+    display: inline-block;
+    max-width: 100%;
     color: #10151b;
     font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
+    white-space: nowrap;
     text-decoration: none;
   }
 
   .home-admin-link-out:hover {
     text-decoration: underline;
+  }
+
+  .home-admin-code {
+    display: inline-block;
+    max-width: 100%;
+    border-radius: 4px;
+    background: #f1f5f9;
+    color: #334155;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 11px;
+    overflow: hidden;
+    padding: 2px 5px;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
+    white-space: nowrap;
+  }
+
+  .home-admin-compact-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
   }
 
   @media (max-width: 1100px) {
@@ -438,7 +507,8 @@ const homeEditorialStyles = `
 
     .home-admin-hero,
     .home-admin-panel > header,
-    .home-admin-detail-list {
+    .home-admin-detail-list,
+    .home-admin-list.is-compact li {
       display: grid;
       grid-template-columns: 1fr;
     }
@@ -474,13 +544,27 @@ function statusClass(value: string | null | undefined) {
 function fieldLink(value: string | null | undefined) {
   const cleanValue = value?.trim();
   if (!cleanValue) {
-    return <span>Sem link</span>;
+    return <span className="home-admin-meta">Sem link</span>;
   }
 
   return (
-    <a className="home-admin-link-out" href={cleanValue}>
+    <a className="home-admin-link-out" href={cleanValue} title={cleanValue}>
       {cleanValue}
     </a>
+  );
+}
+
+function codeValue(value: string | number | null | undefined, fallback = "Sem valor") {
+  const cleanValue = typeof value === "number" ? String(value) : value?.trim();
+
+  if (!cleanValue) {
+    return <span className="home-admin-meta">{fallback}</span>;
+  }
+
+  return (
+    <code className="home-admin-code" title={cleanValue}>
+      {cleanValue}
+    </code>
   );
 }
 
@@ -496,6 +580,24 @@ function MediaPreview({ src, label }: { src: string | null | undefined; label: s
 
 function StatusPill({ status }: { status: string | null | undefined }) {
   return <span className={`home-admin-pill${statusClass(status)}`}>{statusText(status)}</span>;
+}
+
+function hasContent(...values: Array<string | number | null | undefined>) {
+  return values.some((value) => {
+    if (typeof value === "number") {
+      return true;
+    }
+
+    return Boolean(value?.trim());
+  });
+}
+
+function compactStateLabel(status: string | null | undefined, hasItemContent: boolean) {
+  if (hasItemContent) {
+    return null;
+  }
+
+  return status?.trim().toLowerCase() === "draft" ? "Rascunho vazio" : "Item sem conteudo";
 }
 
 function DetailList({ rows }: { rows: Array<[string, ReactNode]> }) {
@@ -628,8 +730,8 @@ export default async function AdminEditorialHomePage() {
                     <DetailList
                       rows={[
                         ["Link", fieldLink(editorial.headline_link_url)],
-                        ["Imagem", editorial.headline_image_url || "Sem imagem"],
-                        ["Atualizado", editorial.updated_at || "Sem data"]
+                        ["Imagem", codeValue(editorial.headline_image_url, "Sem imagem")],
+                        ["Atualizado", codeValue(editorial.updated_at, "Sem data")]
                       ]}
                     />
                   </div>
@@ -680,30 +782,30 @@ export default async function AdminEditorialHomePage() {
                 <span className="home-admin-source">{roundupItems.length} itens</span>
               </header>
               {roundupItems.length > 0 ? (
-                <div className="home-admin-card-grid">
-                  {roundupItems.map((item) => (
-                    <article className="home-admin-card" key={item.id}>
-                      <div className="home-admin-card-media">
-                        <MediaPreview label={textValue(item.title, "Roundup")} src={item.image_url} />
-                      </div>
-                      <div className="home-admin-card-body">
-                        <span className="home-admin-meta">
-                          {item.sort_order ?? "-"} | {textValue(item.type, "sem tipo")}
-                        </span>
-                        <h3>{textValue(item.title, "Sem titulo")}</h3>
-                        <p>{textValue(item.subtitle, "Sem subtitulo.")}</p>
-                        <StatusPill status={item.status} />
-                        <DetailList
-                          rows={[
-                            ["Etiqueta", item.label || "Sem etiqueta"],
-                            ["Duracao", item.duration || "Sem duracao"],
-                            ["Video", fieldLink(item.video_url)]
-                          ]}
-                        />
-                      </div>
-                    </article>
-                  ))}
-                </div>
+                <ul className="home-admin-list is-compact">
+                  {roundupItems.map((item) => {
+                    const itemHasContent = hasContent(item.title, item.subtitle, item.label, item.image_url, item.video_url);
+                    const emptyLabel = compactStateLabel(item.status, itemHasContent);
+
+                    return (
+                      <li className={itemHasContent ? undefined : "home-admin-muted-card"} key={item.id}>
+                        <div className="home-admin-row-media">
+                          <MediaPreview label={textValue(item.title, "Roundup")} src={item.image_url} />
+                        </div>
+                        <div className="home-admin-compact-meta">
+                          <span className="home-admin-meta">
+                            {item.sort_order ?? "-"} | {textValue(item.type, "sem tipo")}
+                          </span>
+                          <StatusPill status={item.status} />
+                          {item.duration ? <span className="home-admin-pill">{item.duration}</span> : null}
+                        </div>
+                        <strong>{emptyLabel ?? textValue(item.title, "Item sem conteudo")}</strong>
+                        {itemHasContent ? <p>{textValue(item.subtitle, item.label, "Sem texto adicional.")}</p> : null}
+                        <DetailList rows={[["Video", fieldLink(item.video_url)]]} />
+                      </li>
+                    );
+                  })}
+                </ul>
               ) : (
                 <p className="home-admin-empty">Sem itens de video/resumo para apresentar.</p>
               )}
@@ -738,7 +840,7 @@ export default async function AdminEditorialHomePage() {
                       rows={[
                         ["Autor", editorial.side_block_author || "Sem autor"],
                         ["Link", fieldLink(editorial.side_block_link_url)],
-                        ["Imagem", editorial.side_block_image_url || "Sem imagem"]
+                        ["Imagem", codeValue(editorial.side_block_image_url, "Sem imagem")]
                       ]}
                     />
                   </div>
@@ -772,8 +874,8 @@ export default async function AdminEditorialHomePage() {
                     <DetailList
                       rows={[
                         ["Link", fieldLink(editorial.complementary_link_url)],
-                        ["Roundup item", editorial.complementary_roundup_item_id || "Sem relacao"],
-                        ["Imagem", editorial.complementary_image_url || "Sem imagem"]
+                        ["Roundup item", codeValue(editorial.complementary_roundup_item_id, "Sem relacao")],
+                        ["Imagem", codeValue(editorial.complementary_image_url, "Sem imagem")]
                       ]}
                     />
                   </div>
@@ -792,22 +894,27 @@ export default async function AdminEditorialHomePage() {
                 <span className="home-admin-source">{latestNews.length} itens</span>
               </header>
               {latestNews.length > 0 ? (
-                <ul className="home-admin-list">
-                  {latestNews.map((item) => (
-                    <li key={item.id}>
-                      <span className="home-admin-meta">
-                        {item.sort_order ?? "-"} | {textValue(item.time_label, "sem hora")}
-                      </span>
-                      <strong>{textValue(item.title, "Sem titulo")}</strong>
-                      <StatusPill status={item.status} />
-                      <DetailList
-                        rows={[
-                          ["Imagem", item.image_url || "Sem imagem"],
-                          ["Link", fieldLink(item.link_url)]
-                        ]}
-                      />
-                    </li>
-                  ))}
+                <ul className="home-admin-list is-compact">
+                  {latestNews.map((item) => {
+                    const itemHasContent = hasContent(item.title, item.image_url, item.link_url, item.time_label);
+                    const emptyLabel = compactStateLabel(item.status, itemHasContent);
+
+                    return (
+                      <li className={itemHasContent ? undefined : "home-admin-muted-card"} key={item.id}>
+                        <div className="home-admin-row-media">
+                          <MediaPreview label={textValue(item.title, "Ultima noticia")} src={item.image_url} />
+                        </div>
+                        <div className="home-admin-compact-meta">
+                          <span className="home-admin-meta">
+                            {item.sort_order ?? "-"} | {textValue(item.time_label, "sem hora")}
+                          </span>
+                          <StatusPill status={item.status} />
+                        </div>
+                        <strong>{emptyLabel ?? textValue(item.title, "Item sem conteudo")}</strong>
+                        <DetailList rows={[["Link", fieldLink(item.link_url)]]} />
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
                 <p className="home-admin-empty">Sem ultimas noticias para apresentar.</p>
@@ -826,12 +933,15 @@ export default async function AdminEditorialHomePage() {
                 <ul className="home-admin-list">
                   {featuredMatches.map((item, index) => (
                     <li key={item.id ?? `${item.match_id}-${index}`}>
-                      <span className="home-admin-meta">posicao {item.sort_order ?? "-"}</span>
-                      <strong>{item.match_id || "Sem match_id"}</strong>
+                      <div className="home-admin-compact-meta">
+                        <span className="home-admin-meta">posicao {item.sort_order ?? "-"}</span>
+                        <span className="home-admin-pill">site_featured_matches</span>
+                      </div>
+                      <strong>{item.match_id ? "Jogo destacado" : "Item sem match_id"}</strong>
                       <DetailList
                         rows={[
-                          ["match_id", item.match_id || "Sem match_id"],
-                          ["sort_order", item.sort_order ?? "Sem ordem"]
+                          ["match_id", codeValue(item.match_id, "Sem match_id")],
+                          ["sort_order", codeValue(item.sort_order, "Sem ordem")]
                         ]}
                       />
                     </li>
