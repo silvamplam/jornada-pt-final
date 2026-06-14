@@ -44,6 +44,7 @@ type LinkPlacement = {
   area: string;
   position: string;
   detail?: string;
+  contextLabel?: string;
   table: string;
   recordId: string;
   field: string;
@@ -222,6 +223,11 @@ const articleContextLinkStyles = `
     color: #4b5563;
     font-size: 12px;
     line-height: 1.35;
+  }
+
+  .article-admin-link-context {
+    color: #1f2937 !important;
+    font-weight: 800;
   }
 
   .article-admin-link-footer {
@@ -502,10 +508,13 @@ async function readArticleLinkPlacements(article: EditorialArticle, context: Con
       matchdayId?: string | null;
     },
   ) => {
+    const contextLabel = placementMatchdayDetail(base.matchdayId, context);
+
     placements.push({
       area: base.area,
       position: base.position,
-      detail: firstText(base.detail, placementMatchdayDetail(base.matchdayId, context)),
+      detail: firstText(base.detail) || undefined,
+      contextLabel: contextLabel || (base.matchdayId ? "Contexto não resolvido" : undefined),
       table: base.table,
       recordId: base.recordId,
       field: base.field,
@@ -724,6 +733,7 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
                         <strong>
                           {placement.area} - {placement.position}
                         </strong>
+                        {placement.contextLabel ? <span className="article-admin-link-context">{placement.contextLabel}</span> : null}
                         {placement.detail ? <span>{placement.detail}</span> : null}
                         <div className="article-admin-link-footer">
                           <span className="article-admin-link-source">
