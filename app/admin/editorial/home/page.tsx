@@ -99,6 +99,14 @@ type HomeEditorialData = {
   error: string | null;
 };
 
+type PageProps = {
+  searchParams?: Promise<{
+    saved?: string;
+    error?: string;
+    detail?: string;
+  }>;
+};
+
 const homeEditorialStyles = `
   body {
     margin: 0;
@@ -216,6 +224,17 @@ const homeEditorialStyles = `
     color: #991b1b;
   }
 
+  .home-admin-success {
+    margin-top: 18px;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    background: #f0fdf4;
+    color: #166534;
+    padding: 14px 16px;
+    font-weight: 800;
+    line-height: 1.45;
+  }
+
   .home-admin-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(420px, 0.82fr);
@@ -256,6 +275,97 @@ const homeEditorialStyles = `
     color: #687380;
     font-size: 14px;
     line-height: 1.4;
+  }
+
+  .home-admin-edit-form {
+    display: grid;
+    gap: 18px;
+    padding: 20px;
+  }
+
+  .home-admin-form-section {
+    display: grid;
+    gap: 14px;
+    border: 1px solid #e6ebf1;
+    border-radius: 8px;
+    padding: 16px;
+    background: #fbfcfe;
+  }
+
+  .home-admin-form-section h3 {
+    font-size: 17px;
+    line-height: 1.15;
+    text-transform: uppercase;
+  }
+
+  .home-admin-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .home-admin-field {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .home-admin-field.is-wide {
+    grid-column: 1 / -1;
+  }
+
+  .home-admin-field span {
+    color: #475569;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .home-admin-field input,
+  .home-admin-field select,
+  .home-admin-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #cfd8e3;
+    border-radius: 7px;
+    background: #fff;
+    color: #10151b;
+    font: inherit;
+    padding: 10px 11px;
+  }
+
+  .home-admin-field textarea {
+    min-height: 88px;
+    resize: vertical;
+  }
+
+  .home-admin-save-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .home-admin-save-row p {
+    max-width: 760px;
+    color: #687380;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .home-admin-save-row button {
+    min-height: 42px;
+    border: 0;
+    border-radius: 7px;
+    background: #10151b;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 900;
+    padding: 0 18px;
+    text-transform: uppercase;
   }
 
   .home-admin-feature {
@@ -565,7 +675,8 @@ const homeEditorialStyles = `
   @media (max-width: 1100px) {
     .home-admin-grid,
     .home-admin-feature,
-    .home-admin-card-grid {
+    .home-admin-card-grid,
+    .home-admin-form-grid {
       grid-template-columns: 1fr;
     }
   }
@@ -705,6 +816,86 @@ function DetailList({ rows }: { rows: Array<[string, ReactNode]> }) {
   );
 }
 
+function inputValue(value: string | null | undefined) {
+  return value ?? "";
+}
+
+function TextField({
+  label,
+  name,
+  value,
+  placeholder,
+  wide = false
+}: {
+  label: string;
+  name: string;
+  value: string | null | undefined;
+  placeholder?: string;
+  wide?: boolean;
+}) {
+  return (
+    <label className={`home-admin-field${wide ? " is-wide" : ""}`}>
+      <span>{label}</span>
+      <input name={name} defaultValue={inputValue(value)} placeholder={placeholder} />
+    </label>
+  );
+}
+
+function TextAreaField({
+  label,
+  name,
+  value,
+  placeholder
+}: {
+  label: string;
+  name: string;
+  value: string | null | undefined;
+  placeholder?: string;
+}) {
+  return (
+    <label className="home-admin-field is-wide">
+      <span>{label}</span>
+      <textarea name={name} defaultValue={inputValue(value)} placeholder={placeholder} />
+    </label>
+  );
+}
+
+function StatusField({ label, name, value }: { label: string; name: string; value: string | null | undefined }) {
+  return (
+    <label className="home-admin-field">
+      <span>{label}</span>
+      <select name={name} defaultValue={value === "published" ? "published" : "draft"}>
+        <option value="draft">draft</option>
+        <option value="published">published</option>
+      </select>
+    </label>
+  );
+}
+
+function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
+  if (params.saved) {
+    return { type: "success" as const, text: "Dados principais da Home guardados em site_editorials." };
+  }
+
+  const messages: Record<string, string> = {
+    "invalid-action": "A acao pedida nao existe.",
+    "missing-home-editorial": "Nao foi encontrado o registo site_editorials com slug home.",
+    "invalid-status": "Estado invalido. Use draft ou published.",
+    "invalid-color": "Cor invalida. Use formato hex, por exemplo #10151b.",
+    "required-field": "O Supabase recusou a gravacao por campo obrigatorio em falta.",
+    constraint: "O Supabase recusou a gravacao por constraint da tabela.",
+    permission: "O Supabase recusou a gravacao por permissoes.",
+    "save-failed": "Nao foi possivel guardar os dados principais da Home."
+  };
+
+  if (!params.error) {
+    return null;
+  }
+
+  const base = messages[params.error] ?? "Nao foi possivel guardar os dados principais da Home.";
+  return { type: "error" as const, text: params.detail ? `${base} Detalhe: ${params.detail}` : base };
+}
+
 async function readHomeEditorialData(): Promise<HomeEditorialData> {
   try {
     const editorials = await fetchSupabaseAdminTable<SiteEditorial>(
@@ -757,12 +948,14 @@ async function readHomeEditorialData(): Promise<HomeEditorialData> {
   }
 }
 
-export default async function AdminEditorialHomePage() {
+export default async function AdminEditorialHomePage({ searchParams }: PageProps) {
+  const params = searchParams ? await searchParams : {};
   const { editorial, highlights, latestNews, roundupItems, featuredMatches, error } = await readHomeEditorialData();
   const visibleRoundupItems = roundupItems.filter(roundupHasReadableContent);
   const emptyRoundupItems = roundupItems.filter((item) => !roundupHasReadableContent(item));
   const visibleLatestNews = latestNews.filter(latestNewsHasReadableContent);
   const emptyLatestNews = latestNews.filter((item) => !latestNewsHasReadableContent(item));
+  const message = pageMessage(params);
 
   return (
     <main className="home-admin-shell">
@@ -794,6 +987,100 @@ export default async function AdminEditorialHomePage() {
         {error ? <div className="home-admin-error">Erro ao ler site_*: {error}</div> : null}
         {!error && !editorial ? (
           <div className="home-admin-error">Nao foi encontrado registo em site_editorials com slug=&quot;home&quot;.</div>
+        ) : null}
+        {message ? (
+          <div className={message.type === "success" ? "home-admin-success" : "home-admin-error"}>{message.text}</div>
+        ) : null}
+
+        {editorial ? (
+          <section className="home-admin-panel">
+            <header>
+              <div>
+                <h2>Editar dados principais da Home</h2>
+                <p>Atualiza apenas campos da tabela-mae site_editorials no registo slug=home.</p>
+              </div>
+              <span className="home-admin-source">site_editorials</span>
+            </header>
+            <form className="home-admin-edit-form" action="/api/admin/editorial/home" method="post">
+              <input type="hidden" name="action_type" value="update_site_editorial_home" />
+              <input type="hidden" name="site_editorial_id" value={editorial.id} />
+
+              <section className="home-admin-form-section">
+                <h3>Manchete da Home</h3>
+                <div className="home-admin-form-grid">
+                  <TextField label="Titulo" name="headline_title" value={editorial.headline_title} wide />
+                  <TextAreaField label="Subtitulo" name="headline_subtitle" value={editorial.headline_subtitle} />
+                  <TextField label="Imagem" name="headline_image_url" value={editorial.headline_image_url} wide />
+                  <TextField label="Link" name="headline_link_url" value={editorial.headline_link_url} wide />
+                  <TextField label="Cor do titulo" name="headline_title_color" value={editorial.headline_title_color} placeholder="#10151b" />
+                  <StatusField label="Estado geral" name="status" value={editorial.status} />
+                </div>
+              </section>
+
+              <section className="home-admin-form-section">
+                <h3>Bloco lateral</h3>
+                <div className="home-admin-form-grid">
+                  <TextField label="Tipo" name="side_block_type" value={editorial.side_block_type} />
+                  <TextField label="Etiqueta" name="side_block_label" value={editorial.side_block_label} />
+                  <TextField label="Titulo" name="side_block_title" value={editorial.side_block_title} wide />
+                  <TextAreaField label="Texto" name="side_block_text" value={editorial.side_block_text} />
+                  <TextField label="Autor" name="side_block_author" value={editorial.side_block_author} />
+                  <StatusField label="Estado" name="side_block_status" value={editorial.side_block_status} />
+                  <TextField label="Imagem" name="side_block_image_url" value={editorial.side_block_image_url} wide />
+                  <TextField label="Link" name="side_block_link_url" value={editorial.side_block_link_url} wide />
+                  <TextField label="Cor do titulo" name="side_block_title_color" value={editorial.side_block_title_color} placeholder="#10151b" />
+                </div>
+              </section>
+
+              <section className="home-admin-form-section">
+                <h3>Complemento</h3>
+                <div className="home-admin-form-grid">
+                  <TextField label="Modo" name="complementary_mode" value={editorial.complementary_mode} />
+                  <TextField label="Etiqueta" name="complementary_label" value={editorial.complementary_label} />
+                  <TextField label="Titulo" name="complementary_title" value={editorial.complementary_title} wide />
+                  <TextAreaField label="Texto" name="complementary_text" value={editorial.complementary_text} />
+                  <TextField label="Imagem" name="complementary_image_url" value={editorial.complementary_image_url} wide />
+                  <TextField label="Link" name="complementary_link_url" value={editorial.complementary_link_url} wide />
+                  <StatusField label="Estado" name="complementary_status" value={editorial.complementary_status} />
+                  <TextField
+                    label="Roundup item"
+                    name="complementary_roundup_item_id"
+                    value={editorial.complementary_roundup_item_id}
+                    placeholder="UUID do item de roundup"
+                  />
+                </div>
+              </section>
+
+              <section className="home-admin-form-section">
+                <h3>Cabecalhos e modos</h3>
+                <div className="home-admin-form-grid">
+                  <TextField label="Modo abaixo da manchete" name="below_headline_mode" value={editorial.below_headline_mode} />
+                  <TextField label="Titulo abaixo da manchete" name="below_headline_heading" value={editorial.below_headline_heading} />
+                  <TextField
+                    label="Cor do titulo abaixo da manchete"
+                    name="below_headline_heading_color"
+                    value={editorial.below_headline_heading_color}
+                    placeholder="#10151b"
+                  />
+                  <TextField label="Titulo roundup/video" name="roundup_video_heading" value={editorial.roundup_video_heading} />
+                  <TextField
+                    label="Cor titulo roundup/video"
+                    name="roundup_video_heading_color"
+                    value={editorial.roundup_video_heading_color}
+                    placeholder="#10151b"
+                  />
+                </div>
+              </section>
+
+              <div className="home-admin-save-row">
+                <p>
+                  Esta acao guarda apenas os dados principais em site_editorials. Nao altera a Home publica, nem edita
+                  destaques, ultimas noticias, roundup ou jogos em destaque.
+                </p>
+                <button type="submit">Guardar dados principais da Home</button>
+              </div>
+            </form>
+          </section>
         ) : null}
 
         <div className="home-admin-grid">

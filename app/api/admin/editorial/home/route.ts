@@ -1,322 +1,177 @@
 import { NextResponse } from "next/server";
-import { fetchSupabaseAdminTable, getSupabaseServiceConfig, writeSupabaseAdmin } from "@/lib/supabase";
 
-const HIGHLIGHT_SORT_ORDERS = Array.from({ length: 3 }, (_, index) => index + 1);
-const ROUNDUP_SORT_ORDERS = Array.from({ length: 10 }, (_, index) => index + 1);
-const LATEST_NEWS_SORT_ORDERS = Array.from({ length: 8 }, (_, index) => index + 1);
+import { fetchSupabaseAdminTable, writeSupabaseAdmin } from "@/lib/supabase";
 
 type SiteEditorialIdRow = {
   id: string;
 };
 
-type FeaturedMatchRow = {
-  id: string;
-  match_id: string;
-};
+class HomeEditorialAdminError extends Error {
+  constructor(public code: string, message = code) {
+    super(message);
+  }
+}
 
-function cleanText(value: FormDataEntryValue | null): string | null {
+const allowedTextFields = [
+  "headline_title",
+  "headline_subtitle",
+  "headline_image_url",
+  "headline_link_url",
+  "side_block_type",
+  "side_block_label",
+  "side_block_title",
+  "side_block_text",
+  "side_block_author",
+  "side_block_image_url",
+  "side_block_link_url",
+  "complementary_mode",
+  "complementary_label",
+  "complementary_title",
+  "complementary_text",
+  "complementary_image_url",
+  "complementary_link_url",
+  "complementary_roundup_item_id",
+  "below_headline_mode",
+  "below_headline_heading",
+  "roundup_video_heading"
+] as const;
+
+const allowedColorFields = [
+  "headline_title_color",
+  "side_block_title_color",
+  "below_headline_heading_color",
+  "roundup_video_heading_color"
+] as const;
+
+const allowedStatusFields = ["status", "side_block_status", "complementary_status"] as const;
+
+function cleanText(value: FormDataEntryValue | null) {
   if (typeof value !== "string") {
     return null;
   }
 
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
+  const cleanValue = value.trim();
+  return cleanValue.length > 0 ? cleanValue : null;
 }
 
-function cleanStatus(value: FormDataEntryValue | null): "draft" | "published" {
-  return cleanText(value) === "published" ? "published" : "draft";
-}
-
-function cleanBelowHeadlineMode(value: FormDataEntryValue | null): "highlights" | "roundup" {
-  return cleanText(value) === "roundup" ? "roundup" : "highlights";
-}
-
-function cleanComplementaryMode(value: FormDataEntryValue | null): "none" | "complementary_story" | "roundup_video" {
-  const mode = cleanText(value);
-
-  return mode === "complementary_story" || mode === "roundup_video" ? mode : "none";
-}
-
-function uniqueFormValues(values: FormDataEntryValue[]) {
-  const selected: string[] = [];
-  const seen = new Set<string>();
-
-  for (const value of values) {
-    if (typeof value !== "string") continue;
-    const trimmed = value.trim();
-    if (!trimmed || seen.has(trimmed)) continue;
-    selected.push(trimmed);
-    seen.add(trimmed);
+function cleanStatus(value: string | null) {
+  if (!value) {
+    return "draft";
   }
 
-  return selected;
+  if (value === "published" || value === "draft") {
+    return value;
+  }
+
+  throw new HomeEditorialAdminError("invalid-status");
 }
 
-function returnUrl(request: Request, formData: FormData, key: "created" | "error", value: string) {
-  const rawReturnTo = cleanText(formData.get("return_to"));
-  const safeReturnTo = rawReturnTo?.startsWith("/admin/editorial/home") ? rawReturnTo : "/admin/editorial/home";
-  const url = new URL(safeReturnTo, request.url);
+function cleanColor(value: string | null) {
+  if (!value) {
+    return null;
+  }
 
-  url.searchParams.delete("created");
-  url.searchParams.delete("error");
-  url.searchParams.set(key, value);
+  if (/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(value)) {
+    return value;
+  }
+
+  throw new HomeEditorialAdminError("invalid-color");
+}
+
+function redirectTo(request: Request, params: Record<string, string>) {
+  const url = new URL("/admin/editorial/home", request.url);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
 
   return NextResponse.redirect(url, { status: 303 });
 }
 
-async function getHomeEditorialId() {
-  const rows = await fetchSupabaseAdminTable<SiteEditorialIdRow>(
-    "site_editorials?select=id&slug=eq.home&limit=1"
-  );
-
-  if (rows[0]) {
-    return rows[0].id;
-  }
-
-  await writeSupabaseAdmin("site_editorials?on_conflict=slug", {
-    method: "POST",
-    headers: { Prefer: "resolution=merge-duplicates" },
-    body: JSON.stringify({
-      slug: "home",
-      status: "draft",
-      below_headline_mode: "highlights",
-      complementary_mode: "none"
-    })
-  });
-
-  const createdRows = await fetchSupabaseAdminTable<SiteEditorialIdRow>(
-    "site_editorials?select=id&slug=eq.home&limit=1"
-  );
-
-  if (!createdRows[0]) {
-    throw new Error("home-editorial-not-found");
-  }
-
-  return createdRows[0].id;
+function sanitizeErrorText(value: string | null | undefined) {
+  return (value ?? "")
+    .replace(/\s+/g, " ")
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [redacted]")
+    .replace(/apikey[=:]\s*[A-Za-z0-9._-]+/gi, "apikey=[redacted]")
+    .trim()
+    .slice(0, 220);
 }
 
-async function saveHomeEditorial(formData: FormData) {
-  const id = await getHomeEditorialId();
-  const hasBelowHeadlineMode = formData.has("below_headline_mode");
-  const belowHeadlineMode = cleanBelowHeadlineMode(formData.get("below_headline_mode"));
-  let complementaryMode = cleanComplementaryMode(formData.get("complementary_mode"));
-  const shouldSyncComplementaryMode =
-    hasBelowHeadlineMode && complementaryMode !== "none" && !formData.has("allow_manual_complementary_mode");
-
-  if (shouldSyncComplementaryMode) {
-    complementaryMode = belowHeadlineMode === "roundup" ? "roundup_video" : "complementary_story";
+function classifyError(error: unknown) {
+  if (error instanceof HomeEditorialAdminError) {
+    return error.code;
   }
 
-  const complementaryRoundupItemId = cleanText(formData.get("complementary_roundup_item_id"));
+  const message = error instanceof Error ? error.message : String(error);
+  if (/permission|row-level|rls/i.test(message)) {
+    return "permission";
+  }
+  if (/not-null|null value|required/i.test(message)) {
+    return "required-field";
+  }
+  if (/constraint|check/i.test(message)) {
+    return "constraint";
+  }
+
+  return "save-failed";
+}
+
+async function ensureHomeEditorialExists(siteEditorialId: string) {
+  const rows = await fetchSupabaseAdminTable<SiteEditorialIdRow>(
+    `site_editorials?select=id&id=eq.${encodeURIComponent(siteEditorialId)}&slug=eq.home&limit=1`
+  );
+
+  if (!rows[0]) {
+    throw new HomeEditorialAdminError("missing-home-editorial");
+  }
+}
+
+function buildPayload(formData: FormData) {
   const payload: Record<string, string | null> = {};
 
-  if (complementaryRoundupItemId) {
-    const rows = await fetchSupabaseAdminTable<{ id: string }>(
-      `site_editorial_roundup_items?select=id&id=eq.${encodeURIComponent(complementaryRoundupItemId)}&site_editorial_id=eq.${encodeURIComponent(id)}&limit=1`
-    );
-
-    if (!rows[0]) {
-      throw new Error("roundup-item-invalid");
-    }
+  for (const field of allowedTextFields) {
+    payload[field] = cleanText(formData.get(field));
   }
 
-  const assignText = (field: string) => {
-    if (formData.has(field)) {
-      payload[field] = cleanText(formData.get(field));
-    }
-  };
-
-  if (formData.has("status")) {
-    payload.status = cleanStatus(formData.get("status"));
+  for (const field of allowedColorFields) {
+    payload[field] = cleanColor(cleanText(formData.get(field)));
   }
 
-  assignText("headline_title");
-  assignText("headline_subtitle");
-  assignText("headline_image_url");
-  assignText("headline_link_url");
-  assignText("headline_title_color");
-
-  if (hasBelowHeadlineMode) {
-    payload.below_headline_mode = belowHeadlineMode;
+  for (const field of allowedStatusFields) {
+    payload[field] = cleanStatus(cleanText(formData.get(field)));
   }
 
-  assignText("below_headline_heading");
-  assignText("below_headline_heading_color");
-
-  if (formData.has("side_block_status")) {
-    payload.side_block_status = cleanStatus(formData.get("side_block_status"));
-  }
-
-  assignText("side_block_type");
-  assignText("side_block_label");
-  assignText("side_block_title");
-  assignText("side_block_title_color");
-  assignText("side_block_author");
-  assignText("side_block_text");
-  assignText("side_block_image_url");
-  assignText("side_block_link_url");
-
-  if (formData.has("complementary_status")) {
-    payload.complementary_status = cleanStatus(formData.get("complementary_status"));
-  }
-
-  if (formData.has("complementary_mode") || shouldSyncComplementaryMode) {
-    payload.complementary_mode = complementaryMode;
-  }
-
-  assignText("complementary_roundup_item_id");
-  assignText("complementary_label");
-  assignText("complementary_title");
-  assignText("complementary_text");
-  assignText("complementary_image_url");
-  assignText("complementary_link_url");
-  assignText("roundup_video_heading");
-  assignText("roundup_video_heading_color");
-
-  await writeSupabaseAdmin(`site_editorials?id=eq.${encodeURIComponent(id)}`, {
-    method: "PATCH",
-    body: JSON.stringify(payload)
-  });
-}
-
-async function upsertEditorialItem(
-  table: "site_editorial_highlights" | "site_editorial_roundup_items" | "site_editorial_latest_news",
-  siteEditorialId: string,
-  sortOrder: number,
-  payload: Record<string, string | number | null>
-) {
-  const rows = await fetchSupabaseAdminTable<{ id: string }>(
-    `${table}?select=id&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}&sort_order=eq.${sortOrder}&limit=1`
-  );
-
-  if (rows[0]) {
-    await writeSupabaseAdmin(`${table}?id=eq.${encodeURIComponent(rows[0].id)}`, {
-      method: "PATCH",
-      body: JSON.stringify(payload)
-    });
-    return;
-  }
-
-  await writeSupabaseAdmin(table, {
-    method: "POST",
-    body: JSON.stringify({
-      ...payload,
-      site_editorial_id: siteEditorialId,
-      sort_order: sortOrder
-    })
-  });
-}
-
-async function saveHighlights(formData: FormData) {
-  const siteEditorialId = await getHomeEditorialId();
-
-  for (const sortOrder of HIGHLIGHT_SORT_ORDERS) {
-    const title = cleanText(formData.get(`highlight_${sortOrder}_title`));
-    const payload = {
-      label: cleanText(formData.get(`highlight_${sortOrder}_label`)),
-      title,
-      subtitle: cleanText(formData.get(`highlight_${sortOrder}_subtitle`)),
-      image_url: cleanText(formData.get(`highlight_${sortOrder}_image_url`)),
-      link_url: cleanText(formData.get(`highlight_${sortOrder}_link_url`)),
-      sort_order: sortOrder,
-      status: title ? cleanStatus(formData.get(`highlight_${sortOrder}_status`)) : "draft"
-    };
-
-    await upsertEditorialItem("site_editorial_highlights", siteEditorialId, sortOrder, payload);
-  }
-}
-
-async function saveRoundupItems(formData: FormData) {
-  const siteEditorialId = await getHomeEditorialId();
-
-  for (const sortOrder of ROUNDUP_SORT_ORDERS) {
-    const title = cleanText(formData.get(`roundup_${sortOrder}_title`));
-    const payload = {
-      label: cleanText(formData.get(`roundup_${sortOrder}_label`)),
-      title,
-      subtitle: cleanText(formData.get(`roundup_${sortOrder}_subtitle`)),
-      video_url: cleanText(formData.get(`roundup_${sortOrder}_video_url`)),
-      duration: cleanText(formData.get(`roundup_${sortOrder}_duration`)),
-      type: "video",
-      sort_order: sortOrder,
-      status: title ? cleanStatus(formData.get(`roundup_${sortOrder}_status`)) : "draft"
-    };
-
-    await upsertEditorialItem("site_editorial_roundup_items", siteEditorialId, sortOrder, payload);
-  }
-}
-
-async function saveFeaturedMatches(formData: FormData) {
-  const selectedMatchIds = uniqueFormValues(formData.getAll("featured_match_id"));
-  const selectedSet = new Set(selectedMatchIds);
-  const existingRows = await fetchSupabaseAdminTable<FeaturedMatchRow>(
-    "site_featured_matches?select=id,match_id"
-  );
-
-  for (const row of existingRows) {
-    if (!selectedSet.has(row.match_id)) {
-      await writeSupabaseAdmin(`site_featured_matches?id=eq.${encodeURIComponent(row.id)}`, {
-        method: "DELETE"
-      });
-    }
-  }
-
-  for (const [index, matchId] of selectedMatchIds.entries()) {
-    await writeSupabaseAdmin("site_featured_matches?on_conflict=match_id", {
-      method: "POST",
-      headers: { Prefer: "resolution=merge-duplicates" },
-      body: JSON.stringify({
-        match_id: matchId,
-        sort_order: index + 1
-      })
-    });
-  }
-}
-
-async function saveLatestNews(formData: FormData) {
-  const siteEditorialId = await getHomeEditorialId();
-
-  for (const sortOrder of LATEST_NEWS_SORT_ORDERS) {
-    const title = cleanText(formData.get(`latest_${sortOrder}_title`));
-    const payload = {
-      time_label: cleanText(formData.get(`latest_${sortOrder}_time_label`)),
-      title,
-      link_url: cleanText(formData.get(`latest_${sortOrder}_link_url`)),
-      image_url: cleanText(formData.get(`latest_${sortOrder}_image_url`)),
-      sort_order: sortOrder,
-      status: title ? cleanStatus(formData.get(`latest_${sortOrder}_status`)) : "draft"
-    };
-
-    await upsertEditorialItem("site_editorial_latest_news", siteEditorialId, sortOrder, payload);
-  }
+  return payload;
 }
 
 export async function POST(request: Request) {
   const formData = await request.formData();
-
-  if (!getSupabaseServiceConfig()) {
-    return returnUrl(request, formData, "error", "supabase-service-not-configured");
-  }
-
   const actionType = cleanText(formData.get("action_type"));
 
+  if (actionType !== "update_site_editorial_home") {
+    return redirectTo(request, { error: "invalid-action" });
+  }
+
   try {
-    if (actionType === "save_home_editorial") {
-      await saveHomeEditorial(formData);
-    } else if (actionType === "save_home_highlights") {
-      await saveHighlights(formData);
-    } else if (actionType === "save_home_roundup_items") {
-      await saveRoundupItems(formData);
-    } else if (actionType === "save_home_latest_news") {
-      await saveLatestNews(formData);
-    } else if (actionType === "save_home_featured_matches") {
-      await saveFeaturedMatches(formData);
-    } else {
-      throw new Error("invalid-action");
+    const siteEditorialId = cleanText(formData.get("site_editorial_id"));
+    if (!siteEditorialId) {
+      throw new HomeEditorialAdminError("missing-home-editorial");
     }
 
-    return returnUrl(request, formData, "created", actionType);
+    await ensureHomeEditorialExists(siteEditorialId);
+
+    await writeSupabaseAdmin(
+      `site_editorials?id=eq.${encodeURIComponent(siteEditorialId)}&slug=eq.home`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(buildPayload(formData))
+      }
+    );
+
+    return redirectTo(request, { saved: "1" });
   } catch (error) {
-    return returnUrl(request, formData, "error", error instanceof Error ? error.message : "unknown-error");
+    return redirectTo(request, {
+      error: classifyError(error),
+      detail: sanitizeErrorText(error instanceof Error ? error.message : String(error))
+    });
   }
 }
