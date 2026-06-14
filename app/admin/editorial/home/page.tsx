@@ -218,7 +218,7 @@ const homeEditorialStyles = `
 
   .home-admin-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
+    grid-template-columns: minmax(0, 1fr) minmax(420px, 0.82fr);
     gap: 18px;
     margin-top: 18px;
   }
@@ -227,12 +227,14 @@ const homeEditorialStyles = `
     display: grid;
     gap: 18px;
     align-content: start;
+    min-width: 0;
   }
 
   .home-admin-panel {
     overflow: hidden;
     border: 1px solid #dce3eb;
     background: #fff;
+    min-width: 0;
   }
 
   .home-admin-panel > header {
@@ -261,6 +263,7 @@ const homeEditorialStyles = `
     grid-template-columns: minmax(180px, 0.36fr) minmax(0, 0.64fr);
     gap: 16px;
     padding: 20px;
+    min-width: 0;
   }
 
   .home-admin-media {
@@ -295,6 +298,26 @@ const homeEditorialStyles = `
     margin-top: 8px;
     font-size: 30px;
     line-height: 1.05;
+  }
+
+  .home-admin-side-feature {
+    grid-template-columns: minmax(118px, 0.32fr) minmax(0, 0.68fr);
+    gap: 14px;
+  }
+
+  .home-admin-side-feature .home-admin-media {
+    min-height: 112px;
+    max-height: 148px;
+  }
+
+  .home-admin-side-feature h3 {
+    font-size: 20px;
+    line-height: 1.12;
+  }
+
+  .home-admin-side-feature p {
+    font-size: 14px;
+    line-height: 1.4;
   }
 
   .home-admin-feature p,
@@ -378,6 +401,7 @@ const homeEditorialStyles = `
     gap: 7px;
     padding: 14px 20px;
     border-bottom: 1px solid #eef2f6;
+    min-width: 0;
   }
 
   .home-admin-list li:last-child {
@@ -428,11 +452,38 @@ const homeEditorialStyles = `
     color: #64748b;
   }
 
+  .home-admin-empty-group {
+    display: grid;
+    gap: 6px;
+    border-left: 3px solid #d7dee8;
+    background: #f8fafc;
+    color: #475569;
+  }
+
+  .home-admin-empty-group strong {
+    color: #334155;
+  }
+
+  .home-admin-empty-group small {
+    min-width: 0;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
   .home-admin-detail-list {
     display: grid;
-    grid-template-columns: 160px minmax(0, 1fr);
+    grid-template-columns: 118px minmax(0, 1fr);
     gap: 8px 12px;
     margin: 14px 0 0;
+    min-width: 0;
+  }
+
+  .home-admin-list .home-admin-detail-list,
+  .home-admin-card .home-admin-detail-list {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    margin-top: 6px;
   }
 
   .home-admin-detail-list dt {
@@ -444,7 +495,10 @@ const homeEditorialStyles = `
 
   .home-admin-detail-list dd {
     margin: 0;
-    word-break: break-word;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .home-admin-empty {
@@ -456,7 +510,7 @@ const homeEditorialStyles = `
 
   .home-admin-link-out {
     display: inline-block;
-    max-width: 100%;
+    max-width: min(100%, 44ch);
     color: #10151b;
     font-weight: 800;
     overflow: hidden;
@@ -472,7 +526,7 @@ const homeEditorialStyles = `
 
   .home-admin-code {
     display: inline-block;
-    max-width: 100%;
+    max-width: min(100%, 32ch);
     border-radius: 4px;
     background: #f1f5f9;
     color: #334155;
@@ -490,6 +544,22 @@ const homeEditorialStyles = `
     flex-wrap: wrap;
     gap: 6px;
     align-items: center;
+    min-width: 0;
+  }
+
+  .home-admin-featured-match-list li {
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 8px 12px;
+    align-items: center;
+    padding: 10px 16px;
+  }
+
+  .home-admin-featured-match-list strong {
+    font-size: 13px;
+  }
+
+  .home-admin-featured-match-list .home-admin-code {
+    max-width: 24ch;
   }
 
   @media (max-width: 1100px) {
@@ -600,6 +670,28 @@ function compactStateLabel(status: string | null | undefined, hasItemContent: bo
   return status?.trim().toLowerCase() === "draft" ? "Rascunho vazio" : "Item sem conteudo";
 }
 
+function emptyGroupLabel(count: number) {
+  return count === 1 ? "1 rascunho vazio" : `${count} rascunhos vazios`;
+}
+
+function sortOrderList(items: Array<{ sort_order: number | null }>) {
+  const values = items.map((item) => item.sort_order).filter((value): value is number => typeof value === "number");
+
+  if (values.length === 0) {
+    return "sem posicao definida";
+  }
+
+  return `posicoes ${values.join(", ")}`;
+}
+
+function roundupHasReadableContent(item: SiteEditorialRoundupItem) {
+  return hasContent(item.title, item.subtitle, item.label, item.image_url, item.video_url, item.duration);
+}
+
+function latestNewsHasReadableContent(item: SiteEditorialLatestNews) {
+  return hasContent(item.title, item.image_url, item.link_url, item.time_label);
+}
+
 function DetailList({ rows }: { rows: Array<[string, ReactNode]> }) {
   return (
     <dl className="home-admin-detail-list">
@@ -667,6 +759,10 @@ async function readHomeEditorialData(): Promise<HomeEditorialData> {
 
 export default async function AdminEditorialHomePage() {
   const { editorial, highlights, latestNews, roundupItems, featuredMatches, error } = await readHomeEditorialData();
+  const visibleRoundupItems = roundupItems.filter(roundupHasReadableContent);
+  const emptyRoundupItems = roundupItems.filter((item) => !roundupHasReadableContent(item));
+  const visibleLatestNews = latestNews.filter(latestNewsHasReadableContent);
+  const emptyLatestNews = latestNews.filter((item) => !latestNewsHasReadableContent(item));
 
   return (
     <main className="home-admin-shell">
@@ -783,8 +879,8 @@ export default async function AdminEditorialHomePage() {
               </header>
               {roundupItems.length > 0 ? (
                 <ul className="home-admin-list is-compact">
-                  {roundupItems.map((item) => {
-                    const itemHasContent = hasContent(item.title, item.subtitle, item.label, item.image_url, item.video_url);
+                  {visibleRoundupItems.map((item) => {
+                    const itemHasContent = roundupHasReadableContent(item);
                     const emptyLabel = compactStateLabel(item.status, itemHasContent);
 
                     return (
@@ -805,6 +901,16 @@ export default async function AdminEditorialHomePage() {
                       </li>
                     );
                   })}
+                  {emptyRoundupItems.length > 0 ? (
+                    <li className="home-admin-empty-group">
+                      <div className="home-admin-compact-meta">
+                        <StatusPill status="draft" />
+                        <span className="home-admin-meta">{sortOrderList(emptyRoundupItems)}</span>
+                      </div>
+                      <strong>{emptyGroupLabel(emptyRoundupItems.length)}</strong>
+                      <small>Itens sem titulo, imagem, video ou texto editorial relevante. Mantidos como diagnostico.</small>
+                    </li>
+                  ) : null}
                 </ul>
               ) : (
                 <p className="home-admin-empty">Sem itens de video/resumo para apresentar.</p>
@@ -822,7 +928,7 @@ export default async function AdminEditorialHomePage() {
                 <span className="home-admin-source">site_editorials</span>
               </header>
               {editorial ? (
-                <div className="home-admin-feature">
+                <div className="home-admin-feature home-admin-side-feature">
                   <div className="home-admin-media">
                     <MediaPreview label="Imagem do bloco lateral" src={editorial.side_block_image_url} />
                   </div>
@@ -859,7 +965,7 @@ export default async function AdminEditorialHomePage() {
                 <span className="home-admin-source">site_editorials</span>
               </header>
               {editorial ? (
-                <div className="home-admin-feature">
+                <div className="home-admin-feature home-admin-side-feature">
                   <div className="home-admin-media">
                     <MediaPreview label="Imagem do complemento" src={editorial.complementary_image_url} />
                   </div>
@@ -895,8 +1001,8 @@ export default async function AdminEditorialHomePage() {
               </header>
               {latestNews.length > 0 ? (
                 <ul className="home-admin-list is-compact">
-                  {latestNews.map((item) => {
-                    const itemHasContent = hasContent(item.title, item.image_url, item.link_url, item.time_label);
+                  {visibleLatestNews.map((item) => {
+                    const itemHasContent = latestNewsHasReadableContent(item);
                     const emptyLabel = compactStateLabel(item.status, itemHasContent);
 
                     return (
@@ -915,6 +1021,16 @@ export default async function AdminEditorialHomePage() {
                       </li>
                     );
                   })}
+                  {emptyLatestNews.length > 0 ? (
+                    <li className="home-admin-empty-group">
+                      <div className="home-admin-compact-meta">
+                        <StatusPill status="draft" />
+                        <span className="home-admin-meta">{sortOrderList(emptyLatestNews)}</span>
+                      </div>
+                      <strong>{emptyGroupLabel(emptyLatestNews.length)}</strong>
+                      <small>Itens sem hora, titulo, imagem ou link. Mantidos como diagnostico.</small>
+                    </li>
+                  ) : null}
                 </ul>
               ) : (
                 <p className="home-admin-empty">Sem ultimas noticias para apresentar.</p>
@@ -930,20 +1046,11 @@ export default async function AdminEditorialHomePage() {
                 <span className="home-admin-source">{featuredMatches.length} jogos</span>
               </header>
               {featuredMatches.length > 0 ? (
-                <ul className="home-admin-list">
+                <ul className="home-admin-list home-admin-featured-match-list">
                   {featuredMatches.map((item, index) => (
                     <li key={item.id ?? `${item.match_id}-${index}`}>
-                      <div className="home-admin-compact-meta">
-                        <span className="home-admin-meta">posicao {item.sort_order ?? "-"}</span>
-                        <span className="home-admin-pill">site_featured_matches</span>
-                      </div>
-                      <strong>{item.match_id ? "Jogo destacado" : "Item sem match_id"}</strong>
-                      <DetailList
-                        rows={[
-                          ["match_id", codeValue(item.match_id, "Sem match_id")],
-                          ["sort_order", codeValue(item.sort_order, "Sem ordem")]
-                        ]}
-                      />
+                      <span className="home-admin-meta">posicao {item.sort_order ?? "-"}</span>
+                      <strong>{codeValue(item.match_id, "Sem match_id")}</strong>
                     </li>
                   ))}
                 </ul>
