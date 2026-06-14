@@ -923,103 +923,8 @@ const homeEditorialStyles = `
     padding: 7px 8px;
   }
 
-  .home-admin-zone-shell {
-    margin-top: 18px;
-  }
-
-  .home-admin-zone-radio {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .home-admin-zone-layout {
-    display: grid;
-    grid-template-columns: 270px minmax(0, 1fr);
-    gap: 18px;
-    align-items: start;
-  }
-
-  .home-admin-zone-menu {
-    position: sticky;
-    top: 18px;
-    display: grid;
-    gap: 8px;
-    border: 1px solid #dce3eb;
-    border-radius: 8px;
-    background: #fff;
-    padding: 10px;
-    box-shadow: 0 18px 40px rgba(8, 15, 24, 0.08);
-  }
-
-  .home-admin-zone-menu label {
-    cursor: pointer;
-    display: grid;
-    gap: 3px;
-    border-radius: 7px;
-    padding: 11px 12px;
-    color: #10151b;
-    font-size: 13px;
-  }
-
-  .home-admin-zone-menu strong {
-    font-size: 13px;
-    line-height: 1.15;
-  }
-
-  .home-admin-zone-menu span {
-    color: #687380;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-  }
-
-  .home-admin-zone-panel {
-    display: none;
-  }
-
   .home-admin-zone-form {
     display: contents;
-  }
-
-  .home-admin-zone-panels {
-    min-width: 0;
-  }
-
-  #home-zone-games:checked ~ .home-admin-zone-layout .home-admin-zone-panel[data-zone="games"],
-  #home-zone-headline:checked ~ .home-admin-zone-layout .home-admin-zone-panel[data-zone="headline"],
-  #home-zone-side:checked ~ .home-admin-zone-layout .home-admin-zone-panel[data-zone="side"],
-  #home-zone-complement:checked ~ .home-admin-zone-layout .home-admin-zone-panel[data-zone="complement"],
-  #home-zone-highlights:checked ~ .home-admin-zone-layout .home-admin-zone-panel[data-zone="highlights"],
-  #home-zone-roundup:checked ~ .home-admin-zone-layout .home-admin-zone-panel[data-zone="roundup"],
-  #home-zone-latest:checked ~ .home-admin-zone-layout .home-admin-zone-panel[data-zone="latest"],
-  #home-zone-diagnostic:checked ~ .home-admin-zone-layout .home-admin-zone-panel[data-zone="diagnostic"] {
-    display: block;
-  }
-
-  #home-zone-games:checked ~ .home-admin-zone-layout label[for="home-zone-games"],
-  #home-zone-headline:checked ~ .home-admin-zone-layout label[for="home-zone-headline"],
-  #home-zone-side:checked ~ .home-admin-zone-layout label[for="home-zone-side"],
-  #home-zone-complement:checked ~ .home-admin-zone-layout label[for="home-zone-complement"],
-  #home-zone-highlights:checked ~ .home-admin-zone-layout label[for="home-zone-highlights"],
-  #home-zone-roundup:checked ~ .home-admin-zone-layout label[for="home-zone-roundup"],
-  #home-zone-latest:checked ~ .home-admin-zone-layout label[for="home-zone-latest"],
-  #home-zone-diagnostic:checked ~ .home-admin-zone-layout label[for="home-zone-diagnostic"] {
-    background: #10151b;
-    color: #fff;
-  }
-
-  #home-zone-games:checked ~ .home-admin-zone-layout label[for="home-zone-games"] span,
-  #home-zone-headline:checked ~ .home-admin-zone-layout label[for="home-zone-headline"] span,
-  #home-zone-side:checked ~ .home-admin-zone-layout label[for="home-zone-side"] span,
-  #home-zone-complement:checked ~ .home-admin-zone-layout label[for="home-zone-complement"] span,
-  #home-zone-highlights:checked ~ .home-admin-zone-layout label[for="home-zone-highlights"] span,
-  #home-zone-roundup:checked ~ .home-admin-zone-layout label[for="home-zone-roundup"] span,
-  #home-zone-latest:checked ~ .home-admin-zone-layout label[for="home-zone-latest"] span,
-  #home-zone-diagnostic:checked ~ .home-admin-zone-layout label[for="home-zone-diagnostic"] span {
-    color: #cbd5e1;
   }
 
   .home-admin-selected-summary {
@@ -1057,18 +962,95 @@ const homeEditorialStyles = `
     white-space: nowrap;
   }
 
+  .home-admin-section-stack {
+    display: grid;
+    gap: 18px;
+    margin-top: 18px;
+  }
+
+  .home-admin-section-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #fff;
+    padding: 18px 20px;
+    box-shadow: 0 18px 40px rgba(8, 15, 24, 0.08);
+  }
+
+  .home-admin-section-heading h2 {
+    margin: 4px 0 0;
+    color: #10151b;
+    font-size: 24px;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+
+  .home-admin-section-heading span {
+    border-radius: 999px;
+    background: #eef2f6;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 900;
+    padding: 7px 10px;
+    text-transform: uppercase;
+  }
+
+  .home-admin-zone-panels {
+    display: grid;
+    gap: 18px;
+  }
+
+  .home-admin-zone-panel {
+    display: block;
+  }
+
+  .home-admin-zone-panel[data-zone="headline"] {
+    order: 1;
+  }
+
+  .home-admin-zone-panel[data-zone="side"] {
+    order: 2;
+  }
+
+  .home-admin-zone-panel[data-zone="complement"] {
+    order: 3;
+  }
+
+  .home-admin-zone-panel[data-zone="diagnostic"] {
+    order: 4;
+  }
+
+  .home-admin-zone-panel[data-zone="games"] {
+    order: 5;
+    margin-top: 0;
+  }
+
+  .home-admin-reading-heading {
+    order: 6;
+  }
+
+  .home-admin-zone-panel[data-zone="highlights"] {
+    order: 7;
+  }
+
+  .home-admin-zone-panel[data-zone="roundup"] {
+    order: 8;
+  }
+
+  .home-admin-zone-panel[data-zone="latest"] {
+    order: 9;
+  }
+
   @media (max-width: 1100px) {
     .home-admin-grid,
     .home-admin-feature,
     .home-admin-card-grid,
     .home-admin-form-grid,
-    .home-admin-game-filter-grid,
-    .home-admin-zone-layout {
+    .home-admin-game-filter-grid {
       grid-template-columns: 1fr;
-    }
-
-    .home-admin-zone-menu {
-      position: static;
     }
   }
 
@@ -1565,53 +1547,16 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
           <div className={message.type === "success" ? "home-admin-success" : "home-admin-error"}>{message.text}</div>
         ) : null}
 
-        <section className="home-admin-zone-shell">
-          <input className="home-admin-zone-radio" defaultChecked id="home-zone-games" name="home-zone" type="radio" />
-          <input className="home-admin-zone-radio" id="home-zone-headline" name="home-zone" type="radio" />
-          <input className="home-admin-zone-radio" id="home-zone-side" name="home-zone" type="radio" />
-          <input className="home-admin-zone-radio" id="home-zone-complement" name="home-zone" type="radio" />
-          <input className="home-admin-zone-radio" id="home-zone-highlights" name="home-zone" type="radio" />
-          <input className="home-admin-zone-radio" id="home-zone-roundup" name="home-zone" type="radio" />
-          <input className="home-admin-zone-radio" id="home-zone-latest" name="home-zone" type="radio" />
-          <input className="home-admin-zone-radio" id="home-zone-diagnostic" name="home-zone" type="radio" />
+        <section className="home-admin-section-stack">
+          <div className="home-admin-section-heading">
+            <div>
+              <p className="home-admin-eyebrow">Edicao segura</p>
+              <h2>Dados principais da Home</h2>
+            </div>
+            <span>site_editorials</span>
+          </div>
 
-          <div className="home-admin-zone-layout">
-            <aside className="home-admin-zone-menu" aria-label="Zonas da Home Editorial">
-              <label htmlFor="home-zone-games">
-                <strong>Jogos da barra da Home</strong>
-                <span>{selectedFeaturedMatches.length} selecionados</span>
-              </label>
-              <label htmlFor="home-zone-headline">
-                <strong>Manchete principal</strong>
-                <span>{statusText(editorial?.status)}</span>
-              </label>
-              <label htmlFor="home-zone-side">
-                <strong>Bloco lateral</strong>
-                <span>{statusText(editorial?.side_block_status)}</span>
-              </label>
-              <label htmlFor="home-zone-complement">
-                <strong>Complemento</strong>
-                <span>{statusText(editorial?.complementary_status)}</span>
-              </label>
-              <label htmlFor="home-zone-highlights">
-                <strong>Destaques abaixo da manchete</strong>
-                <span>{highlights.length} itens</span>
-              </label>
-              <label htmlFor="home-zone-roundup">
-                <strong>Videos / Resumo / Roundup</strong>
-                <span>{roundupItems.length} itens</span>
-              </label>
-              <label htmlFor="home-zone-latest">
-                <strong>Ultimas noticias / Ao minuto</strong>
-                <span>{latestNews.length} itens</span>
-              </label>
-              <label htmlFor="home-zone-diagnostic">
-                <strong>Diagnostico / leitura</strong>
-                <span>fontes site_*</span>
-              </label>
-            </aside>
-
-            <div className="home-admin-zone-panels">
+          <div className="home-admin-zone-panels">
               <section className="home-admin-zone-panel home-admin-panel home-admin-featured-games" data-zone="games">
                 <header>
                   <div>
@@ -1932,6 +1877,14 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                 </form>
               ) : null}
 
+              <div className="home-admin-section-heading home-admin-reading-heading">
+                <div>
+                  <p className="home-admin-eyebrow">Leitura editorial</p>
+                  <h2>Tabelas filhas da Home</h2>
+                </div>
+                <span>site_*</span>
+              </div>
+
               <section className="home-admin-zone-panel home-admin-panel" data-zone="highlights">
                 <header>
                   <div>
@@ -2058,7 +2011,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                 )}
               </section>
             </div>
-          </div>
         </section>
       </div>
     </main>
