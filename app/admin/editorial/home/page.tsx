@@ -34,6 +34,9 @@ type SiteEditorial = {
   below_headline_heading_color: string | null;
   roundup_video_heading: string | null;
   roundup_video_heading_color: string | null;
+  final_zone_title: string | null;
+  final_zone_title_color: string | null;
+  final_zone_mode: string | null;
   created_at?: string | null;
   updated_at?: string | null;
   published_at?: string | null;
@@ -1492,6 +1495,7 @@ function errorMessage(error: string | undefined, detail?: string) {
     "missing-home-editorial": "Nao foi encontrado o registo site_editorials com slug home.",
     "invalid-status": "Estado invalido. Use draft ou published.",
     "invalid-color": "Cor invalida. Use formato hex, por exemplo #10151b.",
+    "invalid-final-zone-mode": "Modo da Zona Editorial Final invalido.",
     "missing-selection-set": "Nao foi possivel guardar: a lista de jogos disponiveis nao chegou ao servidor.",
     "invalid-featured-match": "A selecao contem um jogo invalido ou que ja nao existe.",
     "invalid-highlight-item": "Os Destaques contem um item que nao pertence a esta Home.",
@@ -2380,6 +2384,39 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                               </div>
                             </div>
                             <FeedbackMessage message={scopedMessage(params, "final-zone")} />
+                            <section className="home-admin-form-section">
+                              <h4>Configuracao publica da zona</h4>
+                              <div className="home-admin-form-grid">
+                                <label className="home-admin-field">
+                                  <span>Modo da zona</span>
+                                  <select name="final_zone_mode" defaultValue={editorial.final_zone_mode ?? ""}>
+                                    <option value="">Sem modo fixo</option>
+                                    <option value="latest_news">Ultimas noticias</option>
+                                    <option value="editorial_line">Linha editorial</option>
+                                  </select>
+                                </label>
+                                <TextField
+                                  label="Titulo publico da zona"
+                                  name="final_zone_title"
+                                  value={editorial.final_zone_title}
+                                  placeholder="Pode ficar vazio"
+                                  wide
+                                />
+                                <TextField
+                                  label="Cor do titulo da zona"
+                                  name="final_zone_title_color"
+                                  value={editorial.final_zone_title_color}
+                                  placeholder="#10151b"
+                                />
+                              </div>
+                              <div className="home-admin-save-row">
+                                <p>
+                                  Guarda apenas a configuracao da zona em site_editorials. Se o titulo ficar vazio, a futura
+                                  Home publica pode omitir o titulo desta zona.
+                                </p>
+                                <button name="save_context" type="submit" value="final-zone">Guardar configuracao da zona</button>
+                              </div>
+                            </section>
                             <div className="home-admin-final-zone-form" role="group" aria-label="Editar Zona Editorial Final">
                               <input form="home-final-zone-form" type="hidden" name="action_type" value="update_final_zone" />
                               <input form="home-final-zone-form" type="hidden" name="site_editorial_id" value={editorial.id} />

@@ -56,14 +56,16 @@ const allowedTextFields = [
   "complementary_roundup_item_id",
   "below_headline_mode",
   "below_headline_heading",
-  "roundup_video_heading"
+  "roundup_video_heading",
+  "final_zone_title"
 ] as const;
 
 const allowedColorFields = [
   "headline_title_color",
   "side_block_title_color",
   "below_headline_heading_color",
-  "roundup_video_heading_color"
+  "roundup_video_heading_color",
+  "final_zone_title_color"
 ] as const;
 
 const allowedStatusFields = ["status", "side_block_status", "complementary_status"] as const;
@@ -143,6 +145,18 @@ function cleanColor(value: string | null) {
   }
 
   throw new HomeEditorialAdminError("invalid-color");
+}
+
+function cleanFinalZoneMode(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  if (value === "latest_news" || value === "editorial_line") {
+    return value;
+  }
+
+  throw new HomeEditorialAdminError("invalid-final-zone-mode");
 }
 
 const contextAnchors = {
@@ -243,6 +257,8 @@ function buildPayload(formData: FormData) {
   for (const field of allowedStatusFields) {
     payload[field] = cleanStatus(cleanText(formData.get(field)));
   }
+
+  payload.final_zone_mode = cleanFinalZoneMode(cleanText(formData.get("final_zone_mode")));
 
   return payload;
 }
