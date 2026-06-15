@@ -17,6 +17,11 @@ type CompositionPageProps = {
   params: Promise<{
     matchdayId: string;
   }>;
+  searchParams?: Promise<{
+    bank_error?: string;
+    bank_saved?: string;
+    bank_skipped?: string;
+  }>;
 };
 
 type MatchdayContext = {
@@ -1535,8 +1540,9 @@ function CompositionItemActions({
   );
 }
 
-export default async function AdminEditorialCompositionPage({ params }: CompositionPageProps) {
+export default async function AdminEditorialCompositionPage({ params, searchParams }: CompositionPageProps) {
   const { matchdayId } = await params;
+  const query = searchParams ? await searchParams : {};
   const context = await readMatchdayContext(matchdayId);
 
   if (!context) {
@@ -1588,6 +1594,13 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
   const publishedAtLabel = formatPublishedAt(draftComposition?.published_at);
   const latestZoneMode = editorial?.latest_zone_mode === "editorial_line" ? "Linha editorial" : "Últimas notícias";
   const contextLabel = `${country?.name ?? "Pais"} / ${competition.name} / ${season.label} / ${matchday.label}`;
+  const bankSavedCount = Math.max(0, Number.parseInt(query.bank_saved ?? "0", 10) || 0);
+  const bankSkippedCount = Math.max(0, Number.parseInt(query.bank_skipped ?? "0", 10) || 0);
+  const bankFeedback = query.bank_error
+    ? "Nao foi possivel guardar a atualidade desta jornada. Confirma os dados e tenta novamente."
+    : query.bank_saved || query.bank_skipped
+      ? `Atualidade guardada: ${bankSavedCount} novas noticias adicionadas. ${bankSkippedCount} ja existiam no banco e nao foram duplicadas.`
+      : null;
 
   return (
     <main className="composition-admin-shell">
@@ -1638,37 +1651,51 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
               )}
             </Card>
 
-            <Card title="Banco de noticias da jornada">
-              <div className="composition-admin-meta">
-                <span>{competition.name}</span>
-                <span>{season.label}</span>
-                <span>{matchday.label ?? `Jornada ${String(matchday.number).padStart(2, "0")}`}</span>
-              </div>
-              <ItemsGrid
-                items={bankItems}
-                empty="Ainda nao ha noticias guardadas no banco desta jornada."
-                render={(item) => (
-                  <ItemCard
-                    key={item.id}
-                    imageUrl={item.image_url}
-                    label={item.label}
-                    title={item.title}
-                    subtitle={item.subtitle}
-                    linkUrl={item.link_url}
-                    meta={[
-                      item.sort_order ? `Posicao ${item.sort_order}` : null,
-                      statusLabel(item.status),
-                      item.source_type ? `Origem: ${item.source_type}` : null,
-                      item.source_slug ? `Slug: ${item.source_slug}` : null,
-                      item.source_id ? `ID origem: ${item.source_id}` : null,
-                      item.origin_slot_type ? `Zona original: ${item.origin_slot_type}` : null,
-                      item.created_at ? `Criado: ${formatPublishedAt(item.created_at)}` : null,
-                      item.updated_at ? `Atualizado: ${formatPublishedAt(item.updated_at)}` : null
-                    ]}
-                  />
-                )}
-              />
-            </Card>
+            <div id="matchday-editorial-bank">
+              <Card title="Banco de noticias da jornada">
+                <div className="composition-admin-meta">
+                  <span>{competition.name}</span>
+                  <span>{season.label}</span>
+                  <span>{matchday.label ?? `Jornada ${String(matchday.number).padStart(2, "0")}`}</span>
+                </div>
+                {bankFeedback ? <p className="composition-admin-note">{bankFeedback}</p> : null}
+                <form className="composition-admin-form" action="/api/admin/editorial/composicao" method="post">
+                  <HiddenField name="action_type" value="save_matchday_editorial_bank_current" />
+                  <HiddenField name="matchday_id" value={matchday.id} />
+                  <HiddenField name="return_to" value={returnTo} />
+                  <button className="composition-admin-small-button" type="submit">
+                    Guardar atualidade desta jornada
+                  </button>
+                  <p className="composition-admin-note">
+                    Guarda no banco as noticias elegiveis da atualidade desta jornada e ignora as que ja existirem.
+                  </p>
+                </form>
+                <ItemsGrid
+                  items={bankItems}
+                  empty="Ainda nao ha noticias guardadas no banco desta jornada."
+                  render={(item) => (
+                    <ItemCard
+                      key={item.id}
+                      imageUrl={item.image_url}
+                      label={item.label}
+                      title={item.title}
+                      subtitle={item.subtitle}
+                      linkUrl={item.link_url}
+                      meta={[
+                        item.sort_order ? `Posicao ${item.sort_order}` : null,
+                        statusLabel(item.status),
+                        item.source_type ? `Origem: ${item.source_type}` : null,
+                        item.source_slug ? `Slug: ${item.source_slug}` : null,
+                        item.source_id ? `ID origem: ${item.source_id}` : null,
+                        item.origin_slot_type ? `Zona original: ${item.origin_slot_type}` : null,
+                        item.created_at ? `Criado: ${formatPublishedAt(item.created_at)}` : null,
+                        item.updated_at ? `Atualizado: ${formatPublishedAt(item.updated_at)}` : null
+                      ]}
+                    />
+                  )}
+                />
+              </Card>
+            </div>
 
             <Card title="Destaques abaixo da manchete">
               <ItemsGrid
