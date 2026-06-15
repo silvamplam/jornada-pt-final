@@ -104,6 +104,20 @@ function complementMissingFields(editorial: SiteEditorial | null) {
   return fields.filter(([, value]) => !cleanText(value)).map(([label]) => label);
 }
 
+function sortEditorialItems(items: SiteEditorialItem[]) {
+  return [...items].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999));
+}
+
+function highlightMissingFields(item: SiteEditorialItem) {
+  const fields: Array<[string, string | null | undefined]> = [
+    ["titulo", item.title],
+    ["imagem", item.image_url],
+    ["link", item.link_url]
+  ];
+
+  return fields.filter(([, value]) => !cleanText(value)).map(([label]) => label);
+}
+
 async function readHomeLabData(): Promise<HomeLabData> {
   try {
     const editorials = await fetchSupabaseAdminTable<SiteEditorial>("site_editorials?select=*&slug=eq.home&limit=1");
@@ -597,6 +611,205 @@ function ComplementHomeFitTrial({ editorial, hasComplement }: { editorial: SiteE
   );
 }
 
+function HighlightsVisualPreview({ highlights }: { highlights: SiteEditorialItem[] }) {
+  const publishedHighlights = sortEditorialItems(highlights.filter(isPublished));
+  const draftCount = highlights.filter((item) => !isPublished(item)).length;
+
+  return (
+    <section style={{ border: "1px solid #dfe3ea", borderRadius: 16, background: "#fff", padding: 22 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
+        <div>
+          <p style={{ margin: "0 0 8px", color: "#667085", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
+            Preview visual &mdash; Destaques abaixo da manchete
+          </p>
+          <h2 style={{ margin: 0, color: "#111827", fontSize: 24, lineHeight: 1.15 }}>Destaques publicados da Home Editorial</h2>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start" }}>
+          <span
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: 999,
+              color: "#027a48",
+              background: "#ecfdf3",
+              fontSize: 12,
+              fontWeight: 800,
+              padding: "6px 10px"
+            }}
+          >
+            published: {publishedHighlights.length}
+          </span>
+          <span
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: 999,
+              color: "#667085",
+              background: "#f9fafb",
+              fontSize: 12,
+              fontWeight: 800,
+              padding: "6px 10px"
+            }}
+          >
+            drafts: {draftCount}
+          </span>
+        </div>
+      </div>
+
+      {publishedHighlights.length === 0 ? (
+        <p style={{ color: "#667085", margin: 0 }}>Sem destaques publicados para pre-visualizar.</p>
+      ) : (
+        <div style={{ display: "grid", gap: 12 }}>
+          {publishedHighlights.map((item) => {
+            const imageUrl = cleanText(item.image_url);
+            const label = cleanText(item.label);
+            const title = cleanText(item.title);
+            const subtitle = cleanText(item.subtitle);
+            const linkUrl = cleanText(item.link_url);
+            const missingFields = highlightMissingFields(item);
+
+            return (
+              <article
+                key={item.id}
+                style={{
+                  border: "1px solid #edf0f5",
+                  borderRadius: 14,
+                  background: "#fcfcfd",
+                  display: "grid",
+                  gridTemplateColumns: imageUrl ? "180px minmax(0, 1fr)" : "1fr",
+                  overflow: "hidden"
+                }}
+              >
+                {imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt={title ?? "Destaque da Home"}
+                    style={{ width: "100%", height: "100%", minHeight: 150, objectFit: "cover", background: "#f2f4f7" }}
+                  />
+                ) : null}
+                <div style={{ display: "grid", gap: 8, padding: 16, alignContent: "start" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                    <span style={{ color: "#667085", fontSize: 12, fontWeight: 800 }}>posicao {item.sort_order ?? "sem ordem"}</span>
+                    <span
+                      style={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 999,
+                        color: "#027a48",
+                        background: "#ecfdf3",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        padding: "4px 8px"
+                      }}
+                    >
+                      {item.status ?? "sem estado"}
+                    </span>
+                  </div>
+                  {label ? <span style={{ color: "#b42318", fontSize: 11, fontWeight: 900, textTransform: "uppercase" }}>{label}</span> : null}
+                  <h3 style={{ color: "#101828", fontSize: 22, lineHeight: 1.12, margin: 0 }}>{title ?? "Sem titulo preenchido"}</h3>
+                  {subtitle ? <p style={{ color: "#475467", fontSize: 14, lineHeight: 1.45, margin: 0 }}>{subtitle}</p> : null}
+                  {linkUrl ? (
+                    <a href={linkUrl} style={{ color: "#175cd3", fontSize: 12, fontWeight: 800, overflowWrap: "anywhere", textDecoration: "none" }}>
+                      {linkUrl}
+                    </a>
+                  ) : null}
+                  {missingFields.length > 0 ? (
+                    <p style={{ color: "#92400e", fontSize: 12, margin: 0 }}>Aviso: faltam {missingFields.join(", ")}.</p>
+                  ) : null}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function HighlightsHomeFitTrial({ highlights }: { highlights: SiteEditorialItem[] }) {
+  const publishedHighlights = sortEditorialItems(highlights.filter(isPublished)).slice(0, 3);
+  const draftCount = highlights.filter((item) => !isPublished(item)).length;
+
+  return (
+    <section style={{ border: "1px solid #dfe3ea", borderRadius: 16, background: "#fff", padding: 22 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
+        <div>
+          <p style={{ margin: "0 0 8px", color: "#667085", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
+            Ensaio de encaixe na Home &mdash; Destaques
+          </p>
+          <h2 style={{ margin: 0, color: "#111827", fontSize: 24, lineHeight: 1.15 }}>Grelha editorial isolada</h2>
+        </div>
+        <span
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: 999,
+            color: "#667085",
+            background: "#f9fafb",
+            fontSize: 12,
+            fontWeight: 800,
+            padding: "6px 10px",
+            alignSelf: "flex-start"
+          }}
+        >
+          drafts nao renderizados: {draftCount}
+        </span>
+      </div>
+
+      {publishedHighlights.length === 0 ? (
+        <p style={{ color: "#667085", margin: 0 }}>Sem destaques publicados para pre-visualizar.</p>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 14 }}>
+          {publishedHighlights.map((item) => {
+            const imageUrl = cleanText(item.image_url);
+            const label = cleanText(item.label);
+            const title = cleanText(item.title);
+            const subtitle = cleanText(item.subtitle);
+            const linkUrl = cleanText(item.link_url);
+            const missingFields = highlightMissingFields(item);
+
+            return (
+              <article
+                key={item.id}
+                style={{
+                  border: "1px solid #dfe3ea",
+                  borderRadius: 14,
+                  background: "#fff",
+                  overflow: "hidden",
+                  display: "grid",
+                  gridTemplateRows: imageUrl ? "150px auto" : "auto",
+                  minHeight: 280
+                }}
+              >
+                {imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt={title ?? "Destaque da Home"}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", background: "#f2f4f7" }}
+                  />
+                ) : null}
+                <div style={{ display: "grid", gap: 8, padding: 14, alignContent: "start" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
+                    <span style={{ color: "#667085", fontSize: 11, fontWeight: 800 }}>#{item.sort_order ?? "?"}</span>
+                    <span style={{ color: "#027a48", fontSize: 11, fontWeight: 800 }}>{item.status ?? "sem estado"}</span>
+                  </div>
+                  {label ? <span style={{ color: "#b42318", fontSize: 11, fontWeight: 900, textTransform: "uppercase" }}>{label}</span> : null}
+                  <h3 style={{ color: "#101828", fontSize: 19, lineHeight: 1.12, margin: 0 }}>{title ?? "Sem titulo preenchido"}</h3>
+                  {subtitle ? <p style={{ color: "#475467", fontSize: 13, lineHeight: 1.4, margin: 0 }}>{subtitle}</p> : null}
+                  {linkUrl ? (
+                    <a href={linkUrl} style={{ color: "#175cd3", fontSize: 12, fontWeight: 800, overflowWrap: "anywhere", textDecoration: "none" }}>
+                      {linkUrl}
+                    </a>
+                  ) : null}
+                  {missingFields.length > 0 ? (
+                    <p style={{ color: "#92400e", fontSize: 12, margin: 0 }}>Falta: {missingFields.join(", ")}.</p>
+                  ) : null}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default async function HomeLabDiagnosticoPage() {
   const data = await readHomeLabData();
   const { editorial, highlights, latestNews, roundupItems, featuredMatches, error } = data;
@@ -717,6 +930,8 @@ export default async function HomeLabDiagnosticoPage() {
         <ComplementPreview editorial={editorial} hasComplement={hasComplement} />
         <ComplementVisualPreview editorial={editorial} hasComplement={hasComplement} />
         <ComplementHomeFitTrial editorial={editorial} hasComplement={hasComplement} />
+        <HighlightsVisualPreview highlights={highlights} />
+        <HighlightsHomeFitTrial highlights={highlights} />
 
         <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
           <article style={{ border: "1px solid #dfe3ea", borderRadius: 12, background: "#fff", padding: 18 }}>
