@@ -203,7 +203,7 @@ function ComplementPreview({ editorial, hasComplement }: { editorial: SiteEditor
     return (
       <section style={{ border: "1px solid #dfe3ea", borderRadius: 12, background: "#fff", padding: 18 }}>
         <p style={{ margin: "0 0 8px", color: "#667085", fontSize: 12, fontWeight: 800, textTransform: "uppercase" }}>
-          Pré-visualização — Complemento da Manchete
+          Pr&eacute;-visualiza&ccedil;&atilde;o &mdash; Complemento da Manchete
         </p>
         <h2 style={{ margin: 0, fontSize: 22 }}>Complemento da Manchete nao configurado.</h2>
       </section>
@@ -220,7 +220,7 @@ function ComplementPreview({ editorial, hasComplement }: { editorial: SiteEditor
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <div>
           <p style={{ margin: "0 0 8px", color: "#667085", fontSize: 12, fontWeight: 800, textTransform: "uppercase" }}>
-            Pré-visualização — Complemento da Manchete
+            Pr&eacute;-visualiza&ccedil;&atilde;o &mdash; Complemento da Manchete
           </p>
           <h2 style={{ margin: 0, fontSize: 22 }}>Vista isolada do complemento</h2>
         </div>
@@ -305,6 +305,137 @@ function ComplementPreview({ editorial, hasComplement }: { editorial: SiteEditor
           />
         ) : null}
       </article>
+    </section>
+  );
+}
+
+function ComplementVisualPreview({ editorial, hasComplement }: { editorial: SiteEditorial | null; hasComplement: boolean }) {
+  const status = complementStatus(editorial, hasComplement);
+  const imageUrl = cleanText(editorial?.complementary_image_url);
+  const label = cleanText(editorial?.complementary_label);
+  const title = cleanText(editorial?.complementary_title);
+  const text = cleanText(editorial?.complementary_text);
+  const linkUrl = cleanText(editorial?.complementary_link_url);
+  const mode = cleanText(editorial?.complementary_mode);
+  const roundupItemId = cleanText(editorial?.complementary_roundup_item_id);
+  const missingFields = complementMissingFields(editorial);
+  const incomplete = hasComplement && missingFields.length > 0;
+
+  if (!editorial || !hasComplement) {
+    return (
+      <section style={{ border: "1px solid #dfe3ea", borderRadius: 16, background: "#fff", padding: 22 }}>
+        <p style={{ margin: "0 0 8px", color: "#667085", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
+          Preview visual &mdash; Complemento da Manchete
+        </p>
+        <h2 style={{ margin: 0, color: "#111827", fontSize: 24, lineHeight: 1.15 }}>Complemento da Manchete nao configurado.</h2>
+      </section>
+    );
+  }
+
+  return (
+    <section style={{ border: "1px solid #dfe3ea", borderRadius: 16, background: "#fff", padding: 22 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
+        <div>
+          <p style={{ margin: "0 0 8px", color: "#667085", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
+            Preview visual &mdash; Complemento da Manchete
+          </p>
+          <h2 style={{ margin: 0, color: "#111827", fontSize: 24, lineHeight: 1.15 }}>Bloco editorial isolado</h2>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start" }}>
+          <span
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: 999,
+              color: status === "published" ? "#027a48" : "#667085",
+              background: status === "published" ? "#ecfdf3" : "#f9fafb",
+              fontSize: 12,
+              fontWeight: 800,
+              padding: "6px 10px"
+            }}
+          >
+            {status}
+          </span>
+          {mode ? (
+            <span
+              style={{
+                border: "1px solid #e5e7eb",
+                borderRadius: 999,
+                color: "#475467",
+                background: "#f9fafb",
+                fontSize: 12,
+                fontWeight: 800,
+                padding: "6px 10px"
+              }}
+            >
+              {mode}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      <article
+        style={{
+          display: "grid",
+          gridTemplateColumns: imageUrl ? "minmax(0, 1.05fr) minmax(260px, 0.95fr)" : "1fr",
+          gap: 22,
+          alignItems: "stretch",
+          border: "1px solid #edf0f5",
+          borderRadius: 14,
+          overflow: "hidden",
+          background: "#fcfcfd"
+        }}
+      >
+        <div style={{ display: "grid", alignContent: "center", gap: 12, padding: imageUrl ? 22 : 24 }}>
+          {label ? (
+            <span style={{ color: "#b42318", fontSize: 12, fontWeight: 900, letterSpacing: 0, textTransform: "uppercase" }}>{label}</span>
+          ) : null}
+          <h3 style={{ color: "#101828", fontSize: 30, lineHeight: 1.08, margin: 0 }}>
+            {title ?? "Sem titulo preenchido"}
+          </h3>
+          {text ? <p style={{ color: "#475467", fontSize: 16, lineHeight: 1.5, margin: 0 }}>{text}</p> : null}
+          {linkUrl ? (
+            <a
+              href={linkUrl}
+              style={{
+                color: "#175cd3",
+                display: "inline-block",
+                fontSize: 13,
+                fontWeight: 800,
+                marginTop: 4,
+                maxWidth: "100%",
+                overflowWrap: "anywhere",
+                textDecoration: "none"
+              }}
+            >
+              {linkUrl}
+            </a>
+          ) : null}
+          {roundupItemId ? (
+            <code style={{ color: "#667085", fontSize: 12, overflowWrap: "anywhere" }}>roundup_item_id: {roundupItemId}</code>
+          ) : null}
+        </div>
+
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={title ?? "Complemento da Manchete"}
+            style={{
+              width: "100%",
+              height: "100%",
+              minHeight: 260,
+              maxHeight: 360,
+              objectFit: "cover",
+              background: "#f2f4f7"
+            }}
+          />
+        ) : null}
+      </article>
+
+      {incomplete ? (
+        <p style={{ color: "#92400e", fontSize: 13, margin: "12px 0 0" }}>
+          Aviso: complemento incompleto. Campos em falta: {missingFields.join(", ")}.
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -427,6 +558,7 @@ export default async function HomeLabDiagnosticoPage() {
         </section>
 
         <ComplementPreview editorial={editorial} hasComplement={hasComplement} />
+        <ComplementVisualPreview editorial={editorial} hasComplement={hasComplement} />
 
         <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
           <article style={{ border: "1px solid #dfe3ea", borderRadius: 12, background: "#fff", padding: 18 }}>
