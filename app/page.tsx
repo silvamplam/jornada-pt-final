@@ -350,15 +350,27 @@ export default async function HomePage() {
   const hasComplementaryStory =
     editorial?.complementary_status === "published" &&
     Boolean(complementaryTitle || complementaryText || complementaryImageUrl);
-  const visibleHighlights = highlights.length > 0 ? highlights : fallbackHighlights;
-  const hasRoundupVideoBlock = (belowHeadlineMode === "roundup" || complementaryMode === "roundup_video") && roundupItems.length > 0;
+  const validHighlights = highlights.filter((item) => Boolean(cleanText(item.title) || cleanText(item.image_url) || cleanText(item.link_url)));
+  const validRoundupItems = roundupItems.filter((item) => Boolean(cleanText(item.title) || cleanText(item.image_url) || cleanText(item.video_url)));
+  const visibleHighlights = belowHeadlineMode === "highlights" ? (validHighlights.length > 0 ? validHighlights : fallbackHighlights) : [];
+  const visibleRoundupItems = belowHeadlineMode === "roundup" || complementaryMode === "roundup_video" ? validRoundupItems : [];
+  const hasRoundupVideoBlock = (belowHeadlineMode === "roundup" || complementaryMode === "roundup_video") && visibleRoundupItems.length > 0;
   const publicHighlights: PublicEditorialHighlight[] = visibleHighlights.slice(0, 3).map((item) => ({
     id: item.id,
-    label: item.label,
-    title: item.title,
-    subtitle: item.subtitle,
-    imageUrl: item.image_url,
-    linkUrl: item.link_url
+    label: cleanText(item.label),
+    title: cleanText(item.title),
+    subtitle: cleanText(item.subtitle),
+    imageUrl: cleanText(item.image_url),
+    linkUrl: cleanText(item.link_url)
+  }));
+  const publicRoundupItems: SiteRoundupItem[] = visibleRoundupItems.map((item) => ({
+    ...item,
+    label: cleanText(item.label),
+    title: cleanText(item.title),
+    subtitle: cleanText(item.subtitle),
+    image_url: cleanText(item.image_url),
+    video_url: cleanText(item.video_url),
+    duration: cleanText(item.duration)
   }));
   const publicLatestNews: PublicEditorialLatestNews[] = latestNews.map((item) => ({
     id: item.id,
@@ -419,7 +431,7 @@ export default async function HomePage() {
           label: belowHeadlineHeading,
           labelColor: belowHeadlineHeadingColor,
           highlights: publicHighlights,
-          roundupItems,
+          roundupItems: publicRoundupItems,
           showRoundupVideo: hasRoundupVideoBlock,
           roundupHeading: editorial?.roundup_video_heading ?? null,
           roundupHeadingColor: editorial?.roundup_video_heading_color ?? null,
