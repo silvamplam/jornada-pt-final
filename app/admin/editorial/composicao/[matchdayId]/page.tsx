@@ -72,6 +72,24 @@ type ReferenceCompositionItem = {
   updated_at: string;
 };
 
+type MatchdayEditorialBankItem = {
+  id: string;
+  matchday_id: string;
+  label: string | null;
+  title: string;
+  subtitle: string | null;
+  image_url: string | null;
+  link_url: string | null;
+  source_type: string | null;
+  source_id: string | null;
+  source_slug: string | null;
+  origin_slot_type: string | null;
+  sort_order: number | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
 type MatchdayEditorialWithHeadlineLink = SupabaseMatchdayEditorial & {
   headline_link_url?: string | null;
 };
@@ -974,9 +992,19 @@ function readReferenceCompositionItems(compositionId?: string | null): Promise<R
   ).catch(() => []);
 }
 
+function readMatchdayEditorialBankItems(matchdayId: string): Promise<MatchdayEditorialBankItem[]> {
+  return fetchSupabaseAdminTable<MatchdayEditorialBankItem>(
+    `matchday_editorial_bank_items?select=id,matchday_id,label,title,subtitle,image_url,link_url,source_type,source_id,source_slug,origin_slot_type,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&order=sort_order.asc.nullslast,created_at.desc&limit=200`
+  ).catch(() => []);
+}
+
 function statusLabel(status?: string | null) {
   if (status === "published") return "Publicado";
   if (status === "draft") return "Rascunho";
+  if (status === "active") return "Ativo";
+  if (status === "archived") return "Arquivado";
   return status || "Sem estado";
 }
 
@@ -1526,12 +1554,13 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
   }
 
   const { matchday, season, competition, country } = context;
-  const [editorial, highlights, roundupItems, latestNews, articles] = await Promise.all([
+  const [editorial, highlights, roundupItems, latestNews, articles, bankItems] = await Promise.all([
     readMatchdayEditorial(matchday.id),
     readMatchdayHighlights(matchday.id),
     readMatchdayRoundupItems(matchday.id),
     readMatchdayLatestNews(matchday.id),
-    readMatchdayArticles(matchday.id)
+    readMatchdayArticles(matchday.id),
+    readMatchdayEditorialBankItems(matchday.id)
   ]);
   const publishedHighlights = highlights.filter((item) => item.status === "published");
   const publishedRoundupItems = roundupItems.filter((item) => item.status === "published");
@@ -1607,6 +1636,38 @@ export default async function AdminEditorialCompositionPage({ params }: Composit
               ) : (
                 <EmptyState>Não existe manchete editorial guardada para esta jornada.</EmptyState>
               )}
+            </Card>
+
+            <Card title="Banco de noticias da jornada">
+              <div className="composition-admin-meta">
+                <span>{competition.name}</span>
+                <span>{season.label}</span>
+                <span>{matchday.label ?? `Jornada ${String(matchday.number).padStart(2, "0")}`}</span>
+              </div>
+              <ItemsGrid
+                items={bankItems}
+                empty="Ainda nao ha noticias guardadas no banco desta jornada."
+                render={(item) => (
+                  <ItemCard
+                    key={item.id}
+                    imageUrl={item.image_url}
+                    label={item.label}
+                    title={item.title}
+                    subtitle={item.subtitle}
+                    linkUrl={item.link_url}
+                    meta={[
+                      item.sort_order ? `Posicao ${item.sort_order}` : null,
+                      statusLabel(item.status),
+                      item.source_type ? `Origem: ${item.source_type}` : null,
+                      item.source_slug ? `Slug: ${item.source_slug}` : null,
+                      item.source_id ? `ID origem: ${item.source_id}` : null,
+                      item.origin_slot_type ? `Zona original: ${item.origin_slot_type}` : null,
+                      item.created_at ? `Criado: ${formatPublishedAt(item.created_at)}` : null,
+                      item.updated_at ? `Atualizado: ${formatPublishedAt(item.updated_at)}` : null
+                    ]}
+                  />
+                )}
+              />
             </Card>
 
             <Card title="Destaques abaixo da manchete">
