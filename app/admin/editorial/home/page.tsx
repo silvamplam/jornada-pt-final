@@ -2087,6 +2087,10 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                               </label>
                             </div>
                           </section>
+                          <div className="home-admin-save-row">
+                            <p>Guarda apenas os modos/cabecalhos em site_editorials. A Home publica continua intacta.</p>
+                            <button name="save_context" type="submit" value="composition">Guardar composicao</button>
+                          </div>
                           <section
                             className="home-admin-form-section home-admin-mode-section"
                             data-home-below-section="highlights"
@@ -2399,10 +2403,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                               ]}
                             />
                           </section>
-                          <div className="home-admin-save-row">
-                            <p>Guarda apenas os modos/cabecalhos em site_editorials. A Home publica continua intacta.</p>
-                            <button name="save_context" type="submit" value="composition">Guardar composicao</button>
-                          </div>
                         </div>
 
                         <div className="home-admin-composition-side-stack">
