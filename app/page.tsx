@@ -38,6 +38,9 @@ type SiteEditorial = {
   complementary_status: "draft" | "published";
   roundup_video_heading: string | null;
   roundup_video_heading_color: string | null;
+  final_zone_title: string | null;
+  final_zone_title_color: string | null;
+  final_zone_mode: "latest_news" | "editorial_line" | null;
 };
 
 type SiteHighlight = {
@@ -177,7 +180,7 @@ function sideBlockTypeLabel(type: string | null | undefined) {
 
 async function readHomeEditorial() {
   const editorials = await fetchSupabaseAdminTable<SiteEditorial>(
-    "site_editorials?select=id,slug,status,headline_title,headline_subtitle,headline_image_url,headline_link_url,headline_title_color,below_headline_mode,below_headline_heading,below_headline_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color&slug=eq.home&limit=1"
+    "site_editorials?select=id,slug,status,headline_title,headline_subtitle,headline_image_url,headline_link_url,headline_title_color,below_headline_mode,below_headline_heading,below_headline_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,final_zone_title,final_zone_title_color,final_zone_mode&slug=eq.home&limit=1"
   ).catch(() => []);
 
   return editorials[0] ?? null;
@@ -379,12 +382,13 @@ export default async function HomePage({
     video_url: cleanText(item.video_url),
     duration: cleanText(item.duration)
   }));
+  const finalZoneTitle = cleanText(editorial?.final_zone_title);
   const publicLatestNews: PublicEditorialLatestNews[] = latestNews.map((item) => ({
     id: item.id,
-    timeLabel: item.time_label,
-    title: item.title || "Noticia",
-    imageUrl: item.image_url,
-    linkUrl: item.link_url
+    timeLabel: cleanText(item.time_label),
+    title: cleanText(item.title) || "Noticia",
+    imageUrl: cleanText(item.image_url),
+    linkUrl: cleanText(item.link_url)
   }));
 
   return (
@@ -455,7 +459,7 @@ export default async function HomePage({
           }
         }}
         latestNews={publicLatestNews}
-        latestNewsTitle="Últimas notícias"
+        latestNewsTitle={finalZoneTitle ?? ""}
       />
     </main>
   );
