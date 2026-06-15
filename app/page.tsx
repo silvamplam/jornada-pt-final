@@ -38,6 +38,9 @@ type SiteEditorial = {
   complementary_status: "draft" | "published";
   roundup_video_heading: string | null;
   roundup_video_heading_color: string | null;
+  final_zone_title: string | null;
+  final_zone_title_color: string | null;
+  final_zone_mode: "latest_news" | "editorial_line" | null;
 };
 
 type SiteHighlight = {
@@ -68,6 +71,7 @@ type SiteLatestNews = {
   id: string;
   time_label: string | null;
   title: string | null;
+  subtitle: string | null;
   link_url: string | null;
   image_url: string | null;
   sort_order: number;
@@ -177,7 +181,7 @@ function sideBlockTypeLabel(type: string | null | undefined) {
 
 async function readHomeEditorial() {
   const editorials = await fetchSupabaseAdminTable<SiteEditorial>(
-    "site_editorials?select=id,slug,status,headline_title,headline_subtitle,headline_image_url,headline_link_url,headline_title_color,below_headline_mode,below_headline_heading,below_headline_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color&slug=eq.home&limit=1"
+    "site_editorials?select=id,slug,status,headline_title,headline_subtitle,headline_image_url,headline_link_url,headline_title_color,below_headline_mode,below_headline_heading,below_headline_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,final_zone_title,final_zone_title_color,final_zone_mode&slug=eq.home&limit=1"
   ).catch(() => []);
 
   return editorials[0] ?? null;
@@ -197,7 +201,7 @@ async function readHomeRoundupItems(siteEditorialId: string) {
 
 async function readHomeLatestNews(siteEditorialId: string) {
   return fetchSupabaseAdminTable<SiteLatestNews>(
-    `site_editorial_latest_news?select=id,time_label,title,link_url,image_url,sort_order,status&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}&status=eq.published&order=sort_order.asc&limit=8`
+    `site_editorial_latest_news?select=id,time_label,title,subtitle,link_url,image_url,sort_order,status&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}&status=eq.published&order=sort_order.asc&limit=8`
   ).catch(() => []);
 }
 
@@ -342,26 +346,44 @@ export default async function HomePage() {
   const sideBlockLinkUrl = cleanText(editorial?.side_block_link_url);
   const sideBlockTitleColor = cleanText(editorial?.side_block_title_color);
   const complementaryMode = editorial?.complementary_mode ?? "none";
+  const complementaryLabel = cleanText(editorial?.complementary_label);
+  const complementaryTitle = cleanText(editorial?.complementary_title);
+  const complementaryText = cleanText(editorial?.complementary_text);
+  const complementaryImageUrl = cleanText(editorial?.complementary_image_url);
+  const complementaryLinkUrl = cleanText(editorial?.complementary_link_url);
   const hasComplementaryStory =
-    complementaryMode === "complementary_story" &&
     editorial?.complementary_status === "published" &&
-    Boolean(cleanText(editorial.complementary_title) || cleanText(editorial.complementary_text));
-  const visibleHighlights = highlights.length > 0 ? highlights : fallbackHighlights;
-  const hasRoundupVideoBlock = (belowHeadlineMode === "roundup" || complementaryMode === "roundup_video") && roundupItems.length > 0;
+    Boolean(complementaryTitle || complementaryText || complementaryImageUrl);
+  const validHighlights = highlights.filter((item) => Boolean(cleanText(item.title) || cleanText(item.image_url) || cleanText(item.link_url)));
+  const validRoundupItems = roundupItems.filter((item) => Boolean(cleanText(item.title) || cleanText(item.image_url) || cleanText(item.video_url)));
+  const visibleHighlights = belowHeadlineMode === "highlights" ? (validHighlights.length > 0 ? validHighlights : fallbackHighlights) : [];
+  const visibleRoundupItems = belowHeadlineMode === "roundup" || complementaryMode === "roundup_video" ? validRoundupItems : [];
+  const hasRoundupVideoBlock = (belowHeadlineMode === "roundup" || complementaryMode === "roundup_video") && visibleRoundupItems.length > 0;
   const publicHighlights: PublicEditorialHighlight[] = visibleHighlights.slice(0, 3).map((item) => ({
     id: item.id,
-    label: item.label,
-    title: item.title,
-    subtitle: item.subtitle,
-    imageUrl: item.image_url,
-    linkUrl: item.link_url
+    label: cleanText(item.label),
+    title: cleanText(item.title),
+    subtitle: cleanText(item.subtitle),
+    imageUrl: cleanText(item.image_url),
+    linkUrl: cleanText(item.link_url)
   }));
+  const publicRoundupItems: SiteRoundupItem[] = visibleRoundupItems.map((item) => ({
+    ...item,
+    label: cleanText(item.label),
+    title: cleanText(item.title),
+    subtitle: cleanText(item.subtitle),
+    image_url: cleanText(item.image_url),
+    video_url: cleanText(item.video_url),
+    duration: cleanText(item.duration)
+  }));
+  const finalZoneTitle = cleanText(editorial?.final_zone_title);
   const publicLatestNews: PublicEditorialLatestNews[] = latestNews.map((item) => ({
     id: item.id,
-    timeLabel: item.time_label,
-    title: item.title || "Noticia",
-    imageUrl: item.image_url,
-    linkUrl: item.link_url
+    timeLabel: cleanText(item.time_label),
+    title: cleanText(item.title) || "Noticia",
+    subtitle: cleanText(item.subtitle),
+    imageUrl: cleanText(item.image_url),
+    linkUrl: cleanText(item.link_url)
   }));
 
   return (
@@ -415,24 +437,24 @@ export default async function HomePage() {
           label: belowHeadlineHeading,
           labelColor: belowHeadlineHeadingColor,
           highlights: publicHighlights,
-          roundupItems,
+          roundupItems: publicRoundupItems,
           showRoundupVideo: hasRoundupVideoBlock,
           roundupHeading: editorial?.roundup_video_heading ?? null,
           roundupHeadingColor: editorial?.roundup_video_heading_color ?? null,
           initialRoundupItemId: editorial?.complementary_roundup_item_id ?? null,
           complementary: {
             isPublished: Boolean(hasComplementaryStory && editorial),
-            label: editorial?.complementary_label ?? null,
-            title: editorial?.complementary_title ?? null,
-            text: editorial?.complementary_text ?? null,
-            imageUrl: editorial?.complementary_image_url ?? null,
-            linkUrl: editorial?.complementary_link_url ?? null,
+            label: complementaryLabel,
+            title: complementaryTitle,
+            text: complementaryText,
+            imageUrl: complementaryImageUrl,
+            linkUrl: complementaryLinkUrl,
             fallbackTitle: "Leitura editorial",
             fallbackText: "O complemento da capa fica reservado para a proxima historia publicada."
           }
         }}
         latestNews={publicLatestNews}
-        latestNewsTitle="Últimas notícias"
+        latestNewsTitle={finalZoneTitle ?? ""}
       />
     </main>
   );

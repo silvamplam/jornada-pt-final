@@ -183,7 +183,7 @@ type PageProps = {
   }>;
 };
 
-type FeedbackScope = "games" | "headline" | "side" | "composition" | "complement" | "highlights" | "final-zone";
+type FeedbackScope = "games" | "headline" | "side" | "composition" | "complement" | "highlights" | "roundup" | "final-zone";
 
 const homeEditorialStyles = `
   body {
@@ -1499,6 +1499,8 @@ function errorMessage(error: string | undefined, detail?: string) {
     "missing-selection-set": "Nao foi possivel guardar: a lista de jogos disponiveis nao chegou ao servidor.",
     "invalid-featured-match": "A selecao contem um jogo invalido ou que ja nao existe.",
     "invalid-highlight-item": "Os Destaques contem um item que nao pertence a esta Home.",
+    "invalid-roundup-item": "O Roundup contem um item que nao pertence a esta Home.",
+    "invalid-roundup-type": "Tipo de Roundup invalido. Use video, resumo, golos ou noticia.",
     "invalid-final-zone-item": "A Zona Editorial Final contem um item que nao pertence a esta Home.",
     "empty-featured-selection": "Por seguranca, esta fase nao guarda uma selecao vazia. Mantem pelo menos um jogo selecionado.",
     "required-field": "O Supabase recusou a gravacao por campo obrigatorio em falta.",
@@ -1539,6 +1541,7 @@ function scopedMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>, 
     composition: "Composicao abaixo da manchete guardada com sucesso.",
     complement: "Complemento guardado com sucesso.",
     highlights: "Destaques abaixo da manchete guardados com sucesso.",
+    roundup: "Videos / Resumo / Roundup guardados com sucesso.",
     "final-zone": "Zona Editorial Final guardada com sucesso."
   };
 
@@ -1651,6 +1654,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
   const { editorial, highlights, latestNews, roundupItems, featuredMatches, error } = await readHomeEditorialData();
   const gameSelection = await readHomeGameSelectionData();
   const visibleRoundupItems = roundupItems.filter(roundupHasReadableContent);
+  const roundupEditorRows = [...roundupItems].sort((first, second) => (first.sort_order ?? 9999) - (second.sort_order ?? 9999));
   const fixedHighlightSlots = [1, 2, 3];
   const usedHighlightIds = new Set<string>();
   const highlightEditorRows = [
@@ -1785,8 +1789,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
             <p className="home-admin-eyebrow">Jornada.pt</p>
             <h1>Home Editorial</h1>
             <span>
-              Edicao controlada da Home Editorial nas tabelas site_*. A Home publica / ainda nao foi ligada a site_* e
-              continua no modelo antigo/contextual.
+              Edicao controlada da Home Editorial nas tabelas site_*. No laboratorio da Home, estes dados ja alimentam
+              a Home publica em Preview; a promocao para producao depende de validacao final e merge controlado para main.
             </span>
           </div>
           <nav className="home-admin-actions" aria-label="Navegacao editorial">
@@ -1799,8 +1803,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
         </section>
 
         <div className="home-admin-notice">
-          Esta pagina edita a Home Editorial, mas a Home publica / ainda nao foi ligada a site_*. Os campos principais
-          gravam site_editorials; os jogos gravam apenas site_featured_matches.
+          Esta pagina edita a Home Editorial nas tabelas site_*. No laboratorio/Preview, estes dados ja alimentam a Home
+          publica. A publicacao em producao depende de validacao final e merge controlado para main.
         </div>
 
         {error ? <div className="home-admin-error">Erro ao ler site_*: {error}</div> : null}
@@ -1816,8 +1820,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                   <div>
                     <h2>Jogos da barra da Home</h2>
                     <p>
-                      Primeira zona operacional da Home Editorial. Grava apenas a selecao em site_featured_matches; a Home
-                      publica / ainda nao usa esta selecao.
+                      Primeira zona operacional da Home Editorial. Grava a selecao em site_featured_matches e alimenta a
+                      barra de jogos da Home no laboratorio validado.
                     </p>
                   </div>
                   <span className="home-admin-source">site_featured_matches</span>
@@ -1967,8 +1971,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
 
                       <div className="home-admin-save-row">
                         <p>
-                          Esta acao grava apenas site_featured_matches. Nao altera jogos, competicoes, epocas, jornadas,
-                          classificacao, Home publica ou ResultsRail.
+                          Esta acao grava apenas site_featured_matches. Alimenta a barra de jogos da Home no laboratorio
+                          validado; nao altera jogos, competicoes, epocas, jornadas ou classificacao.
                         </p>
                         <button type="submit">Guardar jogos da barra da Home</button>
                       </div>
@@ -1982,6 +1986,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
               {editorial ? (
                 <>
                 <form className="home-admin-hidden-form" id="home-highlights-form" action="/api/admin/editorial/home" method="post" />
+                <form className="home-admin-hidden-form" id="home-roundup-form" action="/api/admin/editorial/home" method="post" />
                 <form className="home-admin-hidden-form" id="home-final-zone-form" action="/api/admin/editorial/home" method="post" />
                 <form className="home-admin-editorial-flow" action="/api/admin/editorial/home" method="post">
                   <input type="hidden" name="action_type" value="update_site_editorial_home" />
@@ -2018,7 +2023,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                           </div>
                         </section>
                         <div className="home-admin-save-row">
-                          <p>Guarda a tabela-mae site_editorials. Nao altera a Home publica /.</p>
+                          <p>Guarda a tabela-mae site_editorials. No laboratorio validado, estes campos alimentam a manchete da Home.</p>
                           <button name="save_context" type="submit" value="headline">Guardar manchete</button>
                         </div>
                       </div>
@@ -2082,6 +2087,10 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                               </label>
                             </div>
                           </section>
+                          <div className="home-admin-save-row">
+                            <p>Guarda apenas os modos/cabecalhos em site_editorials. No laboratorio validado, controlam a composicao abaixo da manchete.</p>
+                            <button name="save_context" type="submit" value="composition">Guardar composicao</button>
+                          </div>
                           <section
                             className="home-admin-form-section home-admin-mode-section"
                             data-home-below-section="highlights"
@@ -2235,7 +2244,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                               ) : null}
                               <div className="home-admin-save-row">
                                 <p>
-                                  Guarda apenas site_editorial_highlights. Nao cria relacao com artigos e nao altera a Home publica /.
+                                  Guarda apenas site_editorial_highlights. No laboratorio validado, alimenta os destaques abaixo
+                                  da manchete; nao cria relacao com artigos.
                                 </p>
                                 <button form="home-highlights-form" type="submit">Guardar destaques abaixo da manchete</button>
                               </div>
@@ -2244,9 +2254,11 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                           <section
                             className="home-admin-form-section home-admin-mode-section"
                             data-home-below-section="roundup"
+                            id="home-roundup"
                             hidden={belowHeadlineMode !== "roundup"}
                           >
                             <h4>Videos / Resumo / Roundup</h4>
+                            <FeedbackMessage message={scopedMessage(params, "roundup")} />
                             <div className="home-admin-form-grid">
                               <TextField label="Titulo roundup/video" name="roundup_video_heading" value={editorial.roundup_video_heading} />
                               <TextField
@@ -2256,26 +2268,132 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                 placeholder="#10151b"
                               />
                             </div>
-                            <ul className="home-admin-list is-compact">
-                              {visibleRoundupItems.slice(0, 3).map((item) => (
-                                <li key={item.id}>
-                                  <div className="home-admin-row-media">
-                                    <MediaPreview label={textValue(item.title, "Roundup")} src={item.image_url} />
-                                  </div>
-                                  <div className="home-admin-compact-meta">
-                                    <span className="home-admin-meta">{item.sort_order ?? "-"} | {textValue(item.type, "sem tipo")}</span>
-                                    <StatusPill status={item.status} />
-                                  </div>
-                                  <strong>{textValue(item.title, "Item sem conteudo")}</strong>
-                                </li>
-                              ))}
-                              {visibleRoundupItems.length === 0 ? (
-                                <li className="home-admin-empty-group">
-                                  <strong>Sem videos/resumos com conteudo visivel.</strong>
-                                  <small>A tabela site_editorial_roundup_items continua apenas em leitura nesta fase.</small>
-                                </li>
+                            <div className="home-admin-highlights-form" role="group" aria-label="Editar Videos / Resumo / Roundup">
+                              <input form="home-roundup-form" type="hidden" name="action_type" value="update_roundup_items" />
+                              <input form="home-roundup-form" type="hidden" name="site_editorial_id" value={editorial.id} />
+                              {roundupEditorRows.length === 0 ? (
+                                <p className="home-admin-muted-card home-admin-empty">
+                                  Ainda nao existem itens guardados em site_editorial_roundup_items.
+                                </p>
                               ) : null}
-                            </ul>
+                              <div className="home-admin-highlight-editor-list">
+                                {roundupEditorRows.map((item, index) => {
+                                  const itemHasContent = roundupHasReadableContent(item);
+                                  const emptyLabel = compactStateLabel(item.status, itemHasContent);
+                                  const cardClass = [
+                                    "home-admin-highlight-editor-card",
+                                    index === 0 ? "is-primary" : "",
+                                    !itemHasContent ? "is-muted" : ""
+                                  ].filter(Boolean).join(" ");
+
+                                  return (
+                                    <fieldset className={cardClass} key={item.id}>
+                                      <legend>Roundup {item.sort_order ?? index + 1}</legend>
+                                      <input form="home-roundup-form" type="hidden" name="roundup_row" value={item.id} />
+                                      <input form="home-roundup-form" type="hidden" name={`roundup_${item.id}_id`} value={item.id} />
+                                      <div className="home-admin-highlight-editor-preview">
+                                        <div className="home-admin-row-media">
+                                          <MediaPreview label={textValue(item.title, "Roundup")} src={item.image_url} />
+                                        </div>
+                                        <div className="home-admin-final-content">
+                                          <div className="home-admin-compact-meta">
+                                            <span className="home-admin-meta">
+                                              {item.sort_order ?? "-"} | {textValue(item.type, "sem tipo")} | {textValue(item.duration, "sem duracao")}
+                                            </span>
+                                            <StatusPill status={item.status} />
+                                          </div>
+                                          <strong>{emptyLabel ?? textValue(item.title, "Item sem conteudo")}</strong>
+                                          {item.subtitle?.trim() ? <p>{item.subtitle}</p> : null}
+                                          <div className="home-admin-final-link-row">
+                                            {item.video_url?.trim() ? (
+                                              <a className="home-admin-link-out" href={item.video_url} title={item.video_url}>
+                                                Abrir video
+                                              </a>
+                                            ) : (
+                                              <span className="home-admin-meta">Sem video</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="home-admin-form-grid">
+                                        <label className="home-admin-field">
+                                          <span>Ordem</span>
+                                          <input
+                                            form="home-roundup-form"
+                                            min={1}
+                                            name={`roundup_${item.id}_sort_order`}
+                                            type="number"
+                                            defaultValue={item.sort_order ?? index + 1}
+                                          />
+                                        </label>
+                                        <label className="home-admin-field">
+                                          <span>Etiqueta</span>
+                                          <input form="home-roundup-form" name={`roundup_${item.id}_label`} type="text" defaultValue={item.label ?? ""} />
+                                        </label>
+                                        <label className="home-admin-field">
+                                          <span>Tipo</span>
+                                          <select form="home-roundup-form" name={`roundup_${item.id}_type`} defaultValue={item.type ?? ""}>
+                                            <option value="">Sem tipo</option>
+                                            <option value="video">Video</option>
+                                            <option value="resumo">Resumo</option>
+                                            <option value="golos">Golos</option>
+                                            <option value="noticia">Noticia</option>
+                                          </select>
+                                        </label>
+                                        <label className="home-admin-field">
+                                          <span>Estado</span>
+                                          <select
+                                            form="home-roundup-form"
+                                            name={`roundup_${item.id}_status`}
+                                            defaultValue={item.status === "published" ? "published" : "draft"}
+                                          >
+                                            <option value="draft">Rascunho</option>
+                                            <option value="published">Publicado</option>
+                                          </select>
+                                        </label>
+                                        <label className="home-admin-field is-wide">
+                                          <span>Titulo</span>
+                                          <input form="home-roundup-form" name={`roundup_${item.id}_title`} type="text" defaultValue={item.title ?? ""} />
+                                        </label>
+                                        <label className="home-admin-field is-wide">
+                                          <span>Subtitulo / resumo</span>
+                                          <textarea
+                                            form="home-roundup-form"
+                                            name={`roundup_${item.id}_subtitle`}
+                                            rows={3}
+                                            defaultValue={item.subtitle ?? ""}
+                                          />
+                                        </label>
+                                        <label className="home-admin-field is-wide">
+                                          <span>Imagem</span>
+                                          <input form="home-roundup-form" name={`roundup_${item.id}_image_url`} type="url" defaultValue={item.image_url ?? ""} />
+                                        </label>
+                                        <label className="home-admin-field is-wide">
+                                          <span>URL do video</span>
+                                          <input form="home-roundup-form" name={`roundup_${item.id}_video_url`} type="text" defaultValue={item.video_url ?? ""} />
+                                        </label>
+                                        <label className="home-admin-field">
+                                          <span>Duracao</span>
+                                          <input form="home-roundup-form" name={`roundup_${item.id}_duration`} type="text" defaultValue={item.duration ?? ""} />
+                                        </label>
+                                      </div>
+                                    </fieldset>
+                                  );
+                                })}
+                              </div>
+                              {visibleRoundupItems.length === 0 ? (
+                                <p className="home-admin-muted-card home-admin-empty">
+                                  Sem videos/resumos com conteudo visivel. Os itens existentes continuam editaveis acima.
+                                </p>
+                              ) : null}
+                              <div className="home-admin-save-row">
+                                <p>
+                                  Guarda apenas site_editorial_roundup_items. No laboratorio validado, estes itens alimentam
+                                  a zona Videos / Resumo / Roundup da Home.
+                                </p>
+                                <button form="home-roundup-form" type="submit">Guardar Videos / Resumo / Roundup</button>
+                              </div>
+                            </div>
                           </section>
                           <section className="home-admin-form-section">
                             <h4>Resumo de leitura</h4>
@@ -2289,10 +2407,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                               ]}
                             />
                           </section>
-                          <div className="home-admin-save-row">
-                            <p>Guarda apenas os modos/cabecalhos em site_editorials. A Home publica continua intacta.</p>
-                            <button name="save_context" type="submit" value="composition">Guardar composicao</button>
-                          </div>
                         </div>
 
                         <div className="home-admin-composition-side-stack">
@@ -2411,8 +2525,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                               </div>
                               <div className="home-admin-save-row">
                                 <p>
-                                  Guarda apenas a configuracao da zona em site_editorials. Se o titulo ficar vazio, a futura
-                                  Home publica pode omitir o titulo desta zona.
+                                  Guarda apenas a configuracao da zona em site_editorials. No laboratorio validado, controla a
+                                  Zona Editorial Final; se o titulo ficar vazio, a Home pode omitir o titulo desta zona.
                                 </p>
                                 <button name="save_context" type="submit" value="final-zone">Guardar configuracao da zona</button>
                               </div>

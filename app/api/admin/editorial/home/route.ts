@@ -29,6 +29,12 @@ type SiteEditorialLatestNewsRow = {
   sort_order: number | null;
 };
 
+type SiteEditorialRoundupItemRow = {
+  id: string;
+  site_editorial_id: string | null;
+  sort_order: number | null;
+};
+
 class HomeEditorialAdminError extends Error {
   constructor(public code: string, message = code) {
     super(message);
@@ -159,6 +165,18 @@ function cleanFinalZoneMode(value: string | null) {
   throw new HomeEditorialAdminError("invalid-final-zone-mode");
 }
 
+function cleanRoundupType(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  if (value === "video" || value === "golos" || value === "resumo" || value === "noticia") {
+    return value;
+  }
+
+  throw new HomeEditorialAdminError("invalid-roundup-type");
+}
+
 const contextAnchors = {
   games: "home-games",
   headline: "home-headline",
@@ -166,6 +184,7 @@ const contextAnchors = {
   composition: "home-composition",
   complement: "home-complement",
   highlights: "home-highlights",
+  roundup: "home-roundup",
   "final-zone": "home-final-zone"
 } as const;
 
@@ -391,6 +410,10 @@ function hasHighlightContent(payload: Record<string, string | number | null>) {
   return Boolean(payload.label || payload.title || payload.subtitle || payload.image_url || payload.link_url);
 }
 
+function hasRoundupContent(payload: Record<string, string | number | null>) {
+  return Boolean(payload.label || payload.title || payload.subtitle || payload.image_url || payload.video_url || payload.duration);
+}
+
 async function updateHighlights(request: Request, formData: FormData) {
   const siteEditorialId = cleanText(formData.get("site_editorial_id"));
   if (!siteEditorialId) {
@@ -451,6 +474,70 @@ async function updateHighlights(request: Request, formData: FormData) {
   }
 
   return redirectTo(request, { saved: "highlights" }, contextAnchors.highlights);
+}
+
+async function updateRoundupItems(request: Request, formData: FormData) {
+  const siteEditorialId = cleanText(formData.get("site_editorial_id"));
+  if (!siteEditorialId) {
+    throw new HomeEditorialAdminError("missing-home-editorial");
+  }
+
+  await ensureHomeEditorialExists(siteEditorialId);
+
+  const currentRows = await fetchSupabaseAdminTable<SiteEditorialRoundupItemRow>(
+    `site_editorial_roundup_items?select=id,site_editorial_id,sort_order&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}&limit=1000`
+  );
+  const currentById = new Map(currentRows.map((row) => [row.id, row]));
+  const rowKeys = formData.getAll("roundup_row").filter((value): value is string => typeof value === "string");
+  const now = new Date().toISOString();
+
+  for (const [index, rowKey] of rowKeys.entries()) {
+    const rowId = cleanText(formData.get(`roundup_${rowKey}_id`));
+    const sortOrder = cleanInteger(formData.get(`roundup_${rowKey}_sort_order`)) ?? index + 1;
+    const payload = {
+      sort_order: sortOrder,
+      type: cleanRoundupType(cleanText(formData.get(`roundup_${rowKey}_type`))),
+      label: cleanText(formData.get(`roundup_${rowKey}_label`)),
+      title: cleanText(formData.get(`roundup_${rowKey}_title`)),
+      subtitle: cleanText(formData.get(`roundup_${rowKey}_subtitle`)),
+      image_url: cleanText(formData.get(`roundup_${rowKey}_image_url`)),
+      video_url: cleanText(formData.get(`roundup_${rowKey}_video_url`)),
+      duration: cleanText(formData.get(`roundup_${rowKey}_duration`)),
+      status: cleanStatus(cleanText(formData.get(`roundup_${rowKey}_status`))),
+      updated_at: now
+    };
+
+    if (rowId) {
+      if (!currentById.has(rowId)) {
+        throw new HomeEditorialAdminError("invalid-roundup-item");
+      }
+
+      await writeSupabaseAdmin(
+        `site_editorial_roundup_items?id=eq.${encodeURIComponent(rowId)}&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload)
+        }
+      );
+      continue;
+    }
+
+    if (!hasRoundupContent(payload)) {
+      continue;
+    }
+
+    await writeSupabaseAdmin("site_editorial_roundup_items", {
+      method: "POST",
+      body: JSON.stringify({
+        id: randomUUID(),
+        site_editorial_id: siteEditorialId,
+        created_at: now,
+        ...payload
+      })
+    });
+  }
+
+  return redirectTo(request, { saved: "roundup" }, contextAnchors.roundup);
 }
 
 async function updateFinalZone(request: Request, formData: FormData) {
@@ -522,6 +609,8 @@ export async function POST(request: Request) {
     ? "games"
     : actionType === "update_highlights"
       ? "highlights"
+    : actionType === "update_roundup_items"
+      ? "roundup"
     : actionType === "update_final_zone"
       ? "final-zone"
     : cleanSaveContext(cleanText(formData.get("save_context"))) ?? "headline";
@@ -530,6 +619,7 @@ export async function POST(request: Request) {
     actionType !== "update_site_editorial_home" &&
     actionType !== "update_featured_matches" &&
     actionType !== "update_highlights" &&
+    actionType !== "update_roundup_items" &&
     actionType !== "update_final_zone"
   ) {
     return redirectTo(request, { error: "invalid-action", failed: saveContext }, contextAnchors[saveContext]);
@@ -541,6 +631,9 @@ export async function POST(request: Request) {
     }
     if (actionType === "update_highlights") {
       return await updateHighlights(request, formData);
+    }
+    if (actionType === "update_roundup_items") {
+      return await updateRoundupItems(request, formData);
     }
     if (actionType === "update_final_zone") {
       return await updateFinalZone(request, formData);
