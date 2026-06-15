@@ -1789,8 +1789,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
             <p className="home-admin-eyebrow">Jornada.pt</p>
             <h1>Home Editorial</h1>
             <span>
-              Edicao controlada da Home Editorial nas tabelas site_*. A Home publica / ainda nao foi ligada a site_* e
-              continua no modelo antigo/contextual.
+              Edicao controlada da Home Editorial nas tabelas site_*. No laboratorio da Home, estes dados ja alimentam
+              a Home publica em Preview; a promocao para producao depende de validacao final e merge controlado para main.
             </span>
           </div>
           <nav className="home-admin-actions" aria-label="Navegacao editorial">
@@ -1803,8 +1803,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
         </section>
 
         <div className="home-admin-notice">
-          Esta pagina edita a Home Editorial, mas a Home publica / ainda nao foi ligada a site_*. Os campos principais
-          gravam site_editorials; os jogos gravam apenas site_featured_matches.
+          Esta pagina edita a Home Editorial nas tabelas site_*. No laboratorio/Preview, estes dados ja alimentam a Home
+          publica. A publicacao em producao depende de validacao final e merge controlado para main.
         </div>
 
         {error ? <div className="home-admin-error">Erro ao ler site_*: {error}</div> : null}
@@ -1820,8 +1820,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                   <div>
                     <h2>Jogos da barra da Home</h2>
                     <p>
-                      Primeira zona operacional da Home Editorial. Grava apenas a selecao em site_featured_matches; a Home
-                      publica / ainda nao usa esta selecao.
+                      Primeira zona operacional da Home Editorial. Grava a selecao em site_featured_matches e alimenta a
+                      barra de jogos da Home no laboratorio validado.
                     </p>
                   </div>
                   <span className="home-admin-source">site_featured_matches</span>
@@ -1971,8 +1971,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
 
                       <div className="home-admin-save-row">
                         <p>
-                          Esta acao grava apenas site_featured_matches. Nao altera jogos, competicoes, epocas, jornadas,
-                          classificacao, Home publica ou ResultsRail.
+                          Esta acao grava apenas site_featured_matches. Alimenta a barra de jogos da Home no laboratorio
+                          validado; nao altera jogos, competicoes, epocas, jornadas ou classificacao.
                         </p>
                         <button type="submit">Guardar jogos da barra da Home</button>
                       </div>
@@ -2023,7 +2023,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                           </div>
                         </section>
                         <div className="home-admin-save-row">
-                          <p>Guarda a tabela-mae site_editorials. Nao altera a Home publica /.</p>
+                          <p>Guarda a tabela-mae site_editorials. No laboratorio validado, estes campos alimentam a manchete da Home.</p>
                           <button name="save_context" type="submit" value="headline">Guardar manchete</button>
                         </div>
                       </div>
@@ -2088,7 +2088,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                             </div>
                           </section>
                           <div className="home-admin-save-row">
-                            <p>Guarda apenas os modos/cabecalhos em site_editorials. A Home publica continua intacta.</p>
+                            <p>Guarda apenas os modos/cabecalhos em site_editorials. No laboratorio validado, controlam a composicao abaixo da manchete.</p>
                             <button name="save_context" type="submit" value="composition">Guardar composicao</button>
                           </div>
                           <section
@@ -2244,7 +2244,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                               ) : null}
                               <div className="home-admin-save-row">
                                 <p>
-                                  Guarda apenas site_editorial_highlights. Nao cria relacao com artigos e nao altera a Home publica /.
+                                  Guarda apenas site_editorial_highlights. No laboratorio validado, alimenta os destaques abaixo
+                                  da manchete; nao cria relacao com artigos.
                                 </p>
                                 <button form="home-highlights-form" type="submit">Guardar destaques abaixo da manchete</button>
                               </div>
@@ -2386,7 +2387,10 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                 </p>
                               ) : null}
                               <div className="home-admin-save-row">
-                                <p>Guarda apenas site_editorial_roundup_items. Nao altera a Home publica / nem outras tabelas site_*.</p>
+                                <p>
+                                  Guarda apenas site_editorial_roundup_items. No laboratorio validado, estes itens alimentam
+                                  a zona Videos / Resumo / Roundup da Home.
+                                </p>
                                 <button form="home-roundup-form" type="submit">Guardar Videos / Resumo / Roundup</button>
                               </div>
                             </div>
@@ -2521,8 +2525,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                               </div>
                               <div className="home-admin-save-row">
                                 <p>
-                                  Guarda apenas a configuracao da zona em site_editorials. Se o titulo ficar vazio, a futura
-                                  Home publica pode omitir o titulo desta zona.
+                                  Guarda apenas a configuracao da zona em site_editorials. No laboratorio validado, controla a
+                                  Zona Editorial Final; se o titulo ficar vazio, a Home pode omitir o titulo desta zona.
                                 </p>
                                 <button name="save_context" type="submit" value="final-zone">Guardar configuracao da zona</button>
                               </div>
