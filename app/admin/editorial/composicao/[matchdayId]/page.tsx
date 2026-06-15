@@ -19,6 +19,8 @@ type CompositionPageProps = {
   }>;
   searchParams?: Promise<{
     bank_error?: string;
+    bank_existing?: string;
+    bank_repeated?: string;
     bank_saved?: string;
     bank_skipped?: string;
   }>;
@@ -1596,10 +1598,12 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
   const contextLabel = `${country?.name ?? "Pais"} / ${competition.name} / ${season.label} / ${matchday.label}`;
   const bankSavedCount = Math.max(0, Number.parseInt(query.bank_saved ?? "0", 10) || 0);
   const bankSkippedCount = Math.max(0, Number.parseInt(query.bank_skipped ?? "0", 10) || 0);
+  const bankExistingCount = Math.max(0, Number.parseInt(query.bank_existing ?? String(bankSkippedCount), 10) || 0);
+  const bankRepeatedCount = Math.max(0, Number.parseInt(query.bank_repeated ?? "0", 10) || 0);
   const bankFeedback = query.bank_error
     ? "Nao foi possivel guardar a atualidade desta jornada. Confirma os dados e tenta novamente."
-    : query.bank_saved || query.bank_skipped
-      ? `Atualidade guardada: ${bankSavedCount} novas noticias adicionadas. ${bankSkippedCount} ja existiam no banco e nao foram duplicadas.`
+    : query.bank_saved || query.bank_skipped || query.bank_existing || query.bank_repeated
+      ? `Atualidade guardada: ${bankSavedCount} novas noticias adicionadas. ${bankExistingCount} ja existiam no banco. ${bankRepeatedCount} eram repetidas na atualidade e nao foram duplicadas.`
       : null;
 
   return (

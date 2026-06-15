@@ -166,13 +166,17 @@ type ExistingBankItem = {
   id: string;
   source_type: string | null;
   source_id: string | null;
+  source_slug: string | null;
   link_url: string | null;
   title: string | null;
+  subtitle: string | null;
   image_url: string | null;
 };
 
 type SaveBankResult = {
   saved: number;
+  existing: number;
+  repeated: number;
   skipped: number;
 };
 
@@ -274,29 +278,64 @@ function bankCandidate({
   };
 }
 
-function bankIdentityMatchesExisting(existingItem: ExistingBankItem, candidate: MatchdayEditorialBankCandidate) {
-  const existingSourceType = normalizeIdentityValue(existingItem.source_type);
-  const candidateSourceType = normalizeIdentityValue(candidate.source_type);
-  const existingSourceId = normalizeIdentityValue(existingItem.source_id);
-  const candidateSourceId = normalizeIdentityValue(candidate.source_id);
+type BankIdentityInput = {
+  link_url?: string | null;
+  source_slug?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  image_url?: string | null;
+  source_type?: string | null;
+  source_id?: string | null;
+};
 
-  if (existingSourceType && candidateSourceType && existingSourceId && candidateSourceId) {
-    return existingSourceType === candidateSourceType && existingSourceId === candidateSourceId;
+function normalizeEditorialIdentityValue(value?: string | null) {
+  return value?.trim().replace(/\s+/g, " ").toLowerCase() ?? "";
+}
+
+function normalizeEditorialLinkValue(value?: string | null) {
+  const normalized = normalizeEditorialIdentityValue(value);
+  return normalized ? normalized.split(/[?#]/)[0].replace(/\/$/, "") : "";
+}
+
+function bankEditorialIdentityParts(item: BankIdentityInput) {
+  const title = normalizeEditorialIdentityValue(item.title);
+  const subtitle = normalizeEditorialIdentityValue(item.subtitle);
+  const imageUrl = normalizeEditorialLinkValue(item.image_url);
+  const sourceType = normalizeIdentityValue(item.source_type);
+  const sourceId = normalizeIdentityValue(item.source_id);
+  const parts: Array<{ kind: string; key: string }> = [];
+
+  const linkUrl = normalizeEditorialLinkValue(item.link_url);
+  if (linkUrl) parts.push({ kind: "link", key: linkUrl });
+
+  const sourceSlug = normalizeEditorialIdentityValue(item.source_slug);
+  if (sourceSlug) parts.push({ kind: "slug", key: sourceSlug });
+
+  if (title && imageUrl) parts.push({ kind: "title_image", key: `${title}|${imageUrl}` });
+  if (title && subtitle) parts.push({ kind: "title_subtitle", key: `${title}|${subtitle}` });
+  if (sourceType && sourceId) parts.push({ kind: "source", key: `${sourceType}|${sourceId}` });
+
+  return parts;
+}
+
+function bankIdentitiesMatch(left: BankIdentityInput, right: BankIdentityInput) {
+  const leftParts = bankEditorialIdentityParts(left);
+  const rightParts = bankEditorialIdentityParts(right);
+
+  for (const kind of ["link", "slug", "title_image", "title_subtitle", "source"]) {
+    const leftKeys = new Set(leftParts.filter((part) => part.kind === kind).map((part) => part.key));
+    const rightKeys = rightParts.filter((part) => part.kind === kind).map((part) => part.key);
+
+    if (leftKeys.size === 0 || rightKeys.length === 0) {
+      continue;
+    }
+
+    if (rightKeys.some((key) => leftKeys.has(key))) {
+      return true;
+    }
   }
 
-  const existingLinkUrl = normalizeIdentityValue(existingItem.link_url);
-  const candidateLinkUrl = normalizeIdentityValue(candidate.link_url);
-
-  if (existingLinkUrl && candidateLinkUrl) {
-    return existingLinkUrl === candidateLinkUrl;
-  }
-
-  const existingTitle = normalizeIdentityValue(existingItem.title);
-  const candidateTitle = normalizeIdentityValue(candidate.title);
-  const existingImageUrl = normalizeIdentityValue(existingItem.image_url);
-  const candidateImageUrl = normalizeIdentityValue(candidate.image_url);
-
-  return Boolean(existingTitle && candidateTitle && existingTitle === candidateTitle && existingImageUrl && candidateImageUrl && existingImageUrl === candidateImageUrl);
+  return false;
 }
 
 function validatePublishableCompositionItems(items: CompositionPublicationItem[]) {
@@ -583,18 +622,30 @@ async function saveCurrentMatchdayEditorialBank(matchdayId: string): Promise<Sav
     throw new Error("matchday-invalid");
   }
 
-  const candidates = await buildCurrentBankCandidates(matchdayId);
+  const rawCandidates = await buildCurrentBankCandidates(matchdayId);
+  const candidates: MatchdayEditorialBankCandidate[] = [];
+  let repeated = 0;
+
+  for (const candidate of rawCandidates) {
+    if (candidates.some((item) => bankIdentitiesMatch(item, candidate))) {
+      repeated += 1;
+      continue;
+    }
+
+    candidates.push(candidate);
+  }
+
   const knownItems = await fetchSupabaseAdminTable<ExistingBankItem>(
-    `matchday_editorial_bank_items?select=id,source_type,source_id,link_url,title,image_url&matchday_id=eq.${encodeURIComponent(
+    `matchday_editorial_bank_items?select=id,source_type,source_id,source_slug,link_url,title,subtitle,image_url&matchday_id=eq.${encodeURIComponent(
       matchdayId
     )}&limit=1000`
   );
   let saved = 0;
-  let skipped = 0;
+  let existing = 0;
 
   for (const candidate of candidates) {
-    if (knownItems.some((item) => bankIdentityMatchesExisting(item, candidate))) {
-      skipped += 1;
+    if (knownItems.some((item) => bankIdentitiesMatch(item, candidate))) {
+      existing += 1;
       continue;
     }
 
@@ -607,14 +658,16 @@ async function saveCurrentMatchdayEditorialBank(matchdayId: string): Promise<Sav
       id: "",
       source_type: candidate.source_type,
       source_id: candidate.source_id,
+      source_slug: candidate.source_slug,
       link_url: candidate.link_url,
       title: candidate.title,
+      subtitle: candidate.subtitle,
       image_url: candidate.image_url
     });
     saved += 1;
   }
 
-  return { saved, skipped };
+  return { saved, existing, repeated, skipped: existing + repeated };
 }
 
 async function buildCurrentPageSnapshots(matchdayId: string, useRoundupItems: boolean): Promise<CompositionSnapshot[]> {
@@ -972,7 +1025,7 @@ export async function POST(request: Request) {
       const result = await saveCurrentMatchdayEditorialBank(matchdayId);
       return redirectTo(
         request,
-        `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_saved=${result.saved}&bank_skipped=${result.skipped}#matchday-editorial-bank`
+        `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_saved=${result.saved}&bank_existing=${result.existing}&bank_repeated=${result.repeated}&bank_skipped=${result.skipped}#matchday-editorial-bank`
       );
     }
     else if (actionType === "publish_reference_composition") await publishReferenceComposition(formData);
