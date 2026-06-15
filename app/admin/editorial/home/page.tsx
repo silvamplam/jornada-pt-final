@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -180,6 +179,7 @@ type PageProps = {
     home_competition_id?: string;
     home_season_id?: string;
     home_matchday_id?: string;
+    item?: string;
   }>;
 };
 
@@ -282,18 +282,11 @@ const homeEditorialStyles = `
     background: #10151b;
   }
 
-  .home-admin-notice,
   .home-admin-error {
     margin-top: 18px;
     border-radius: 8px;
     padding: 14px 16px;
     line-height: 1.45;
-  }
-
-  .home-admin-notice {
-    border: 1px solid #bfdbfe;
-    background: #eff6ff;
-    color: #1e3a8a;
   }
 
   .home-admin-error {
@@ -509,8 +502,7 @@ const homeEditorialStyles = `
   }
 
   .home-admin-feature p,
-  .home-admin-card p,
-  .home-admin-detail-list dd {
+  .home-admin-card p {
     color: #4d5763;
     line-height: 1.45;
   }
@@ -662,36 +654,6 @@ const homeEditorialStyles = `
     color: #64748b;
     font-size: 12px;
     line-height: 1.35;
-  }
-
-  .home-admin-detail-list {
-    display: grid;
-    grid-template-columns: 118px minmax(0, 1fr);
-    gap: 8px 12px;
-    margin: 14px 0 0;
-    min-width: 0;
-  }
-
-  .home-admin-list .home-admin-detail-list,
-  .home-admin-card .home-admin-detail-list {
-    grid-template-columns: 1fr;
-    gap: 4px;
-    margin-top: 6px;
-  }
-
-  .home-admin-detail-list dt {
-    color: #7b8591;
-    font-size: 11px;
-    font-weight: 900;
-    text-transform: uppercase;
-  }
-
-  .home-admin-detail-list dd {
-    margin: 0;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .home-admin-empty {
@@ -1193,6 +1155,83 @@ const homeEditorialStyles = `
     padding: 12px;
   }
 
+  .home-admin-collapsible-editor {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .home-admin-collapsible-editor summary {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    list-style: none;
+    padding: 12px;
+  }
+
+  .home-admin-collapsible-editor summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .home-admin-collapsible-editor summary::after {
+    content: "+";
+    color: #6b7480;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .home-admin-collapsible-editor[open] summary {
+    border-bottom: 1px solid #e5ebf2;
+  }
+
+  .home-admin-collapsible-editor[open] summary::after {
+    content: "-";
+  }
+
+  .home-admin-collapsible-title {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .home-admin-collapsible-title strong {
+    overflow: hidden;
+    color: #111827;
+    font-size: 14px;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .home-admin-collapsible-title small {
+    overflow: hidden;
+    color: #6b7480;
+    font-size: 12px;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .home-admin-item-editor-fields {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    border: 0;
+    padding: 12px;
+    min-inline-size: 0;
+  }
+
+  .home-admin-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
   .home-admin-final-editor-card.is-primary,
   .home-admin-highlight-editor-card.is-primary {
     border-color: #d2dae5;
@@ -1248,7 +1287,6 @@ const homeEditorialStyles = `
 
     .home-admin-hero,
     .home-admin-panel > header,
-    .home-admin-detail-list,
     .home-admin-list.is-compact li,
     .home-admin-list.home-admin-final-zone-list .home-admin-final-item,
     .home-admin-list.home-admin-final-zone-list .home-admin-final-item.is-primary,
@@ -1287,20 +1325,6 @@ function statusClass(value: string | null | undefined) {
   if (normalized === "published") return " is-published";
   if (normalized === "draft") return " is-draft";
   return "";
-}
-
-function codeValue(value: string | number | null | undefined, fallback = "Sem valor") {
-  const cleanValue = typeof value === "number" ? String(value) : value?.trim();
-
-  if (!cleanValue) {
-    return <span className="home-admin-meta">{fallback}</span>;
-  }
-
-  return (
-    <code className="home-admin-code" title={cleanValue}>
-      {cleanValue}
-    </code>
-  );
 }
 
 function MediaPreview({ src, label }: { src: string | null | undefined; label: string }) {
@@ -1408,6 +1432,14 @@ function sortOrderList(items: Array<{ sort_order: number | null }>) {
   return `posicoes ${values.join(", ")}`;
 }
 
+function itemNumber(value: number | null | undefined, fallback: number) {
+  return String(value ?? fallback).padStart(2, "0");
+}
+
+function itemAnchor(prefix: "home-roundup-item" | "home-final-item", number: string) {
+  return `${prefix}-${number}`;
+}
+
 function roundupHasReadableContent(item: SiteEditorialRoundupItem) {
   return hasContent(item.title, item.subtitle, item.label, item.image_url, item.video_url, item.duration);
 }
@@ -1418,19 +1450,6 @@ function highlightHasReadableContent(item: SiteEditorialHighlight) {
 
 function latestNewsHasReadableContent(item: SiteEditorialLatestNews) {
   return hasContent(item.title, item.subtitle, item.image_url, item.link_url, item.time_label);
-}
-
-function DetailList({ rows }: { rows: Array<[string, ReactNode]> }) {
-  return (
-    <dl className="home-admin-detail-list">
-      {rows.map(([label, value]) => (
-        <div key={label}>
-          <dt>{label}</dt>
-          <dd>{value || <span>Sem valor</span>}</dd>
-        </div>
-      ))}
-    </dl>
-  );
 }
 
 function inputValue(value: string | null | undefined) {
@@ -1522,6 +1541,10 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
 }
 
 function scopedMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>, scope: FeedbackScope) {
+  if ((scope === "roundup" || scope === "final-zone") && params.item) {
+    return null;
+  }
+
   if (params.failed === scope && params.error) {
     return { type: "error" as const, text: errorMessage(params.error, params.detail) };
   }
@@ -1548,7 +1571,32 @@ function scopedMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>, 
   return { type: "success" as const, text: successMessages[scope] };
 }
 
-function FeedbackMessage({ message }: { message: ReturnType<typeof scopedMessage> | ReturnType<typeof pageMessage> }) {
+function itemMessage(
+  params: Awaited<NonNullable<PageProps["searchParams"]>>,
+  scope: Extract<FeedbackScope, "roundup" | "final-zone">,
+  anchor: string,
+  label: string
+) {
+  if (params.item !== anchor) {
+    return null;
+  }
+
+  if (params.failed === scope && params.error) {
+    return { type: "error" as const, text: errorMessage(params.error, params.detail) };
+  }
+
+  if (params.saved === scope) {
+    return { type: "success" as const, text: `${label} guardado com sucesso.` };
+  }
+
+  return null;
+}
+
+function FeedbackMessage({
+  message
+}: {
+  message: ReturnType<typeof scopedMessage> | ReturnType<typeof pageMessage> | ReturnType<typeof itemMessage>;
+}) {
   if (!message) {
     return null;
   }
@@ -1802,11 +1850,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
           </nav>
         </section>
 
-        <div className="home-admin-notice">
-          Esta pagina edita a Home Editorial nas tabelas site_*. No laboratorio/Preview, estes dados ja alimentam a Home
-          publica. A publicacao em producao depende de validacao final e merge controlado para main.
-        </div>
-
         {error ? <div className="home-admin-error">Erro ao ler site_*: {error}</div> : null}
         {!error && !editorial ? (
           <div className="home-admin-error">Nao foi encontrado registo em site_editorials com slug=&quot;home&quot;.</div>
@@ -1986,8 +2029,28 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
               {editorial ? (
                 <>
                 <form className="home-admin-hidden-form" id="home-highlights-form" action="/api/admin/editorial/home" method="post" />
-                <form className="home-admin-hidden-form" id="home-roundup-form" action="/api/admin/editorial/home" method="post" />
-                <form className="home-admin-hidden-form" id="home-final-zone-form" action="/api/admin/editorial/home" method="post" />
+                {roundupEditorRows.map((item) => {
+                  return (
+                    <form
+                      action="/api/admin/editorial/home"
+                      className="home-admin-hidden-form"
+                      id={`home-roundup-form-${item.id}`}
+                      key={`roundup-form-${item.id}`}
+                      method="post"
+                    />
+                  );
+                })}
+                {finalZoneEditorRows.map((row) => {
+                  return (
+                    <form
+                      action="/api/admin/editorial/home"
+                      className="home-admin-hidden-form"
+                      id={`home-final-zone-form-${row.key}`}
+                      key={`final-zone-form-${row.key}`}
+                      method="post"
+                    />
+                  );
+                })}
                 <form className="home-admin-editorial-flow" action="/api/admin/editorial/home" method="post">
                   <input type="hidden" name="action_type" value="update_site_editorial_home" />
                   <input type="hidden" name="site_editorial_id" value={editorial.id} />
@@ -2269,8 +2332,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                               />
                             </div>
                             <div className="home-admin-highlights-form" role="group" aria-label="Editar Videos / Resumo / Roundup">
-                              <input form="home-roundup-form" type="hidden" name="action_type" value="update_roundup_items" />
-                              <input form="home-roundup-form" type="hidden" name="site_editorial_id" value={editorial.id} />
                               {roundupEditorRows.length === 0 ? (
                                 <p className="home-admin-muted-card home-admin-empty">
                                   Ainda nao existem itens guardados em site_editorial_roundup_items.
@@ -2280,104 +2341,117 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                 {roundupEditorRows.map((item, index) => {
                                   const itemHasContent = roundupHasReadableContent(item);
                                   const emptyLabel = compactStateLabel(item.status, itemHasContent);
+                                  const number = itemNumber(item.sort_order, index + 1);
+                                  const anchor = itemAnchor("home-roundup-item", number);
+                                  const formId = `home-roundup-form-${item.id}`;
+                                  const summaryTitle = textValue(item.title, "Item sem titulo");
+                                  const summaryMeta = `${textValue(item.type, "sem tipo")} | ${textValue(item.duration, "sem duracao")}`;
                                   const cardClass = [
                                     "home-admin-highlight-editor-card",
+                                    "home-admin-collapsible-editor",
                                     index === 0 ? "is-primary" : "",
                                     !itemHasContent ? "is-muted" : ""
                                   ].filter(Boolean).join(" ");
 
                                   return (
-                                    <fieldset className={cardClass} key={item.id}>
-                                      <legend>Roundup {item.sort_order ?? index + 1}</legend>
-                                      <input form="home-roundup-form" type="hidden" name="roundup_row" value={item.id} />
-                                      <input form="home-roundup-form" type="hidden" name={`roundup_${item.id}_id`} value={item.id} />
-                                      <div className="home-admin-highlight-editor-preview">
-                                        <div className="home-admin-row-media">
-                                          <MediaPreview label={textValue(item.title, "Roundup")} src={item.image_url} />
-                                        </div>
-                                        <div className="home-admin-final-content">
-                                          <div className="home-admin-compact-meta">
-                                            <span className="home-admin-meta">
-                                              {item.sort_order ?? "-"} | {textValue(item.type, "sem tipo")} | {textValue(item.duration, "sem duracao")}
-                                            </span>
-                                            <StatusPill status={item.status} />
+                                    <details className={cardClass} id={anchor} key={item.id} open={params.item === anchor}>
+                                      <summary>
+                                        <span className="home-admin-collapsible-title">
+                                          <strong>#{number} - {emptyLabel ?? summaryTitle}</strong>
+                                          <small>{summaryMeta}</small>
+                                        </span>
+                                        <StatusPill status={item.status} />
+                                      </summary>
+                                      <fieldset className="home-admin-item-editor-fields">
+                                        <legend className="home-admin-sr-only">Editar item Roundup #{number}</legend>
+                                        <input form={formId} type="hidden" name="action_type" value="update_roundup_items" />
+                                        <input form={formId} type="hidden" name="site_editorial_id" value={editorial.id} />
+                                        <input form={formId} type="hidden" name="return_anchor" value={anchor} />
+                                        <input form={formId} type="hidden" name="roundup_row" value={item.id} />
+                                        <input form={formId} type="hidden" name={`roundup_${item.id}_id`} value={item.id} />
+                                        <div className="home-admin-highlight-editor-preview">
+                                          <div className="home-admin-row-media">
+                                            <MediaPreview label={textValue(item.title, "Roundup")} src={item.image_url} />
                                           </div>
-                                          <strong>{emptyLabel ?? textValue(item.title, "Item sem conteudo")}</strong>
-                                          {item.subtitle?.trim() ? <p>{item.subtitle}</p> : null}
-                                          <div className="home-admin-final-link-row">
-                                            {item.video_url?.trim() ? (
-                                              <a className="home-admin-link-out" href={item.video_url} title={item.video_url}>
-                                                Abrir video
-                                              </a>
-                                            ) : (
-                                              <span className="home-admin-meta">Sem video</span>
-                                            )}
+                                          <div className="home-admin-final-content">
+                                            <div className="home-admin-compact-meta">
+                                              <span className="home-admin-meta">
+                                                {item.sort_order ?? "-"} | {summaryMeta}
+                                              </span>
+                                              <StatusPill status={item.status} />
+                                            </div>
+                                            <strong>{emptyLabel ?? textValue(item.title, "Item sem conteudo")}</strong>
+                                            {item.subtitle?.trim() ? <p>{item.subtitle}</p> : null}
+                                            <div className="home-admin-final-link-row">
+                                              {item.video_url?.trim() ? (
+                                                <a className="home-admin-link-out" href={item.video_url} title={item.video_url}>
+                                                  Abrir video
+                                                </a>
+                                              ) : (
+                                                <span className="home-admin-meta">Sem video</span>
+                                              )}
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
-                                      <div className="home-admin-form-grid">
-                                        <label className="home-admin-field">
-                                          <span>Ordem</span>
-                                          <input
-                                            form="home-roundup-form"
-                                            min={1}
-                                            name={`roundup_${item.id}_sort_order`}
-                                            type="number"
-                                            defaultValue={item.sort_order ?? index + 1}
-                                          />
-                                        </label>
-                                        <label className="home-admin-field">
-                                          <span>Etiqueta</span>
-                                          <input form="home-roundup-form" name={`roundup_${item.id}_label`} type="text" defaultValue={item.label ?? ""} />
-                                        </label>
-                                        <label className="home-admin-field">
-                                          <span>Tipo</span>
-                                          <select form="home-roundup-form" name={`roundup_${item.id}_type`} defaultValue={item.type ?? ""}>
-                                            <option value="">Sem tipo</option>
-                                            <option value="video">Video</option>
-                                            <option value="resumo">Resumo</option>
-                                            <option value="golos">Golos</option>
-                                            <option value="noticia">Noticia</option>
-                                          </select>
-                                        </label>
-                                        <label className="home-admin-field">
-                                          <span>Estado</span>
-                                          <select
-                                            form="home-roundup-form"
-                                            name={`roundup_${item.id}_status`}
-                                            defaultValue={item.status === "published" ? "published" : "draft"}
-                                          >
-                                            <option value="draft">Rascunho</option>
-                                            <option value="published">Publicado</option>
-                                          </select>
-                                        </label>
-                                        <label className="home-admin-field is-wide">
-                                          <span>Titulo</span>
-                                          <input form="home-roundup-form" name={`roundup_${item.id}_title`} type="text" defaultValue={item.title ?? ""} />
-                                        </label>
-                                        <label className="home-admin-field is-wide">
-                                          <span>Subtitulo / resumo</span>
-                                          <textarea
-                                            form="home-roundup-form"
-                                            name={`roundup_${item.id}_subtitle`}
-                                            rows={3}
-                                            defaultValue={item.subtitle ?? ""}
-                                          />
-                                        </label>
-                                        <label className="home-admin-field is-wide">
-                                          <span>Imagem</span>
-                                          <input form="home-roundup-form" name={`roundup_${item.id}_image_url`} type="url" defaultValue={item.image_url ?? ""} />
-                                        </label>
-                                        <label className="home-admin-field is-wide">
-                                          <span>URL do video</span>
-                                          <input form="home-roundup-form" name={`roundup_${item.id}_video_url`} type="text" defaultValue={item.video_url ?? ""} />
-                                        </label>
-                                        <label className="home-admin-field">
-                                          <span>Duracao</span>
-                                          <input form="home-roundup-form" name={`roundup_${item.id}_duration`} type="text" defaultValue={item.duration ?? ""} />
-                                        </label>
-                                      </div>
-                                    </fieldset>
+                                        <div className="home-admin-form-grid">
+                                          <label className="home-admin-field">
+                                            <span>Ordem</span>
+                                            <input
+                                              form={formId}
+                                              min={1}
+                                              name={`roundup_${item.id}_sort_order`}
+                                              type="number"
+                                              defaultValue={item.sort_order ?? index + 1}
+                                            />
+                                          </label>
+                                          <label className="home-admin-field">
+                                            <span>Etiqueta</span>
+                                            <input form={formId} name={`roundup_${item.id}_label`} type="text" defaultValue={item.label ?? ""} />
+                                          </label>
+                                          <label className="home-admin-field">
+                                            <span>Tipo</span>
+                                            <select form={formId} name={`roundup_${item.id}_type`} defaultValue={item.type ?? ""}>
+                                              <option value="">Sem tipo</option>
+                                              <option value="video">Video</option>
+                                              <option value="resumo">Resumo</option>
+                                              <option value="golos">Golos</option>
+                                              <option value="noticia">Noticia</option>
+                                            </select>
+                                          </label>
+                                          <label className="home-admin-field">
+                                            <span>Estado</span>
+                                            <select form={formId} name={`roundup_${item.id}_status`} defaultValue={item.status === "published" ? "published" : "draft"}>
+                                              <option value="draft">Rascunho</option>
+                                              <option value="published">Publicado</option>
+                                            </select>
+                                          </label>
+                                          <label className="home-admin-field is-wide">
+                                            <span>Titulo</span>
+                                            <input form={formId} name={`roundup_${item.id}_title`} type="text" defaultValue={item.title ?? ""} />
+                                          </label>
+                                          <label className="home-admin-field is-wide">
+                                            <span>Subtitulo / resumo</span>
+                                            <textarea form={formId} name={`roundup_${item.id}_subtitle`} rows={3} defaultValue={item.subtitle ?? ""} />
+                                          </label>
+                                          <label className="home-admin-field is-wide">
+                                            <span>Imagem</span>
+                                            <input form={formId} name={`roundup_${item.id}_image_url`} type="url" defaultValue={item.image_url ?? ""} />
+                                          </label>
+                                          <label className="home-admin-field is-wide">
+                                            <span>URL do video</span>
+                                            <input form={formId} name={`roundup_${item.id}_video_url`} type="text" defaultValue={item.video_url ?? ""} />
+                                          </label>
+                                          <label className="home-admin-field">
+                                            <span>Duracao</span>
+                                            <input form={formId} name={`roundup_${item.id}_duration`} type="text" defaultValue={item.duration ?? ""} />
+                                          </label>
+                                        </div>
+                                        <FeedbackMessage message={itemMessage(params, "roundup", anchor, `Item #${number}`)} />
+                                        <div className="home-admin-save-row">
+                                          <button form={formId} type="submit">Guardar item #{number}</button>
+                                        </div>
+                                      </fieldset>
+                                    </details>
                                   );
                                 })}
                               </div>
@@ -2386,26 +2460,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                   Sem videos/resumos com conteudo visivel. Os itens existentes continuam editaveis acima.
                                 </p>
                               ) : null}
-                              <div className="home-admin-save-row">
-                                <p>
-                                  Guarda apenas site_editorial_roundup_items. No laboratorio validado, estes itens alimentam
-                                  a zona Videos / Resumo / Roundup da Home.
-                                </p>
-                                <button form="home-roundup-form" type="submit">Guardar Videos / Resumo / Roundup</button>
-                              </div>
                             </div>
-                          </section>
-                          <section className="home-admin-form-section">
-                            <h4>Resumo de leitura</h4>
-                            <DetailList
-                              rows={[
-                                ["site_editorials", editorial.id ? codeValue(editorial.id) : "Sem registo"],
-                                ["site_editorial_highlights", `${highlights.length} itens`],
-                                ["site_editorial_latest_news", `${latestNews.length} itens`],
-                                ["site_editorial_roundup_items", `${roundupItems.length} itens`],
-                                ["site_featured_matches", `${featuredMatches.length} jogos`]
-                              ]}
-                            />
                           </section>
                         </div>
 
@@ -2532,8 +2587,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                               </div>
                             </section>
                             <div className="home-admin-final-zone-form" role="group" aria-label="Editar Zona Editorial Final">
-                              <input form="home-final-zone-form" type="hidden" name="action_type" value="update_final_zone" />
-                              <input form="home-final-zone-form" type="hidden" name="site_editorial_id" value={editorial.id} />
                               {latestNews.length === 0 ? (
                                 <p className="home-admin-muted-card home-admin-empty">
                                   Ainda nao existem itens guardados. Preenche uma das linhas abaixo para criar um item seguro em
@@ -2547,116 +2600,98 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                   const emptyLabel = item ? compactStateLabel(item.status, itemHasContent) : null;
                                   const cleanLink = item?.link_url?.trim();
                                   const cleanSubtitle = item?.subtitle?.trim();
+                                  const number = itemNumber(item?.sort_order, row.order);
+                                  const anchor = itemAnchor("home-final-item", number);
+                                  const formId = `home-final-zone-form-${row.key}`;
+                                  const summaryTitle = textValue(item?.title, "Sem titulo");
+                                  const summaryMeta = textValue(item?.time_label, "sem hora");
                                   const cardClass = [
                                     "home-admin-final-editor-card",
+                                    "home-admin-collapsible-editor",
                                     index === 0 ? "is-primary" : "",
                                     item && !itemHasContent ? "is-muted" : "",
                                     item ? "" : "is-new"
                                   ].filter(Boolean).join(" ");
 
                                   return (
-                                    <fieldset className={cardClass} key={row.key}>
-                                      <legend>Item {row.order}</legend>
-                                      <input form="home-final-zone-form" type="hidden" name="final_news_row" value={row.key} />
-                                      <input
-                                        form="home-final-zone-form"
-                                        type="hidden"
-                                        name={`final_news_${row.key}_id`}
-                                        defaultValue={item?.id ?? ""}
-                                      />
-                                      <div className="home-admin-final-editor-preview">
-                                        <div className="home-admin-row-media">
-                                          <MediaPreview label={textValue(item?.title, "Ultima noticia")} src={item?.image_url} />
-                                        </div>
-                                        <div className="home-admin-final-content">
-                                          <div className="home-admin-compact-meta">
-                                            <span className="home-admin-meta">
-                                              {item?.sort_order ?? row.order} | {textValue(item?.time_label, "sem hora")}
-                                            </span>
-                                            <StatusPill status={item?.status} />
+                                    <details className={cardClass} id={anchor} key={row.key} open={params.item === anchor}>
+                                      <summary>
+                                        <span className="home-admin-collapsible-title">
+                                          <strong>#{number} - {emptyLabel ?? summaryTitle}</strong>
+                                          <small>{summaryMeta}</small>
+                                        </span>
+                                        <StatusPill status={item?.status} />
+                                      </summary>
+                                      <fieldset className="home-admin-item-editor-fields">
+                                        <legend className="home-admin-sr-only">Editar item da Zona Editorial Final #{number}</legend>
+                                        <input form={formId} type="hidden" name="action_type" value="update_final_zone" />
+                                        <input form={formId} type="hidden" name="site_editorial_id" value={editorial.id} />
+                                        <input form={formId} type="hidden" name="return_anchor" value={anchor} />
+                                        <input form={formId} type="hidden" name="final_news_row" value={row.key} />
+                                        <input form={formId} type="hidden" name={`final_news_${row.key}_id`} defaultValue={item?.id ?? ""} />
+                                        <div className="home-admin-final-editor-preview">
+                                          <div className="home-admin-row-media">
+                                            <MediaPreview label={textValue(item?.title, "Ultima noticia")} src={item?.image_url} />
                                           </div>
-                                          <strong>{emptyLabel ?? textValue(item?.title, "Novo item editorial")}</strong>
-                                          {cleanSubtitle ? <p>{cleanSubtitle}</p> : null}
-                                          <div className="home-admin-final-link-row">
-                                            {cleanLink ? (
-                                              <a className="home-admin-link-out" href={cleanLink} title={cleanLink}>
-                                                Abrir link
-                                              </a>
-                                            ) : (
-                                              <span className="home-admin-meta">Sem link</span>
-                                            )}
+                                          <div className="home-admin-final-content">
+                                            <div className="home-admin-compact-meta">
+                                              <span className="home-admin-meta">
+                                                {item?.sort_order ?? row.order} | {summaryMeta}
+                                              </span>
+                                              <StatusPill status={item?.status} />
+                                            </div>
+                                            <strong>{emptyLabel ?? textValue(item?.title, "Novo item editorial")}</strong>
+                                            {cleanSubtitle ? <p>{cleanSubtitle}</p> : null}
+                                            <div className="home-admin-final-link-row">
+                                              {cleanLink ? (
+                                                <a className="home-admin-link-out" href={cleanLink} title={cleanLink}>
+                                                  Abrir link
+                                                </a>
+                                              ) : (
+                                                <span className="home-admin-meta">Sem link</span>
+                                              )}
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
-                                      <div className="home-admin-form-grid">
-                                        <label className="home-admin-field">
-                                          <span>Ordem</span>
-                                          <input
-                                            form="home-final-zone-form"
-                                            min={1}
-                                            name={`final_news_${row.key}_sort_order`}
-                                            type="number"
-                                            defaultValue={item?.sort_order ?? row.order}
-                                          />
-                                        </label>
-                                        <label className="home-admin-field">
-                                          <span>Hora / etiqueta temporal</span>
-                                          <input
-                                            form="home-final-zone-form"
-                                            name={`final_news_${row.key}_time_label`}
-                                            type="text"
-                                            defaultValue={item?.time_label ?? ""}
-                                          />
-                                        </label>
-                                        <label className="home-admin-field">
-                                          <span>Estado</span>
-                                          <select
-                                            form="home-final-zone-form"
-                                            name={`final_news_${row.key}_status`}
-                                            defaultValue={item?.status === "published" ? "published" : "draft"}
-                                          >
-                                            <option value="draft">Rascunho</option>
-                                            <option value="published">Publicado</option>
-                                          </select>
-                                        </label>
-                                        <label className="home-admin-field is-wide">
-                                          <span>Titulo</span>
-                                          <input
-                                            form="home-final-zone-form"
-                                            name={`final_news_${row.key}_title`}
-                                            type="text"
-                                            defaultValue={item?.title ?? ""}
-                                          />
-                                        </label>
-                                        <label className="home-admin-field is-wide">
-                                          <span>Subtitulo / resumo</span>
-                                          <textarea
-                                            form="home-final-zone-form"
-                                            name={`final_news_${row.key}_subtitle`}
-                                            rows={3}
-                                            defaultValue={item?.subtitle ?? ""}
-                                          />
-                                        </label>
-                                        <label className="home-admin-field is-wide">
-                                          <span>Imagem</span>
-                                          <input
-                                            form="home-final-zone-form"
-                                            name={`final_news_${row.key}_image_url`}
-                                            type="url"
-                                            defaultValue={item?.image_url ?? ""}
-                                          />
-                                        </label>
-                                        <label className="home-admin-field is-wide">
-                                          <span>Link</span>
-                                          <input
-                                            form="home-final-zone-form"
-                                            name={`final_news_${row.key}_link_url`}
-                                            type="text"
-                                            defaultValue={item?.link_url ?? ""}
-                                          />
-                                        </label>
-                                      </div>
-                                    </fieldset>
+                                        <div className="home-admin-form-grid">
+                                          <label className="home-admin-field">
+                                            <span>Ordem</span>
+                                            <input form={formId} min={1} name={`final_news_${row.key}_sort_order`} type="number" defaultValue={item?.sort_order ?? row.order} />
+                                          </label>
+                                          <label className="home-admin-field">
+                                            <span>Hora / etiqueta temporal</span>
+                                            <input form={formId} name={`final_news_${row.key}_time_label`} type="text" defaultValue={item?.time_label ?? ""} />
+                                          </label>
+                                          <label className="home-admin-field">
+                                            <span>Estado</span>
+                                            <select form={formId} name={`final_news_${row.key}_status`} defaultValue={item?.status === "published" ? "published" : "draft"}>
+                                              <option value="draft">Rascunho</option>
+                                              <option value="published">Publicado</option>
+                                            </select>
+                                          </label>
+                                          <label className="home-admin-field is-wide">
+                                            <span>Titulo</span>
+                                            <input form={formId} name={`final_news_${row.key}_title`} type="text" defaultValue={item?.title ?? ""} />
+                                          </label>
+                                          <label className="home-admin-field is-wide">
+                                            <span>Subtitulo / resumo</span>
+                                            <textarea form={formId} name={`final_news_${row.key}_subtitle`} rows={3} defaultValue={item?.subtitle ?? ""} />
+                                          </label>
+                                          <label className="home-admin-field is-wide">
+                                            <span>Imagem</span>
+                                            <input form={formId} name={`final_news_${row.key}_image_url`} type="url" defaultValue={item?.image_url ?? ""} />
+                                          </label>
+                                          <label className="home-admin-field is-wide">
+                                            <span>Link</span>
+                                            <input form={formId} name={`final_news_${row.key}_link_url`} type="text" defaultValue={item?.link_url ?? ""} />
+                                          </label>
+                                        </div>
+                                        <FeedbackMessage message={itemMessage(params, "final-zone", anchor, `Item #${number}`)} />
+                                        <div className="home-admin-save-row">
+                                          <button form={formId} type="submit">Guardar item #{number}</button>
+                                        </div>
+                                      </fieldset>
+                                    </details>
                                   );
                                 })}
                               </div>
@@ -2666,13 +2701,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                   Estes itens continuam editaveis acima sem criar campos novos.
                                 </p>
                               ) : null}
-                              <div className="home-admin-save-row">
-                                <p>
-                                  Guarda apenas site_editorial_latest_news. Usa ordem, hora, titulo, subtitulo/resumo,
-                                  imagem, link e estado.
-                                </p>
-                                <button form="home-final-zone-form" type="submit">Guardar Zona Editorial Final</button>
-                              </div>
                             </div>
                           </section>
                         </div>

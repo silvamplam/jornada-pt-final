@@ -112,6 +112,19 @@ function cleanInteger(value: FormDataEntryValue | null) {
   return parsed;
 }
 
+function cleanReturnAnchor(value: FormDataEntryValue | null) {
+  const cleanValue = cleanText(value);
+  if (!cleanValue) {
+    return null;
+  }
+
+  if (/^home-(roundup|final)-item-\d{2,3}$/.test(cleanValue)) {
+    return cleanValue;
+  }
+
+  return null;
+}
+
 function uniqueCleanMatchIds(values: FormDataEntryValue[]) {
   const ids: string[] = [];
   const seen = new Set<string>();
@@ -478,6 +491,7 @@ async function updateHighlights(request: Request, formData: FormData) {
 
 async function updateRoundupItems(request: Request, formData: FormData) {
   const siteEditorialId = cleanText(formData.get("site_editorial_id"));
+  const returnAnchor = cleanReturnAnchor(formData.get("return_anchor"));
   if (!siteEditorialId) {
     throw new HomeEditorialAdminError("missing-home-editorial");
   }
@@ -537,11 +551,15 @@ async function updateRoundupItems(request: Request, formData: FormData) {
     });
   }
 
-  return redirectTo(request, { saved: "roundup" }, contextAnchors.roundup);
+  return redirectTo(request, {
+    saved: "roundup",
+    ...(returnAnchor ? { item: returnAnchor } : {})
+  }, returnAnchor ?? contextAnchors.roundup);
 }
 
 async function updateFinalZone(request: Request, formData: FormData) {
   const siteEditorialId = cleanText(formData.get("site_editorial_id"));
+  const returnAnchor = cleanReturnAnchor(formData.get("return_anchor"));
   if (!siteEditorialId) {
     throw new HomeEditorialAdminError("missing-home-editorial");
   }
@@ -599,7 +617,10 @@ async function updateFinalZone(request: Request, formData: FormData) {
     });
   }
 
-  return redirectTo(request, { saved: "final-zone" }, contextAnchors["final-zone"]);
+  return redirectTo(request, {
+    saved: "final-zone",
+    ...(returnAnchor ? { item: returnAnchor } : {})
+  }, returnAnchor ?? contextAnchors["final-zone"]);
 }
 
 export async function POST(request: Request) {
@@ -656,11 +677,14 @@ export async function POST(request: Request) {
 
     return redirectTo(request, { saved: saveContext }, contextAnchors[saveContext]);
   } catch (error) {
+    const returnAnchor = cleanReturnAnchor(formData.get("return_anchor"));
+
     return redirectTo(request, {
       error: classifyError(error),
       failed: saveContext,
       detail: sanitizeErrorText(error instanceof Error ? error.message : String(error)),
-      ...(saveContext === "games" ? gameFilterParams(formData) : {})
-    }, contextAnchors[saveContext]);
+      ...(saveContext === "games" ? gameFilterParams(formData) : {}),
+      ...(returnAnchor ? { item: returnAnchor } : {})
+    }, returnAnchor ?? contextAnchors[saveContext]);
   }
 }
