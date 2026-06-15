@@ -71,6 +71,7 @@ type SiteLatestNews = {
   id: string;
   time_label: string | null;
   title: string | null;
+  subtitle: string | null;
   link_url: string | null;
   image_url: string | null;
   sort_order: number;
@@ -200,7 +201,7 @@ async function readHomeRoundupItems(siteEditorialId: string) {
 
 async function readHomeLatestNews(siteEditorialId: string) {
   return fetchSupabaseAdminTable<SiteLatestNews>(
-    `site_editorial_latest_news?select=id,time_label,title,link_url,image_url,sort_order,status&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}&status=eq.published&order=sort_order.asc&limit=8`
+    `site_editorial_latest_news?select=id,time_label,title,subtitle,link_url,image_url,sort_order,status&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}&status=eq.published&order=sort_order.asc&limit=8`
   ).catch(() => []);
 }
 
@@ -387,6 +388,7 @@ export default async function HomePage({
     id: item.id,
     timeLabel: cleanText(item.time_label),
     title: cleanText(item.title) || "Noticia",
+    subtitle: cleanText(item.subtitle),
     imageUrl: cleanText(item.image_url),
     linkUrl: cleanText(item.link_url)
   }));
