@@ -440,6 +440,163 @@ function ComplementVisualPreview({ editorial, hasComplement }: { editorial: Site
   );
 }
 
+function ComplementHomeFitTrial({ editorial, hasComplement }: { editorial: SiteEditorial | null; hasComplement: boolean }) {
+  const status = complementStatus(editorial, hasComplement);
+  const imageUrl = cleanText(editorial?.complementary_image_url);
+  const label = cleanText(editorial?.complementary_label);
+  const title = cleanText(editorial?.complementary_title);
+  const text = cleanText(editorial?.complementary_text);
+  const linkUrl = cleanText(editorial?.complementary_link_url);
+  const mode = cleanText(editorial?.complementary_mode);
+  const roundupItemId = cleanText(editorial?.complementary_roundup_item_id);
+  const missingFields = complementMissingFields(editorial);
+  const incomplete = hasComplement && missingFields.length > 0;
+
+  return (
+    <section
+      style={{
+        border: "1px solid #dfe3ea",
+        borderRadius: 16,
+        background: "#fff",
+        padding: 22
+      }}
+    >
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
+        <div>
+          <p style={{ margin: "0 0 8px", color: "#667085", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
+            Ensaio de encaixe na Home &mdash; Complemento
+          </p>
+          <h2 style={{ margin: 0, color: "#111827", fontSize: 24, lineHeight: 1.15 }}>Simulacao isolada do encaixe editorial</h2>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start" }}>
+          <span
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: 999,
+              color: status === "published" ? "#027a48" : "#667085",
+              background: status === "published" ? "#ecfdf3" : "#f9fafb",
+              fontSize: 12,
+              fontWeight: 800,
+              padding: "6px 10px"
+            }}
+          >
+            {status}
+          </span>
+          <span
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: 999,
+              color: "#475467",
+              background: "#f9fafb",
+              fontSize: 12,
+              fontWeight: 800,
+              padding: "6px 10px"
+            }}
+          >
+            modo: {mode ?? "sem modo"}
+          </span>
+        </div>
+      </div>
+
+      {!editorial || !hasComplement ? (
+        <div style={{ border: "1px dashed #d0d5dd", borderRadius: 14, background: "#f9fafb", padding: 22 }}>
+          <h3 style={{ margin: 0, color: "#111827", fontSize: 22, lineHeight: 1.15 }}>Complemento da Manchete nao configurado.</h3>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1.45fr) minmax(260px, 0.75fr)",
+            gap: 18,
+            alignItems: "stretch",
+            border: "1px solid #edf0f5",
+            borderRadius: 16,
+            background: "#f8fafc",
+            padding: 16
+          }}
+        >
+          <div
+            style={{
+              border: "1px dashed #d0d5dd",
+              borderRadius: 14,
+              background: "#fff",
+              minHeight: 320,
+              padding: 22,
+              display: "grid",
+              alignContent: "center",
+              gap: 10
+            }}
+          >
+            <span style={{ color: "#667085", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
+              Espaco editorial da Home
+            </span>
+            <h3 style={{ color: "#111827", fontSize: 30, lineHeight: 1.08, margin: 0 }}>Manchete e blocos principais preservados</h3>
+            <p style={{ color: "#667085", fontSize: 15, lineHeight: 1.5, margin: 0 }}>
+              Este lado e apenas uma moldura visual para perceber o encaixe. A Home real nao e importada nem alterada.
+            </p>
+          </div>
+
+          <article
+            style={{
+              border: "1px solid #dfe3ea",
+              borderRadius: 14,
+              background: "#fff",
+              overflow: "hidden",
+              display: "grid",
+              gridTemplateRows: imageUrl ? "170px auto" : "auto",
+              minHeight: 320
+            }}
+          >
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={title ?? "Complemento da Manchete"}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  background: "#f2f4f7"
+                }}
+              />
+            ) : null}
+            <div style={{ display: "grid", gap: 9, padding: 16, alignContent: "start" }}>
+              {label ? (
+                <span style={{ color: "#b42318", fontSize: 11, fontWeight: 900, textTransform: "uppercase" }}>{label}</span>
+              ) : null}
+              <h3 style={{ color: "#101828", fontSize: 22, lineHeight: 1.1, margin: 0 }}>{title ?? "Sem titulo preenchido"}</h3>
+              {text ? <p style={{ color: "#475467", fontSize: 14, lineHeight: 1.45, margin: 0 }}>{text}</p> : null}
+              {linkUrl ? (
+                <a
+                  href={linkUrl}
+                  style={{
+                    color: "#175cd3",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    marginTop: 2,
+                    overflowWrap: "anywhere",
+                    textDecoration: "none"
+                  }}
+                >
+                  {linkUrl}
+                </a>
+              ) : null}
+              {roundupItemId ? (
+                <code style={{ color: "#667085", fontSize: 11, overflowWrap: "anywhere" }}>roundup_item_id: {roundupItemId}</code>
+              ) : null}
+            </div>
+          </article>
+        </div>
+      )}
+
+      {incomplete ? (
+        <p style={{ color: "#92400e", fontSize: 13, margin: "12px 0 0" }}>
+          Aviso: campos essenciais em falta para este encaixe: {missingFields.join(", ")}.
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 export default async function HomeLabDiagnosticoPage() {
   const data = await readHomeLabData();
   const { editorial, highlights, latestNews, roundupItems, featuredMatches, error } = data;
@@ -559,6 +716,7 @@ export default async function HomeLabDiagnosticoPage() {
 
         <ComplementPreview editorial={editorial} hasComplement={hasComplement} />
         <ComplementVisualPreview editorial={editorial} hasComplement={hasComplement} />
+        <ComplementHomeFitTrial editorial={editorial} hasComplement={hasComplement} />
 
         <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
           <article style={{ border: "1px solid #dfe3ea", borderRadius: 12, background: "#fff", padding: 18 }}>
