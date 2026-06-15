@@ -85,6 +85,25 @@ function shortValue(value: string | null | undefined) {
   return cleanValue.length > 72 ? `${cleanValue.slice(0, 69)}...` : cleanValue;
 }
 
+function complementStatus(editorial: SiteEditorial | null, hasComplement: boolean) {
+  if (!editorial || !hasComplement) return "vazio";
+  return cleanText(editorial.complementary_status) ?? "sem estado";
+}
+
+function complementMissingFields(editorial: SiteEditorial | null) {
+  if (!editorial) return ["label", "titulo", "texto", "imagem", "link"];
+
+  const fields: Array<[string, string | null | undefined]> = [
+    ["label", editorial.complementary_label],
+    ["titulo", editorial.complementary_title],
+    ["texto", editorial.complementary_text],
+    ["imagem", editorial.complementary_image_url],
+    ["link", editorial.complementary_link_url]
+  ];
+
+  return fields.filter(([, value]) => !cleanText(value)).map(([label]) => label);
+}
+
 async function readHomeLabData(): Promise<HomeLabData> {
   try {
     const editorials = await fetchSupabaseAdminTable<SiteEditorial>("site_editorials?select=*&slug=eq.home&limit=1");
@@ -176,6 +195,117 @@ function ItemList({ items }: { items: SiteEditorialItem[] }) {
         </li>
       ))}
     </ol>
+  );
+}
+
+function ComplementPreview({ editorial, hasComplement }: { editorial: SiteEditorial | null; hasComplement: boolean }) {
+  if (!editorial || !hasComplement) {
+    return (
+      <section style={{ border: "1px solid #dfe3ea", borderRadius: 12, background: "#fff", padding: 18 }}>
+        <p style={{ margin: "0 0 8px", color: "#667085", fontSize: 12, fontWeight: 800, textTransform: "uppercase" }}>
+          Pré-visualização — Complemento da Manchete
+        </p>
+        <h2 style={{ margin: 0, fontSize: 22 }}>Complemento da Manchete nao configurado.</h2>
+      </section>
+    );
+  }
+
+  const imageUrl = cleanText(editorial.complementary_image_url);
+  const linkUrl = cleanText(editorial.complementary_link_url);
+  const missingFields = complementMissingFields(editorial);
+  const incomplete = missingFields.length > 0;
+
+  return (
+    <section style={{ border: "1px solid #dfe3ea", borderRadius: 12, background: "#fff", padding: 18 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+        <div>
+          <p style={{ margin: "0 0 8px", color: "#667085", fontSize: 12, fontWeight: 800, textTransform: "uppercase" }}>
+            Pré-visualização — Complemento da Manchete
+          </p>
+          <h2 style={{ margin: 0, fontSize: 22 }}>Vista isolada do complemento</h2>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <span
+            style={{
+              border: "1px solid #dfe3ea",
+              borderRadius: 999,
+              color: "#344054",
+              fontSize: 12,
+              fontWeight: 800,
+              padding: "6px 10px"
+            }}
+          >
+            estado: {complementStatus(editorial, hasComplement)}
+          </span>
+          <span
+            style={{
+              border: "1px solid #dfe3ea",
+              borderRadius: 999,
+              color: "#344054",
+              fontSize: 12,
+              fontWeight: 800,
+              padding: "6px 10px"
+            }}
+          >
+            modo: {cleanText(editorial.complementary_mode) ?? "sem modo"}
+          </span>
+        </div>
+      </div>
+
+      <article
+        style={{
+          display: "grid",
+          gridTemplateColumns: imageUrl ? "minmax(0, 1fr) minmax(220px, 340px)" : "1fr",
+          gap: 16,
+          marginTop: 16,
+          alignItems: "start"
+        }}
+      >
+        <div style={{ display: "grid", gap: 8 }}>
+          {cleanText(editorial.complementary_label) ? (
+            <span style={{ color: "#b42318", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
+              {cleanText(editorial.complementary_label)}
+            </span>
+          ) : null}
+          <h3 style={{ color: "#111827", fontSize: 26, lineHeight: 1.12, margin: 0 }}>
+            {cleanText(editorial.complementary_title) ?? "Sem titulo preenchido"}
+          </h3>
+          {cleanText(editorial.complementary_text) ? (
+            <p style={{ color: "#475467", fontSize: 15, lineHeight: 1.5, margin: 0 }}>{cleanText(editorial.complementary_text)}</p>
+          ) : null}
+          {linkUrl ? (
+            <code style={{ color: "#475467", fontSize: 12, overflowWrap: "anywhere" }}>link: {linkUrl}</code>
+          ) : null}
+          {cleanText(editorial.complementary_roundup_item_id) ? (
+            <code style={{ color: "#475467", fontSize: 12, overflowWrap: "anywhere" }}>
+              roundup_item_id: {editorial.complementary_roundup_item_id}
+            </code>
+          ) : null}
+          {incomplete ? (
+            <p style={{ color: "#92400e", fontSize: 13, margin: "4px 0 0" }}>
+              Complemento incompleto: faltam {missingFields.join(", ")}.
+            </p>
+          ) : (
+            <p style={{ color: "#047857", fontSize: 13, margin: "4px 0 0" }}>Complemento com campos principais preenchidos.</p>
+          )}
+        </div>
+
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={cleanText(editorial.complementary_title) ?? "Complemento da Manchete"}
+            style={{
+              width: "100%",
+              maxHeight: 220,
+              objectFit: "cover",
+              borderRadius: 10,
+              border: "1px solid #edf0f5",
+              background: "#f2f4f7"
+            }}
+          />
+        ) : null}
+      </article>
+    </section>
   );
 }
 
@@ -295,6 +425,8 @@ export default async function HomeLabDiagnosticoPage() {
             </article>
           </aside>
         </section>
+
+        <ComplementPreview editorial={editorial} hasComplement={hasComplement} />
 
         <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
           <article style={{ border: "1px solid #dfe3ea", borderRadius: 12, background: "#fff", padding: 18 }}>
