@@ -2772,6 +2772,30 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
   const belowHeadlineHeadingColor = editorial?.below_headline_heading_color?.trim();
   const belowHeadlineLabel = belowHeadlineMode === "highlights" ? belowHeadlineHeading : `Jornada ${String(context.matchday.number).padStart(2, "0")}`;
   const belowHeadlineLabelColor = belowHeadlineMode === "highlights" ? belowHeadlineHeadingColor : null;
+  const referenceHighlightItems = usePublishedReferenceComposition
+    ? [...(context.referenceSlots.highlight ?? [])]
+        .filter(hasReferenceSlotContent)
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((item) => ({
+          id: item.id,
+          label: cleanReferenceSnapshotText(item.label_snapshot),
+          title: cleanReferenceSnapshotText(item.title_snapshot) || "Destaque da jornada",
+          subtitle: cleanReferenceSnapshotText(item.subtitle_snapshot),
+          imageUrl: cleanReferenceSnapshotText(item.image_url_snapshot),
+          linkUrl: cleanReferenceSnapshotText(item.link_url_snapshot)
+        }))
+    : [];
+  const effectiveHighlights =
+    referenceHighlightItems.length > 0
+      ? referenceHighlightItems
+      : context.highlights.map((highlight) => ({
+          id: highlight.id,
+          label: highlight.label?.trim() || null,
+          title: highlight.title?.trim() || "Destaque da jornada",
+          subtitle: null,
+          imageUrl: highlight.image_url?.trim() || null,
+          linkUrl: highlight.link_url?.trim() || null
+        }));
   const hasPublishedComplementaryStory = usePublishedReferenceComposition
     ? hasReferenceSlotContent(referenceComplement)
     : complementaryMode === "complementary_story" &&
@@ -3050,10 +3074,10 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                 </div>
                 <div className="public-cover-story-strip" aria-label="Resumos e destaques da jornada">
               {belowHeadlineMode === "highlights" ? (
-                context.highlights.length > 0 ? (
-                  context.highlights.map((highlight) => {
-                    const imageUrl = highlight.image_url?.trim();
-                    const highlightLinkUrl = highlight.link_url?.trim() || null;
+                effectiveHighlights.length > 0 ? (
+                  effectiveHighlights.map((highlight) => {
+                    const imageUrl = highlight.imageUrl;
+                    const highlightLinkUrl = highlight.linkUrl;
                     return (
                       <article className="public-cover-story" key={highlight.id}>
                         {highlightLinkUrl ? (
@@ -3075,6 +3099,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                         ) : (
                           <strong>{highlight.title}</strong>
                         )}
+                        {highlight.subtitle ? <small>{highlight.subtitle}</small> : null}
                       </article>
                     );
                   })
