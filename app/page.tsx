@@ -342,10 +342,14 @@ export default async function HomePage() {
   const sideBlockLinkUrl = cleanText(editorial?.side_block_link_url);
   const sideBlockTitleColor = cleanText(editorial?.side_block_title_color);
   const complementaryMode = editorial?.complementary_mode ?? "none";
+  const complementaryLabel = cleanText(editorial?.complementary_label);
+  const complementaryTitle = cleanText(editorial?.complementary_title);
+  const complementaryText = cleanText(editorial?.complementary_text);
+  const complementaryImageUrl = cleanText(editorial?.complementary_image_url);
+  const complementaryLinkUrl = cleanText(editorial?.complementary_link_url);
   const hasComplementaryStory =
-    complementaryMode === "complementary_story" &&
     editorial?.complementary_status === "published" &&
-    Boolean(cleanText(editorial.complementary_title) || cleanText(editorial.complementary_text));
+    Boolean(complementaryTitle || complementaryText || complementaryImageUrl);
   const visibleHighlights = highlights.length > 0 ? highlights : fallbackHighlights;
   const hasRoundupVideoBlock = (belowHeadlineMode === "roundup" || complementaryMode === "roundup_video") && roundupItems.length > 0;
   const publicHighlights: PublicEditorialHighlight[] = visibleHighlights.slice(0, 3).map((item) => ({
@@ -422,11 +426,11 @@ export default async function HomePage() {
           initialRoundupItemId: editorial?.complementary_roundup_item_id ?? null,
           complementary: {
             isPublished: Boolean(hasComplementaryStory && editorial),
-            label: editorial?.complementary_label ?? null,
-            title: editorial?.complementary_title ?? null,
-            text: editorial?.complementary_text ?? null,
-            imageUrl: editorial?.complementary_image_url ?? null,
-            linkUrl: editorial?.complementary_link_url ?? null,
+            label: complementaryLabel,
+            title: complementaryTitle,
+            text: complementaryText,
+            imageUrl: complementaryImageUrl,
+            linkUrl: complementaryLinkUrl,
             fallbackTitle: "Leitura editorial",
             fallbackText: "O complemento da capa fica reservado para a proxima historia publicada."
           }
