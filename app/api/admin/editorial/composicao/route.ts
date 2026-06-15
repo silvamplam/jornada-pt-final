@@ -88,6 +88,20 @@ type CurrentLatestNews = {
   status: string | null;
 };
 
+type CurrentImportantReferenceItem = {
+  id: string;
+  slot_type: string | null;
+  source_type: string | null;
+  source_id: string | null;
+  sort_order: number;
+  title_snapshot: string | null;
+  subtitle_snapshot: string | null;
+  image_url_snapshot: string | null;
+  link_url_snapshot: string | null;
+  label_snapshot: string | null;
+  status: string | null;
+};
+
 type CurrentRoundupItem = {
   id: string;
   label: string | null;
@@ -133,6 +147,39 @@ type CompositionMoveItem = {
   source_type: string | null;
 };
 
+type MatchdayEditorialBankCandidate = {
+  matchday_id: string;
+  label: string | null;
+  title: string;
+  subtitle: string | null;
+  image_url: string | null;
+  link_url: string | null;
+  source_type: string | null;
+  source_id: string | null;
+  source_slug: string | null;
+  origin_slot_type: string | null;
+  sort_order: number | null;
+  status: "active";
+};
+
+type ExistingBankItem = {
+  id: string;
+  source_type: string | null;
+  source_id: string | null;
+  source_slug: string | null;
+  link_url: string | null;
+  title: string | null;
+  subtitle: string | null;
+  image_url: string | null;
+};
+
+type SaveBankResult = {
+  saved: number;
+  existing: number;
+  repeated: number;
+  skipped: number;
+};
+
 class CompositionPublicationError extends Error {
   constructor(message: string) {
     super(message);
@@ -164,6 +211,131 @@ function hasContent(...values: Array<string | null | undefined>) {
 
 function isPublished(status?: string | null) {
   return status === "published";
+}
+
+function cleanSnapshotValue(value?: string | null) {
+  const trimmed = value?.trim();
+  return trimmed || null;
+}
+
+function sourceSlugFromLink(linkUrl?: string | null) {
+  const cleanLink = cleanSnapshotValue(linkUrl);
+  const prefix = "/noticias/";
+
+  if (!cleanLink?.startsWith(prefix)) {
+    return null;
+  }
+
+  return cleanSnapshotValue(cleanLink.slice(prefix.length).split(/[?#]/)[0]);
+}
+
+function bankCandidate({
+  matchdayId,
+  label,
+  title,
+  subtitle,
+  imageUrl,
+  linkUrl,
+  sourceType,
+  sourceId,
+  sourceSlug,
+  originSlotType,
+  sortOrder
+}: {
+  matchdayId: string;
+  label?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  imageUrl?: string | null;
+  linkUrl?: string | null;
+  sourceType?: string | null;
+  sourceId?: string | null;
+  sourceSlug?: string | null;
+  originSlotType?: string | null;
+  sortOrder?: number | null;
+}): MatchdayEditorialBankCandidate | null {
+  const cleanTitle = cleanSnapshotValue(title);
+
+  if (!cleanTitle) {
+    return null;
+  }
+
+  const cleanLink = cleanSnapshotValue(linkUrl);
+
+  return {
+    matchday_id: matchdayId,
+    label: cleanSnapshotValue(label),
+    title: cleanTitle,
+    subtitle: cleanSnapshotValue(subtitle),
+    image_url: cleanSnapshotValue(imageUrl),
+    link_url: cleanLink,
+    source_type: cleanSnapshotValue(sourceType),
+    source_id: cleanSnapshotValue(sourceId),
+    source_slug: cleanSnapshotValue(sourceSlug) ?? sourceSlugFromLink(cleanLink),
+    origin_slot_type: cleanSnapshotValue(originSlotType),
+    sort_order: sortOrder ?? null,
+    status: "active"
+  };
+}
+
+type BankIdentityInput = {
+  link_url?: string | null;
+  source_slug?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  image_url?: string | null;
+  source_type?: string | null;
+  source_id?: string | null;
+};
+
+function normalizeEditorialIdentityValue(value?: string | null) {
+  return value?.trim().replace(/\s+/g, " ").toLowerCase() ?? "";
+}
+
+function normalizeEditorialLinkValue(value?: string | null) {
+  const normalized = normalizeEditorialIdentityValue(value);
+  return normalized ? normalized.split(/[?#]/)[0].replace(/\/$/, "") : "";
+}
+
+function bankEditorialIdentityParts(item: BankIdentityInput) {
+  const title = normalizeEditorialIdentityValue(item.title);
+  const subtitle = normalizeEditorialIdentityValue(item.subtitle);
+  const imageUrl = normalizeEditorialLinkValue(item.image_url);
+  const sourceType = normalizeIdentityValue(item.source_type);
+  const sourceId = normalizeIdentityValue(item.source_id);
+  const parts: Array<{ kind: string; key: string }> = [];
+
+  const linkUrl = normalizeEditorialLinkValue(item.link_url);
+  if (linkUrl) parts.push({ kind: "link", key: linkUrl });
+
+  const sourceSlug = normalizeEditorialIdentityValue(item.source_slug);
+  if (sourceSlug) parts.push({ kind: "slug", key: sourceSlug });
+
+  if (title && imageUrl) parts.push({ kind: "title_image", key: `${title}|${imageUrl}` });
+  if (title && subtitle) parts.push({ kind: "title_subtitle", key: `${title}|${subtitle}` });
+  if (sourceType && sourceId) parts.push({ kind: "source", key: `${sourceType}|${sourceId}` });
+
+  return parts;
+}
+
+function bankIdentitiesMatch(left: BankIdentityInput, right: BankIdentityInput) {
+  const leftParts = bankEditorialIdentityParts(left);
+  const rightParts = bankEditorialIdentityParts(right);
+
+  for (const kind of ["link", "slug", "title_image", "title_subtitle", "source"]) {
+    const leftKeys = new Set(leftParts.filter((part) => part.kind === kind).map((part) => part.key));
+    const rightKeys = rightParts.filter((part) => part.kind === kind).map((part) => part.key);
+
+    if (leftKeys.size === 0 || rightKeys.length === 0) {
+      continue;
+    }
+
+    if (rightKeys.some((key) => leftKeys.has(key))) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function validatePublishableCompositionItems(items: CompositionPublicationItem[]) {
@@ -292,6 +464,210 @@ async function readMaxSortOrderForSlot(compositionId: string, slotType: string) 
     )}&slot_type=eq.${encodeURIComponent(slotType)}&order=sort_order.desc`
   );
   return row?.sort_order ?? 0;
+}
+
+async function readPublishedImportantReferenceItems(matchdayId: string) {
+  const composition = await readFirst<{ id: string }>(
+    `matchday_reference_compositions?select=id&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&status=eq.published&is_current=is.true&order=published_at.desc.nullslast`
+  );
+
+  if (!composition) {
+    return [];
+  }
+
+  return fetchSupabaseAdminTable<CurrentImportantReferenceItem>(
+    `matchday_reference_composition_items?select=id,slot_type,source_type,source_id,sort_order,title_snapshot,subtitle_snapshot,image_url_snapshot,link_url_snapshot,label_snapshot,status&composition_id=eq.${encodeURIComponent(
+      composition.id
+    )}&slot_type=eq.important_item&order=sort_order.asc&limit=50`
+  ).catch(() => []);
+}
+
+async function buildCurrentBankCandidates(matchdayId: string): Promise<MatchdayEditorialBankCandidate[]> {
+  const [editorial, highlights, latestNews, importantItems] = await Promise.all([
+    readFirst<CurrentEditorial>(
+      `matchday_editorials?select=id,title,summary,image_url,headline_link_url,complementary_mode,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,side_block_status,side_block_type,side_block_label,side_block_title,side_block_text,side_block_image_url,side_block_link_url&matchday_id=eq.${encodeURIComponent(
+        matchdayId
+      )}`
+    ),
+    fetchSupabaseAdminTable<CurrentHighlight>(
+      `matchday_highlights?select=id,label,title,image_url,link_url,sort_order,status&matchday_id=eq.${encodeURIComponent(
+        matchdayId
+      )}&status=eq.published&order=sort_order.asc&limit=50`
+    ).catch(() => []),
+    fetchSupabaseAdminTable<CurrentLatestNews>(
+      `matchday_latest_news?select=id,time_label,title,subtitle,image_url,link_url,sort_order,status&matchday_id=eq.${encodeURIComponent(
+        matchdayId
+      )}&status=eq.published&order=sort_order.asc&limit=50`
+    ).catch(() => []),
+    readPublishedImportantReferenceItems(matchdayId)
+  ]);
+
+  const candidates: Array<MatchdayEditorialBankCandidate | null> = [];
+
+  if (editorial && hasContent(editorial.title, editorial.summary, editorial.image_url)) {
+    candidates.push(
+      bankCandidate({
+        matchdayId,
+        title: editorial.title,
+        subtitle: editorial.summary,
+        imageUrl: editorial.image_url,
+        linkUrl: editorial.headline_link_url,
+        sourceType: "matchday_editorial_headline",
+        sourceId: editorial.id,
+        originSlotType: "headline",
+        sortOrder: 1
+      })
+    );
+  }
+
+  if (
+    editorial &&
+    Boolean(editorial.complementary_mode) &&
+    editorial.complementary_mode !== "none" &&
+    isPublished(editorial.complementary_status) &&
+    hasContent(editorial.complementary_title, editorial.complementary_text, editorial.complementary_image_url)
+  ) {
+    candidates.push(
+      bankCandidate({
+        matchdayId,
+        label: editorial.complementary_label,
+        title: editorial.complementary_title,
+        subtitle: editorial.complementary_text,
+        imageUrl: editorial.complementary_image_url,
+        linkUrl: editorial.complementary_link_url,
+        sourceType: "matchday_editorial_complement",
+        sourceId: editorial.id,
+        originSlotType: "complement",
+        sortOrder: 2
+      })
+    );
+  }
+
+  if (editorial && isPublished(editorial.side_block_status) && hasContent(editorial.side_block_title, editorial.side_block_text, editorial.side_block_image_url)) {
+    candidates.push(
+      bankCandidate({
+        matchdayId,
+        label: editorial.side_block_label || editorial.side_block_type,
+        title: editorial.side_block_title,
+        subtitle: editorial.side_block_text,
+        imageUrl: editorial.side_block_image_url,
+        linkUrl: editorial.side_block_link_url,
+        sourceType: "matchday_editorial_side_block",
+        sourceId: editorial.id,
+        originSlotType: "side_block",
+        sortOrder: 3
+      })
+    );
+  }
+
+  highlights.forEach((item) => {
+    candidates.push(
+      bankCandidate({
+        matchdayId,
+        label: item.label,
+        title: item.title,
+        imageUrl: item.image_url,
+        linkUrl: item.link_url,
+        sourceType: "matchday_highlight",
+        sourceId: item.id,
+        originSlotType: "highlight",
+        sortOrder: 10 + item.sort_order
+      })
+    );
+  });
+
+  latestNews.forEach((item) => {
+    candidates.push(
+      bankCandidate({
+        matchdayId,
+        label: item.time_label,
+        title: item.title,
+        subtitle: item.subtitle,
+        imageUrl: item.image_url,
+        linkUrl: item.link_url,
+        sourceType: "matchday_latest_news",
+        sourceId: item.id,
+        originSlotType: "editorial_line_item",
+        sortOrder: 100 + item.sort_order
+      })
+    );
+  });
+
+  importantItems
+    .filter((item) => normalizeSourceType(item.source_type) !== "article")
+    .forEach((item) => {
+      candidates.push(
+        bankCandidate({
+          matchdayId,
+          label: item.label_snapshot,
+          title: item.title_snapshot,
+          subtitle: item.subtitle_snapshot,
+          imageUrl: item.image_url_snapshot,
+          linkUrl: item.link_url_snapshot,
+          sourceType: item.source_type || "matchday_reference_composition_item",
+          sourceId: item.source_id || item.id,
+          originSlotType: "important_item",
+          sortOrder: 200 + item.sort_order
+        })
+      );
+    });
+
+  return candidates.filter((item): item is MatchdayEditorialBankCandidate => Boolean(item));
+}
+
+async function saveCurrentMatchdayEditorialBank(matchdayId: string): Promise<SaveBankResult> {
+  if (!(await hasRows(`matchdays?select=id&id=eq.${encodeURIComponent(matchdayId)}`))) {
+    throw new Error("matchday-invalid");
+  }
+
+  const rawCandidates = await buildCurrentBankCandidates(matchdayId);
+  const candidates: MatchdayEditorialBankCandidate[] = [];
+  let repeated = 0;
+
+  for (const candidate of rawCandidates) {
+    if (candidates.some((item) => bankIdentitiesMatch(item, candidate))) {
+      repeated += 1;
+      continue;
+    }
+
+    candidates.push(candidate);
+  }
+
+  const knownItems = await fetchSupabaseAdminTable<ExistingBankItem>(
+    `matchday_editorial_bank_items?select=id,source_type,source_id,source_slug,link_url,title,subtitle,image_url&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&limit=1000`
+  );
+  let saved = 0;
+  let existing = 0;
+
+  for (const candidate of candidates) {
+    if (knownItems.some((item) => bankIdentitiesMatch(item, candidate))) {
+      existing += 1;
+      continue;
+    }
+
+    await writeSupabaseAdmin("matchday_editorial_bank_items", {
+      method: "POST",
+      body: JSON.stringify(candidate)
+    });
+
+    knownItems.push({
+      id: "",
+      source_type: candidate.source_type,
+      source_id: candidate.source_id,
+      source_slug: candidate.source_slug,
+      link_url: candidate.link_url,
+      title: candidate.title,
+      subtitle: candidate.subtitle,
+      image_url: candidate.image_url
+    });
+    saved += 1;
+  }
+
+  return { saved, existing, repeated, skipped: existing + repeated };
 }
 
 async function buildCurrentPageSnapshots(matchdayId: string, useRoundupItems: boolean): Promise<CompositionSnapshot[]> {
@@ -645,10 +1021,21 @@ export async function POST(request: Request) {
     else if (actionType === "remove_item") await removeItem(formData);
     else if (actionType === "move_composition_item") await moveCompositionItem(formData);
     else if (actionType === "save_current_page_state") await saveCurrentPageState(formData);
+    else if (actionType === "save_matchday_editorial_bank_current") {
+      const result = await saveCurrentMatchdayEditorialBank(matchdayId);
+      return redirectTo(
+        request,
+        `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_saved=${result.saved}&bank_existing=${result.existing}&bank_repeated=${result.repeated}&bank_skipped=${result.skipped}#matchday-editorial-bank`
+      );
+    }
     else if (actionType === "publish_reference_composition") await publishReferenceComposition(formData);
     else if (actionType === "reopen_reference_composition") await reopenReferenceComposition(formData);
     else throw new Error("unknown-action");
   } catch (error) {
+    if (actionType === "save_matchday_editorial_bank_current") {
+      return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_error=1#matchday-editorial-bank`);
+    }
+
     const errorValue = error instanceof CompositionPublicationError ? encodeURIComponent(error.message) : "1";
     return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}composition_error=${errorValue}`);
   }
