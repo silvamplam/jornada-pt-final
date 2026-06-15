@@ -311,7 +311,13 @@ async function readBroadcastChannelsByMatchId(matchIds: string[], matches: HomeM
   return channelsByMatchId;
 }
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const homeLabBelowMode = Array.isArray(params.homeLabBelowMode) ? params.homeLabBelowMode[0] : params.homeLabBelowMode;
   const editorial = await readHomeEditorial();
   const [featuredMatches, competitionLinks] = await Promise.all([readHomeFeaturedMatches(), readPublicCompetitionMenu()]);
   const [highlights, roundupItems, latestNews]: [SiteHighlight[], SiteRoundupItem[], SiteLatestNews[]] = editorial
@@ -327,7 +333,8 @@ export default async function HomePage() {
   const headlineImageUrl = headlineIsPublished ? cleanText(editorial.headline_image_url) : null;
   const headlineLinkUrl = headlineIsPublished ? cleanText(editorial.headline_link_url) : null;
   const headlineTitleColor = headlineIsPublished ? cleanText(editorial.headline_title_color) : null;
-  const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
+  const storedBelowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
+  const belowHeadlineMode = homeLabBelowMode === "roundup" ? "roundup" : storedBelowHeadlineMode;
   const belowHeadlineHeading =
     cleanText(editorial?.below_headline_heading) || (belowHeadlineMode === "roundup" ? "Resumo da Jornada" : "Destaques");
   const belowHeadlineHeadingColor = cleanText(editorial?.below_headline_heading_color);
