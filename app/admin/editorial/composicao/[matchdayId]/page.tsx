@@ -179,10 +179,6 @@ function isFreeNewsSlot(slotType?: string | null) {
   return slotType === "important_item" || slotType === "editorial_line_item";
 }
 
-function canMoveToFreeNewsSlot(item: ReferenceCompositionItem) {
-  return item.slot_type !== "roundup" && normalizeSourceType(item.source_type) !== "matchday_roundup_item";
-}
-
 function isBankCompositionSource(sourceType?: string | null, sourceId?: string | null) {
   const normalizedSourceType = normalizeSourceType(sourceType);
   return Boolean(sourceId) && (normalizedSourceType === "manual_link" || normalizedSourceType === "matchday_editorial_bank_item");
@@ -570,9 +566,9 @@ const compositionPageStyles = `
 
   .composition-admin-layout {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
-    margin-top: 18px;
+    grid-template-columns: minmax(360px, 1.05fr) minmax(420px, 0.95fr);
+    gap: 14px;
+    margin-top: 14px;
     align-items: start;
   }
 
@@ -581,7 +577,7 @@ const compositionPageStyles = `
   }
 
   .composition-admin-panel > header {
-    padding: 18px 20px;
+    padding: 14px 16px;
     border-bottom: 1px solid #e6ebf1;
     background: #f8fafc;
   }
@@ -607,8 +603,12 @@ const compositionPageStyles = `
 
   .composition-admin-stack {
     display: grid;
-    gap: 14px;
-    padding: 16px;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  #matchday-editorial-bank {
+    order: -1;
   }
 
   .composition-admin-card {
@@ -617,37 +617,37 @@ const compositionPageStyles = `
   }
 
   .composition-admin-card header {
-    padding: 12px 14px;
+    padding: 10px 12px;
     border-bottom: 1px solid #edf1f5;
     background: #ffffff;
   }
 
   .composition-admin-card h3 {
-    font-size: 15px;
+    font-size: 13px;
     text-transform: uppercase;
   }
 
   .composition-admin-card-body {
     display: grid;
-    gap: 10px;
-    padding: 14px;
+    gap: 8px;
+    padding: 10px;
   }
 
   .composition-admin-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 8px;
   }
 
   .composition-admin-section-list {
     display: grid;
-    gap: 14px;
+    gap: 10px;
   }
 
   .composition-admin-section {
     display: grid;
-    gap: 10px;
-    padding: 12px;
+    gap: 8px;
+    padding: 10px;
     border: 1px solid #e3e9f0;
     border-radius: 6px;
     background: #f8fafc;
@@ -687,11 +687,11 @@ const compositionPageStyles = `
     justify-content: space-between;
     gap: 12px;
     align-items: center;
-    padding: 12px 14px;
+    padding: 10px 12px;
     border-bottom: 1px solid #edf1f5;
     cursor: pointer;
     color: #10151b;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 900;
     text-transform: uppercase;
   }
@@ -713,25 +713,35 @@ const compositionPageStyles = `
 
   .composition-admin-candidates-body {
     display: grid;
-    gap: 14px;
-    padding: 14px;
+    gap: 10px;
+    padding: 10px;
   }
 
   .composition-admin-item {
     display: grid;
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
-    padding: 12px;
+    padding: 10px;
     border: 1px solid #e3e9f0;
     border-radius: 6px;
     background: #ffffff;
   }
 
+  .composition-admin-item:has(.composition-admin-image) {
+    grid-template-columns: 72px minmax(0, 1fr);
+    align-items: start;
+    column-gap: 10px;
+  }
+
+  .composition-admin-item:has(.composition-admin-image) > :not(.composition-admin-image) {
+    grid-column: 2;
+  }
+
   .composition-admin-video-item {
     display: grid;
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
-    padding: 12px;
+    padding: 10px;
     border: 1px solid #d9e1ea;
     border-radius: 6px;
     background: #fbfcfe;
@@ -739,7 +749,7 @@ const compositionPageStyles = `
 
   .composition-admin-image {
     width: 100%;
-    aspect-ratio: 16 / 9;
+    aspect-ratio: 1;
     overflow: hidden;
     border-radius: 6px;
     background: #eef2f6;
@@ -754,7 +764,7 @@ const compositionPageStyles = `
 
   .composition-admin-label {
     color: #c40012;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 900;
     text-transform: uppercase;
   }
@@ -764,92 +774,96 @@ const compositionPageStyles = `
     border-radius: 999px;
     background: #e8f1ec;
     color: #1f6d43;
-    padding: 5px 8px;
-    font-size: 11px;
+    padding: 4px 7px;
+    font-size: 10px;
     font-weight: 900;
     text-transform: uppercase;
   }
 
   .composition-admin-title {
     color: #10151b;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 900;
-    line-height: 1.2;
+    line-height: 1.18;
   }
 
   .composition-admin-copy {
     color: #526174;
-    font-size: 13px;
-    line-height: 1.45;
+    font-size: 12px;
+    line-height: 1.35;
   }
 
   .composition-admin-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 5px;
     color: #607086;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 900;
     text-transform: uppercase;
   }
 
   .composition-admin-link {
     color: #10151b;
-    font-size: 12px;
+    overflow: hidden;
+    font-size: 11px;
     font-weight: 900;
     text-decoration: underline;
     text-underline-offset: 3px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .composition-admin-form {
     display: grid;
-    gap: 10px;
+    gap: 7px;
   }
 
   .composition-admin-form-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
   }
 
   .composition-admin-field {
     display: grid;
-    gap: 6px;
+    gap: 4px;
   }
 
   .composition-admin-field label,
   .composition-admin-check {
     color: #526174;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 900;
     text-transform: uppercase;
   }
 
   .composition-admin-input {
     width: 100%;
-    min-height: 38px;
+    min-height: 34px;
     box-sizing: border-box;
     border: 1px solid #cdd6e0;
     border-radius: 6px;
-    padding: 8px 10px;
+    padding: 7px 9px;
     color: #10151b;
     font: inherit;
+    font-size: 12px;
   }
 
   .composition-admin-small-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 34px;
+    min-height: 30px;
     width: fit-content;
     border: 0;
     border-radius: 6px;
-    padding: 0 12px;
+    padding: 0 10px;
     background: #10151b;
     color: #ffffff;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 900;
     text-transform: uppercase;
   }
@@ -861,8 +875,8 @@ const compositionPageStyles = `
 
   .composition-admin-note {
     color: #6d7b8c;
-    font-size: 12px;
-    line-height: 1.45;
+    font-size: 11px;
+    line-height: 1.35;
   }
 
   .composition-admin-empty {
@@ -1180,6 +1194,15 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
       </header>
       <div className="composition-admin-card-body">{children}</div>
     </section>
+  );
+}
+
+function CollapsibleCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <details className="composition-admin-candidates">
+      <summary>{title}</summary>
+      <div className="composition-admin-candidates-body">{children}</div>
+    </details>
   );
 }
 
@@ -1542,7 +1565,7 @@ function RemoveItemForm({
       <HiddenField name="item_id" value={item.id} />
       <HiddenField name="return_to" value={returnTo} />
       <button className="composition-admin-small-button secondary" type="submit">
-        Remover da composição
+        Retirar da zona
       </button>
     </form>
   );
@@ -1574,36 +1597,6 @@ function UnassignBankItemForm({
   );
 }
 
-function MoveItemForm({
-  composition,
-  item,
-  matchdayId,
-  returnTo,
-  targetSlotType,
-  label
-}: {
-  composition: ReferenceComposition;
-  item: ReferenceCompositionItem;
-  matchdayId: string;
-  returnTo: string;
-  targetSlotType: "headline" | "important_item" | "editorial_line_item";
-  label: string;
-}) {
-  return (
-    <form action="/api/admin/editorial/composicao" method="post">
-      <HiddenField name="action_type" value="move_composition_item" />
-      <HiddenField name="matchday_id" value={matchdayId} />
-      <HiddenField name="composition_id" value={composition.id} />
-      <HiddenField name="item_id" value={item.id} />
-      <HiddenField name="target_slot_type" value={targetSlotType} />
-      <HiddenField name="return_to" value={returnTo} />
-      <button className="composition-admin-small-button secondary" type="submit">
-        {label}
-      </button>
-    </form>
-  );
-}
-
 function CompositionItemActions({
   composition,
   item,
@@ -1624,43 +1617,9 @@ function CompositionItemActions({
     );
   }
 
-  const canMove = canMoveToFreeNewsSlot(item);
-
   return (
     <div className="composition-admin-form">
-      {canMove && item.slot_type !== "headline" ? (
-        <MoveItemForm
-          composition={composition}
-          item={item}
-          matchdayId={matchdayId}
-          returnTo={returnTo}
-          targetSlotType="headline"
-          label="Definir como Manchete"
-        />
-      ) : null}
-      {canMove && item.slot_type !== "important_item" ? (
-        <MoveItemForm
-          composition={composition}
-          item={item}
-          matchdayId={matchdayId}
-          returnTo={returnTo}
-          targetSlotType="important_item"
-          label="Mover para Mais notícias da jornada"
-        />
-      ) : null}
-      {canMove && item.slot_type !== "editorial_line_item" ? (
-        <MoveItemForm
-          composition={composition}
-          item={item}
-          matchdayId={matchdayId}
-          returnTo={returnTo}
-          targetSlotType="editorial_line_item"
-          label="Mover para Zona editorial final"
-        />
-      ) : null}
-      {canMove ? (
-        <p className="composition-admin-note">Se quiseres reaproveitar esta notícia noutra zona, usa Mover em vez de Remover.</p>
-      ) : null}
+      <p className="composition-admin-note">Para mudar de zona, retira este item e volta a associar a partir do banco.</p>
       <RemoveItemForm composition={composition} item={item} matchdayId={matchdayId} returnTo={returnTo} />
     </div>
   );
@@ -1774,11 +1733,11 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
       <div className="composition-admin-layout">
         <section className="composition-admin-panel">
           <header>
-            <h2>Atualidade</h2>
-            <p>Leitura do estado editorial atual da página da jornada. Esta área é apenas de consulta.</p>
+            <h2>Banco de noticias</h2>
+            <p>Area principal para guardar atualidade, associar noticias as zonas e gerir itens livres da jornada.</p>
           </header>
           <div className="composition-admin-stack">
-            <Card title="Manchete atual">
+            <CollapsibleCard title="Atualidade original / diagnostico - manchete">
               {editorial ? (
                 <ItemCard
                   imageUrl={editorial.image_url}
@@ -1789,7 +1748,7 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
               ) : (
                 <EmptyState>Não existe manchete editorial guardada para esta jornada.</EmptyState>
               )}
-            </Card>
+            </CollapsibleCard>
 
             <div id="matchday-editorial-bank">
               <Card title="Banco de noticias da jornada">
@@ -1825,15 +1784,10 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
                         subtitle={item.subtitle}
                         linkUrl={item.link_url}
                         meta={[
+                          associatedLabel ? `Ja associado a: ${associatedLabel}` : "Livre no banco",
                           item.sort_order ? `Posicao ${item.sort_order}` : null,
                           statusLabel(item.status),
-                          associatedLabel ? `Ja associado a: ${associatedLabel}` : null,
-                          item.source_type ? `Origem: ${item.source_type}` : null,
-                          item.source_slug ? `Slug: ${item.source_slug}` : null,
-                          item.source_id ? `ID origem: ${item.source_id}` : null,
-                          item.origin_slot_type ? `Zona original: ${item.origin_slot_type}` : null,
-                          item.created_at ? `Criado: ${formatPublishedAt(item.created_at)}` : null,
-                          item.updated_at ? `Atualizado: ${formatPublishedAt(item.updated_at)}` : null
+                          item.origin_slot_type ? `Origem: ${item.origin_slot_type}` : null
                         ]}
                       >
                         {associatedLabel ? (
@@ -1862,12 +1816,7 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
                         meta={[
                           item.sort_order ? `Posicao ${item.sort_order}` : null,
                           statusLabel(item.status),
-                          item.source_type ? `Origem: ${item.source_type}` : null,
-                          item.source_slug ? `Slug: ${item.source_slug}` : null,
-                          item.source_id ? `ID origem: ${item.source_id}` : null,
-                          item.origin_slot_type ? `Zona original: ${item.origin_slot_type}` : null,
-                          item.created_at ? `Criado: ${formatPublishedAt(item.created_at)}` : null,
-                          item.updated_at ? `Atualizado: ${formatPublishedAt(item.updated_at)}` : null
+                          item.origin_slot_type ? `Origem: ${item.origin_slot_type}` : null
                         ]}
                       >
                         <BankItemStatusForm actionType="reactivate_bank_item" item={item} label="Reativar" matchdayId={matchday.id} returnTo={returnTo} />
@@ -1878,7 +1827,7 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
               </Card>
             </div>
 
-            <Card title="Destaques abaixo da manchete">
+            <CollapsibleCard title="Atualidade original - destaques">
               <ItemsGrid
                 items={highlights}
                 empty="Não existem destaques guardados."
@@ -1892,9 +1841,9 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
                   />
                 )}
               />
-            </Card>
+            </CollapsibleCard>
 
-            <Card title="Complemento da manchete">
+            <CollapsibleCard title="Atualidade original - complemento">
               {editorial?.complementary_mode !== "none" ? (
                 <ItemCard
                   imageUrl={editorial?.complementary_image_url}
@@ -1907,9 +1856,9 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
               ) : (
                 <EmptyState>O complemento da manchete está sem modo ativo.</EmptyState>
               )}
-            </Card>
+            </CollapsibleCard>
 
-            <Card title="Bloco lateral">
+            <CollapsibleCard title="Atualidade original - bloco lateral">
               {editorial?.side_block_status ? (
                 <ItemCard
                   imageUrl={editorial?.side_block_image_url}
@@ -1922,9 +1871,9 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
               ) : (
                 <EmptyState>O bloco lateral ainda não tem conteúdo guardado.</EmptyState>
               )}
-            </Card>
+            </CollapsibleCard>
 
-            <Card title="Resumo da jornada / vídeos">
+            <Card title="Resumo / videos automaticos">
               <ItemsGrid
                 items={roundupItems}
                 empty="Não existem itens de resumo ou vídeo."
@@ -1941,7 +1890,7 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
               />
             </Card>
 
-            <Card title="Zona editorial final">
+            <CollapsibleCard title="Atualidade original - zona editorial final">
               <div className="composition-admin-meta">
                 <span>Modo atual: {latestZoneMode}</span>
                 {editorial?.latest_zone_title ? <span>Titulo: {editorial.latest_zone_title}</span> : null}
@@ -1957,18 +1906,18 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
                     title={item.title}
                     subtitle={item.subtitle}
                     linkUrl={item.link_url}
-                    meta={[`Posicao ${item.sort_order}`, item.article_id ? `Artigo: ${item.article_id}` : null, statusLabel(item.status)]}
+                    meta={[`Posicao ${item.sort_order}`, statusLabel(item.status)]}
                   />
                 )}
               />
-            </Card>
+            </CollapsibleCard>
           </div>
         </section>
 
         <section className="composition-admin-panel">
           <header>
-            <h2>Arquivo / Memória histórica</h2>
-            <p>Candidatos disponíveis e composição histórica em rascunho. Esta área não altera a página pública.</p>
+            <h2>Zonas da composicao</h2>
+            <p>Montagem atual por zonas. Para mudar um item, retira-o da zona e associa novamente a partir do banco.</p>
           </header>
           <div className="composition-admin-stack">
             <Card title={isPublishedComposition ? "Composição publicada" : "Composição em rascunho"}>
@@ -2015,7 +1964,7 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
               )}
             </Card>
 
-            <Card title="Itens já adicionados">
+            <Card title="Zonas da composicao">
               {draftComposition && compositionItems.length > 0 ? (
                 <div className="composition-admin-section-list">
                   {groupedCompositionItems.map((section) => (
@@ -2033,9 +1982,6 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
                         {section.items.map((item) => {
                           const itemMeta = [
                             `Ordem ${item.sort_order}`,
-                            `Bloco: ${item.slot_type}`,
-                            `Fonte: ${item.source_type}`,
-                            item.article_id ? `Artigo: ${item.article_id}` : null,
                             statusLabel(item.status)
                           ];
 
@@ -2085,8 +2031,8 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
               )}
             </Card>
 
-            <details className="composition-admin-candidates" open={compositionItems.length === 0}>
-              <summary>Candidatos disponíveis</summary>
+            <details className="composition-admin-candidates">
+              <summary>Candidatos antigos / diagnostico</summary>
               <div className="composition-admin-candidates-body">
                 <Card title="Manchete candidata">
                   {editorial ? (
