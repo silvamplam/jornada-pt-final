@@ -1036,12 +1036,23 @@ async function saveMatchdayRoundupItems(formData: FormData) {
     throw new Error("matchday-invalid");
   }
 
+  const existingRoundupRows = await fetchSupabaseAdminTable<{ id: string; sort_order: number; image_url: string | null }>(
+    `matchday_roundup_items?select=id,sort_order,image_url&matchday_id=eq.${encodeURIComponent(matchdayId)}&limit=200`
+  ).catch(() => []);
+  const existingRoundupById = new Map(existingRoundupRows.map((item) => [item.id, item]));
+  const existingRoundupBySortOrder = new Map(existingRoundupRows.map((item) => [item.sort_order, item]));
+
   for (const sortOrder of ROUNDUP_EDITOR_SORT_ORDERS) {
     const itemId = cleanText(formData.get(`roundup_${sortOrder}_id`));
     const label = cleanText(formData.get(`roundup_${sortOrder}_label`));
     const title = cleanText(formData.get(`roundup_${sortOrder}_title`));
     const subtitle = cleanText(formData.get(`roundup_${sortOrder}_subtitle`));
-    const imageUrl = cleanText(formData.get(`roundup_${sortOrder}_image_url`));
+    const imageUrlFieldName = `roundup_${sortOrder}_image_url`;
+    const existingImageUrl = itemId
+      ? existingRoundupById.get(itemId)?.image_url ?? null
+      : existingRoundupBySortOrder.get(sortOrder)?.image_url ?? null;
+    const submittedImageUrl = formData.has(imageUrlFieldName) ? cleanText(formData.get(imageUrlFieldName)) : null;
+    const imageUrl = submittedImageUrl ?? existingImageUrl;
     const videoUrl = cleanText(formData.get(`roundup_${sortOrder}_video_url`));
     const duration = cleanText(formData.get(`roundup_${sortOrder}_duration`));
     const typeValue = cleanText(formData.get(`roundup_${sortOrder}_type`)) ?? "resumo";
