@@ -1,9 +1,19 @@
 ﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { SupabaseMatchdayRoundupItem } from "@/lib/supabase";
 
-export type RoundupVideoItem = SupabaseMatchdayRoundupItem;
+export type RoundupVideoItem = {
+  id?: string | null;
+  label?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  image_url?: string | null;
+  video_url?: string | null;
+  duration?: string | null;
+  type?: string | null;
+  status?: string | null;
+  sort_order?: number | null;
+};
 
 type RoundupVideoSwitcherProps = {
   items: RoundupVideoItem[];
@@ -256,7 +266,7 @@ function youtubeVideoId(value?: string | null) {
   return null;
 }
 
-function videoThumbnailUrl(item?: SupabaseMatchdayRoundupItem | null) {
+function videoThumbnailUrl(item?: RoundupVideoItem | null) {
   const imageUrl = item?.image_url?.trim();
 
   if (imageUrl) {
@@ -302,14 +312,29 @@ function videoEmbedUrl(value?: string | null) {
   return null;
 }
 
+function roundupItemKey(item: RoundupVideoItem, index: number) {
+  const id = item.id?.trim();
+
+  if (id) {
+    return id;
+  }
+
+  return `roundup-${item.sort_order ?? index + 1}-${item.title?.trim() ?? "item"}`;
+}
+
 export default function RoundupVideoSwitcher({ items, initialItemId, heading, headingColor }: RoundupVideoSwitcherProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
-  const initialItem = useMemo(
-    () => items.find((item) => item.id === initialItemId) ?? items[0] ?? null,
-    [initialItemId, items]
+  const itemEntries = useMemo(
+    () => items.map((item, index) => ({ item, key: roundupItemKey(item, index) })),
+    [items]
   );
-  const [activeItemId, setActiveItemId] = useState(initialItem?.id ?? null);
-  const activeItem = items.find((item) => item.id === activeItemId) ?? initialItem;
+  const initialItemEntry = useMemo(
+    () => itemEntries.find((entry) => initialItemId && entry.item.id === initialItemId) ?? itemEntries[0] ?? null,
+    [initialItemId, itemEntries]
+  );
+  const [activeItemKey, setActiveItemKey] = useState(initialItemEntry?.key ?? null);
+  const activeItemEntry = itemEntries.find((entry) => entry.key === activeItemKey) ?? initialItemEntry;
+  const activeItem = activeItemEntry?.item ?? null;
   const embedUrl = videoEmbedUrl(activeItem?.video_url);
   const activeVideoUrl = activeItem?.video_url?.trim() || null;
   const activePreviewImageUrl = videoThumbnailUrl(activeItem);
@@ -374,6 +399,14 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
     };
   }, [items.length, updateScrollState]);
 
+  useEffect(() => {
+    if (activeItemKey && itemEntries.some((entry) => entry.key === activeItemKey)) {
+      return;
+    }
+
+    setActiveItemKey(initialItemEntry?.key ?? null);
+  }, [activeItemKey, initialItemEntry?.key, itemEntries]);
+
   return (
     <div className="public-roundup-video-layout">
       <style>{roundupVideoListPolishStyles}</style>
@@ -398,9 +431,9 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
             </button>
           ) : null}
           <div className="public-cover-story-strip public-roundup-scroll-window" ref={listRef} aria-label="Resumos e videos da jornada">
-            {items.length > 0 ? (
-              items.map((item) => {
-                const isActive = item.id === activeItem?.id;
+            {itemEntries.length > 0 ? (
+              itemEntries.map(({ item, key }) => {
+                const isActive = key === activeItemEntry?.key;
                 const itemLabel = item.label?.trim();
                 const itemDuration = item.duration?.trim();
                 const itemVideoUrl = item.video_url?.trim();
@@ -410,12 +443,12 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
                   <article
                     className="public-cover-story public-roundup-switch-item"
                     data-active={isActive ? "true" : "false"}
-                    key={item.id}
+                    key={key}
                   >
                     <button
                       aria-pressed={isActive}
                       className="public-roundup-switch-select"
-                      onClick={() => setActiveItemId(item.id)}
+                      onClick={() => setActiveItemKey(key)}
                       type="button"
                     >
                       <span aria-hidden="true" className="public-roundup-switch-thumb">
