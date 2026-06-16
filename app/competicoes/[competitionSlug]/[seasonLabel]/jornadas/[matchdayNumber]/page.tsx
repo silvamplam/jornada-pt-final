@@ -3104,7 +3104,14 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
               </div>
             </article>
             <div className="public-matchday-main-lower">
-              {hasRoundupVideoComplement ? (
+              {belowHeadlineMode === "roundup" ? (
+                <RoundupVideoSwitcher
+                  items={effectiveRoundupItems}
+                  heading={editorial?.roundup_video_heading ?? belowHeadlineHeading}
+                  headingColor={editorial?.roundup_video_heading_color ?? belowHeadlineHeadingColor ?? null}
+                  matchdayNumber={context.matchday.number}
+                />
+              ) : hasRoundupVideoComplement ? (
                 <RoundupVideoSwitcher
                   items={effectiveRoundupItems}
                   initialItemId={editorial?.complementary_roundup_item_id ?? null}
