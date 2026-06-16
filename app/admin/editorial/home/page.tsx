@@ -93,6 +93,24 @@ type SiteFeaturedMatch = {
   updated_at?: string | null;
 };
 
+type HomeEditorialArticleOption = {
+  id: string;
+  slug: string | null;
+  title: string | null;
+  subtitle?: string | null;
+  summary?: string | null;
+  excerpt?: string | null;
+  label?: string | null;
+  image_url?: string | null;
+  status?: string | null;
+  published_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  competition_id?: string | null;
+  season_id?: string | null;
+  matchday_id?: string | null;
+};
+
 type HomeCompetition = {
   id: string;
   name: string;
@@ -1316,6 +1334,15 @@ function textValue(...values: Array<string | null | undefined>) {
   return "";
 }
 
+function articlePublicHref(article: HomeEditorialArticleOption) {
+  const slug = textValue(article.slug);
+  return slug ? `/noticias/${encodeURIComponent(slug)}` : "";
+}
+
+function articleSnapshotSubtitle(article: HomeEditorialArticleOption) {
+  return textValue(article.subtitle, article.summary, article.excerpt);
+}
+
 function statusText(value: string | null | undefined) {
   return textValue(value, "sem estado");
 }
@@ -1697,10 +1724,23 @@ async function readHomeGameSelectionData(): Promise<HomeGameSelectionData> {
   }
 }
 
+async function readPublishedHomeEditorialArticles(): Promise<HomeEditorialArticleOption[]> {
+  return fetchSupabaseAdminTable<HomeEditorialArticleOption>(
+    "editorial_articles?select=*&status=eq.published&order=published_at.desc.nullslast,created_at.desc.nullslast&limit=80"
+  ).catch(() => []);
+}
+
 export default async function AdminEditorialHomePage({ searchParams }: PageProps) {
   const params = searchParams ? await searchParams : {};
-  const { editorial, highlights, latestNews, roundupItems, featuredMatches, error } = await readHomeEditorialData();
-  const gameSelection = await readHomeGameSelectionData();
+  const [
+    { editorial, highlights, latestNews, roundupItems, featuredMatches, error },
+    gameSelection,
+    publishedArticles
+  ] = await Promise.all([
+    readHomeEditorialData(),
+    readHomeGameSelectionData(),
+    readPublishedHomeEditorialArticles()
+  ]);
   const visibleRoundupItems = roundupItems.filter(roundupHasReadableContent);
   const roundupEditorRows = [...roundupItems].sort((first, second) => (first.sort_order ?? 9999) - (second.sort_order ?? 9999));
   const fixedHighlightSlots = [1, 2, 3];
@@ -2194,7 +2234,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                   ].filter(Boolean).join(" ");
 
                                   return (
-                                    <fieldset className={cardClass} key={row.key}>
+                                    <fieldset className={cardClass} data-home-highlight-card="true" key={row.key}>
                                       <legend>Destaque {row.order}</legend>
                                       <input form="home-highlights-form" type="hidden" name="highlight_row" value={row.key} />
                                       <input
@@ -2227,6 +2267,31 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                           </div>
                                         </div>
                                       </div>
+                                      <div className="home-admin-muted-card home-admin-empty">
+                                        <label className="home-admin-field is-wide">
+                                          <span>Preencher com artigo publicado</span>
+                                          <select data-home-highlight-article-select defaultValue="">
+                                            <option value="">Escolher artigo publicado</option>
+                                            {publishedArticles.map((article) => (
+                                              <option
+                                                key={article.id}
+                                                value={article.id}
+                                                data-home-highlight-label={textValue(article.label)}
+                                                data-home-highlight-title={textValue(article.title)}
+                                                data-home-highlight-subtitle={articleSnapshotSubtitle(article)}
+                                                data-home-highlight-image-url={textValue(article.image_url)}
+                                                data-home-highlight-link-url={articlePublicHref(article)}
+                                              >
+                                                {textValue(article.title, article.slug, article.id)}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        </label>
+                                        <p>
+                                          Ao escolher um artigo, este destaque recebe um snapshot editavel com etiqueta, titulo,
+                                          subtitulo, imagem e link para /noticias/[slug].
+                                        </p>
+                                      </div>
                                       <div className="home-admin-form-grid">
                                         <label className="home-admin-field">
                                           <span>Ordem</span>
@@ -2234,6 +2299,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                             form="home-highlights-form"
                                             min={1}
                                             name={`highlight_${row.key}_sort_order`}
+                                            data-home-highlight-field="sort_order"
                                             type="number"
                                             defaultValue={item?.sort_order ?? row.order}
                                           />
@@ -2243,6 +2309,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                           <input
                                             form="home-highlights-form"
                                             name={`highlight_${row.key}_label`}
+                                            data-home-highlight-field="label"
                                             type="text"
                                             defaultValue={item?.label ?? ""}
                                           />
@@ -2263,6 +2330,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                           <input
                                             form="home-highlights-form"
                                             name={`highlight_${row.key}_title`}
+                                            data-home-highlight-field="title"
                                             type="text"
                                             defaultValue={item?.title ?? ""}
                                           />
@@ -2272,6 +2340,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                           <textarea
                                             form="home-highlights-form"
                                             name={`highlight_${row.key}_subtitle`}
+                                            data-home-highlight-field="subtitle"
                                             rows={3}
                                             defaultValue={item?.subtitle ?? ""}
                                           />
@@ -2281,6 +2350,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                           <input
                                             form="home-highlights-form"
                                             name={`highlight_${row.key}_image_url`}
+                                            data-home-highlight-field="image_url"
                                             type="url"
                                             defaultValue={item?.image_url ?? ""}
                                           />
@@ -2290,6 +2360,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                           <input
                                             form="home-highlights-form"
                                             name={`highlight_${row.key}_link_url`}
+                                            data-home-highlight-field="link_url"
                                             type="text"
                                             defaultValue={item?.link_url ?? ""}
                                           />
@@ -2719,8 +2790,23 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       var complementSelect = document.querySelector('[data-home-complement-select]');
                       var belowSections = Array.prototype.slice.call(document.querySelectorAll('[data-home-below-section]'));
                       var complementSections = Array.prototype.slice.call(document.querySelectorAll('[data-home-complement-section]'));
+                      var highlightArticleSelects = Array.prototype.slice.call(document.querySelectorAll('[data-home-highlight-article-select]'));
                       function expectedComplementMode() {
                         return belowSelect && belowSelect.value === 'roundup' ? 'roundup_video' : 'complementary_story';
+                      }
+                      function setHomeHighlightField(card, name, value) {
+                        var field = card.querySelector('[data-home-highlight-field="' + name + '"]');
+                        if (field) field.value = value || '';
+                      }
+                      function applyHomeHighlightArticle(select) {
+                        var card = select.closest('[data-home-highlight-card]');
+                        var option = select.options[select.selectedIndex];
+                        if (!card || !option || !option.value) return;
+                        setHomeHighlightField(card, 'label', option.dataset.homeHighlightLabel);
+                        setHomeHighlightField(card, 'title', option.dataset.homeHighlightTitle);
+                        setHomeHighlightField(card, 'subtitle', option.dataset.homeHighlightSubtitle);
+                        setHomeHighlightField(card, 'image_url', option.dataset.homeHighlightImageUrl);
+                        setHomeHighlightField(card, 'link_url', option.dataset.homeHighlightLinkUrl);
                       }
                       function syncBelowSections() {
                         var mode = belowSelect ? belowSelect.value : 'highlights';
@@ -2741,6 +2827,11 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       }
                       if (belowSelect) belowSelect.addEventListener('change', syncComposition);
                       if (complementSelect) complementSelect.addEventListener('change', syncComplementSections);
+                      highlightArticleSelects.forEach(function (select) {
+                        select.addEventListener('change', function () {
+                          applyHomeHighlightArticle(select);
+                        });
+                      });
                       syncComposition();
                     })();
                   `
