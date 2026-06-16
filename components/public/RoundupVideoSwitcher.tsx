@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SupabaseMatchdayRoundupItem } from "@/lib/supabase";
 
+export type RoundupVideoItem = SupabaseMatchdayRoundupItem;
+
 type RoundupVideoSwitcherProps = {
-  items: SupabaseMatchdayRoundupItem[];
+  items: RoundupVideoItem[];
   initialItemId?: string | null;
   matchdayNumber?: number | null;
   heading?: string | null;
