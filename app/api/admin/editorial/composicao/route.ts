@@ -173,6 +173,23 @@ type ExistingBankItem = {
   image_url: string | null;
 };
 
+type BankItemForAssignment = {
+  id: string;
+  status: string | null;
+  label: string | null;
+  title: string;
+  subtitle: string | null;
+  image_url: string | null;
+  link_url: string | null;
+};
+
+type CompositionBankSourceItem = {
+  id: string;
+  composition_id: string;
+  source_type: string | null;
+  source_id: string | null;
+};
+
 type SaveBankResult = {
   saved: number;
   existing: number;
@@ -692,6 +709,101 @@ async function updateBankItemStatus(formData: FormData, nextStatus: "active" | "
   );
 }
 
+const bankCompositionSlotTypes = new Set(["headline", "complement", "side_block", "highlight", "important_item", "editorial_line_item"]);
+const singleBankCompositionSlotTypes = new Set(["headline", "complement", "side_block"]);
+
+async function assignBankItemToCompositionSlot(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const compositionId = cleanText(formData.get("composition_id"));
+  const bankItemId = cleanText(formData.get("bank_item_id"));
+  const slotType = cleanText(formData.get("slot_type"));
+
+  if (
+    !matchdayId ||
+    !compositionId ||
+    !bankItemId ||
+    !slotType ||
+    !bankCompositionSlotTypes.has(slotType) ||
+    !(await compositionBelongsToMatchday(compositionId, matchdayId))
+  ) {
+    throw new Error("bank-assignment-invalid");
+  }
+
+  const bankItem = await readFirst<BankItemForAssignment>(
+    `matchday_editorial_bank_items?select=id,status,label,title,subtitle,image_url,link_url&id=eq.${encodeURIComponent(
+      bankItemId
+    )}&matchday_id=eq.${encodeURIComponent(matchdayId)}`
+  );
+
+  if (!bankItem || bankItem.status !== "active") {
+    throw new Error("bank-assignment-invalid");
+  }
+
+  if (
+    await hasRows(
+      `matchday_reference_composition_items?select=id&composition_id=eq.${encodeURIComponent(
+        compositionId
+      )}&source_type=eq.matchday_editorial_bank_item&source_id=eq.${encodeURIComponent(bankItem.id)}`
+    )
+  ) {
+    throw new CompositionPublicationError("Esta noticia do banco ja esta associada a composicao. Retira-a primeiro da zona atual.");
+  }
+
+  if (
+    singleBankCompositionSlotTypes.has(slotType) &&
+    (await hasRows(
+      `matchday_reference_composition_items?select=id&composition_id=eq.${encodeURIComponent(
+        compositionId
+      )}&slot_type=eq.${encodeURIComponent(slotType)}`
+    ))
+  ) {
+    throw new CompositionPublicationError("Esta zona ja tem um item. Retire primeiro o item atual antes de associar outro.");
+  }
+
+  const nextSortOrder = (await readMaxSortOrderForSlot(compositionId, slotType)) + 1;
+  await writeSupabaseAdmin("matchday_reference_composition_items", {
+    method: "POST",
+    body: JSON.stringify({
+      composition_id: compositionId,
+      slot_type: slotType,
+      source_type: "matchday_editorial_bank_item",
+      source_id: bankItem.id,
+      sort_order: nextSortOrder,
+      title_snapshot: bankItem.title,
+      subtitle_snapshot: bankItem.subtitle,
+      image_url_snapshot: bankItem.image_url,
+      link_url_snapshot: bankItem.link_url,
+      label_snapshot: bankItem.label,
+      status: "draft"
+    })
+  });
+}
+
+async function unassignBankItemFromCompositionSlot(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const compositionId = cleanText(formData.get("composition_id"));
+  const itemId = cleanText(formData.get("composition_item_id"));
+
+  if (!matchdayId || !compositionId || !itemId || !(await compositionBelongsToMatchday(compositionId, matchdayId))) {
+    throw new Error("bank-unassignment-invalid");
+  }
+
+  const item = await readFirst<CompositionBankSourceItem>(
+    `matchday_reference_composition_items?select=id,composition_id,source_type,source_id&id=eq.${encodeURIComponent(
+      itemId
+    )}&composition_id=eq.${encodeURIComponent(compositionId)}`
+  );
+
+  if (!item || normalizeSourceType(item.source_type) !== "matchday_editorial_bank_item" || !item.source_id) {
+    throw new Error("bank-unassignment-invalid");
+  }
+
+  await writeSupabaseAdmin(
+    `matchday_reference_composition_items?id=eq.${encodeURIComponent(item.id)}&composition_id=eq.${encodeURIComponent(compositionId)}`,
+    { method: "DELETE" }
+  );
+}
+
 async function buildCurrentPageSnapshots(matchdayId: string, useRoundupItems: boolean): Promise<CompositionSnapshot[]> {
   const [editorial, highlights, latestNews, roundupItems] = await Promise.all([
     readFirst<CurrentEditorial>(
@@ -1058,6 +1170,14 @@ export async function POST(request: Request) {
       await updateBankItemStatus(formData, "active");
       return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_reactivated=1#matchday-editorial-bank`);
     }
+    else if (actionType === "assign_bank_item_to_composition_slot") {
+      await assignBankItemToCompositionSlot(formData);
+      return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_assigned=1#matchday-editorial-bank`);
+    }
+    else if (actionType === "unassign_bank_item_from_composition_slot") {
+      await unassignBankItemFromCompositionSlot(formData);
+      return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_unassigned=1#matchday-editorial-bank`);
+    }
     else if (actionType === "publish_reference_composition") await publishReferenceComposition(formData);
     else if (actionType === "reopen_reference_composition") await reopenReferenceComposition(formData);
     else throw new Error("unknown-action");
@@ -1067,6 +1187,10 @@ export async function POST(request: Request) {
     }
     if (actionType === "archive_bank_item" || actionType === "reactivate_bank_item") {
       return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_status_error=1#matchday-editorial-bank`);
+    }
+    if (actionType === "assign_bank_item_to_composition_slot" || actionType === "unassign_bank_item_from_composition_slot") {
+      const errorValue = error instanceof CompositionPublicationError ? encodeURIComponent(error.message) : "1";
+      return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_assignment_error=${errorValue}#matchday-editorial-bank`);
     }
 
     const errorValue = error instanceof CompositionPublicationError ? encodeURIComponent(error.message) : "1";

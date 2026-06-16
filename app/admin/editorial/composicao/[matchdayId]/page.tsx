@@ -19,6 +19,8 @@ type CompositionPageProps = {
   }>;
   searchParams?: Promise<{
     bank_archived?: string;
+    bank_assigned?: string;
+    bank_assignment_error?: string;
     bank_error?: string;
     bank_existing?: string;
     bank_repeated?: string;
@@ -26,6 +28,7 @@ type CompositionPageProps = {
     bank_saved?: string;
     bank_skipped?: string;
     bank_status_error?: string;
+    bank_unassigned?: string;
   }>;
 };
 
@@ -120,6 +123,9 @@ const referenceCompositionSections = [
   { slotType: "custom_card", title: "Cartão personalizado" }
 ];
 
+const bankAssignableSlotTypes = new Set(["headline", "complement", "side_block", "highlight", "important_item", "editorial_line_item"]);
+const bankAssignableSlotOptions = referenceCompositionSections.filter((section) => bankAssignableSlotTypes.has(section.slotType));
+
 function groupCompositionItemsBySection(items: ReferenceCompositionItem[]) {
   const orderedItems = [...items].sort((a, b) => a.sort_order - b.sort_order);
   const knownSlotTypes = new Set(referenceCompositionSections.map((section) => section.slotType));
@@ -175,6 +181,19 @@ function isFreeNewsSlot(slotType?: string | null) {
 
 function canMoveToFreeNewsSlot(item: ReferenceCompositionItem) {
   return item.slot_type !== "roundup" && normalizeSourceType(item.source_type) !== "matchday_roundup_item";
+}
+
+function isBankCompositionSource(sourceType?: string | null) {
+  return normalizeSourceType(sourceType) === "matchday_editorial_bank_item";
+}
+
+function bankItemPlacementLabel(items: ReferenceCompositionItem[], bankItem: MatchdayEditorialBankItem) {
+  const slotTitles = items
+    .filter((item) => isBankCompositionSource(item.source_type) && item.source_id === bankItem.id)
+    .map((item) => compositionSectionTitle(item.slot_type));
+  const uniqueSlotTitles = Array.from(new Set(slotTitles));
+
+  return uniqueSlotTitles.length > 0 ? uniqueSlotTitles.join(", ") : null;
 }
 
 function isArtificialFreeZoneLabel(label?: string | null, sourceType?: string | null) {
@@ -1209,6 +1228,45 @@ function BankItemStatusForm({
   );
 }
 
+function AssignBankItemForm({
+  composition,
+  item,
+  matchdayId,
+  returnTo
+}: {
+  composition: ReferenceComposition | null;
+  item: MatchdayEditorialBankItem;
+  matchdayId: string;
+  returnTo: string;
+}) {
+  if (!composition || composition.status !== "draft" || item.status !== "active") {
+    return null;
+  }
+
+  return (
+    <form className="composition-admin-form" action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="assign_bank_item_to_composition_slot" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="composition_id" value={composition.id} />
+      <HiddenField name="bank_item_id" value={item.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <div className="composition-admin-field">
+        <label htmlFor={`bank-zone-${item.id}`}>Zona de destino</label>
+        <select className="composition-admin-input" id={`bank-zone-${item.id}`} name="slot_type" defaultValue="highlight">
+          {bankAssignableSlotOptions.map((option) => (
+            <option key={option.slotType} value={option.slotType}>
+              {option.title}
+            </option>
+          ))}
+        </select>
+      </div>
+      <button className="composition-admin-small-button" type="submit">
+        Associar a zona
+      </button>
+    </form>
+  );
+}
+
 function CreateDraftForm({ matchdayId, returnTo }: { matchdayId: string; returnTo: string }) {
   return (
     <form className="composition-admin-form" action="/api/admin/editorial/composicao" method="post">
@@ -1488,6 +1546,31 @@ function RemoveItemForm({
   );
 }
 
+function UnassignBankItemForm({
+  composition,
+  item,
+  matchdayId,
+  returnTo
+}: {
+  composition: ReferenceComposition;
+  item: ReferenceCompositionItem;
+  matchdayId: string;
+  returnTo: string;
+}) {
+  return (
+    <form action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="unassign_bank_item_from_composition_slot" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="composition_id" value={composition.id} />
+      <HiddenField name="composition_item_id" value={item.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <button className="composition-admin-small-button secondary" type="submit">
+        Retirar da zona
+      </button>
+    </form>
+  );
+}
+
 function MoveItemForm({
   composition,
   item,
@@ -1529,6 +1612,15 @@ function CompositionItemActions({
   matchdayId: string;
   returnTo: string;
 }) {
+  if (isBankCompositionSource(item.source_type)) {
+    return (
+      <div className="composition-admin-form">
+        <p className="composition-admin-note">Retirar da zona remove apenas a associaÃ§Ã£o. A notÃ­cia continua ativa no banco.</p>
+        <UnassignBankItemForm composition={composition} item={item} matchdayId={matchdayId} returnTo={returnTo} />
+      </div>
+    );
+  }
+
   const canMove = canMoveToFreeNewsSlot(item);
 
   return (
@@ -1631,17 +1723,21 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
   const bankSkippedCount = Math.max(0, Number.parseInt(query.bank_skipped ?? "0", 10) || 0);
   const bankExistingCount = Math.max(0, Number.parseInt(query.bank_existing ?? String(bankSkippedCount), 10) || 0);
   const bankRepeatedCount = Math.max(0, Number.parseInt(query.bank_repeated ?? "0", 10) || 0);
-  const bankFeedback = query.bank_status_error
-    ? "Nao foi possivel atualizar o estado do item do banco."
-    : query.bank_archived
-      ? "Item arquivado. Continua guardado no banco, mas fora da lista ativa."
-      : query.bank_reactivated
-        ? "Item reativado e devolvido a lista ativa do banco."
-        : query.bank_error
-          ? "Nao foi possivel guardar a atualidade desta jornada. Confirma os dados e tenta novamente."
-          : query.bank_saved || query.bank_skipped || query.bank_existing || query.bank_repeated
-            ? `Atualidade guardada: ${bankSavedCount} novas noticias adicionadas. ${bankExistingCount} ja existiam no banco. ${bankRepeatedCount} eram repetidas na atualidade e nao foram duplicadas.`
-            : null;
+  const bankFeedback = (() => {
+    if (query.bank_status_error) return "Nao foi possivel atualizar o estado do item do banco.";
+    if (query.bank_assignment_error) {
+      return query.bank_assignment_error === "1" ? "Nao foi possivel associar ou retirar o item do banco." : query.bank_assignment_error;
+    }
+    if (query.bank_assigned) return "Item do banco associado a composicao.";
+    if (query.bank_unassigned) return "Item retirado da zona. A noticia continua ativa no banco.";
+    if (query.bank_archived) return "Item arquivado. Continua guardado no banco, mas fora da lista ativa.";
+    if (query.bank_reactivated) return "Item reativado e devolvido a lista ativa do banco.";
+    if (query.bank_error) return "Nao foi possivel guardar a atualidade desta jornada. Confirma os dados e tenta novamente.";
+    if (query.bank_saved || query.bank_skipped || query.bank_existing || query.bank_repeated) {
+      return `Atualidade guardada: ${bankSavedCount} novas noticias adicionadas. ${bankExistingCount} ja existiam no banco. ${bankRepeatedCount} eram repetidas na atualidade e nao foram duplicadas.`;
+    }
+    return null;
+  })();
 
   return (
     <main className="composition-admin-shell">
@@ -1714,28 +1810,38 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
                 <ItemsGrid
                   items={activeBankItems}
                   empty="Ainda nao ha noticias ativas guardadas no banco desta jornada."
-                  render={(item) => (
-                    <ItemCard
-                      key={item.id}
-                      imageUrl={item.image_url}
-                      label={item.label}
-                      title={item.title}
-                      subtitle={item.subtitle}
-                      linkUrl={item.link_url}
-                      meta={[
-                        item.sort_order ? `Posicao ${item.sort_order}` : null,
-                        statusLabel(item.status),
-                        item.source_type ? `Origem: ${item.source_type}` : null,
-                        item.source_slug ? `Slug: ${item.source_slug}` : null,
-                        item.source_id ? `ID origem: ${item.source_id}` : null,
-                        item.origin_slot_type ? `Zona original: ${item.origin_slot_type}` : null,
-                        item.created_at ? `Criado: ${formatPublishedAt(item.created_at)}` : null,
-                        item.updated_at ? `Atualizado: ${formatPublishedAt(item.updated_at)}` : null
-                      ]}
-                    >
-                      <BankItemStatusForm actionType="archive_bank_item" item={item} label="Arquivar" matchdayId={matchday.id} returnTo={returnTo} />
-                    </ItemCard>
-                  )}
+                  render={(item) => {
+                    const associatedLabel = bankItemPlacementLabel(compositionItems, item);
+
+                    return (
+                      <ItemCard
+                        key={item.id}
+                        imageUrl={item.image_url}
+                        label={item.label}
+                        title={item.title}
+                        subtitle={item.subtitle}
+                        linkUrl={item.link_url}
+                        meta={[
+                          item.sort_order ? `Posicao ${item.sort_order}` : null,
+                          statusLabel(item.status),
+                          associatedLabel ? `Ja associado a: ${associatedLabel}` : null,
+                          item.source_type ? `Origem: ${item.source_type}` : null,
+                          item.source_slug ? `Slug: ${item.source_slug}` : null,
+                          item.source_id ? `ID origem: ${item.source_id}` : null,
+                          item.origin_slot_type ? `Zona original: ${item.origin_slot_type}` : null,
+                          item.created_at ? `Criado: ${formatPublishedAt(item.created_at)}` : null,
+                          item.updated_at ? `Atualizado: ${formatPublishedAt(item.updated_at)}` : null
+                        ]}
+                      >
+                        {associatedLabel ? (
+                          <p className="composition-admin-note">Retira este item da zona atual antes de o associar a outra zona.</p>
+                        ) : (
+                          <AssignBankItemForm composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
+                        )}
+                        <BankItemStatusForm actionType="archive_bank_item" item={item} label="Arquivar" matchdayId={matchday.id} returnTo={returnTo} />
+                      </ItemCard>
+                    );
+                  }}
                 />
                 <details className="composition-admin-candidates">
                   <summary>Itens arquivados ({archivedBankItems.length})</summary>
