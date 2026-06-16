@@ -181,6 +181,9 @@ type BankItemForAssignment = {
   subtitle: string | null;
   image_url: string | null;
   link_url: string | null;
+  source_type: string | null;
+  source_id: string | null;
+  source_slug: string | null;
 };
 
 type CompositionBankSourceItem = {
@@ -188,6 +191,16 @@ type CompositionBankSourceItem = {
   composition_id: string;
   source_type: string | null;
   source_id: string | null;
+};
+
+type CompositionBankIdentityItem = {
+  id: string;
+  source_type: string | null;
+  source_id: string | null;
+  title_snapshot: string | null;
+  subtitle_snapshot: string | null;
+  image_url_snapshot: string | null;
+  link_url_snapshot: string | null;
 };
 
 type SaveBankResult = {
@@ -353,6 +366,40 @@ function bankIdentitiesMatch(left: BankIdentityInput, right: BankIdentityInput) 
   }
 
   return false;
+}
+
+function isBankSourceType(sourceType?: string | null) {
+  const normalizedSourceType = normalizeSourceType(sourceType);
+  return normalizedSourceType === "manual_link" || normalizedSourceType === "matchday_editorial_bank_item";
+}
+
+function compositionItemEditorialIdentity(
+  item: CompositionBankIdentityItem,
+  bankItemsById: Map<string, ExistingBankItem>
+): BankIdentityInput {
+  if (item.source_id && isBankSourceType(item.source_type)) {
+    const bankItem = bankItemsById.get(item.source_id);
+    if (bankItem) {
+      return bankItem;
+    }
+  }
+
+  return {
+    link_url: item.link_url_snapshot,
+    title: item.title_snapshot,
+    subtitle: item.subtitle_snapshot,
+    image_url: item.image_url_snapshot,
+    source_type: item.source_type,
+    source_id: item.source_id
+  };
+}
+
+async function readMatchdayBankIdentityItems(matchdayId: string) {
+  return fetchSupabaseAdminTable<ExistingBankItem>(
+    `matchday_editorial_bank_items?select=id,source_type,source_id,source_slug,link_url,title,subtitle,image_url&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&limit=1000`
+  );
 }
 
 function validatePublishableCompositionItems(items: CompositionPublicationItem[]) {
@@ -692,13 +739,27 @@ async function updateBankItemStatus(formData: FormData, nextStatus: "active" | "
   const bankItemId = cleanText(formData.get("bank_item_id"));
   if (!matchdayId || !bankItemId) throw new Error("bank-item-invalid");
 
-  const bankItem = await readFirst<{ id: string; status: string | null }>(
-    `matchday_editorial_bank_items?select=id,status&id=eq.${encodeURIComponent(bankItemId)}&matchday_id=eq.${encodeURIComponent(matchdayId)}`
+  const bankItem = await readFirst<ExistingBankItem & { status: string | null }>(
+    `matchday_editorial_bank_items?select=id,status,source_type,source_id,source_slug,link_url,title,subtitle,image_url&id=eq.${encodeURIComponent(
+      bankItemId
+    )}&matchday_id=eq.${encodeURIComponent(matchdayId)}`
   );
 
   if (!bankItem) throw new Error("bank-item-invalid");
   if (nextStatus === "archived" && bankItem.status !== "active") throw new Error("bank-item-invalid");
   if (nextStatus === "active" && bankItem.status !== "archived") throw new Error("bank-item-invalid");
+
+  if (nextStatus === "active") {
+    const activeItems = await fetchSupabaseAdminTable<ExistingBankItem>(
+      `matchday_editorial_bank_items?select=id,source_type,source_id,source_slug,link_url,title,subtitle,image_url&matchday_id=eq.${encodeURIComponent(
+        matchdayId
+      )}&status=eq.active&id=neq.${encodeURIComponent(bankItem.id)}&limit=1000`
+    );
+
+    if (activeItems.some((item) => bankIdentitiesMatch(bankItem, item))) {
+      throw new CompositionPublicationError("Ja existe uma versao ativa desta noticia no banco. Nao foi reativada.");
+    }
+  }
 
   await writeSupabaseAdmin(
     `matchday_editorial_bank_items?id=eq.${encodeURIComponent(bankItem.id)}&matchday_id=eq.${encodeURIComponent(matchdayId)}`,
@@ -730,7 +791,7 @@ async function assignBankItemToCompositionSlot(formData: FormData) {
   }
 
   const bankItem = await readFirst<BankItemForAssignment>(
-    `matchday_editorial_bank_items?select=id,status,label,title,subtitle,image_url,link_url&id=eq.${encodeURIComponent(
+    `matchday_editorial_bank_items?select=id,status,label,title,subtitle,image_url,link_url,source_type,source_id,source_slug&id=eq.${encodeURIComponent(
       bankItemId
     )}&matchday_id=eq.${encodeURIComponent(matchdayId)}`
   );
@@ -747,11 +808,25 @@ async function assignBankItemToCompositionSlot(formData: FormData) {
 
   if (
     existingBankCompositionItems.some((item) => {
-      const normalizedSourceType = normalizeSourceType(item.source_type);
-      return normalizedSourceType === "manual_link" || normalizedSourceType === "matchday_editorial_bank_item";
+      return isBankSourceType(item.source_type);
     })
   ) {
-    throw new CompositionPublicationError("Esta noticia do banco ja esta associada a composicao. Retira-a primeiro da zona atual.");
+    throw new CompositionPublicationError("Esta noticia ja esta associada a composicao.");
+  }
+
+  const existingCompositionItems = await fetchSupabaseAdminTable<CompositionBankIdentityItem>(
+    `matchday_reference_composition_items?select=id,source_type,source_id,title_snapshot,subtitle_snapshot,image_url_snapshot,link_url_snapshot&composition_id=eq.${encodeURIComponent(
+      compositionId
+    )}&limit=500`
+  );
+  const bankItemsById = new Map((await readMatchdayBankIdentityItems(matchdayId)).map((item) => [item.id, item]));
+
+  if (
+    existingCompositionItems.some((item) =>
+      bankIdentitiesMatch(bankItem, compositionItemEditorialIdentity(item, bankItemsById))
+    )
+  ) {
+    throw new CompositionPublicationError("Esta noticia ja esta associada a composicao.");
   }
 
   if (
@@ -1200,7 +1275,8 @@ export async function POST(request: Request) {
       return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_error=1#matchday-editorial-bank`);
     }
     if (actionType === "archive_bank_item" || actionType === "reactivate_bank_item") {
-      return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_status_error=1#matchday-editorial-bank`);
+      const errorValue = error instanceof CompositionPublicationError ? encodeURIComponent(error.message) : "1";
+      return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_status_error=${errorValue}#matchday-editorial-bank`);
     }
     if (actionType === "assign_bank_item_to_composition_slot" || actionType === "unassign_bank_item_from_composition_slot") {
       const errorValue = error instanceof CompositionPublicationError ? encodeURIComponent(error.message) : "1";

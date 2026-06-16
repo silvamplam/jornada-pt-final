@@ -1686,7 +1686,9 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
   const bankExistingCount = Math.max(0, Number.parseInt(query.bank_existing ?? String(bankSkippedCount), 10) || 0);
   const bankRepeatedCount = Math.max(0, Number.parseInt(query.bank_repeated ?? "0", 10) || 0);
   const bankFeedback = (() => {
-    if (query.bank_status_error) return "Nao foi possivel atualizar o estado do item do banco.";
+    if (query.bank_status_error) {
+      return query.bank_status_error === "1" ? "Nao foi possivel atualizar o estado do item do banco." : query.bank_status_error;
+    }
     if (query.bank_assignment_error) {
       return query.bank_assignment_error === "1" ? "Nao foi possivel associar ou retirar o item do banco." : query.bank_assignment_error;
     }
