@@ -344,6 +344,29 @@ const editorialPageStyles = `
     color: #9d1c1f;
   }
 
+  .editorial-admin-live-note {
+    display: grid;
+    gap: 4px;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #425061;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .editorial-admin-live-note strong {
+    color: #10151b;
+  }
+
+  .editorial-admin-live-note.warning {
+    border-color: #f2c36b;
+    background: #fff8e8;
+    color: #674a12;
+  }
+
   #manchete,
   #composicao,
   #destaques,
@@ -521,6 +544,22 @@ async function readMatchdayLatestNews(matchdayId: string): Promise<SupabaseMatch
   }
 }
 
+type PublishedReferenceCompositionSummary = {
+  id: string;
+  internal_name: string | null;
+  published_at: string | null;
+};
+
+async function readPublishedReferenceComposition(matchdayId: string): Promise<PublishedReferenceCompositionSummary | null> {
+  return fetchSupabaseAdminTable<PublishedReferenceCompositionSummary>(
+    `matchday_reference_compositions?select=id,internal_name,published_at&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&status=eq.published&is_current=is.true&order=published_at.desc.nullslast&limit=1`
+  )
+    .then((rows) => rows[0] ?? null)
+    .catch(() => null);
+}
+
 async function readPublishedEditorialArticles(): Promise<EditorialArticleForSideBlock[]> {
   return fetchSupabaseAdminTable<EditorialArticleForSideBlock>(
     "editorial_articles?select=id,slug,title,subtitle,body,label,author,image_url,published_at,created_at,status&status=eq.published&order=published_at.desc.nullslast,created_at.desc.nullslast&limit=50"
@@ -633,6 +672,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const highlights = await readMatchdayHighlights(matchday.id);
   const roundupItems = await readMatchdayRoundupItems(matchday.id);
   const latestNews = await readMatchdayLatestNews(matchday.id);
+  const publishedReferenceComposition = await readPublishedReferenceComposition(matchday.id);
   const publishedEditorialArticles = await readPublishedEditorialArticles();
   const sideBlockArticleOptions = publishedEditorialArticles.filter((article) => articlePublicHref(article));
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
@@ -907,7 +947,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               </div>
               <div className="editorial-admin-field">
                 <label htmlFor={`latest-news-${order}-link-url`}>Link para leitura completa</label>
-                <input id={`latest-news-${order}-link-url`} name={`latest_news_${order}_link_url`} defaultValue={item?.link_url ?? ""} placeholder="/competicoes/liga/2026-27/jornadas/1/noticias/slug" />
+                <input id={`latest-news-${order}-link-url`} name={`latest_news_${order}_link_url`} defaultValue={item?.link_url ?? ""} placeholder="/noticias/slug-do-artigo" />
               </div>
               <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
                 <legend>Ligar artigo publicado</legend>
@@ -1018,8 +1058,19 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
       <div className="editorial-admin-grid">
         <section className="editorial-admin-panel" id="manchete">
           <header>
-            <h2>Manchete principal</h2>
-            <p>Campos existentes de matchday_editorials ligados a esta jornada.</p>
+            <h2>Manchete viva da jornada</h2>
+            <p>Fonte viva da atualidade desta jornada. Estes campos gravam em matchday_editorials.</p>
+            {publishedReferenceComposition ? (
+              <div className="editorial-admin-live-note warning">
+                <strong>Composicao publicada/current detetada.</strong>
+                <span>A pagina publica pode estar a usar a composicao publicada em vez destes campos vivos.</span>
+              </div>
+            ) : (
+              <div className="editorial-admin-live-note">
+                <strong>Sem composicao publicada/current ativa.</strong>
+                <span>A pagina publica usa esta manchete viva quando estiver publicada.</span>
+              </div>
+            )}
           </header>
           {scopedMessageFor(created, error, feedbackScope, "manchete")}
           <form className="editorial-admin-form" action="/api/admin/gestor" data-headline-form method="post">
@@ -1105,7 +1156,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 </select>
               </div>
               <p className="editorial-admin-muted">
-                Ao escolher um artigo, a manchete, o resumo, a imagem e o link interno sao preenchidos. Pode ajustar manualmente antes de guardar.
+                Preenche titulo, resumo, imagem e link interno. Pode ajustar antes de guardar.
               </p>
             </fieldset>
             <input type="hidden" name="below_headline_mode" value={belowHeadlineMode} />
@@ -1172,8 +1223,8 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
 
         <aside className="editorial-admin-panel" id="bloco-lateral">
           <header>
-            <h2>Bloco lateral da jornada</h2>
-            <p>Controla a chamada editorial curta da coluna lateral da capa.</p>
+            <h2>Bloco lateral / fonte viva</h2>
+            <p>Chamada editorial independente da manchete viva.</p>
           </header>
           {scopedMessageFor(created, error, feedbackScope, "bloco-lateral")}
           <form className="editorial-admin-form" action="/api/admin/gestor" data-side-block-form method="post">
@@ -1239,7 +1290,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             </div>
             <div className="editorial-admin-field">
               <label htmlFor="side-block-link-url">Link opcional</label>
-              <input id="side-block-link-url" name="side_block_link_url" defaultValue={editorial?.side_block_link_url ?? ""} placeholder="/competicoes/liga/2026-27/jornadas/1/noticias/slug" />
+              <input id="side-block-link-url" name="side_block_link_url" defaultValue={editorial?.side_block_link_url ?? ""} placeholder="/noticias/slug-do-artigo" />
             </div>
             <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
               <legend>Ligar notícia/artigo publicado</legend>
@@ -1264,7 +1315,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 </select>
               </div>
               <p className="editorial-admin-muted">
-                Ao escolher, os campos do bloco lateral são preenchidos. Podes ajustar manualmente antes de guardar.
+                Preenche os campos do bloco lateral. Podes ajustar antes de guardar.
               </p>
             </fieldset>
             <button className="editorial-admin-button" type="submit">
@@ -1373,8 +1424,8 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
 
             <div className="editorial-admin-composition-side-stack">
               <div className="editorial-admin-composition-card">
-                <h3>Bloco complementar</h3>
-                <p>Escolhe o conteudo do espaco editorial da direita.</p>
+                <h3>Complemento da Manchete</h3>
+                <p>Bloco complementar da fonte viva, separado da manchete principal.</p>
                 <form className="editorial-admin-form" action="/api/admin/gestor" data-complementary-form method="post" id="bloco-complementar">
                   {scopedMessageFor(created, error, feedbackScope, "bloco-complementar")}
                   <input type="hidden" name="action_type" value="save_matchday_editorial" />
@@ -1443,7 +1494,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                     </div>
                     <div className="editorial-admin-field">
                       <label htmlFor="complementary-link-url">Link da noticia completa</label>
-                      <input id="complementary-link-url" name="complementary_link_url" defaultValue={editorial?.complementary_link_url ?? ""} placeholder="/competicoes/liga/2026-27/jornadas/1/noticias/slug" />
+                      <input id="complementary-link-url" name="complementary_link_url" defaultValue={editorial?.complementary_link_url ?? ""} placeholder="/noticias/slug-do-artigo" />
                     </div>
                     <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
                       <legend>Ligar artigo publicado ao complemento</legend>
@@ -1467,7 +1518,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                         </select>
                       </div>
                       <p className="editorial-admin-muted">
-                        Ao escolher um artigo, o complemento recebe etiqueta, titulo, texto, imagem e link interno. Pode ajustar manualmente antes de guardar.
+                        Preenche etiqueta, titulo, texto, imagem e link interno. Pode ajustar antes de guardar.
                       </p>
                     </fieldset>
                     <div className="editorial-admin-field">
