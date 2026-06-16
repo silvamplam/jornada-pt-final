@@ -739,12 +739,17 @@ async function assignBankItemToCompositionSlot(formData: FormData) {
     throw new Error("bank-assignment-invalid");
   }
 
+  const existingBankCompositionItems = await fetchSupabaseAdminTable<CompositionBankSourceItem>(
+    `matchday_reference_composition_items?select=id,composition_id,source_type,source_id&composition_id=eq.${encodeURIComponent(
+      compositionId
+    )}&source_id=eq.${encodeURIComponent(bankItem.id)}&limit=10`
+  );
+
   if (
-    await hasRows(
-      `matchday_reference_composition_items?select=id&composition_id=eq.${encodeURIComponent(
-        compositionId
-      )}&source_type=eq.manual_link&source_id=eq.${encodeURIComponent(bankItem.id)}`
-    )
+    existingBankCompositionItems.some((item) => {
+      const normalizedSourceType = normalizeSourceType(item.source_type);
+      return normalizedSourceType === "manual_link" || normalizedSourceType === "matchday_editorial_bank_item";
+    })
   ) {
     throw new CompositionPublicationError("Esta noticia do banco ja esta associada a composicao. Retira-a primeiro da zona atual.");
   }
@@ -794,7 +799,9 @@ async function unassignBankItemFromCompositionSlot(formData: FormData) {
     )}&composition_id=eq.${encodeURIComponent(compositionId)}`
   );
 
-  if (!item || normalizeSourceType(item.source_type) !== "manual_link" || !item.source_id) {
+  const normalizedSourceType = normalizeSourceType(item?.source_type);
+
+  if (!item || !item.source_id || (normalizedSourceType !== "manual_link" && normalizedSourceType !== "matchday_editorial_bank_item")) {
     throw new Error("bank-unassignment-invalid");
   }
   if (

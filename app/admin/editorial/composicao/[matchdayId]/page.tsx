@@ -184,7 +184,8 @@ function canMoveToFreeNewsSlot(item: ReferenceCompositionItem) {
 }
 
 function isBankCompositionSource(sourceType?: string | null, sourceId?: string | null) {
-  return normalizeSourceType(sourceType) === "manual_link" && Boolean(sourceId);
+  const normalizedSourceType = normalizeSourceType(sourceType);
+  return Boolean(sourceId) && (normalizedSourceType === "manual_link" || normalizedSourceType === "matchday_editorial_bank_item");
 }
 
 function bankItemPlacementLabel(items: ReferenceCompositionItem[], bankItem: MatchdayEditorialBankItem) {
