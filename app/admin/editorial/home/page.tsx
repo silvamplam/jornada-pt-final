@@ -327,13 +327,13 @@ const homeEditorialStyles = `
   .home-admin-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(420px, 0.82fr);
-    gap: 18px;
-    margin-top: 18px;
+    gap: 14px;
+    margin-top: 14px;
   }
 
   .home-admin-stack {
     display: grid;
-    gap: 18px;
+    gap: 14px;
     align-content: start;
     min-width: 0;
   }
@@ -350,34 +350,36 @@ const homeEditorialStyles = `
     gap: 16px;
     align-items: flex-start;
     justify-content: space-between;
-    padding: 18px 20px;
+    padding: 16px 18px;
     border-bottom: 1px solid #e6ebf1;
+    background: linear-gradient(180deg, #ffffff, #f8fafc);
   }
 
   .home-admin-panel h2 {
-    font-size: 21px;
+    font-size: 19px;
+    line-height: 1.1;
     text-transform: uppercase;
   }
 
   .home-admin-panel header p {
-    margin-top: 6px;
+    margin-top: 5px;
     color: #687380;
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1.4;
   }
 
   .home-admin-edit-form {
     display: grid;
-    gap: 18px;
-    padding: 20px;
+    gap: 14px;
+    padding: 16px;
   }
 
   .home-admin-form-section {
     display: grid;
-    gap: 14px;
+    gap: 12px;
     border: 1px solid #e6ebf1;
     border-radius: 8px;
-    padding: 16px;
+    padding: 14px;
     background: #fbfcfe;
   }
 
@@ -432,9 +434,10 @@ const homeEditorialStyles = `
   .home-admin-save-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 10px;
     align-items: center;
     justify-content: space-between;
+    padding-top: 2px;
   }
 
   .home-admin-save-row p {
@@ -963,8 +966,8 @@ const homeEditorialStyles = `
 
   .home-admin-section-stack {
     display: grid;
-    gap: 18px;
-    margin-top: 18px;
+    gap: 14px;
+    margin-top: 14px;
   }
 
   .home-admin-section-heading {
@@ -975,8 +978,8 @@ const homeEditorialStyles = `
     border: 1px solid #dce3eb;
     border-radius: 8px;
     background: #fff;
-    padding: 18px 20px;
-    box-shadow: 0 18px 40px rgba(8, 15, 24, 0.08);
+    padding: 16px 18px;
+    box-shadow: 0 12px 28px rgba(8, 15, 24, 0.07);
   }
 
   .home-admin-section-heading h2 {
@@ -1000,7 +1003,7 @@ const homeEditorialStyles = `
   .home-admin-zone-panels,
   .home-admin-editorial-flow {
     display: grid;
-    gap: 18px;
+    gap: 14px;
   }
 
   .home-admin-zone-panel {
@@ -1010,7 +1013,7 @@ const homeEditorialStyles = `
   .home-admin-editorial-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
-    gap: 18px;
+    gap: 14px;
     align-items: start;
   }
 
@@ -1019,25 +1022,25 @@ const homeEditorialStyles = `
   }
 
   .home-admin-composition-body {
-    padding: 20px;
+    padding: 16px;
   }
 
   .home-admin-composition-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 16px;
+    gap: 14px;
     align-items: start;
   }
 
   .home-admin-composition-card {
     display: grid;
-    gap: 14px;
+    gap: 12px;
     align-content: start;
     min-width: 0;
     border: 1px solid #dce3eb;
     border-radius: 8px;
     background: #f8fafc;
-    padding: 16px;
+    padding: 14px;
   }
 
   .home-admin-composition-card h3,
@@ -1060,15 +1063,46 @@ const homeEditorialStyles = `
 
   .home-admin-composition-card > p {
     color: #687380;
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1.45;
   }
 
   .home-admin-composition-side-stack {
     display: grid;
-    gap: 16px;
+    gap: 14px;
     align-content: start;
     min-width: 0;
+  }
+
+  .home-admin-zone-kicker,
+  .home-admin-subzone-heading {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .home-admin-zone-kicker {
+    margin-bottom: 2px;
+  }
+
+  .home-admin-zone-kicker small,
+  .home-admin-subzone-heading small,
+  .home-admin-final-zone-header small {
+    border-radius: 999px;
+    background: #eef2f6;
+    color: #334155;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    padding: 6px 8px;
+    text-transform: uppercase;
+  }
+
+  .home-admin-subzone-heading h4 {
+    margin: 0;
   }
 
   .home-admin-final-zone .home-admin-list li {
@@ -2115,7 +2149,10 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       <FeedbackMessage message={scopedMessage(params, "headline")} />
                       <div className="home-admin-edit-form">
                         <section className="home-admin-form-section">
-                          <h3>Conteudo da manchete</h3>
+                          <div className="home-admin-zone-kicker">
+                            <h3>Conteudo da manchete</h3>
+                            <small>site_editorials.headline_*</small>
+                          </div>
                           <div className="home-admin-form-grid">
                             <TextField label="Titulo" name="headline_title" value={editorial.headline_title} wide />
                             <TextAreaField label="Subtitulo" name="headline_subtitle" value={editorial.headline_subtitle} />
@@ -2143,7 +2180,10 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       <FeedbackMessage message={scopedMessage(params, "side")} />
                       <div className="home-admin-edit-form">
                         <section className="home-admin-form-section">
-                          <h3>Conteudo do bloco lateral</h3>
+                          <div className="home-admin-zone-kicker">
+                            <h3>Conteudo do bloco lateral</h3>
+                            <small>site_editorials.side_block_*</small>
+                          </div>
                           <div className="home-admin-form-grid">
                             <TextField label="Tipo" name="side_block_type" value={editorial.side_block_type} />
                             <TextField label="Etiqueta" name="side_block_label" value={editorial.side_block_label} />
@@ -2176,10 +2216,16 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                     <div className="home-admin-composition-body" data-home-composition-form>
                       <div className="home-admin-composition-grid">
                         <div className="home-admin-composition-card">
-                          <h3>Zona abaixo da manchete</h3>
+                          <div className="home-admin-zone-kicker">
+                            <h3>Zona abaixo da manchete</h3>
+                            <small>site_editorials.below_headline_*</small>
+                          </div>
                           <p>Escolhe que conjunto ocupa a area inferior esquerda da composicao.</p>
                           <section className="home-admin-form-section">
-                            <h4>Modo da zona</h4>
+                            <div className="home-admin-subzone-heading">
+                              <h4>Modo da zona</h4>
+                              <small>escolha publica</small>
+                            </div>
                             <div className="home-admin-form-grid">
                               <label className="home-admin-field">
                                 <span>Tipo de conteudo abaixo da manchete</span>
@@ -2200,7 +2246,10 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                             id="home-highlights"
                             hidden={belowHeadlineMode !== "highlights"}
                           >
-                            <h4>Destaques abaixo da manchete</h4>
+                            <div className="home-admin-subzone-heading">
+                              <h4>Destaques abaixo da manchete</h4>
+                              <small>site_editorial_highlights</small>
+                            </div>
                             <FeedbackMessage message={scopedMessage(params, "highlights")} />
                             <div className="home-admin-form-grid">
                               <TextField label="Titulo abaixo da manchete" name="below_headline_heading" value={editorial.below_headline_heading} />
@@ -2391,7 +2440,10 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                             id="home-roundup"
                             hidden={belowHeadlineMode !== "roundup"}
                           >
-                            <h4>Videos / Resumo / Roundup</h4>
+                            <div className="home-admin-subzone-heading">
+                              <h4>Videos / Resumo / Roundup</h4>
+                              <small>site_editorial_roundup_items</small>
+                            </div>
                             <FeedbackMessage message={scopedMessage(params, "roundup")} />
                             <div className="home-admin-form-grid">
                               <TextField label="Titulo roundup/video" name="roundup_video_heading" value={editorial.roundup_video_heading} />
@@ -2540,8 +2592,11 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                             <h3>Bloco complementar</h3>
                             <p>Escolhe o conteudo do espaco editorial da direita.</p>
                             <FeedbackMessage message={scopedMessage(params, "complement")} />
-                            <section className="home-admin-form-section">
-                              <h4>Modo do complemento</h4>
+                          <section className="home-admin-form-section">
+                              <div className="home-admin-subzone-heading">
+                                <h4>Modo do complemento</h4>
+                                <small>site_editorials.complementary_mode</small>
+                              </div>
                               <div className="home-admin-form-grid">
                                 <label className="home-admin-field is-wide">
                                   <span>Tipo de bloco complementar</span>
@@ -2560,7 +2615,10 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                               data-home-complement-section="complementary_story"
                               hidden={complementaryMode !== "complementary_story"}
                             >
-                              <h4>Complemento da manchete</h4>
+                              <div className="home-admin-subzone-heading">
+                                <h4>Complemento da manchete</h4>
+                                <small>site_editorials.complementary_*</small>
+                              </div>
                               <div className="home-admin-form-grid">
                                 <TextField label="Etiqueta" name="complementary_label" value={editorial.complementary_label} />
                                 <TextField label="Titulo" name="complementary_title" value={editorial.complementary_title} wide />
@@ -2575,7 +2633,10 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                               data-home-complement-section="roundup_video"
                               hidden={complementaryMode !== "roundup_video"}
                             >
-                              <h4>Video do Resumo da Home</h4>
+                              <div className="home-admin-subzone-heading">
+                                <h4>Video do Resumo da Home</h4>
+                                <small>roundup selecionado</small>
+                              </div>
                               <div className="home-admin-form-grid">
                                 <label className="home-admin-field is-wide">
                                   <span>Item de resumo inicial</span>
@@ -2622,10 +2683,14 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                 <h3>Zona editorial final</h3>
                                 <p>Edita os cartoes editoriais que fecham a composicao da Home.</p>
                               </div>
+                              <small>site_editorial_latest_news</small>
                             </div>
                             <FeedbackMessage message={scopedMessage(params, "final-zone")} />
                             <section className="home-admin-form-section">
-                              <h4>Configuracao publica da zona</h4>
+                              <div className="home-admin-subzone-heading">
+                                <h4>Configuracao publica da zona</h4>
+                                <small>site_editorials.final_zone_*</small>
+                              </div>
                               <div className="home-admin-form-grid">
                                 <label className="home-admin-field">
                                   <span>Modo da zona</span>
