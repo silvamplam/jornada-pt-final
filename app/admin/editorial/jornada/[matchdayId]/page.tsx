@@ -392,6 +392,14 @@ const editorialPageStyles = `
     text-transform: uppercase;
   }
 
+  .editorial-admin-item-label {
+    flex: 0 0 auto;
+    color: #687380;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
   .editorial-admin-upload-inline {
     display: grid;
     gap: 8px;
@@ -672,6 +680,7 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope, det
   const createdLabels: Record<string, string> = {
     save_matchday_editorial: "Linha editorial da jornada guardada.",
     save_matchday_highlights: "Destaques guardados e definidos como zona ativa abaixo da manchete.",
+    save_matchday_highlight_item: "Destaque guardado.",
     save_matchday_roundup_items: "Resumo da Jornada guardado e definido como zona ativa abaixo da manchete.",
     save_matchday_roundup_item: "Item do Resumo da Jornada guardado.",
     save_matchday_latest_news: "Zona final da capa guardada.",
@@ -692,6 +701,7 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope, det
     },
     destaques: {
       save_matchday_highlights: "Destaques guardados.",
+      save_matchday_highlight_item: "Destaque guardado.",
       upload_matchday_highlight_image: "Imagem do destaque carregada."
     },
     "resumo-jornada": {
@@ -794,6 +804,8 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const returnToResumo = scopedReturnTo("resumo-jornada");
   const returnToComplementar = scopedReturnTo("bloco-complementar");
   const returnToUltimasNoticias = scopedReturnTo("ultimas-noticias");
+  const returnToHighlightItem = (order: number) =>
+    `${returnTo}?feedback_scope=destaques&feedback_item=highlight-${paddedOrder(order)}#highlight-item-${paddedOrder(order)}`;
   const returnToResumoItem = (order: number) =>
     `${returnTo}?feedback_scope=resumo-jornada&feedback_item=roundup-${paddedOrder(order)}#roundup-item-${paddedOrder(order)}`;
   const returnToLatestNewsItem = (order: number) =>
@@ -801,101 +813,110 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const itemMessageFor = (scope: FeedbackScope, itemKey: string, detail?: string) =>
     feedbackScope === scope && feedbackItem === itemKey ? messageFor(created, error, scope, detail) : null;
   const contextLabel = `${country?.name ?? "Pais"} · ${competition.name} · ${season.label} · ${matchday.label}`;
-  const highlightsFormId = "matchday-highlights-form";
   const belowHeadlineSettingsFormId = "below-headline-settings-form";
 
   const highlightsEditor = (
     <>
-      <form className="editorial-admin-hidden-form" action="/api/admin/gestor" id={highlightsFormId} method="post">
-        <input type="hidden" name="action_type" value="save_matchday_highlights" />
-        <input type="hidden" name="return_to" value={returnToDestaques} />
-        <input type="hidden" name="matchday_id" value={matchday.id} />
-      </form>
       <div className="editorial-admin-compact-stack">
         {[1, 2, 3].map((order) => {
           const highlight = highlights.find((item) => item.sort_order === order);
+          const highlightFormId = `matchday-highlight-${order}-form`;
+          const itemKey = `highlight-${paddedOrder(order)}`;
+          const itemAnchor = `highlight-item-${paddedOrder(order)}`;
           return (
-            <fieldset className={`editorial-admin-fieldset editorial-admin-compact-card editorial-admin-highlight-${order}`} data-highlight-card={order} key={order}>
-              <legend>Destaque {order}</legend>
-              <input form={highlightsFormId} type="hidden" name={`highlight_${order}_id`} value={highlight?.id ?? ""} />
-              <input form={highlightsFormId} type="hidden" name={`highlight_${order}_sort_order`} value={order} />
-              <div className="editorial-admin-field">
-                <label htmlFor={`highlight-${order}-label`}>Etiqueta</label>
-                <input form={highlightsFormId} id={`highlight-${order}-label`} name={`highlight_${order}_label`} defaultValue={highlight?.label ?? ""} placeholder={order === 1 ? "ANTEVISAO" : order === 2 ? "AMBIENTE" : "CONTEXTO"} />
-              </div>
-              <div className="editorial-admin-field">
-                <label htmlFor={`highlight-${order}-title`}>Titulo</label>
-                <input
-                  form={highlightsFormId}
-                  id={`highlight-${order}-title`}
-                  name={`highlight_${order}_title`}
-                  defaultValue={highlight?.title ?? ""}
-                  placeholder={order === 1 ? "Os pontos de atencao antes da bola rolar" : order === 2 ? "A jornada vista pelas bancadas e pelos protagonistas" : "O que pode mudar na tabela depois dos resultados"}
-                />
-              </div>
-              <div className="editorial-admin-field">
-                <label htmlFor={`highlight-${order}-image-url`}>Imagem URL</label>
-                <input form={highlightsFormId} id={`highlight-${order}-image-url`} name={`highlight_${order}_image_url`} defaultValue={highlight?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
-              </div>
-              <div className="editorial-admin-field">
-                <label htmlFor={`highlight-${order}-link-url`}>Link do destaque</label>
-                <input form={highlightsFormId} id={`highlight-${order}-link-url`} name={`highlight_${order}_link_url`} defaultValue={highlight?.link_url ?? ""} placeholder="/noticias/slug-do-artigo" />
-              </div>
-              <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
-                <legend>Ligar artigo publicado ao destaque</legend>
+            <details className="editorial-admin-item-details" data-highlight-card={order} id={itemAnchor} key={order} open={highlight?.status === "published"}>
+              <summary>
+                <span className="editorial-admin-item-summary-title">{itemSummaryTitle(order, highlight?.title, "Rascunho vazio")}</span>
+                {highlight?.label ? <span className="editorial-admin-item-label">{highlight.label}</span> : null}
+                <span className="editorial-admin-item-status">{highlight?.status === "published" ? "Publicado" : "Rascunho"}</span>
+              </summary>
+              <form className="editorial-admin-hidden-form" action="/api/admin/gestor" id={highlightFormId} method="post">
+                <input type="hidden" name="action_type" value="save_matchday_highlight_item" />
+                <input type="hidden" name="return_to" value={returnToHighlightItem(order)} />
+                <input type="hidden" name="matchday_id" value={matchday.id} />
+                <input type="hidden" name="highlight_id" value={highlight?.id ?? ""} />
+                <input type="hidden" name="highlight_sort_order" value={order} />
+              </form>
+              <div className="editorial-admin-item-details-body">
+                {itemMessageFor("destaques", itemKey)}
                 <div className="editorial-admin-field">
-                  <label htmlFor={`highlight-${order}-article-source`}>Preencher destaque com artigo publicado</label>
-                  <select id={`highlight-${order}-article-source`} data-highlight-article-select defaultValue="">
-                    <option value="">Escolher artigo publicado</option>
-                    {sideBlockArticleOptions.map((article) => (
-                      <option
-                        key={article.id}
-                        value={article.id}
-                        data-highlight-label={cleanText(article.label)}
-                        data-highlight-title={cleanText(article.title)}
-                        data-highlight-image-url={cleanText(article.image_url)}
-                        data-highlight-link-url={articlePublicHref(article)}
-                      >
-                        {cleanText(article.title) || cleanText(article.slug) || article.id}
-                      </option>
-                    ))}
+                  <label htmlFor={`highlight-${order}-label`}>Etiqueta</label>
+                  <input form={highlightFormId} id={`highlight-${order}-label`} name="highlight_label" defaultValue={highlight?.label ?? ""} placeholder={order === 1 ? "ANTEVISAO" : order === 2 ? "AMBIENTE" : "CONTEXTO"} />
+                </div>
+                <div className="editorial-admin-field">
+                  <label htmlFor={`highlight-${order}-title`}>Titulo</label>
+                  <input
+                    form={highlightFormId}
+                    id={`highlight-${order}-title`}
+                    name="highlight_title"
+                    defaultValue={highlight?.title ?? ""}
+                    placeholder={order === 1 ? "Os pontos de atencao antes da bola rolar" : order === 2 ? "A jornada vista pelas bancadas e pelos protagonistas" : "O que pode mudar na tabela depois dos resultados"}
+                  />
+                </div>
+                <div className="editorial-admin-field">
+                  <label htmlFor={`highlight-${order}-image-url`}>Imagem URL</label>
+                  <input form={highlightFormId} id={`highlight-${order}-image-url`} name="highlight_image_url" defaultValue={highlight?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
+                </div>
+                <div className="editorial-admin-field">
+                  <label htmlFor={`highlight-${order}-link-url`}>Link do destaque</label>
+                  <input form={highlightFormId} id={`highlight-${order}-link-url`} name="highlight_link_url" defaultValue={highlight?.link_url ?? ""} placeholder="/noticias/slug-do-artigo" />
+                </div>
+                <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
+                  <legend>Ligar artigo publicado ao destaque</legend>
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`highlight-${order}-article-source`}>Preencher destaque com artigo publicado</label>
+                    <select id={`highlight-${order}-article-source`} data-highlight-article-select defaultValue="">
+                      <option value="">Escolher artigo publicado</option>
+                      {sideBlockArticleOptions.map((article) => (
+                        <option
+                          key={article.id}
+                          value={article.id}
+                          data-highlight-label={cleanText(article.label)}
+                          data-highlight-title={cleanText(article.title)}
+                          data-highlight-image-url={cleanText(article.image_url)}
+                          data-highlight-link-url={articlePublicHref(article)}
+                        >
+                          {cleanText(article.title) || cleanText(article.slug) || article.id}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <p className="editorial-admin-muted">
+                    Ao escolher um artigo, o destaque recebe etiqueta, titulo, imagem e link interno. Pode ajustar manualmente antes de guardar.
+                  </p>
+                </fieldset>
+                {highlight?.image_url ? (
+                  <div className="editorial-admin-preview">
+                    <img alt="" src={highlight.image_url} />
+                  </div>
+                ) : null}
+                <div className="editorial-admin-field">
+                  <label htmlFor={`highlight-${order}-status`}>Estado</label>
+                  <select form={highlightFormId} id={`highlight-${order}-status`} name="highlight_status" defaultValue={highlight?.status ?? "draft"}>
+                    <option value="draft">Rascunho</option>
+                    <option value="published">Publicado</option>
                   </select>
                 </div>
-                <p className="editorial-admin-muted">
-                  Ao escolher um artigo, o destaque recebe etiqueta, titulo, imagem e link interno. Pode ajustar manualmente antes de guardar.
-                </p>
-              </fieldset>
-              {highlight?.image_url ? (
-                <div className="editorial-admin-preview">
-                  <img alt="" src={highlight.image_url} />
-                </div>
-              ) : null}
-              <div className="editorial-admin-field">
-                <label htmlFor={`highlight-${order}-status`}>Estado</label>
-                <select form={highlightsFormId} id={`highlight-${order}-status`} name={`highlight_${order}_status`} defaultValue={highlight?.status ?? "draft"}>
-                  <option value="draft">Rascunho</option>
-                  <option value="published">Publicado</option>
-                </select>
-              </div>
-              <form action="/api/admin/gestor/editorial-image" className="editorial-admin-upload-inline" encType="multipart/form-data" method="post">
-                <input type="hidden" name="return_to" value={returnToDestaques} />
-                <input type="hidden" name="matchday_id" value={matchday.id} />
-                <input type="hidden" name="target" value="highlight" />
-                <input type="hidden" name="sort_order" value={order} />
-                <div className="editorial-admin-field">
-                  <label htmlFor={`highlight-${order}-image-upload`}>Carregar imagem do destaque {order}</label>
-                  <input accept="image/jpeg,image/png,image/webp" id={`highlight-${order}-image-upload`} name="image" type="file" />
-                </div>
-                <button className="editorial-admin-button secondary" type="submit">
-                  Carregar imagem
+                <button className="editorial-admin-button" form={highlightFormId} type="submit">
+                  Guardar destaque #{paddedOrder(order)}
                 </button>
-              </form>
-            </fieldset>
+                <form action="/api/admin/gestor/editorial-image" className="editorial-admin-upload-inline" encType="multipart/form-data" method="post">
+                  <input type="hidden" name="return_to" value={returnToHighlightItem(order)} />
+                  <input type="hidden" name="matchday_id" value={matchday.id} />
+                  <input type="hidden" name="target" value="highlight" />
+                  <input type="hidden" name="sort_order" value={order} />
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`highlight-${order}-image-upload`}>Carregar imagem do destaque {order}</label>
+                    <input accept="image/jpeg,image/png,image/webp" id={`highlight-${order}-image-upload`} name="image" type="file" />
+                  </div>
+                  <button className="editorial-admin-button secondary" type="submit">
+                    Carregar imagem
+                  </button>
+                </form>
+              </div>
+            </details>
           );
         })}
-        <button className="editorial-admin-button" form={highlightsFormId} type="submit">
-          Guardar destaques
-        </button>
       </div>
       <script
         dangerouslySetInnerHTML={{
@@ -908,7 +929,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 if (!order || !select) return;
                 function setHighlightField(name, value) {
                   if (!value) return;
-                  var field = document.querySelector('[name="highlight_' + order + '_' + name + '"]');
+                  var field = card.querySelector('[name="highlight_' + name + '"]');
                   if (field) field.value = value;
                 }
                 function applyHighlightArticle() {
