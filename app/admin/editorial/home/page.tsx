@@ -350,7 +350,7 @@ const homeEditorialStyles = `
     gap: 16px;
     align-items: flex-start;
     justify-content: space-between;
-    padding: 16px 18px;
+    padding: 14px 16px;
     border-bottom: 1px solid #e6ebf1;
     background: linear-gradient(180deg, #ffffff, #f8fafc);
   }
@@ -370,16 +370,16 @@ const homeEditorialStyles = `
 
   .home-admin-edit-form {
     display: grid;
-    gap: 14px;
-    padding: 16px;
+    gap: 12px;
+    padding: 14px;
   }
 
   .home-admin-form-section {
     display: grid;
-    gap: 12px;
+    gap: 10px;
     border: 1px solid #e6ebf1;
     border-radius: 8px;
-    padding: 14px;
+    padding: 12px;
     background: #fbfcfe;
   }
 
@@ -427,7 +427,7 @@ const homeEditorialStyles = `
   }
 
   .home-admin-field textarea {
-    min-height: 88px;
+    min-height: 72px;
     resize: vertical;
   }
 
@@ -448,7 +448,7 @@ const homeEditorialStyles = `
   }
 
   .home-admin-save-row button {
-    min-height: 42px;
+    min-height: 38px;
     border: 0;
     border-radius: 7px;
     background: #10151b;
@@ -966,44 +966,14 @@ const homeEditorialStyles = `
 
   .home-admin-section-stack {
     display: grid;
-    gap: 14px;
+    gap: 12px;
     margin-top: 14px;
-  }
-
-  .home-admin-section-heading {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 16px;
-    border: 1px solid #dce3eb;
-    border-radius: 8px;
-    background: #fff;
-    padding: 16px 18px;
-    box-shadow: 0 12px 28px rgba(8, 15, 24, 0.07);
-  }
-
-  .home-admin-section-heading h2 {
-    margin: 4px 0 0;
-    color: #10151b;
-    font-size: 24px;
-    line-height: 1.1;
-    text-transform: uppercase;
-  }
-
-  .home-admin-section-heading span {
-    border-radius: 999px;
-    background: #eef2f6;
-    color: #334155;
-    font-size: 12px;
-    font-weight: 900;
-    padding: 7px 10px;
-    text-transform: uppercase;
   }
 
   .home-admin-zone-panels,
   .home-admin-editorial-flow {
     display: grid;
-    gap: 14px;
+    gap: 12px;
   }
 
   .home-admin-zone-panel {
@@ -1012,8 +982,8 @@ const homeEditorialStyles = `
 
   .home-admin-editorial-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
-    gap: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
     align-items: start;
   }
 
@@ -1022,25 +992,25 @@ const homeEditorialStyles = `
   }
 
   .home-admin-composition-body {
-    padding: 16px;
+    padding: 14px;
   }
 
   .home-admin-composition-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 14px;
+    gap: 12px;
     align-items: start;
   }
 
   .home-admin-composition-card {
     display: grid;
-    gap: 12px;
+    gap: 10px;
     align-content: start;
     min-width: 0;
     border: 1px solid #dce3eb;
     border-radius: 8px;
     background: #f8fafc;
-    padding: 14px;
+    padding: 12px;
   }
 
   .home-admin-composition-card h3,
@@ -1069,7 +1039,7 @@ const homeEditorialStyles = `
 
   .home-admin-composition-side-stack {
     display: grid;
-    gap: 14px;
+    gap: 12px;
     align-content: start;
     min-width: 0;
   }
@@ -2128,14 +2098,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                 <form className="home-admin-editorial-flow" action="/api/admin/editorial/home" method="post">
                   <input type="hidden" name="action_type" value="update_site_editorial_home" />
                   <input type="hidden" name="site_editorial_id" value={editorial.id} />
-
-                  <div className="home-admin-section-heading home-admin-edit-heading">
-                    <div>
-                      <p className="home-admin-eyebrow">Editar editorial</p>
-                      <h2>Dados principais da Home</h2>
-                    </div>
-                    <span>site_editorials</span>
-                  </div>
 
                   <div className="home-admin-editorial-grid">
                     <section className="home-admin-zone-panel home-admin-panel" data-zone="headline" id="home-headline">
