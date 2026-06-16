@@ -1528,7 +1528,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                     <option value="roundup">Resumo da Jornada</option>
                   </select>
                 </div>
-                <button className="editorial-admin-button secondary" type="submit">
+                <button className="editorial-admin-button" type="submit">
                   Guardar escolha
                 </button>
               </form>
