@@ -31,6 +31,18 @@ async function readBelowHeadlineSubtitle(matchdayId: string) {
   }
 }
 
+async function readMatchdayHighlightSubtitles(matchdayId: string) {
+  try {
+    const rows = await fetchSupabaseAdminTable<{ id: string; subtitle: string | null }>(
+      `matchday_highlights?select=id,subtitle&matchday_id=eq.${encodeURIComponent(matchdayId)}&limit=20`
+    );
+
+    return new Map(rows.map((item) => [item.id, item.subtitle?.trim() || null]));
+  } catch {
+    return new Map<string, string | null>();
+  }
+}
+
 const PUBLIC_STAT_COLUMNS: Array<{ key: keyof ClassificationSplit; label: string }> = [
   { key: "played", label: "J" },
   { key: "wins", label: "V" },
@@ -1255,6 +1267,14 @@ const publicMatchdayStyles = `
     font-family: Georgia, "Times New Roman", serif;
     font-size: 16px;
     line-height: 1.15;
+  }
+
+  .public-below-headline-highlights .public-cover-story small {
+    margin: 0;
+    color: #607086;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.35;
   }
 
   .public-highlight-image-link,
@@ -2768,6 +2788,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
   const selectedMatchdayDateContext = formatMatchdayDateContext(context.matchesForMatchday);
   const editorial = context.editorial;
   const liveBelowHeadlineSubtitle = await readBelowHeadlineSubtitle(context.matchday.id);
+  const liveHighlightSubtitles = await readMatchdayHighlightSubtitles(context.matchday.id);
   const publishedHeadline = editorial?.status === "published" ? editorial : null;
   const usePublishedReferenceComposition = context.hasPublishedReferenceComposition;
   const referenceHeadline = usePublishedReferenceComposition ? firstReferenceSlotItem(context.referenceSlots.headline) : null;
@@ -2824,7 +2845,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
           id: highlight.id,
           label: highlight.label?.trim() || null,
           title: highlight.title?.trim() || "Destaque da jornada",
-          subtitle: null,
+          subtitle: liveHighlightSubtitles.get(highlight.id) ?? null,
           imageUrl: highlight.image_url?.trim() || null,
           linkUrl: highlight.link_url?.trim() || null
         }));

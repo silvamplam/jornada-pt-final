@@ -1222,6 +1222,7 @@ async function saveMatchdayHighlights(formData: FormData) {
     const highlightId = cleanText(formData.get(`highlight_${sortOrder}_id`));
     const label = cleanText(formData.get(`highlight_${sortOrder}_label`));
     const title = cleanText(formData.get(`highlight_${sortOrder}_title`));
+    const subtitle = cleanText(formData.get(`highlight_${sortOrder}_subtitle`));
     const imageUrl = cleanText(formData.get(`highlight_${sortOrder}_image_url`));
     const linkUrl = cleanText(formData.get(`highlight_${sortOrder}_link_url`));
     const statusValue = cleanText(formData.get(`highlight_${sortOrder}_status`)) ?? "draft";
@@ -1235,6 +1236,7 @@ async function saveMatchdayHighlights(formData: FormData) {
       matchday_id: matchdayId,
       label,
       title,
+      subtitle,
       image_url: imageUrl,
       link_url: linkUrl,
       sort_order: sortOrder,
@@ -1262,7 +1264,7 @@ async function saveMatchdayHighlights(formData: FormData) {
         method: "PATCH",
         body: JSON.stringify(payload)
       });
-    } else if (label || title || imageUrl || linkUrl || status === "published") {
+    } else if (label || title || subtitle || imageUrl || linkUrl || status === "published") {
       await writeSupabaseAdmin("matchday_highlights", {
         method: "POST",
         body: JSON.stringify(payload)
@@ -1288,11 +1290,12 @@ async function saveMatchdayHighlightItem(formData: FormData) {
 
   const label = cleanText(formData.get("highlight_label"));
   const title = cleanText(formData.get("highlight_title"));
+  const subtitle = cleanText(formData.get("highlight_subtitle"));
   const imageUrl = cleanText(formData.get("highlight_image_url"));
   const linkUrl = cleanText(formData.get("highlight_link_url"));
   const statusValue = cleanText(formData.get("highlight_status")) ?? "draft";
   const status = statusValue === "published" ? "published" : "draft";
-  const hasContent = Boolean(label || title || imageUrl || linkUrl);
+  const hasContent = Boolean(label || title || subtitle || imageUrl || linkUrl);
 
   if (status === "published" && !title) {
     throw new Error("highlight-title-required");
@@ -1306,6 +1309,7 @@ async function saveMatchdayHighlightItem(formData: FormData) {
     matchday_id: matchdayId,
     label,
     title,
+    subtitle,
     image_url: imageUrl,
     link_url: linkUrl,
     sort_order: sortOrder,
