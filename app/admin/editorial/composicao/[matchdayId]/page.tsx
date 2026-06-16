@@ -18,11 +18,14 @@ type CompositionPageProps = {
     matchdayId: string;
   }>;
   searchParams?: Promise<{
+    bank_archived?: string;
     bank_error?: string;
     bank_existing?: string;
     bank_repeated?: string;
+    bank_reactivated?: string;
     bank_saved?: string;
     bank_skipped?: string;
+    bank_status_error?: string;
   }>;
 };
 
@@ -1180,6 +1183,32 @@ function HiddenField({ name, value }: { name: string; value?: string | number | 
   return <input type="hidden" name={name} value={value == null ? "" : String(value)} />;
 }
 
+function BankItemStatusForm({
+  actionType,
+  item,
+  label,
+  matchdayId,
+  returnTo
+}: {
+  actionType: "archive_bank_item" | "reactivate_bank_item";
+  item: MatchdayEditorialBankItem;
+  label: string;
+  matchdayId: string;
+  returnTo: string;
+}) {
+  return (
+    <form className="composition-admin-form" action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value={actionType} />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="bank_item_id" value={item.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <button className="composition-admin-small-button secondary" type="submit">
+        {label}
+      </button>
+    </form>
+  );
+}
+
 function CreateDraftForm({ matchdayId, returnTo }: { matchdayId: string; returnTo: string }) {
   return (
     <form className="composition-admin-form" action="/api/admin/editorial/composicao" method="post">
@@ -1596,15 +1625,23 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
   const publishedAtLabel = formatPublishedAt(draftComposition?.published_at);
   const latestZoneMode = editorial?.latest_zone_mode === "editorial_line" ? "Linha editorial" : "Últimas notícias";
   const contextLabel = `${country?.name ?? "Pais"} / ${competition.name} / ${season.label} / ${matchday.label}`;
+  const activeBankItems = bankItems.filter((item) => item.status !== "archived");
+  const archivedBankItems = bankItems.filter((item) => item.status === "archived");
   const bankSavedCount = Math.max(0, Number.parseInt(query.bank_saved ?? "0", 10) || 0);
   const bankSkippedCount = Math.max(0, Number.parseInt(query.bank_skipped ?? "0", 10) || 0);
   const bankExistingCount = Math.max(0, Number.parseInt(query.bank_existing ?? String(bankSkippedCount), 10) || 0);
   const bankRepeatedCount = Math.max(0, Number.parseInt(query.bank_repeated ?? "0", 10) || 0);
-  const bankFeedback = query.bank_error
-    ? "Nao foi possivel guardar a atualidade desta jornada. Confirma os dados e tenta novamente."
-    : query.bank_saved || query.bank_skipped || query.bank_existing || query.bank_repeated
-      ? `Atualidade guardada: ${bankSavedCount} novas noticias adicionadas. ${bankExistingCount} ja existiam no banco. ${bankRepeatedCount} eram repetidas na atualidade e nao foram duplicadas.`
-      : null;
+  const bankFeedback = query.bank_status_error
+    ? "Nao foi possivel atualizar o estado do item do banco."
+    : query.bank_archived
+      ? "Item arquivado. Continua guardado no banco, mas fora da lista ativa."
+      : query.bank_reactivated
+        ? "Item reativado e devolvido a lista ativa do banco."
+        : query.bank_error
+          ? "Nao foi possivel guardar a atualidade desta jornada. Confirma os dados e tenta novamente."
+          : query.bank_saved || query.bank_skipped || query.bank_existing || query.bank_repeated
+            ? `Atualidade guardada: ${bankSavedCount} novas noticias adicionadas. ${bankExistingCount} ja existiam no banco. ${bankRepeatedCount} eram repetidas na atualidade e nao foram duplicadas.`
+            : null;
 
   return (
     <main className="composition-admin-shell">
@@ -1675,8 +1712,8 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
                   </p>
                 </form>
                 <ItemsGrid
-                  items={bankItems}
-                  empty="Ainda nao ha noticias guardadas no banco desta jornada."
+                  items={activeBankItems}
+                  empty="Ainda nao ha noticias ativas guardadas no banco desta jornada."
                   render={(item) => (
                     <ItemCard
                       key={item.id}
@@ -1695,9 +1732,40 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
                         item.created_at ? `Criado: ${formatPublishedAt(item.created_at)}` : null,
                         item.updated_at ? `Atualizado: ${formatPublishedAt(item.updated_at)}` : null
                       ]}
-                    />
+                    >
+                      <BankItemStatusForm actionType="archive_bank_item" item={item} label="Arquivar" matchdayId={matchday.id} returnTo={returnTo} />
+                    </ItemCard>
                   )}
                 />
+                <details className="composition-admin-candidates">
+                  <summary>Itens arquivados ({archivedBankItems.length})</summary>
+                  <ItemsGrid
+                    items={archivedBankItems}
+                    empty="Nao ha itens arquivados neste banco."
+                    render={(item) => (
+                      <ItemCard
+                        key={item.id}
+                        imageUrl={item.image_url}
+                        label={item.label}
+                        title={item.title}
+                        subtitle={item.subtitle}
+                        linkUrl={item.link_url}
+                        meta={[
+                          item.sort_order ? `Posicao ${item.sort_order}` : null,
+                          statusLabel(item.status),
+                          item.source_type ? `Origem: ${item.source_type}` : null,
+                          item.source_slug ? `Slug: ${item.source_slug}` : null,
+                          item.source_id ? `ID origem: ${item.source_id}` : null,
+                          item.origin_slot_type ? `Zona original: ${item.origin_slot_type}` : null,
+                          item.created_at ? `Criado: ${formatPublishedAt(item.created_at)}` : null,
+                          item.updated_at ? `Atualizado: ${formatPublishedAt(item.updated_at)}` : null
+                        ]}
+                      >
+                        <BankItemStatusForm actionType="reactivate_bank_item" item={item} label="Reativar" matchdayId={matchday.id} returnTo={returnTo} />
+                      </ItemCard>
+                    )}
+                  />
+                </details>
               </Card>
             </div>
 

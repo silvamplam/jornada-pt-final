@@ -670,6 +670,28 @@ async function saveCurrentMatchdayEditorialBank(matchdayId: string): Promise<Sav
   return { saved, existing, repeated, skipped: existing + repeated };
 }
 
+async function updateBankItemStatus(formData: FormData, nextStatus: "active" | "archived") {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const bankItemId = cleanText(formData.get("bank_item_id"));
+  if (!matchdayId || !bankItemId) throw new Error("bank-item-invalid");
+
+  const bankItem = await readFirst<{ id: string; status: string | null }>(
+    `matchday_editorial_bank_items?select=id,status&id=eq.${encodeURIComponent(bankItemId)}&matchday_id=eq.${encodeURIComponent(matchdayId)}`
+  );
+
+  if (!bankItem) throw new Error("bank-item-invalid");
+  if (nextStatus === "archived" && bankItem.status !== "active") throw new Error("bank-item-invalid");
+  if (nextStatus === "active" && bankItem.status !== "archived") throw new Error("bank-item-invalid");
+
+  await writeSupabaseAdmin(
+    `matchday_editorial_bank_items?id=eq.${encodeURIComponent(bankItem.id)}&matchday_id=eq.${encodeURIComponent(matchdayId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ status: nextStatus })
+    }
+  );
+}
+
 async function buildCurrentPageSnapshots(matchdayId: string, useRoundupItems: boolean): Promise<CompositionSnapshot[]> {
   const [editorial, highlights, latestNews, roundupItems] = await Promise.all([
     readFirst<CurrentEditorial>(
@@ -1028,12 +1050,23 @@ export async function POST(request: Request) {
         `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_saved=${result.saved}&bank_existing=${result.existing}&bank_repeated=${result.repeated}&bank_skipped=${result.skipped}#matchday-editorial-bank`
       );
     }
+    else if (actionType === "archive_bank_item") {
+      await updateBankItemStatus(formData, "archived");
+      return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_archived=1#matchday-editorial-bank`);
+    }
+    else if (actionType === "reactivate_bank_item") {
+      await updateBankItemStatus(formData, "active");
+      return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_reactivated=1#matchday-editorial-bank`);
+    }
     else if (actionType === "publish_reference_composition") await publishReferenceComposition(formData);
     else if (actionType === "reopen_reference_composition") await reopenReferenceComposition(formData);
     else throw new Error("unknown-action");
   } catch (error) {
     if (actionType === "save_matchday_editorial_bank_current") {
       return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_error=1#matchday-editorial-bank`);
+    }
+    if (actionType === "archive_bank_item" || actionType === "reactivate_bank_item") {
+      return redirectTo(request, `${returnTo}${returnTo.includes("?") ? "&" : "?"}bank_status_error=1#matchday-editorial-bank`);
     }
 
     const errorValue = error instanceof CompositionPublicationError ? encodeURIComponent(error.message) : "1";
