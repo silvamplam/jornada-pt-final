@@ -134,32 +134,11 @@ const roundupVideoListPolishStyles = `
     width: 26px;
     height: 18px;
     min-width: 26px;
-    border-radius: 6px;
+    border-radius: 999px;
     overflow: hidden;
-    border: 1px solid #dfe5ec;
-    background: #f4f7fa;
-    box-shadow: none;
-  }
-
-  .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-thumb-has-image {
-    border-color: rgba(16, 21, 27, 0.12);
-    background: #10151b;
-  }
-
-  .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-thumb-has-image::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: rgba(16, 21, 27, 0.18);
-    pointer-events: none;
-  }
-
-  .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-thumb img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
+    border: 1px solid #e5eaf0;
+    background: #ffffff;
+    box-shadow: inset 0 0 0 1px rgba(215, 25, 32, 0.08);
   }
 
   .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-play,
@@ -173,13 +152,8 @@ const roundupVideoListPolishStyles = `
     margin-left: 1px;
     border-top: 5px solid transparent;
     border-bottom: 5px solid transparent;
-    border-left: 8px solid #526174;
+    border-left: 8px solid #d71920;
     transform: translate(-50%, -50%);
-  }
-
-  .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-thumb-has-image::after {
-    border-left-color: #ffffff;
-    filter: drop-shadow(0 1px 2px rgba(16, 21, 27, 0.44));
   }
 
   .public-roundup-video-layout .public-roundup-meta {
@@ -456,7 +430,6 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
                 const itemLabel = item.label?.trim();
                 const itemDuration = item.duration?.trim();
                 const itemVideoUrl = item.video_url?.trim();
-                const itemPreviewImageUrl = videoThumbnailUrl(item);
 
                 return (
                   <article
@@ -472,10 +445,8 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
                     >
                       <span
                         aria-hidden="true"
-                        className={`public-roundup-switch-thumb${itemPreviewImageUrl ? " public-roundup-switch-thumb-has-image" : ""}`}
-                      >
-                        {itemPreviewImageUrl ? <img alt="" src={itemPreviewImageUrl} /> : null}
-                      </span>
+                        className="public-roundup-switch-thumb"
+                      />
                       <span className="public-roundup-meta">
                         {itemLabel ? <span>{itemLabel}</span> : <span aria-hidden="true" />}
                         {itemDuration ? <span className="public-roundup-duration">{itemDuration}</span> : null}
