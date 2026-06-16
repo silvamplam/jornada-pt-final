@@ -679,6 +679,7 @@ type FeedbackScope = "manchete" | "bloco-lateral" | "composicao" | "destaques" |
 function messageFor(created?: string, error?: string, scope?: FeedbackScope, detail?: string) {
   const createdLabels: Record<string, string> = {
     save_matchday_headline: "Manchete guardada.",
+    save_matchday_side_block: "Bloco lateral guardado.",
     save_matchday_editorial: "Linha editorial da jornada guardada.",
     save_matchday_highlights: "Destaques guardados e definidos como zona ativa abaixo da manchete.",
     save_matchday_highlight_item: "Destaque guardado.",
@@ -699,6 +700,7 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope, det
       save_matchday_editorial: "Composicao guardada."
     },
     "bloco-lateral": {
+      save_matchday_side_block: "Bloco lateral da jornada guardado.",
       save_matchday_editorial: "Bloco lateral da jornada guardado."
     },
     destaques: {
@@ -1376,23 +1378,9 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           </header>
           {scopedMessageFor(created, error, feedbackScope, "bloco-lateral")}
           <form className="editorial-admin-form" action="/api/admin/gestor" data-side-block-form method="post">
-            <input type="hidden" name="action_type" value="save_matchday_editorial" />
+            <input type="hidden" name="action_type" value="save_matchday_side_block" />
             <input type="hidden" name="return_to" value={returnToBlocoLateral} />
             <input type="hidden" name="matchday_id" value={matchday.id} />
-            <input type="hidden" name="title" value={editorial?.title ?? ""} />
-            <input type="hidden" name="summary" value={editorial?.summary ?? ""} />
-            <input type="hidden" name="title_color" value={editorial?.title_color ?? ""} />
-            <input type="hidden" name="image_url" value={editorial?.image_url ?? ""} />
-            <input type="hidden" name="status" value={editorial?.status ?? "draft"} />
-            <input type="hidden" name="below_headline_mode" value={belowHeadlineMode} />
-            <input type="hidden" name="complementary_mode" value={complementaryMode} />
-            <input type="hidden" name="complementary_roundup_item_id" value={editorial?.complementary_roundup_item_id ?? ""} />
-            <input type="hidden" name="complementary_label" value={editorial?.complementary_label ?? ""} />
-            <input type="hidden" name="complementary_title" value={editorial?.complementary_title ?? ""} />
-            <input type="hidden" name="complementary_text" value={editorial?.complementary_text ?? ""} />
-            <input type="hidden" name="complementary_image_url" value={editorial?.complementary_image_url ?? ""} />
-            <input type="hidden" name="complementary_link_url" value={editorial?.complementary_link_url ?? ""} />
-            <input type="hidden" name="complementary_status" value={editorial?.complementary_status ?? "draft"} />
             <div className="editorial-admin-field">
               <label htmlFor="side-block-status">Estado</label>
               <select id="side-block-status" name="side_block_status" defaultValue={editorial?.side_block_status ?? "draft"}>
