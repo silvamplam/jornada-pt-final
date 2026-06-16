@@ -598,6 +598,7 @@ async function readMatchdayContext(matchdayId: string): Promise<MatchdayContext 
 
 type MatchdayEditorialForAdmin = SupabaseMatchdayEditorial & {
   headline_link_url?: string | null;
+  below_headline_subtitle?: string | null;
 };
 
 type MatchdayHighlightForAdmin = SupabaseMatchdayHighlight & {
@@ -607,7 +608,7 @@ type MatchdayHighlightForAdmin = SupabaseMatchdayHighlight & {
 async function readMatchdayEditorial(matchdayId: string): Promise<MatchdayEditorialForAdmin | null> {
   try {
     return await readFirst<MatchdayEditorialForAdmin>(
-      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,headline_link_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,latest_zone_mode,latest_zone_title,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,headline_link_url,below_headline_mode,below_headline_heading,below_headline_subtitle,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,latest_zone_mode,latest_zone_title,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}`
     );
@@ -681,6 +682,7 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope, det
     save_matchday_headline: "Manchete guardada.",
     save_matchday_side_block: "Bloco lateral guardado.",
     save_matchday_complement: "Bloco complementar guardado.",
+    save_matchday_below_headline: "Zona abaixo da manchete guardada.",
     save_matchday_editorial: "Linha editorial da jornada guardada.",
     save_matchday_highlights: "Destaques guardados e definidos como zona ativa abaixo da manchete.",
     save_matchday_highlight_item: "Destaque guardado.",
@@ -698,6 +700,7 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope, det
       upload_matchday_editorial_image: "Imagem da manchete carregada."
     },
     composicao: {
+      save_matchday_below_headline: "Zona abaixo da manchete guardada.",
       save_matchday_editorial: "Composicao guardada."
     },
     "bloco-lateral": {
@@ -1499,28 +1502,13 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
         {scopedMessageFor(created, error, feedbackScope, "composicao")}
         <div data-composition-form>
           <div className="editorial-admin-composition-grid">
-            <div className="editorial-admin-composition-card">
-              <h3>Zona abaixo da manchete</h3>
-              <p>Escolhe que conjunto ocupa a area inferior esquerda da composicao.</p>
-              <form className="editorial-admin-form" action="/api/admin/gestor" data-below-mode-form id={belowHeadlineSettingsFormId} method="post">
-                <input type="hidden" name="action_type" value="save_matchday_editorial" />
+              <div className="editorial-admin-composition-card">
+                <h3>Zona abaixo da manchete</h3>
+                <p>Escolhe que conjunto ocupa a area inferior esquerda da composicao.</p>
+                <form className="editorial-admin-form" action="/api/admin/gestor" data-below-mode-form id={belowHeadlineSettingsFormId} method="post">
+                <input type="hidden" name="action_type" value="save_matchday_below_headline" />
                 <input type="hidden" name="return_to" value={returnToComposicao} />
                 <input type="hidden" name="matchday_id" value={matchday.id} />
-                <input type="hidden" name="title" value={editorial?.title ?? ""} />
-                <input type="hidden" name="summary" value={editorial?.summary ?? ""} />
-                <input type="hidden" name="title_color" value={editorial?.title_color ?? ""} />
-                <input type="hidden" name="image_url" value={editorial?.image_url ?? ""} />
-                <input type="hidden" name="status" value={editorial?.status ?? "draft"} />
-                <input type="hidden" name="complementary_mode" value={complementaryMode} data-suggested-complement />
-                <input type="hidden" name="complementary_roundup_item_id" value={editorial?.complementary_roundup_item_id ?? ""} />
-                <input type="hidden" name="complementary_label" value={editorial?.complementary_label ?? ""} />
-                <input type="hidden" name="complementary_title" value={editorial?.complementary_title ?? ""} />
-                <input type="hidden" name="complementary_text" value={editorial?.complementary_text ?? ""} />
-                <input type="hidden" name="complementary_image_url" value={editorial?.complementary_image_url ?? ""} />
-                <input type="hidden" name="complementary_link_url" value={editorial?.complementary_link_url ?? ""} />
-                <input type="hidden" name="complementary_status" value={editorial?.complementary_status ?? "draft"} />
-                <input type="hidden" name="roundup_video_heading" value={editorial?.roundup_video_heading ?? ""} />
-                <input type="hidden" name="roundup_video_heading_color" value={editorial?.roundup_video_heading_color ?? ""} />
                 <div className="editorial-admin-field">
                   <label htmlFor="composition-below-headline-mode">Tipo de conteudo abaixo da manchete</label>
                   <select id="composition-below-headline-mode" name="below_headline_mode" defaultValue={belowHeadlineMode}>
@@ -1528,7 +1516,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                     <option value="roundup">Resumo da Jornada</option>
                   </select>
                 </div>
-                <button className="editorial-admin-button secondary" type="submit">
+                <button className="editorial-admin-button" type="submit">
                   Guardar escolha
                 </button>
               </form>
@@ -1539,6 +1527,10 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                   <div className="editorial-admin-field">
                     <label htmlFor="below-headline-heading">Texto do topo</label>
                     <input form={belowHeadlineSettingsFormId} id="below-headline-heading" name="below_headline_heading" defaultValue={editorial?.below_headline_heading ?? ""} placeholder={belowHeadlineHeadingFallback} />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor="below-headline-subtitle">Subtitulo da zona abaixo da manchete</label>
+                    <input form={belowHeadlineSettingsFormId} id="below-headline-subtitle" name="below_headline_subtitle" defaultValue={editorial?.below_headline_subtitle ?? ""} placeholder="Linha de apoio opcional para os destaques" />
                   </div>
                   <div className="editorial-admin-field">
                     <label htmlFor="below-headline-heading-color">Cor do texto do topo</label>

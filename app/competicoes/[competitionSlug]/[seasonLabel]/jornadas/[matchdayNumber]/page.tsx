@@ -1,6 +1,7 @@
 ﻿import { buildAccumulatedClassification, totalClassificationStats, type ClassificationSplit } from "@/lib/classification";
 import { getPublicMatchdayDiagnostic, seasonLabelToUrlSegment, type PublicMatchdayContext, type PublicMatchdayDiagnostic, type PublicReferenceCompositionItem, type PublicSeasonMatch } from "@/lib/public-matchday";
 import { getPublicCompetitionMenu } from "@/lib/public-competition-menu";
+import { fetchSupabaseAdminTable } from "@/lib/supabase";
 import PublicTeamBadge from "@/components/public/PublicTeamBadge";
 import RoundupVideoSwitcher from "@/components/public/RoundupVideoSwitcher";
 import { redirect } from "next/navigation";
@@ -17,6 +18,18 @@ type PublicMatchdayPageProps = {
     debug_logos?: string;
   }>;
 };
+
+async function readBelowHeadlineSubtitle(matchdayId: string) {
+  try {
+    const rows = await fetchSupabaseAdminTable<{ below_headline_subtitle: string | null }>(
+      `matchday_editorials?select=below_headline_subtitle&matchday_id=eq.${encodeURIComponent(matchdayId)}&limit=1`
+    );
+
+    return rows[0]?.below_headline_subtitle?.trim() || null;
+  } catch {
+    return null;
+  }
+}
 
 const PUBLIC_STAT_COLUMNS: Array<{ key: keyof ClassificationSplit; label: string }> = [
   { key: "played", label: "J" },
@@ -824,6 +837,19 @@ const publicMatchdayStyles = `
     justify-content: flex-start;
     padding: 0 0 8px;
     border-top: 0;
+  }
+
+  .public-below-headline-heading-copy {
+    display: grid;
+    gap: 4px;
+  }
+
+  .public-below-headline-subtitle {
+    margin: 0;
+    color: #5d6b7a;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
   }
 
   .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup .public-editorial-block-head {
@@ -2741,6 +2767,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
   const halftimeMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "halftime");
   const selectedMatchdayDateContext = formatMatchdayDateContext(context.matchesForMatchday);
   const editorial = context.editorial;
+  const liveBelowHeadlineSubtitle = await readBelowHeadlineSubtitle(context.matchday.id);
   const publishedHeadline = editorial?.status === "published" ? editorial : null;
   const usePublishedReferenceComposition = context.hasPublishedReferenceComposition;
   const referenceHeadline = usePublishedReferenceComposition ? firstReferenceSlotItem(context.referenceSlots.headline) : null;
@@ -2783,6 +2810,10 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
   const belowHeadlineMode = referenceHighlightItems.length > 0 ? "highlights" : configuredBelowHeadlineMode;
   const belowHeadlineHeading =
     editorial?.below_headline_heading?.trim() || `Jornada ${String(context.matchday.number).padStart(2, "0")}`;
+  const belowHeadlineSubtitle =
+    belowHeadlineMode === "highlights"
+      ? liveBelowHeadlineSubtitle
+      : null;
   const belowHeadlineHeadingColor = editorial?.below_headline_heading_color?.trim();
   const belowHeadlineLabel = belowHeadlineMode === "highlights" ? belowHeadlineHeading : `Jornada ${String(context.matchday.number).padStart(2, "0")}`;
   const belowHeadlineLabelColor = belowHeadlineMode === "highlights" ? belowHeadlineHeadingColor : null;
@@ -3069,9 +3100,12 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                 aria-label="Zona editorial abaixo da manchete"
               >
                 <div className="public-editorial-block-head">
-                  <span className="public-roundup-matchday-label" style={belowHeadlineLabelColor ? { color: belowHeadlineLabelColor } : undefined}>
-                    {belowHeadlineLabel}
-                  </span>
+                  <div className="public-below-headline-heading-copy">
+                    <span className="public-roundup-matchday-label" style={belowHeadlineLabelColor ? { color: belowHeadlineLabelColor } : undefined}>
+                      {belowHeadlineLabel}
+                    </span>
+                    {belowHeadlineSubtitle ? <p className="public-below-headline-subtitle">{belowHeadlineSubtitle}</p> : null}
+                  </div>
                 </div>
                 <div className="public-cover-story-strip" aria-label="Resumos e destaques da jornada">
               {belowHeadlineMode === "highlights" ? (
