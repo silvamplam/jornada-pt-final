@@ -1110,6 +1110,79 @@ async function saveMatchdayRoundupItems(formData: FormData) {
   await setMatchdayBelowHeadlineMode(matchdayId, "roundup");
 }
 
+async function saveMatchdayRoundupItem(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const sortOrder = cleanInteger(formData.get("roundup_sort_order"));
+  const itemId = cleanText(formData.get("roundup_id"));
+  const allowedTypes = new Set(["video", "golos", "resumo", "noticia"]);
+
+  if (!matchdayId || !sortOrder || !ROUNDUP_EDITOR_SORT_ORDERS.includes(sortOrder)) {
+    throw new Error("missing-fields");
+  }
+
+  if (!(await hasRows(`matchdays?select=id&id=eq.${encodeURIComponent(matchdayId)}`))) {
+    throw new Error("matchday-invalid");
+  }
+
+  const existingRows = itemId
+    ? await fetchSupabaseAdminTable<{ id: string; image_url: string | null; video_url: string | null }>(
+        `matchday_roundup_items?select=id,image_url,video_url&id=eq.${encodeURIComponent(itemId)}&matchday_id=eq.${encodeURIComponent(matchdayId)}&limit=1`
+      ).catch(() => [])
+    : await fetchSupabaseAdminTable<{ id: string; image_url: string | null; video_url: string | null }>(
+        `matchday_roundup_items?select=id,image_url,video_url&matchday_id=eq.${encodeURIComponent(matchdayId)}&sort_order=eq.${sortOrder}&limit=1`
+      ).catch(() => []);
+
+  const existingItem = existingRows[0] ?? null;
+  const label = cleanText(formData.get("roundup_label"));
+  const title = cleanText(formData.get("roundup_title"));
+  const subtitle = cleanText(formData.get("roundup_subtitle"));
+  const submittedImageUrl = formData.has("roundup_image_url") ? cleanText(formData.get("roundup_image_url")) : null;
+  const submittedVideoUrl = formData.has("roundup_video_url") ? cleanText(formData.get("roundup_video_url")) : null;
+  const imageUrl = submittedImageUrl ?? existingItem?.image_url ?? null;
+  const videoUrl = submittedVideoUrl ?? existingItem?.video_url ?? null;
+  const duration = cleanText(formData.get("roundup_duration"));
+  const typeValue = cleanText(formData.get("roundup_type")) ?? "resumo";
+  const statusValue = cleanText(formData.get("roundup_status")) ?? "draft";
+  const type = allowedTypes.has(typeValue) ? typeValue : "resumo";
+  const status = statusValue === "published" ? "published" : "draft";
+  const hasContent = Boolean(label || title || subtitle || imageUrl || videoUrl || duration);
+
+  if (!hasContent && status !== "published") {
+    return;
+  }
+
+  const payload = {
+    matchday_id: matchdayId,
+    label,
+    title,
+    subtitle,
+    image_url: imageUrl,
+    video_url: videoUrl,
+    duration,
+    type,
+    sort_order: sortOrder,
+    status,
+    updated_at: new Date().toISOString()
+  };
+
+  if (existingItem) {
+    await writeSupabaseAdmin(
+      `matchday_roundup_items?id=eq.${encodeURIComponent(existingItem.id)}&matchday_id=eq.${encodeURIComponent(matchdayId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      }
+    );
+  } else {
+    await writeSupabaseAdmin("matchday_roundup_items", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  }
+
+  await setMatchdayBelowHeadlineMode(matchdayId, "roundup");
+}
+
 async function saveMatchdayLatestNews(formData: FormData) {
   const matchdayId = cleanText(formData.get("matchday_id"));
   const latestZoneModeValue = cleanText(formData.get("latest_zone_mode")) ?? "latest_news";
@@ -1198,6 +1271,76 @@ async function saveMatchdayLatestNews(formData: FormData) {
         body: JSON.stringify(payload)
       });
     }
+  }
+}
+
+async function saveMatchdayLatestNewsItem(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const sortOrder = cleanInteger(formData.get("latest_news_sort_order"));
+  const newsId = cleanText(formData.get("latest_news_id"));
+
+  if (!matchdayId || !sortOrder || !LATEST_NEWS_EDITOR_SORT_ORDERS.includes(sortOrder)) {
+    throw new Error("missing-fields");
+  }
+
+  if (!(await hasRows(`matchdays?select=id&id=eq.${encodeURIComponent(matchdayId)}`))) {
+    throw new Error("matchday-invalid");
+  }
+
+  const existingRows = newsId
+    ? await fetchSupabaseAdminTable<{ id: string; article_id: string | null }>(
+        `matchday_latest_news?select=id,article_id&id=eq.${encodeURIComponent(newsId)}&matchday_id=eq.${encodeURIComponent(matchdayId)}&limit=1`
+      ).catch(() => [])
+    : await fetchSupabaseAdminTable<{ id: string; article_id: string | null }>(
+        `matchday_latest_news?select=id,article_id&matchday_id=eq.${encodeURIComponent(matchdayId)}&sort_order=eq.${sortOrder}&limit=1`
+      ).catch(() => []);
+
+  const existingItem = existingRows[0] ?? null;
+  const timeLabel = cleanText(formData.get("latest_news_time_label"));
+  const title = cleanText(formData.get("latest_news_title"));
+  const subtitle = cleanText(formData.get("latest_news_subtitle"));
+  const imageUrl = cleanText(formData.get("latest_news_image_url"));
+  const linkUrl = cleanText(formData.get("latest_news_link_url"));
+  const rawArticleId = cleanText(formData.get("latest_news_article_id")) ?? existingItem?.article_id ?? null;
+  const articleId = linkUrl?.startsWith("/noticias/") ? null : rawArticleId;
+  const statusValue = cleanText(formData.get("latest_news_status")) ?? "draft";
+  const status = statusValue === "published" ? "published" : "draft";
+  const hasContent = Boolean(timeLabel || title || subtitle || imageUrl || linkUrl || articleId);
+
+  if (status === "published" && !title) {
+    throw new Error("latest-news-title-required");
+  }
+
+  if (!hasContent && status !== "published") {
+    return;
+  }
+
+  const payload = {
+    matchday_id: matchdayId,
+    time_label: timeLabel,
+    title,
+    subtitle,
+    image_url: imageUrl,
+    link_url: linkUrl,
+    article_id: articleId,
+    sort_order: sortOrder,
+    status,
+    updated_at: new Date().toISOString()
+  };
+
+  if (existingItem) {
+    await writeSupabaseAdmin(
+      `matchday_latest_news?id=eq.${encodeURIComponent(existingItem.id)}&matchday_id=eq.${encodeURIComponent(matchdayId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      }
+    );
+  } else {
+    await writeSupabaseAdmin("matchday_latest_news", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
   }
 }
 
@@ -1986,8 +2129,12 @@ export async function POST(request: Request) {
       await saveMatchdayHighlights(formData);
     } else if (actionType === "save_matchday_roundup_items") {
       await saveMatchdayRoundupItems(formData);
+    } else if (actionType === "save_matchday_roundup_item") {
+      await saveMatchdayRoundupItem(formData);
     } else if (actionType === "save_matchday_latest_news") {
       await saveMatchdayLatestNews(formData);
+    } else if (actionType === "save_matchday_latest_news_item") {
+      await saveMatchdayLatestNewsItem(formData);
     } else if (actionType === "match") {
       await createMatch(formData);
     } else if (actionType === "update_match") {
@@ -2015,7 +2162,7 @@ export async function POST(request: Request) {
       });
     }
 
-    if (actionType === "save_matchday_latest_news") {
+    if (actionType === "save_matchday_latest_news" || actionType === "save_matchday_latest_news_item") {
       return returnUrl(request, formData, "error", "latest-news-save-failed", {
         latest_news_error_detail: shortActionError(error)
       });

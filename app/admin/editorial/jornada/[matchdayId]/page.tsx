@@ -320,6 +320,78 @@ const editorialPageStyles = `
     margin-top: 10px;
   }
 
+  .editorial-admin-item-form {
+    display: block;
+  }
+
+  .editorial-admin-item-details {
+    overflow: hidden;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #ffffff;
+    scroll-margin-top: 18px;
+  }
+
+  .editorial-admin-item-details > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    color: #10151b;
+    font-size: 14px;
+    font-weight: 900;
+    list-style: none;
+  }
+
+  .editorial-admin-item-details > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .editorial-admin-item-details > summary::after {
+    color: #687380;
+    content: "Abrir";
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .editorial-admin-item-details[open] > summary {
+    border-bottom: 1px solid #dce3eb;
+  }
+
+  .editorial-admin-item-details[open] > summary::after {
+    content: "Fechar";
+  }
+
+  .editorial-admin-item-details-body {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    background: #fbfcfe;
+  }
+
+  .editorial-admin-item-summary-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .editorial-admin-item-status {
+    flex: 0 0 auto;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #eef2f6;
+    color: #425061;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
   .editorial-admin-upload-inline {
     display: grid;
     gap: 8px;
@@ -443,6 +515,14 @@ function oneParam(params: Record<string, string | string[] | undefined>, key: st
 
 function cleanText(value: string | null | undefined) {
   return value?.trim() ?? "";
+}
+
+function paddedOrder(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function itemSummaryTitle(order: number, title: string | null | undefined, emptyLabel: string) {
+  return `#${paddedOrder(order)} - ${cleanText(title) || emptyLabel}`;
 }
 
 function articlePublicHref(article: EditorialArticleForSideBlock) {
@@ -593,7 +673,9 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope, det
     save_matchday_editorial: "Linha editorial da jornada guardada.",
     save_matchday_highlights: "Destaques guardados e definidos como zona ativa abaixo da manchete.",
     save_matchday_roundup_items: "Resumo da Jornada guardado e definido como zona ativa abaixo da manchete.",
+    save_matchday_roundup_item: "Item do Resumo da Jornada guardado.",
     save_matchday_latest_news: "Zona final da capa guardada.",
+    save_matchday_latest_news_item: "Item da zona final guardado.",
     upload_matchday_editorial_image: "Imagem da manchete carregada.",
     upload_matchday_highlight_image: "Imagem do destaque carregada."
   };
@@ -613,13 +695,15 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope, det
       upload_matchday_highlight_image: "Imagem do destaque carregada."
     },
     "resumo-jornada": {
-      save_matchday_roundup_items: "Resumo da Jornada guardado."
+      save_matchday_roundup_items: "Resumo da Jornada guardado.",
+      save_matchday_roundup_item: "Item do Resumo da Jornada guardado."
     },
     "bloco-complementar": {
       save_matchday_editorial: "Bloco complementar guardado."
     },
     "ultimas-noticias": {
-      save_matchday_latest_news: "Zona final da capa guardada."
+      save_matchday_latest_news: "Zona final da capa guardada.",
+      save_matchday_latest_news_item: "Item da zona final guardado."
     }
   };
   const errorLabels: Record<string, string> = {
@@ -667,6 +751,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const created = oneParam(query, "created");
   const error = oneParam(query, "error");
   const feedbackScope = oneParam(query, "feedback_scope");
+  const feedbackItem = oneParam(query, "feedback_item");
   const latestNewsErrorDetail = oneParam(query, "latest_news_error_detail");
   const context = await readMatchdayContext(matchdayId);
 
@@ -709,6 +794,12 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const returnToResumo = scopedReturnTo("resumo-jornada");
   const returnToComplementar = scopedReturnTo("bloco-complementar");
   const returnToUltimasNoticias = scopedReturnTo("ultimas-noticias");
+  const returnToResumoItem = (order: number) =>
+    `${returnTo}?feedback_scope=resumo-jornada&feedback_item=roundup-${paddedOrder(order)}#roundup-item-${paddedOrder(order)}`;
+  const returnToLatestNewsItem = (order: number) =>
+    `${returnTo}?feedback_scope=ultimas-noticias&feedback_item=latest-news-${paddedOrder(order)}#latest-news-item-${paddedOrder(order)}`;
+  const itemMessageFor = (scope: FeedbackScope, itemKey: string, detail?: string) =>
+    feedbackScope === scope && feedbackItem === itemKey ? messageFor(created, error, scope, detail) : null;
   const contextLabel = `${country?.name ?? "Pais"} · ${competition.name} · ${season.label} · ${matchday.label}`;
   const highlightsFormId = "matchday-highlights-form";
   const belowHeadlineSettingsFormId = "below-headline-settings-form";
@@ -838,183 +929,208 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   );
 
   const roundupEditor = (
-    <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
-      <input type="hidden" name="action_type" value="save_matchday_roundup_items" />
-      <input type="hidden" name="return_to" value={returnToResumo} />
-      <input type="hidden" name="matchday_id" value={matchday.id} />
+    <div className="editorial-admin-compact-stack">
       {ROUNDUP_EDITOR_SORT_ORDERS.map((order) => {
         const item = roundupItems.find((roundupItem) => roundupItem.sort_order === order);
+        const itemKey = `roundup-${paddedOrder(order)}`;
+        const itemAnchor = `roundup-item-${paddedOrder(order)}`;
         return (
-          <fieldset className={`editorial-admin-fieldset editorial-admin-highlight-${order}`} key={order}>
-            <legend>Item {order}</legend>
-            <input type="hidden" name={`roundup_${order}_id`} value={item?.id ?? ""} />
-            <input type="hidden" name={`roundup_${order}_sort_order`} value={order} />
-            <div className="editorial-admin-field">
-              <label htmlFor={`roundup-${order}-sort-order`}>Ordem</label>
-              <input id={`roundup-${order}-sort-order`} readOnly value={order} />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor={`roundup-${order}-label`}>Etiqueta</label>
-              <input id={`roundup-${order}-label`} name={`roundup_${order}_label`} defaultValue={item?.label ?? ""} placeholder={order === 1 ? "VIDEO" : order === 2 ? "GOLOS" : order === 3 ? "NOTICIA" : "RESUMO"} />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor={`roundup-${order}-title`}>Titulo</label>
-              <input
-                id={`roundup-${order}-title`}
-                name={`roundup_${order}_title`}
-                defaultValue={item?.title ?? ""}
-                placeholder={order === 1 ? "Girona 0 - 1 Rayo Vallecano" : order === 2 ? "Villarreal 2 - 3 Real Oviedo" : order === 3 ? "Mallorca 0 - 1 FC Barcelona" : "Titulo do item da jornada"}
-              />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor={`roundup-${order}-subtitle`}>Descricao</label>
-              <input id={`roundup-${order}-subtitle`} name={`roundup_${order}_subtitle`} defaultValue={item?.subtitle ?? ""} placeholder={order === 1 ? "Resumo completo" : order === 2 ? "Golos e melhores momentos" : order === 3 ? "Noticia de contexto" : "Descricao curta"} />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor={`roundup-${order}-video-url`}>Video URL</label>
-              <input id={`roundup-${order}-video-url`} name={`roundup_${order}_video_url`} defaultValue={item?.video_url ?? ""} placeholder="https://exemplo.com/video" />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor={`roundup-${order}-duration`}>Duracao</label>
-              <input id={`roundup-${order}-duration`} name={`roundup_${order}_duration`} defaultValue={item?.duration ?? ""} placeholder="5:42" />
-            </div>
-            <details className="editorial-admin-technical-details">
-              <summary>Thumbnail / imagem avancado</summary>
-              <div className="editorial-admin-field">
-                <label htmlFor={`roundup-${order}-image-url`}>Imagem URL</label>
-                <input id={`roundup-${order}-image-url`} name={`roundup_${order}_image_url`} defaultValue={item?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
+          <form action="/api/admin/gestor" className="editorial-admin-form editorial-admin-item-form" key={order} method="post">
+            <input type="hidden" name="action_type" value="save_matchday_roundup_item" />
+            <input type="hidden" name="return_to" value={returnToResumoItem(order)} />
+            <input type="hidden" name="matchday_id" value={matchday.id} />
+            <details className="editorial-admin-item-details" id={itemAnchor} open={item?.status === "published"}>
+              <summary>
+                <span className="editorial-admin-item-summary-title">{itemSummaryTitle(order, item?.title, "Item sem titulo")}</span>
+                <span className="editorial-admin-item-status">{item?.status === "published" ? "Publicado" : "Rascunho"}</span>
+              </summary>
+              <div className="editorial-admin-item-details-body">
+                {itemMessageFor("resumo-jornada", itemKey)}
+                <input type="hidden" name="roundup_id" value={item?.id ?? ""} />
+                <input type="hidden" name="roundup_sort_order" value={order} />
+                <div className="editorial-admin-field">
+                  <label htmlFor={`roundup-${order}-sort-order`}>Ordem</label>
+                  <input id={`roundup-${order}-sort-order`} readOnly value={order} />
+                </div>
+                <div className="editorial-admin-field">
+                  <label htmlFor={`roundup-${order}-label`}>Etiqueta</label>
+                  <input id={`roundup-${order}-label`} name="roundup_label" defaultValue={item?.label ?? ""} placeholder={order === 1 ? "VIDEO" : order === 2 ? "GOLOS" : order === 3 ? "NOTICIA" : "RESUMO"} />
+                </div>
+                <div className="editorial-admin-field">
+                  <label htmlFor={`roundup-${order}-title`}>Titulo</label>
+                  <input
+                    id={`roundup-${order}-title`}
+                    name="roundup_title"
+                    defaultValue={item?.title ?? ""}
+                    placeholder={order === 1 ? "Girona 0 - 1 Rayo Vallecano" : order === 2 ? "Villarreal 2 - 3 Real Oviedo" : order === 3 ? "Mallorca 0 - 1 FC Barcelona" : "Titulo do item da jornada"}
+                  />
+                </div>
+                <div className="editorial-admin-field">
+                  <label htmlFor={`roundup-${order}-subtitle`}>Descricao</label>
+                  <input id={`roundup-${order}-subtitle`} name="roundup_subtitle" defaultValue={item?.subtitle ?? ""} placeholder={order === 1 ? "Resumo completo" : order === 2 ? "Golos e melhores momentos" : order === 3 ? "Noticia de contexto" : "Descricao curta"} />
+                </div>
+                <div className="editorial-admin-field">
+                  <label htmlFor={`roundup-${order}-video-url`}>Video URL</label>
+                  <input id={`roundup-${order}-video-url`} name="roundup_video_url" defaultValue={item?.video_url ?? ""} placeholder="https://exemplo.com/video" />
+                </div>
+                <div className="editorial-admin-field">
+                  <label htmlFor={`roundup-${order}-duration`}>Duracao</label>
+                  <input id={`roundup-${order}-duration`} name="roundup_duration" defaultValue={item?.duration ?? ""} placeholder="5:42" />
+                </div>
+                <details className="editorial-admin-technical-details">
+                  <summary>Thumbnail / imagem avancado</summary>
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`roundup-${order}-image-url`}>Imagem URL</label>
+                    <input id={`roundup-${order}-image-url`} name="roundup_image_url" defaultValue={item?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
+                  </div>
+                </details>
+                <div className="editorial-admin-field">
+                  <label htmlFor={`roundup-${order}-type`}>Tipo</label>
+                  <select id={`roundup-${order}-type`} name="roundup_type" defaultValue={item?.type ?? "resumo"}>
+                    <option value="video">Video</option>
+                    <option value="golos">Golos</option>
+                    <option value="resumo">Resumo</option>
+                    <option value="noticia">Noticia</option>
+                  </select>
+                </div>
+                <div className="editorial-admin-field">
+                  <label htmlFor={`roundup-${order}-status`}>Estado</label>
+                  <select id={`roundup-${order}-status`} name="roundup_status" defaultValue={item?.status ?? "draft"}>
+                    <option value="draft">Rascunho</option>
+                    <option value="published">Publicado</option>
+                  </select>
+                </div>
+                <button className="editorial-admin-button" type="submit">
+                  Guardar video #{paddedOrder(order)}
+                </button>
               </div>
             </details>
-            <div className="editorial-admin-field">
-              <label htmlFor={`roundup-${order}-type`}>Tipo</label>
-              <select id={`roundup-${order}-type`} name={`roundup_${order}_type`} defaultValue={item?.type ?? "resumo"}>
-                <option value="video">Video</option>
-                <option value="golos">Golos</option>
-                <option value="resumo">Resumo</option>
-                <option value="noticia">Noticia</option>
-              </select>
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor={`roundup-${order}-status`}>Estado</label>
-              <select id={`roundup-${order}-status`} name={`roundup_${order}_status`} defaultValue={item?.status ?? "draft"}>
-                <option value="draft">Rascunho</option>
-                <option value="published">Publicado</option>
-              </select>
-            </div>
-          </fieldset>
+          </form>
         );
       })}
-      <button className="editorial-admin-button" type="submit">
-        Guardar Resumo da Jornada
-      </button>
-    </form>
+    </div>
   );
 
   const latestNewsEditor = (
-    <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
-      <input type="hidden" name="action_type" value="save_matchday_latest_news" />
-      <input type="hidden" name="return_to" value={returnToUltimasNoticias} />
-      <input type="hidden" name="matchday_id" value={matchday.id} />
-      <fieldset className="editorial-admin-fieldset">
-        <legend>Modo da zona</legend>
-        <div className="editorial-admin-grid two">
-          <div className="editorial-admin-field">
-            <label htmlFor="latest-zone-mode">Modo da zona</label>
-            <select id="latest-zone-mode" name="latest_zone_mode" defaultValue={latestZoneMode}>
-              <option value="latest_news">Ultimas noticias</option>
-              <option value="editorial_line">Linha editorial</option>
-            </select>
+    <div className="editorial-admin-form">
+      <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
+        <input type="hidden" name="action_type" value="save_matchday_latest_news" />
+        <input type="hidden" name="return_to" value={returnToUltimasNoticias} />
+        <input type="hidden" name="matchday_id" value={matchday.id} />
+        <fieldset className="editorial-admin-fieldset">
+          <legend>Modo da zona</legend>
+          <div className="editorial-admin-grid two">
+            <div className="editorial-admin-field">
+              <label htmlFor="latest-zone-mode">Modo da zona</label>
+              <select id="latest-zone-mode" name="latest_zone_mode" defaultValue={latestZoneMode}>
+                <option value="latest_news">Ultimas noticias</option>
+                <option value="editorial_line">Linha editorial</option>
+              </select>
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="latest-zone-title">Titulo publico da zona</label>
+              <input
+                id="latest-zone-title"
+                name="latest_zone_title"
+                defaultValue={editorial?.latest_zone_title ?? ""}
+                placeholder={latestZoneMode === "latest_news" ? "Principais acontecimentos" : "Pode ficar vazio"}
+              />
+            </div>
           </div>
-          <div className="editorial-admin-field">
-            <label htmlFor="latest-zone-title">Titulo publico da zona</label>
-            <input
-              id="latest-zone-title"
-              name="latest_zone_title"
-              defaultValue={editorial?.latest_zone_title ?? ""}
-              placeholder={latestZoneMode === "latest_news" ? "Principais acontecimentos" : "Pode ficar vazio"}
-            />
-          </div>
-        </div>
-        <p className="editorial-admin-muted">
-          Em Linha editorial, o titulo publico pode ficar vazio. Os cartoes podem ser preenchidos manualmente agora e ficam preparados para ligacao futura a artigos ou conteudos ja usados na jornada.
-        </p>
-      </fieldset>
+          <button className="editorial-admin-button secondary" type="submit">
+            Guardar modo da zona
+          </button>
+        </fieldset>
+      </form>
       <div className="editorial-admin-compact-stack">
         {LATEST_NEWS_EDITOR_SORT_ORDERS.map((order) => {
           const item = latestNews.find((newsItem) => newsItem.sort_order === order);
+          const itemKey = `latest-news-${paddedOrder(order)}`;
+          const itemAnchor = `latest-news-item-${paddedOrder(order)}`;
           return (
-            <fieldset className="editorial-admin-fieldset editorial-admin-compact-card" data-latest-news-card={order} key={order}>
-              <legend>Item {order}</legend>
-              <input type="hidden" name={`latest_news_${order}_id`} value={item?.id ?? ""} />
-              <input type="hidden" name={`latest_news_${order}_sort_order`} value={order} />
-              <input type="hidden" name={`latest_news_${order}_article_id`} value={item?.article_id ?? ""} />
-              <div className="editorial-admin-field">
-                <label htmlFor={`latest-news-${order}-sort-order`}>Ordem</label>
-                <input id={`latest-news-${order}-sort-order`} readOnly value={order} />
-              </div>
-              <div className="editorial-admin-field">
-                <label htmlFor={`latest-news-${order}-time-label`}>Hora</label>
-                <input id={`latest-news-${order}-time-label`} name={`latest_news_${order}_time_label`} defaultValue={item?.time_label ?? ""} placeholder="12:30" />
-              </div>
-              <div className="editorial-admin-field">
-                <label htmlFor={`latest-news-${order}-title`}>Titulo</label>
-                <input id={`latest-news-${order}-title`} name={`latest_news_${order}_title`} defaultValue={item?.title ?? ""} placeholder="Titulo curto da noticia" />
-              </div>
-              <div className="editorial-admin-field">
-                <label htmlFor={`latest-news-${order}-subtitle`}>Subtitulo / resumo</label>
-                <input id={`latest-news-${order}-subtitle`} name={`latest_news_${order}_subtitle`} defaultValue={item?.subtitle ?? ""} placeholder="Resumo curto opcional" />
-              </div>
-              <div className="editorial-admin-field">
-                <label htmlFor={`latest-news-${order}-image-url`}>Imagem URL opcional</label>
-                <input id={`latest-news-${order}-image-url`} name={`latest_news_${order}_image_url`} defaultValue={item?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
-              </div>
-              <div className="editorial-admin-field">
-                <label htmlFor={`latest-news-${order}-link-url`}>Link para leitura completa</label>
-                <input id={`latest-news-${order}-link-url`} name={`latest_news_${order}_link_url`} defaultValue={item?.link_url ?? ""} placeholder="/noticias/slug-do-artigo" />
-              </div>
-              <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
-                <legend>Ligar artigo publicado</legend>
-                <div className="editorial-admin-field">
-                  <label htmlFor={`latest-news-${order}-article-source`}>Preencher com artigo publicado</label>
-                  <select id={`latest-news-${order}-article-source`} data-latest-news-article-select defaultValue="">
-                    <option value="">Escolher artigo publicado</option>
-                    {sideBlockArticleOptions.map((article) => (
-                      <option
-                        key={article.id}
-                        value={article.id}
-                        data-latest-news-title={cleanText(article.title)}
-                        data-latest-news-subtitle={sideBlockTextFromArticle(article)}
-                        data-latest-news-image-url={cleanText(article.image_url)}
-                        data-latest-news-link-url={articlePublicHref(article)}
-                      >
-                        {cleanText(article.title) || cleanText(article.slug) || article.id}
-                      </option>
-                    ))}
-                  </select>
+            <form action="/api/admin/gestor" className="editorial-admin-form editorial-admin-item-form" data-latest-news-card={order} key={order} method="post">
+              <input type="hidden" name="action_type" value="save_matchday_latest_news_item" />
+              <input type="hidden" name="return_to" value={returnToLatestNewsItem(order)} />
+              <input type="hidden" name="matchday_id" value={matchday.id} />
+              <details className="editorial-admin-item-details" id={itemAnchor} open={item?.status === "published"}>
+                <summary>
+                  <span className="editorial-admin-item-summary-title">{itemSummaryTitle(order, item?.title, "Rascunho vazio")}</span>
+                  <span className="editorial-admin-item-status">{item?.status === "published" ? "Publicado" : "Rascunho"}</span>
+                </summary>
+                <div className="editorial-admin-item-details-body">
+                  {itemMessageFor("ultimas-noticias", itemKey, latestNewsErrorDetail)}
+                  <input type="hidden" name="latest_news_id" value={item?.id ?? ""} />
+                  <input type="hidden" name="latest_news_sort_order" value={order} />
+                  <input type="hidden" name="latest_news_article_id" value={item?.article_id ?? ""} />
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`latest-news-${order}-sort-order`}>Ordem</label>
+                    <input id={`latest-news-${order}-sort-order`} readOnly value={order} />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`latest-news-${order}-time-label`}>Hora</label>
+                    <input id={`latest-news-${order}-time-label`} name="latest_news_time_label" defaultValue={item?.time_label ?? ""} placeholder="12:30" />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`latest-news-${order}-title`}>Titulo</label>
+                    <input id={`latest-news-${order}-title`} name="latest_news_title" defaultValue={item?.title ?? ""} placeholder="Titulo curto da noticia" />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`latest-news-${order}-subtitle`}>Subtitulo / resumo</label>
+                    <input id={`latest-news-${order}-subtitle`} name="latest_news_subtitle" defaultValue={item?.subtitle ?? ""} placeholder="Resumo curto opcional" />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`latest-news-${order}-image-url`}>Imagem URL opcional</label>
+                    <input id={`latest-news-${order}-image-url`} name="latest_news_image_url" defaultValue={item?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
+                  </div>
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`latest-news-${order}-link-url`}>Link para leitura completa</label>
+                    <input id={`latest-news-${order}-link-url`} name="latest_news_link_url" defaultValue={item?.link_url ?? ""} placeholder="/noticias/slug-do-artigo" />
+                  </div>
+                  <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
+                    <legend>Ligar artigo publicado</legend>
+                    <div className="editorial-admin-field">
+                      <label htmlFor={`latest-news-${order}-article-source`}>Preencher com artigo publicado</label>
+                      <select id={`latest-news-${order}-article-source`} data-latest-news-article-select defaultValue="">
+                        <option value="">Escolher artigo publicado</option>
+                        {sideBlockArticleOptions.map((article) => (
+                          <option
+                            key={article.id}
+                            value={article.id}
+                            data-latest-news-title={cleanText(article.title)}
+                            data-latest-news-subtitle={sideBlockTextFromArticle(article)}
+                            data-latest-news-image-url={cleanText(article.image_url)}
+                            data-latest-news-link-url={articlePublicHref(article)}
+                          >
+                            {cleanText(article.title) || cleanText(article.slug) || article.id}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <p className="editorial-admin-muted">
+                      Ao escolher um artigo, este item recebe titulo, subtitulo, imagem e link interno. Pode ajustar manualmente antes de guardar.
+                    </p>
+                  </fieldset>
+                  {item?.image_url ? (
+                    <div className="editorial-admin-preview">
+                      <img alt="" src={item.image_url} />
+                    </div>
+                  ) : null}
+                  <div className="editorial-admin-field">
+                    <label htmlFor={`latest-news-${order}-status`}>Estado</label>
+                    <select id={`latest-news-${order}-status`} name="latest_news_status" defaultValue={item?.status ?? "draft"}>
+                      <option value="draft">Rascunho</option>
+                      <option value="published">Publicado</option>
+                    </select>
+                  </div>
+                  <button className="editorial-admin-button" type="submit">
+                    Guardar item #{paddedOrder(order)}
+                  </button>
                 </div>
-                <p className="editorial-admin-muted">
-                  Ao escolher um artigo, este item recebe titulo, subtitulo, imagem e link interno. Pode ajustar manualmente antes de guardar.
-                </p>
-              </fieldset>
-              {item?.image_url ? (
-                <div className="editorial-admin-preview">
-                  <img alt="" src={item.image_url} />
-                </div>
-              ) : null}
-              <div className="editorial-admin-field">
-                <label htmlFor={`latest-news-${order}-status`}>Estado</label>
-                <select id={`latest-news-${order}-status`} name={`latest_news_${order}_status`} defaultValue={item?.status ?? "draft"}>
-                  <option value="draft">Rascunho</option>
-                  <option value="published">Publicado</option>
-                </select>
-              </div>
-            </fieldset>
+              </details>
+            </form>
           );
         })}
       </div>
-      <button className="editorial-admin-button" type="submit">
-        Guardar zona
-      </button>
       <script
         dangerouslySetInnerHTML={{
           __html: `
@@ -1026,7 +1142,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 if (!order || !select) return;
                 function setLatestNewsField(name, value, allowEmpty) {
                   if (!value && !allowEmpty) return;
-                  var field = document.querySelector('[name="latest_news_' + order + '_' + name + '"]');
+                  var field = card.querySelector('[name="latest_news_' + name + '"]');
                   if (field) field.value = value || '';
                 }
                 function applyLatestNewsArticle() {
@@ -1044,7 +1160,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           `
         }}
       />
-    </form>
+    </div>
   );
 
   return (
