@@ -3,16 +3,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export type RoundupVideoItem = {
-  id: string;
-  label: string | null;
-  title: string | null;
-  subtitle: string | null;
-  image_url: string | null;
-  video_url: string | null;
-  duration: string | null;
-  type?: "video" | "golos" | "resumo" | "noticia";
-  sort_order?: number;
-  status?: "draft" | "published";
+  id?: string | null;
+  label?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  image_url?: string | null;
+  video_url?: string | null;
+  duration?: string | null;
+  type?: string | null;
+  status?: string | null;
+  sort_order?: number | null;
 };
 
 type RoundupVideoSwitcherProps = {
@@ -34,30 +34,17 @@ const roundupVideoListPolishStyles = `
     left: 0;
     display: grid;
     gap: 2px;
-    width: min(210px, 36%);
     color: #0b1f3a;
     font-size: 11px;
     font-weight: 900;
-    line-height: 1.08;
+    line-height: 1.05;
     letter-spacing: 0.02em;
     text-transform: uppercase;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
     pointer-events: none;
-  }
-
-  .public-roundup-video-layout .public-roundup-zone-heading span {
-    display: block;
-    min-width: 0;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
   }
 
   .public-roundup-video-layout .public-roundup-zone-heading span + span {
     opacity: 0.72;
-    line-height: 1.18;
   }
 
   .public-roundup-video-layout .public-roundup-video-panel {
@@ -73,14 +60,9 @@ const roundupVideoListPolishStyles = `
     box-shadow: none !important;
   }
 
-  .public-roundup-video-layout .public-matchday-roundup {
-    overflow: visible !important;
-  }
-
   .public-roundup-video-layout .public-roundup-scroll-frame {
     border-top: 0 !important;
     border-bottom: 0 !important;
-    overflow: visible !important;
   }
 
   .public-roundup-video-layout .public-roundup-compact-list .public-roundup-scroll-frame {
@@ -99,31 +81,8 @@ const roundupVideoListPolishStyles = `
 
   .public-roundup-video-layout .public-roundup-inline-head-spacer {
     visibility: hidden;
-    display: grid;
-    height: 24px;
-    min-height: 24px;
-    padding-bottom: 0 !important;
-    overflow: visible;
+    min-height: 22px;
     pointer-events: none;
-  }
-
-  .public-roundup-video-layout .public-roundup-inline-head-spacer .public-roundup-matchday-label {
-    display: grid;
-    gap: 2px;
-    width: min(210px, 36%);
-    min-width: 0;
-    line-height: 1.08;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-  }
-
-  .public-roundup-video-layout .public-roundup-inline-head-spacer .public-roundup-matchday-label span {
-    display: block;
-    min-width: 0;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
   }
 
   .public-roundup-video-layout .public-roundup-scroll-window {
@@ -143,6 +102,7 @@ const roundupVideoListPolishStyles = `
     background: #fbfcfd;
   }
 
+  .public-roundup-video-layout .public-roundup-switch-item[data-active="true"],
   .public-roundup-video-layout .public-roundup-switch-item[aria-pressed="true"] {
     background: #ffffff;
     outline: 0;
@@ -150,28 +110,39 @@ const roundupVideoListPolishStyles = `
   }
 
   .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-item {
-    display: grid !important;
-    grid-template-columns: 30px minmax(0, 1fr) auto auto !important;
-    gap: 3px 21px !important;
-    align-items: center !important;
+    grid-template-columns: 30px minmax(0, 1fr) auto auto;
+    gap: 3px 21px;
   }
 
-  .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-play {
+  .public-roundup-video-layout .public-roundup-switch-select {
+    display: contents;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-thumb {
     position: relative;
-    display: block !important;
-    grid-column: 1 / 2 !important;
-    grid-row: 1 / 4 !important;
-    align-self: center !important;
-    justify-self: start !important;
+    display: block;
+    grid-column: 1 / 2;
+    grid-row: 1 / 4;
+    align-self: center;
+    justify-self: start;
     width: 26px;
     height: 18px;
     min-width: 26px;
-    border-radius: 6px;
-    background: #d71920;
-    box-shadow: none;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid #e5eaf0;
+    background: #ffffff;
+    box-shadow: inset 0 0 0 1px rgba(215, 25, 32, 0.08);
   }
 
-  .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-play::before {
+  .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-play,
+  .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-thumb::after {
     content: "";
     position: absolute;
     top: 50%;
@@ -181,69 +152,50 @@ const roundupVideoListPolishStyles = `
     margin-left: 1px;
     border-top: 5px solid transparent;
     border-bottom: 5px solid transparent;
-    border-left: 8px solid #ffffff;
+    border-left: 8px solid #d71920;
     transform: translate(-50%, -50%);
   }
 
   .public-roundup-video-layout .public-roundup-meta {
-    display: grid !important;
-    grid-column: 2 / 5 !important;
-    grid-row: 1 / 2 !important;
-    grid-template-columns: minmax(0, 1fr) auto !important;
-    align-items: center !important;
     gap: 12px !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    color: #c40012 !important;
-    line-height: 1 !important;
+    justify-content: space-between !important;
+    width: 100%;
   }
 
-  .public-roundup-video-layout .public-roundup-meta span {
-    min-width: 0 !important;
-  }
-
-  .public-roundup-video-layout .public-roundup-duration {
-    grid-column: 2 / 3 !important;
-    justify-self: end !important;
-    color: #c40012 !important;
-    font-size: 11px !important;
-    font-weight: 900 !important;
-    line-height: 1 !important;
-    white-space: nowrap !important;
-  }
-
+  .public-roundup-video-layout .public-roundup-switch-item[data-active="true"]::before,
   .public-roundup-video-layout .public-roundup-switch-item[aria-pressed="true"]::before {
     content: "";
-    position: absolute !important;
-    top: 50% !important;
-    left: -34px !important;
-    width: 22px !important;
-    height: 1px !important;
-    background: #0b1f3a !important;
-    opacity: 0.66 !important;
-    transform: translateY(-50%) !important;
+    position: absolute;
+    top: 50%;
+    left: -34px;
+    width: 22px;
+    height: 1px;
+    background: #0b1f3a;
+    opacity: 0.66;
+    transform: translateY(-50%);
     pointer-events: none;
   }
 
-  .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-item strong {
-    grid-column: 2 / 4 !important;
-    grid-row: 2 / 3 !important;
-    min-width: 0 !important;
-    color: #10151b !important;
-    font-family: Arial, Helvetica, sans-serif !important;
-    font-size: 13.5px !important;
-    font-weight: 900 !important;
-    line-height: 1.14 !important;
+  .public-roundup-video-layout .public-roundup-active-media-link {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    color: inherit;
+    text-decoration: none;
   }
 
-  .public-roundup-video-layout .public-matchday-roundup .public-roundup-switch-item small {
-    grid-column: 2 / 5 !important;
-    grid-row: 3 / 4 !important;
-    min-width: 0 !important;
-    color: #6b7786 !important;
-    font-size: 11px !important;
-    font-weight: 800 !important;
-    line-height: 1.2 !important;
+  .public-roundup-video-layout .public-roundup-active-media-link img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .public-roundup-video-layout .public-roundup-active-media-link .public-media-play {
+    width: 30px;
+    height: 30px;
   }
 
   .public-roundup-video-layout .public-roundup-scroll-button {
@@ -284,7 +236,7 @@ function splitHeadingLines(value?: string | null) {
   return [parts[0], parts.slice(1).join(" ")];
 }
 
-function videoEmbedUrl(value?: string | null) {
+function youtubeVideoId(value?: string | null) {
   if (!value) {
     return null;
   }
@@ -294,13 +246,52 @@ function videoEmbedUrl(value?: string | null) {
     const hostname = parsed.hostname.replace(/^www\./, "");
 
     if (hostname === "youtube.com" || hostname === "m.youtube.com") {
-      const videoId = parsed.searchParams.get("v") || parsed.pathname.split("/").filter(Boolean).at(-1);
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+      return parsed.searchParams.get("v") || parsed.pathname.split("/").filter(Boolean).at(-1) || null;
     }
 
     if (hostname === "youtu.be") {
-      const videoId = parsed.pathname.split("/").filter(Boolean)[0];
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+      return parsed.pathname.split("/").filter(Boolean)[0] || null;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function videoThumbnailUrl(item?: RoundupVideoItem | null) {
+  const imageUrl = item?.image_url?.trim();
+
+  if (imageUrl) {
+    return imageUrl;
+  }
+
+  const videoId = youtubeVideoId(item?.video_url);
+
+  return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+}
+
+function videoEmbedUrl(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const youtubeId = youtubeVideoId(value);
+
+  if (youtubeId) {
+    return `https://www.youtube.com/embed/${youtubeId}`;
+  }
+
+  try {
+    const parsed = new URL(value);
+    const hostname = parsed.hostname.replace(/^www\./, "");
+
+    if (hostname === "youtube.com" || hostname === "m.youtube.com") {
+      return null;
+    }
+
+    if (hostname === "youtu.be") {
+      return null;
     }
 
     if (hostname === "vimeo.com" || hostname === "player.vimeo.com") {
@@ -314,15 +305,32 @@ function videoEmbedUrl(value?: string | null) {
   return null;
 }
 
+function roundupItemKey(item: RoundupVideoItem, index: number) {
+  const id = item.id?.trim();
+
+  if (id) {
+    return id;
+  }
+
+  return `roundup-${item.sort_order ?? index + 1}-${item.title?.trim() ?? "item"}`;
+}
+
 export default function RoundupVideoSwitcher({ items, initialItemId, heading, headingColor }: RoundupVideoSwitcherProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
-  const initialItem = useMemo(
-    () => items.find((item) => item.id === initialItemId) ?? items[0] ?? null,
-    [initialItemId, items]
+  const itemEntries = useMemo(
+    () => items.map((item, index) => ({ item, key: roundupItemKey(item, index) })),
+    [items]
   );
-  const [activeItemId, setActiveItemId] = useState(initialItem?.id ?? null);
-  const activeItem = items.find((item) => item.id === activeItemId) ?? initialItem;
+  const initialItemEntry = useMemo(
+    () => itemEntries.find((entry) => initialItemId && entry.item.id === initialItemId) ?? itemEntries[0] ?? null,
+    [initialItemId, itemEntries]
+  );
+  const [activeItemKey, setActiveItemKey] = useState(initialItemEntry?.key ?? null);
+  const activeItemEntry = itemEntries.find((entry) => entry.key === activeItemKey) ?? initialItemEntry;
+  const activeItem = activeItemEntry?.item ?? null;
   const embedUrl = videoEmbedUrl(activeItem?.video_url);
+  const activeVideoUrl = activeItem?.video_url?.trim() || null;
+  const activePreviewImageUrl = videoThumbnailUrl(activeItem);
   const hasScrollControls = items.length > 5;
   const [scrollState, setScrollState] = useState({
     canScrollDown: hasScrollControls,
@@ -330,7 +338,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
   });
   const headingLines = splitHeadingLines(heading);
   const headingStyle = headingColor?.trim() ? { color: headingColor.trim() } : undefined;
-  const headingSpacerLines = headingLines.length > 0 ? headingLines : ["Jornada 00", "Jogos Video Resumo"];
+  const headingSpacerText = headingLines.length > 0 ? headingLines.join(" ") : "Jornada 00 Jogos Video Resumo";
   const compactListClass = items.length > 0 && items.length < 5 ? " public-roundup-compact-list" : "";
 
   const updateScrollState = useCallback(() => {
@@ -384,6 +392,14 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
     };
   }, [items.length, updateScrollState]);
 
+  useEffect(() => {
+    if (activeItemKey && itemEntries.some((entry) => entry.key === activeItemKey)) {
+      return;
+    }
+
+    setActiveItemKey(initialItemEntry?.key ?? null);
+  }, [activeItemKey, initialItemEntry?.key, itemEntries]);
+
   return (
     <div className="public-roundup-video-layout">
       <style>{roundupVideoListPolishStyles}</style>
@@ -399,11 +415,7 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
         data-editorial-slot="resumo-ou-noticias"
       >
         <div aria-hidden="true" className="public-editorial-block-head public-roundup-inline-head-spacer">
-          <span className="public-roundup-matchday-label">
-            {headingSpacerLines.map((line, index) => (
-              <span key={`spacer-${line}-${index}`}>{line}</span>
-            ))}
-          </span>
+          <span className="public-roundup-matchday-label">{headingSpacerText}</span>
         </div>
         <div className="public-roundup-scroll-frame">
           {hasScrollControls && scrollState.canScrollUp ? (
@@ -412,31 +424,36 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
             </button>
           ) : null}
           <div className="public-cover-story-strip public-roundup-scroll-window" ref={listRef} aria-label="Resumos e videos da jornada">
-            {items.length > 0 ? (
-              items.map((item) => {
-                const isActive = item.id === activeItem?.id;
+            {itemEntries.length > 0 ? (
+              itemEntries.map(({ item, key }) => {
+                const isActive = key === activeItemEntry?.key;
                 const itemLabel = item.label?.trim();
                 const itemDuration = item.duration?.trim();
 
                 return (
-                  <button
-                    aria-pressed={isActive}
+                  <article
                     className="public-cover-story public-roundup-switch-item"
-                    key={item.id}
-                    onClick={() => setActiveItemId(item.id)}
-                    type="button"
+                    data-active={isActive ? "true" : "false"}
+                    key={key}
                   >
-                    <span aria-hidden="true" className="public-roundup-switch-play" />
-                    <span className="public-roundup-meta">
-                      {itemLabel ? <span>{itemLabel}</span> : <span aria-hidden="true" />}
-                      {itemDuration ? <span className="public-roundup-duration">{itemDuration}</span> : null}
-                    </span>
-                    <strong>{item.title ?? "Video da jornada"}</strong>
-                    {item.subtitle ? <small>{item.subtitle}</small> : null}
-                    <span aria-hidden="true" className="public-roundup-arrow">
-                      &rsaquo;
-                    </span>
-                  </button>
+                    <button
+                      aria-pressed={isActive}
+                      className="public-roundup-switch-select"
+                      onClick={() => setActiveItemKey(key)}
+                      type="button"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="public-roundup-switch-thumb"
+                      />
+                      <span className="public-roundup-meta">
+                        {itemLabel ? <span>{itemLabel}</span> : <span aria-hidden="true" />}
+                        {itemDuration ? <span className="public-roundup-duration">{itemDuration}</span> : null}
+                      </span>
+                      <strong>{item.title ?? "Video da jornada"}</strong>
+                      {item.subtitle ? <small>{item.subtitle}</small> : null}
+                    </button>
+                  </article>
                 );
               })
             ) : (
@@ -469,8 +486,21 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
                   src={embedUrl}
                   title={activeItem.title ?? "Video da jornada"}
                 />
-              ) : activeItem.image_url ? (
-                <img alt="" src={activeItem.image_url} />
+              ) : activePreviewImageUrl ? (
+                activeVideoUrl ? (
+                  <a
+                    aria-label={`Abrir ${activeItem.title ?? "video da jornada"}`}
+                    className="public-roundup-active-media-link"
+                    href={activeVideoUrl}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    <img alt="" src={activePreviewImageUrl} />
+                    <span aria-hidden="true" className="public-media-play public-media-play-icon-only" />
+                  </a>
+                ) : (
+                  <img alt="" src={activePreviewImageUrl} />
+                )
               ) : (
                 <span aria-hidden="true" className="public-media-play public-media-play-icon-only" />
               )}
@@ -482,6 +512,11 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
               </span>
               <strong>{activeItem.title ?? "Video da jornada"}</strong>
               {activeItem.subtitle ? <p>{activeItem.subtitle}</p> : null}
+              {activeVideoUrl ? (
+                <a className="public-editorial-more-link" href={activeVideoUrl} rel="noopener noreferrer" target="_blank">
+                  Abrir video <span aria-hidden="true">›</span>
+                </a>
+              ) : null}
             </div>
           </div>
         ) : (
