@@ -1024,6 +1024,74 @@ async function saveMatchdayHighlights(formData: FormData) {
   await setMatchdayBelowHeadlineMode(matchdayId, "highlights");
 }
 
+async function saveMatchdayHighlightItem(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const sortOrder = cleanInteger(formData.get("highlight_sort_order"));
+  const highlightId = cleanText(formData.get("highlight_id"));
+
+  if (!matchdayId || !sortOrder || ![1, 2, 3].includes(sortOrder)) {
+    throw new Error("missing-fields");
+  }
+
+  if (!(await hasRows(`matchdays?select=id&id=eq.${encodeURIComponent(matchdayId)}`))) {
+    throw new Error("matchday-invalid");
+  }
+
+  const label = cleanText(formData.get("highlight_label"));
+  const title = cleanText(formData.get("highlight_title"));
+  const imageUrl = cleanText(formData.get("highlight_image_url"));
+  const linkUrl = cleanText(formData.get("highlight_link_url"));
+  const statusValue = cleanText(formData.get("highlight_status")) ?? "draft";
+  const status = statusValue === "published" ? "published" : "draft";
+  const hasContent = Boolean(label || title || imageUrl || linkUrl);
+
+  if (status === "published" && !title) {
+    throw new Error("highlight-title-required");
+  }
+
+  if (!hasContent && status !== "published") {
+    return;
+  }
+
+  const payload = {
+    matchday_id: matchdayId,
+    label,
+    title,
+    image_url: imageUrl,
+    link_url: linkUrl,
+    sort_order: sortOrder,
+    status,
+    updated_at: new Date().toISOString()
+  };
+
+  const existingRows = highlightId
+    ? await fetchSupabaseAdminTable<{ id: string }>(
+        `matchday_highlights?select=id&id=eq.${encodeURIComponent(highlightId)}&matchday_id=eq.${encodeURIComponent(matchdayId)}&limit=1`
+      ).catch(() => [])
+    : await fetchSupabaseAdminTable<{ id: string }>(
+        `matchday_highlights?select=id&matchday_id=eq.${encodeURIComponent(matchdayId)}&sort_order=eq.${sortOrder}&limit=1`
+      ).catch(() => []);
+
+  const existingItem = existingRows[0] ?? null;
+
+  if (existingItem) {
+    await writeSupabaseAdmin(
+      `matchday_highlights?id=eq.${encodeURIComponent(existingItem.id)}&matchday_id=eq.${encodeURIComponent(matchdayId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      }
+    );
+  } else {
+    await writeSupabaseAdmin("matchday_highlights", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  }
+
+  await setMatchdayBelowHeadlineMode(matchdayId, "highlights");
+}
+
 async function saveMatchdayRoundupItems(formData: FormData) {
   const matchdayId = cleanText(formData.get("matchday_id"));
   const allowedTypes = new Set(["video", "golos", "resumo", "noticia"]);
@@ -2127,6 +2195,8 @@ export async function POST(request: Request) {
       await saveMatchdayEditorial(formData);
     } else if (actionType === "save_matchday_highlights") {
       await saveMatchdayHighlights(formData);
+    } else if (actionType === "save_matchday_highlight_item") {
+      await saveMatchdayHighlightItem(formData);
     } else if (actionType === "save_matchday_roundup_items") {
       await saveMatchdayRoundupItems(formData);
     } else if (actionType === "save_matchday_roundup_item") {
