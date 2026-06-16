@@ -973,7 +973,7 @@ const homeEditorialStyles = `
   .home-admin-zone-panels,
   .home-admin-editorial-flow {
     display: grid;
-    gap: 12px;
+    gap: 10px;
   }
 
   .home-admin-zone-panel {
@@ -982,8 +982,8 @@ const homeEditorialStyles = `
 
   .home-admin-editorial-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
     align-items: start;
   }
 
@@ -992,7 +992,7 @@ const homeEditorialStyles = `
   }
 
   .home-admin-composition-body {
-    padding: 14px;
+    padding: 12px;
   }
 
   .home-admin-composition-grid {
