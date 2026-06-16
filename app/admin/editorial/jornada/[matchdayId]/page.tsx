@@ -603,6 +603,7 @@ type MatchdayEditorialForAdmin = SupabaseMatchdayEditorial & {
 
 type MatchdayHighlightForAdmin = SupabaseMatchdayHighlight & {
   link_url?: string | null;
+  subtitle?: string | null;
 };
 
 async function readMatchdayEditorial(matchdayId: string): Promise<MatchdayEditorialForAdmin | null> {
@@ -622,11 +623,19 @@ async function readMatchdayEditorial(matchdayId: string): Promise<MatchdayEditor
 }
 
 async function readMatchdayHighlights(matchdayId: string): Promise<MatchdayHighlightForAdmin[]> {
-  return fetchSupabaseAdminTable<MatchdayHighlightForAdmin>(
-    `matchday_highlights?select=id,matchday_id,label,title,image_url,link_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
-      matchdayId
-    )}&order=sort_order.asc&limit=3`
-  ).catch(() => []);
+  try {
+    return await fetchSupabaseAdminTable<MatchdayHighlightForAdmin>(
+      `matchday_highlights?select=id,matchday_id,label,title,subtitle,image_url,link_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+        matchdayId
+      )}&order=sort_order.asc&limit=3`
+    );
+  } catch {
+    return fetchSupabaseAdminTable<MatchdayHighlightForAdmin>(
+      `matchday_highlights?select=id,matchday_id,label,title,image_url,link_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+        matchdayId
+      )}&order=sort_order.asc&limit=3`
+    ).catch(() => []);
+  }
 }
 
 async function readMatchdayRoundupItems(matchdayId: string): Promise<SupabaseMatchdayRoundupItem[]> {
@@ -863,6 +872,10 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                   />
                 </div>
                 <div className="editorial-admin-field">
+                  <label htmlFor={`highlight-${order}-subtitle`}>Subtitulo / texto curto</label>
+                  <input form={highlightFormId} id={`highlight-${order}-subtitle`} name="highlight_subtitle" defaultValue={highlight?.subtitle ?? ""} placeholder="Resumo curto opcional do destaque" />
+                </div>
+                <div className="editorial-admin-field">
                   <label htmlFor={`highlight-${order}-image-url`}>Imagem URL</label>
                   <input form={highlightFormId} id={`highlight-${order}-image-url`} name="highlight_image_url" defaultValue={highlight?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
                 </div>
@@ -882,6 +895,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                           value={article.id}
                           data-highlight-label={cleanText(article.label)}
                           data-highlight-title={cleanText(article.title)}
+                          data-highlight-subtitle={sideBlockTextFromArticle(article)}
                           data-highlight-image-url={cleanText(article.image_url)}
                           data-highlight-link-url={articlePublicHref(article)}
                         >
@@ -937,15 +951,15 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 var select = card.querySelector('[data-highlight-article-select]');
                 if (!order || !select) return;
                 function setHighlightField(name, value) {
-                  if (!value) return;
                   var field = card.querySelector('[name="highlight_' + name + '"]');
-                  if (field) field.value = value;
+                  if (field) field.value = value || '';
                 }
                 function applyHighlightArticle() {
                   var option = select.options[select.selectedIndex];
                   if (!option || !option.value) return;
                   setHighlightField('label', option.dataset.highlightLabel);
                   setHighlightField('title', option.dataset.highlightTitle);
+                  setHighlightField('subtitle', option.dataset.highlightSubtitle);
                   setHighlightField('image_url', option.dataset.highlightImageUrl);
                   setHighlightField('link_url', option.dataset.highlightLinkUrl);
                 }
