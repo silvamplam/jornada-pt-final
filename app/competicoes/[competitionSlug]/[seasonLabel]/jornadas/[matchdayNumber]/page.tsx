@@ -1269,6 +1269,14 @@ const publicMatchdayStyles = `
     line-height: 1.15;
   }
 
+  .public-below-headline-highlights .public-cover-story small {
+    margin: 0;
+    color: #607086;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.35;
+  }
+
   .public-highlight-image-link,
   .public-cover-story-title-link {
     color: inherit;
