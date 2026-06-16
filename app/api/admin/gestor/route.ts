@@ -1272,7 +1272,6 @@ async function saveMatchdayHighlights(formData: FormData) {
     }
   }
 
-  await setMatchdayBelowHeadlineMode(matchdayId, "highlights");
 }
 
 async function saveMatchdayHighlightItem(formData: FormData) {
@@ -1342,7 +1341,6 @@ async function saveMatchdayHighlightItem(formData: FormData) {
     });
   }
 
-  await setMatchdayBelowHeadlineMode(matchdayId, "highlights");
 }
 
 async function saveMatchdayRoundupItems(formData: FormData) {
@@ -1428,7 +1426,6 @@ async function saveMatchdayRoundupItems(formData: FormData) {
     }
   }
 
-  await setMatchdayBelowHeadlineMode(matchdayId, "roundup");
 }
 
 async function saveMatchdayRoundupItem(formData: FormData) {
@@ -1501,7 +1498,6 @@ async function saveMatchdayRoundupItem(formData: FormData) {
     });
   }
 
-  await setMatchdayBelowHeadlineMode(matchdayId, "roundup");
 }
 
 async function saveMatchdayLatestNews(formData: FormData) {
