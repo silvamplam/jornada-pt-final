@@ -987,6 +987,68 @@ async function saveMatchdayHeadline(formData: FormData) {
   });
 }
 
+async function saveMatchdaySideBlock(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const sideBlockStatusValue = cleanText(formData.get("side_block_status")) ?? "draft";
+  const sideBlockType = cleanText(formData.get("side_block_type"));
+  const sideBlockLabel = cleanText(formData.get("side_block_label"));
+  const sideBlockTitle = cleanText(formData.get("side_block_title"));
+  const sideBlockTitleColor = cleanText(formData.get("side_block_title_color"));
+  const sideBlockAuthor = cleanText(formData.get("side_block_author"));
+  const sideBlockText = cleanText(formData.get("side_block_text"));
+
+  if (!matchdayId || !["draft", "published"].includes(sideBlockStatusValue)) {
+    throw new Error("missing-fields");
+  }
+
+  if (!(await hasRows(`matchdays?select=id&id=eq.${encodeURIComponent(matchdayId)}`))) {
+    throw new Error("matchday-invalid");
+  }
+
+  const existingRows = await fetchSupabaseAdminTable<{
+    id: string;
+    side_block_image_url: string | null;
+    side_block_link_url: string | null;
+  }>(
+    `matchday_editorials?select=id,side_block_image_url,side_block_link_url&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&limit=1`
+  );
+  const existing = existingRows[0] ?? null;
+  const sideBlockImageUrl = cleanText(formData.get("side_block_image_url")) ?? existing?.side_block_image_url ?? null;
+  const sideBlockLinkUrl = formData.has("side_block_link_url")
+    ? cleanText(formData.get("side_block_link_url"))
+    : existing?.side_block_link_url ?? null;
+  const sideBlockPayload: Record<string, string | null> = {
+    side_block_status: sideBlockStatusValue,
+    side_block_type: sideBlockType,
+    side_block_label: sideBlockLabel,
+    side_block_title: sideBlockTitle,
+    side_block_title_color: sideBlockTitleColor,
+    side_block_author: sideBlockAuthor,
+    side_block_text: sideBlockText,
+    side_block_image_url: sideBlockImageUrl,
+    side_block_link_url: sideBlockLinkUrl,
+    updated_at: new Date().toISOString()
+  };
+
+  if (existing) {
+    await writeSupabaseAdmin(`matchday_editorials?id=eq.${encodeURIComponent(existing.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(sideBlockPayload)
+    });
+    return;
+  }
+
+  await writeSupabaseAdmin("matchday_editorials", {
+    method: "POST",
+    body: JSON.stringify({
+      matchday_id: matchdayId,
+      ...sideBlockPayload
+    })
+  });
+}
+
 async function setMatchdayBelowHeadlineMode(matchdayId: string, mode: "highlights" | "roundup") {
   const existingRows = await fetchSupabaseAdminTable<{ id: string }>(
     `matchday_editorials?select=id&matchday_id=eq.${encodeURIComponent(matchdayId)}&limit=1`
@@ -2249,6 +2311,8 @@ export async function POST(request: Request) {
       await removeMatchday(formData);
     } else if (actionType === "save_matchday_headline") {
       await saveMatchdayHeadline(formData);
+    } else if (actionType === "save_matchday_side_block") {
+      await saveMatchdaySideBlock(formData);
     } else if (actionType === "save_matchday_editorial") {
       await saveMatchdayEditorial(formData);
     } else if (actionType === "save_matchday_highlights") {
