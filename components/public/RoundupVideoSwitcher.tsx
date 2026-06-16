@@ -429,7 +429,6 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
                 const isActive = key === activeItemEntry?.key;
                 const itemLabel = item.label?.trim();
                 const itemDuration = item.duration?.trim();
-                const itemVideoUrl = item.video_url?.trim();
 
                 return (
                   <article
@@ -454,21 +453,6 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
                       <strong>{item.title ?? "Video da jornada"}</strong>
                       {item.subtitle ? <small>{item.subtitle}</small> : null}
                     </button>
-                    {itemVideoUrl ? (
-                      <a
-                        aria-label={`Abrir ${item.title ?? "video da jornada"}`}
-                        className="public-roundup-arrow"
-                        href={itemVideoUrl}
-                        rel="noopener noreferrer"
-                        target="_blank"
-                      >
-                        &rsaquo;
-                      </a>
-                    ) : (
-                      <span aria-hidden="true" className="public-roundup-arrow">
-                        &rsaquo;
-                      </span>
-                    )}
                   </article>
                 );
               })
