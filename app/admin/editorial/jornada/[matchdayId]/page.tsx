@@ -824,7 +824,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           const itemKey = `highlight-${paddedOrder(order)}`;
           const itemAnchor = `highlight-item-${paddedOrder(order)}`;
           return (
-            <details className="editorial-admin-item-details" data-highlight-card={order} id={itemAnchor} key={order} open={highlight?.status === "published"}>
+            <details className="editorial-admin-item-details" data-highlight-card={order} id={itemAnchor} key={order}>
               <summary>
                 <span className="editorial-admin-item-summary-title">{itemSummaryTitle(order, highlight?.title, "Rascunho vazio")}</span>
                 {highlight?.label ? <span className="editorial-admin-item-label">{highlight.label}</span> : null}
@@ -960,7 +960,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             <input type="hidden" name="action_type" value="save_matchday_roundup_item" />
             <input type="hidden" name="return_to" value={returnToResumoItem(order)} />
             <input type="hidden" name="matchday_id" value={matchday.id} />
-            <details className="editorial-admin-item-details" id={itemAnchor} open={item?.status === "published"}>
+            <details className="editorial-admin-item-details" id={itemAnchor}>
               <summary>
                 <span className="editorial-admin-item-summary-title">{itemSummaryTitle(order, item?.title, "Item sem titulo")}</span>
                 <span className="editorial-admin-item-status">{item?.status === "published" ? "Publicado" : "Rascunho"}</span>
@@ -1073,7 +1073,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               <input type="hidden" name="action_type" value="save_matchday_latest_news_item" />
               <input type="hidden" name="return_to" value={returnToLatestNewsItem(order)} />
               <input type="hidden" name="matchday_id" value={matchday.id} />
-              <details className="editorial-admin-item-details" id={itemAnchor} open={item?.status === "published"}>
+              <details className="editorial-admin-item-details" id={itemAnchor}>
                 <summary>
                   <span className="editorial-admin-item-summary-title">{itemSummaryTitle(order, item?.title, "Rascunho vazio")}</span>
                   <span className="editorial-admin-item-status">{item?.status === "published" ? "Publicado" : "Rascunho"}</span>
