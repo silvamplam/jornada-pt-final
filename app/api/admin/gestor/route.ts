@@ -1135,6 +1135,51 @@ async function saveMatchdayComplement(formData: FormData) {
   });
 }
 
+async function saveMatchdayBelowHeadline(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const belowHeadlineModeValue = cleanText(formData.get("below_headline_mode")) ?? "highlights";
+  const belowHeadlineMode = belowHeadlineModeValue === "roundup" ? "roundup" : "highlights";
+  const belowHeadlineHeading = cleanText(formData.get("below_headline_heading"));
+  const belowHeadlineSubtitle = cleanText(formData.get("below_headline_subtitle"));
+  const belowHeadlineHeadingColor = cleanText(formData.get("below_headline_heading_color"));
+
+  if (!matchdayId) {
+    throw new Error("missing-fields");
+  }
+
+  if (!(await hasRows(`matchdays?select=id&id=eq.${encodeURIComponent(matchdayId)}`))) {
+    throw new Error("matchday-invalid");
+  }
+
+  const existingRows = await fetchSupabaseAdminTable<{ id: string }>(
+    `matchday_editorials?select=id&matchday_id=eq.${encodeURIComponent(matchdayId)}&limit=1`
+  );
+  const belowHeadlinePayload: Record<string, string | null> = {
+    below_headline_mode: belowHeadlineMode,
+    below_headline_heading: belowHeadlineHeading,
+    below_headline_subtitle: belowHeadlineSubtitle,
+    below_headline_heading_color: belowHeadlineHeadingColor,
+    updated_at: new Date().toISOString()
+  };
+
+  if (existingRows[0]) {
+    await writeSupabaseAdmin(`matchday_editorials?id=eq.${encodeURIComponent(existingRows[0].id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(belowHeadlinePayload)
+    });
+    return;
+  }
+
+  await writeSupabaseAdmin("matchday_editorials", {
+    method: "POST",
+    body: JSON.stringify({
+      matchday_id: matchdayId,
+      status: "draft",
+      ...belowHeadlinePayload
+    })
+  });
+}
+
 async function setMatchdayBelowHeadlineMode(matchdayId: string, mode: "highlights" | "roundup") {
   const existingRows = await fetchSupabaseAdminTable<{ id: string }>(
     `matchday_editorials?select=id&matchday_id=eq.${encodeURIComponent(matchdayId)}&limit=1`
@@ -2401,6 +2446,8 @@ export async function POST(request: Request) {
       await saveMatchdaySideBlock(formData);
     } else if (actionType === "save_matchday_complement") {
       await saveMatchdayComplement(formData);
+    } else if (actionType === "save_matchday_below_headline") {
+      await saveMatchdayBelowHeadline(formData);
     } else if (actionType === "save_matchday_editorial") {
       await saveMatchdayEditorial(formData);
     } else if (actionType === "save_matchday_highlights") {
