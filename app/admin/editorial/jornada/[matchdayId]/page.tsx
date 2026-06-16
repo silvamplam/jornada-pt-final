@@ -680,6 +680,7 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope, det
   const createdLabels: Record<string, string> = {
     save_matchday_headline: "Manchete guardada.",
     save_matchday_side_block: "Bloco lateral guardado.",
+    save_matchday_complement: "Bloco complementar guardado.",
     save_matchday_editorial: "Linha editorial da jornada guardada.",
     save_matchday_highlights: "Destaques guardados e definidos como zona ativa abaixo da manchete.",
     save_matchday_highlight_item: "Destaque guardado.",
@@ -713,6 +714,7 @@ function messageFor(created?: string, error?: string, scope?: FeedbackScope, det
       save_matchday_roundup_item: "Item do Resumo da Jornada guardado."
     },
     "bloco-complementar": {
+      save_matchday_complement: "Bloco complementar guardado.",
       save_matchday_editorial: "Bloco complementar guardado."
     },
     "ultimas-noticias": {
@@ -1564,17 +1566,9 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 <p>Bloco complementar da fonte viva, separado da manchete principal.</p>
                 <form className="editorial-admin-form" action="/api/admin/gestor" data-complementary-form method="post" id="bloco-complementar">
                   {scopedMessageFor(created, error, feedbackScope, "bloco-complementar")}
-                  <input type="hidden" name="action_type" value="save_matchday_editorial" />
+                  <input type="hidden" name="action_type" value="save_matchday_complement" />
                   <input type="hidden" name="return_to" value={returnToComplementar} />
                   <input type="hidden" name="matchday_id" value={matchday.id} />
-                  <input type="hidden" name="title" value={editorial?.title ?? ""} />
-                  <input type="hidden" name="summary" value={editorial?.summary ?? ""} />
-                  <input type="hidden" name="title_color" value={editorial?.title_color ?? ""} />
-                  <input type="hidden" name="image_url" value={editorial?.image_url ?? ""} />
-                  <input type="hidden" name="below_headline_mode" value={belowHeadlineMode} />
-                  <input type="hidden" name="below_headline_heading" value={editorial?.below_headline_heading ?? ""} />
-                  <input type="hidden" name="below_headline_heading_color" value={editorial?.below_headline_heading_color ?? ""} />
-                  <input type="hidden" name="status" value={editorial?.status ?? "draft"} />
                   <div className="editorial-admin-field">
                     <label htmlFor="complementary-mode">Tipo de bloco complementar</label>
                     <select id="complementary-mode" name="complementary_mode" defaultValue={complementaryMode}>

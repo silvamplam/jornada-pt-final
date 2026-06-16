@@ -1049,6 +1049,92 @@ async function saveMatchdaySideBlock(formData: FormData) {
   });
 }
 
+async function saveMatchdayComplement(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const complementaryModeValue = cleanText(formData.get("complementary_mode")) ?? "none";
+  const complementaryMode =
+    complementaryModeValue === "roundup_video" || complementaryModeValue === "complementary_story"
+      ? complementaryModeValue
+      : "none";
+  const complementaryStatusValue = cleanText(formData.get("complementary_status")) ?? "draft";
+  const complementaryStatus = complementaryStatusValue === "published" ? "published" : "draft";
+  const complementaryRoundupItemId = cleanText(formData.get("complementary_roundup_item_id"));
+  const complementaryLabel = cleanText(formData.get("complementary_label"));
+  const complementaryTitle = cleanText(formData.get("complementary_title"));
+  const complementaryText = cleanText(formData.get("complementary_text"));
+  const roundupVideoHeading = cleanText(formData.get("roundup_video_heading"));
+  const roundupVideoHeadingColor = cleanText(formData.get("roundup_video_heading_color"));
+
+  if (!matchdayId) {
+    throw new Error("missing-fields");
+  }
+
+  if (!(await hasRows(`matchdays?select=id&id=eq.${encodeURIComponent(matchdayId)}`))) {
+    throw new Error("matchday-invalid");
+  }
+
+  if (
+    complementaryMode === "roundup_video" &&
+    complementaryRoundupItemId &&
+    !(await hasRows(
+      `matchday_roundup_items?select=id&id=eq.${encodeURIComponent(complementaryRoundupItemId)}&matchday_id=eq.${encodeURIComponent(matchdayId)}`
+    ))
+  ) {
+    throw new Error("roundup-item-invalid");
+  }
+
+  const existingRows = await fetchSupabaseAdminTable<{
+    id: string;
+    complementary_image_url: string | null;
+    complementary_link_url: string | null;
+  }>(
+    `matchday_editorials?select=id,complementary_image_url,complementary_link_url&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&limit=1`
+  );
+  const existing = existingRows[0] ?? null;
+  const complementaryImageUrl =
+    cleanText(formData.get("complementary_image_url")) ?? existing?.complementary_image_url ?? null;
+  const complementaryLinkUrl = formData.has("complementary_link_url")
+    ? cleanText(formData.get("complementary_link_url"))
+    : existing?.complementary_link_url ?? null;
+  const complementPayload: Record<string, string | null> = {
+    complementary_mode: complementaryMode,
+    complementary_roundup_item_id: complementaryRoundupItemId,
+    complementary_label: complementaryLabel,
+    complementary_title: complementaryTitle,
+    complementary_text: complementaryText,
+    complementary_image_url: complementaryImageUrl,
+    complementary_link_url: complementaryLinkUrl,
+    complementary_status: complementaryStatus,
+    updated_at: new Date().toISOString()
+  };
+
+  if (formData.has("roundup_video_heading")) {
+    complementPayload.roundup_video_heading = roundupVideoHeading;
+  }
+
+  if (formData.has("roundup_video_heading_color")) {
+    complementPayload.roundup_video_heading_color = roundupVideoHeadingColor;
+  }
+
+  if (existing) {
+    await writeSupabaseAdmin(`matchday_editorials?id=eq.${encodeURIComponent(existing.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(complementPayload)
+    });
+    return;
+  }
+
+  await writeSupabaseAdmin("matchday_editorials", {
+    method: "POST",
+    body: JSON.stringify({
+      matchday_id: matchdayId,
+      ...complementPayload
+    })
+  });
+}
+
 async function setMatchdayBelowHeadlineMode(matchdayId: string, mode: "highlights" | "roundup") {
   const existingRows = await fetchSupabaseAdminTable<{ id: string }>(
     `matchday_editorials?select=id&matchday_id=eq.${encodeURIComponent(matchdayId)}&limit=1`
@@ -2313,6 +2399,8 @@ export async function POST(request: Request) {
       await saveMatchdayHeadline(formData);
     } else if (actionType === "save_matchday_side_block") {
       await saveMatchdaySideBlock(formData);
+    } else if (actionType === "save_matchday_complement") {
+      await saveMatchdayComplement(formData);
     } else if (actionType === "save_matchday_editorial") {
       await saveMatchdayEditorial(formData);
     } else if (actionType === "save_matchday_highlights") {
