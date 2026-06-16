@@ -931,6 +931,62 @@ async function saveMatchdayEditorial(formData: FormData) {
   });
 }
 
+async function saveMatchdayHeadline(formData: FormData) {
+  const matchdayId = cleanText(formData.get("matchday_id"));
+  const statusValue = cleanText(formData.get("status")) ?? "draft";
+  const title = cleanText(formData.get("title"));
+  const summary = cleanText(formData.get("summary"));
+  const titleColor = cleanText(formData.get("title_color"));
+
+  if (!matchdayId || !["draft", "published"].includes(statusValue)) {
+    throw new Error("missing-fields");
+  }
+
+  if (statusValue === "published" && !title) {
+    throw new Error("editorial-title-required");
+  }
+
+  if (!(await hasRows(`matchdays?select=id&id=eq.${encodeURIComponent(matchdayId)}`))) {
+    throw new Error("matchday-invalid");
+  }
+
+  const existingRows = await fetchSupabaseAdminTable<{
+    id: string;
+    image_url: string | null;
+    headline_link_url: string | null;
+  }>(`matchday_editorials?select=id,image_url,headline_link_url&matchday_id=eq.${encodeURIComponent(matchdayId)}&limit=1`);
+  const existing = existingRows[0] ?? null;
+  const imageUrl = cleanText(formData.get("image_url")) ?? existing?.image_url ?? null;
+  const headlineLinkUrl = formData.has("headline_link_url")
+    ? cleanText(formData.get("headline_link_url"))
+    : existing?.headline_link_url ?? null;
+  const headlinePayload: Record<string, string | null> = {
+    title,
+    summary,
+    title_color: titleColor,
+    image_url: imageUrl,
+    headline_link_url: headlineLinkUrl,
+    status: statusValue,
+    updated_at: new Date().toISOString()
+  };
+
+  if (existing) {
+    await writeSupabaseAdmin(`matchday_editorials?id=eq.${encodeURIComponent(existing.id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(headlinePayload)
+    });
+    return;
+  }
+
+  await writeSupabaseAdmin("matchday_editorials", {
+    method: "POST",
+    body: JSON.stringify({
+      matchday_id: matchdayId,
+      ...headlinePayload
+    })
+  });
+}
+
 async function setMatchdayBelowHeadlineMode(matchdayId: string, mode: "highlights" | "roundup") {
   const existingRows = await fetchSupabaseAdminTable<{ id: string }>(
     `matchday_editorials?select=id&matchday_id=eq.${encodeURIComponent(matchdayId)}&limit=1`
@@ -2191,6 +2247,8 @@ export async function POST(request: Request) {
       extraParams = { calendar_apply_summary: JSON.stringify(summary) };
     } else if (actionType === "remove_matchday") {
       await removeMatchday(formData);
+    } else if (actionType === "save_matchday_headline") {
+      await saveMatchdayHeadline(formData);
     } else if (actionType === "save_matchday_editorial") {
       await saveMatchdayEditorial(formData);
     } else if (actionType === "save_matchday_highlights") {
