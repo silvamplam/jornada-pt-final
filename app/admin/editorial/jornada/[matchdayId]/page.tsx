@@ -300,6 +300,26 @@ const editorialPageStyles = `
     max-height: 120px;
   }
 
+  .editorial-admin-technical-details {
+    padding: 10px 12px;
+    border: 1px dashed #c8d2dd;
+    border-radius: 8px;
+    background: #fbfcfe;
+  }
+
+  .editorial-admin-technical-details summary {
+    cursor: pointer;
+    color: #425061;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .editorial-admin-technical-details .editorial-admin-field {
+    margin-top: 10px;
+  }
+
   .editorial-admin-upload-inline {
     display: grid;
     gap: 8px;
@@ -847,12 +867,8 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               />
             </div>
             <div className="editorial-admin-field">
-              <label htmlFor={`roundup-${order}-subtitle`}>Subtitulo</label>
+              <label htmlFor={`roundup-${order}-subtitle`}>Descricao</label>
               <input id={`roundup-${order}-subtitle`} name={`roundup_${order}_subtitle`} defaultValue={item?.subtitle ?? ""} placeholder={order === 1 ? "Resumo completo" : order === 2 ? "Golos e melhores momentos" : order === 3 ? "Noticia de contexto" : "Descricao curta"} />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor={`roundup-${order}-image-url`}>Imagem URL</label>
-              <input id={`roundup-${order}-image-url`} name={`roundup_${order}_image_url`} defaultValue={item?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
             </div>
             <div className="editorial-admin-field">
               <label htmlFor={`roundup-${order}-video-url`}>Video URL</label>
@@ -862,6 +878,13 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               <label htmlFor={`roundup-${order}-duration`}>Duracao</label>
               <input id={`roundup-${order}-duration`} name={`roundup_${order}_duration`} defaultValue={item?.duration ?? ""} placeholder="5:42" />
             </div>
+            <details className="editorial-admin-technical-details">
+              <summary>Thumbnail / imagem avancado</summary>
+              <div className="editorial-admin-field">
+                <label htmlFor={`roundup-${order}-image-url`}>Imagem URL</label>
+                <input id={`roundup-${order}-image-url`} name={`roundup_${order}_image_url`} defaultValue={item?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
+              </div>
+            </details>
             <div className="editorial-admin-field">
               <label htmlFor={`roundup-${order}-type`}>Tipo</label>
               <select id={`roundup-${order}-type`} name={`roundup_${order}_type`} defaultValue={item?.type ?? "resumo"}>
