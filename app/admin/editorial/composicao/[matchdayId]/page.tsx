@@ -183,13 +183,13 @@ function canMoveToFreeNewsSlot(item: ReferenceCompositionItem) {
   return item.slot_type !== "roundup" && normalizeSourceType(item.source_type) !== "matchday_roundup_item";
 }
 
-function isBankCompositionSource(sourceType?: string | null) {
-  return normalizeSourceType(sourceType) === "matchday_editorial_bank_item";
+function isBankCompositionSource(sourceType?: string | null, sourceId?: string | null) {
+  return normalizeSourceType(sourceType) === "manual_link" && Boolean(sourceId);
 }
 
 function bankItemPlacementLabel(items: ReferenceCompositionItem[], bankItem: MatchdayEditorialBankItem) {
   const slotTitles = items
-    .filter((item) => isBankCompositionSource(item.source_type) && item.source_id === bankItem.id)
+    .filter((item) => isBankCompositionSource(item.source_type, item.source_id) && item.source_id === bankItem.id)
     .map((item) => compositionSectionTitle(item.slot_type));
   const uniqueSlotTitles = Array.from(new Set(slotTitles));
 
@@ -1250,6 +1250,7 @@ function AssignBankItemForm({
       <HiddenField name="composition_id" value={composition.id} />
       <HiddenField name="bank_item_id" value={item.id} />
       <HiddenField name="return_to" value={returnTo} />
+      <HiddenField name="return_anchor" value="matchday-editorial-bank" />
       <div className="composition-admin-field">
         <label htmlFor={`bank-zone-${item.id}`}>Zona de destino</label>
         <select className="composition-admin-input" id={`bank-zone-${item.id}`} name="slot_type" defaultValue="highlight">
@@ -1564,6 +1565,7 @@ function UnassignBankItemForm({
       <HiddenField name="composition_id" value={composition.id} />
       <HiddenField name="composition_item_id" value={item.id} />
       <HiddenField name="return_to" value={returnTo} />
+      <HiddenField name="return_anchor" value="matchday-editorial-bank" />
       <button className="composition-admin-small-button secondary" type="submit">
         Retirar da zona
       </button>
@@ -1612,7 +1614,7 @@ function CompositionItemActions({
   matchdayId: string;
   returnTo: string;
 }) {
-  if (isBankCompositionSource(item.source_type)) {
+  if (isBankCompositionSource(item.source_type, item.source_id)) {
     return (
       <div className="composition-admin-form">
         <p className="composition-admin-note">Retirar da zona remove apenas a associaÃ§Ã£o. A notÃ­cia continua ativa no banco.</p>

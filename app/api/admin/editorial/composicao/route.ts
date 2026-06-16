@@ -743,7 +743,7 @@ async function assignBankItemToCompositionSlot(formData: FormData) {
     await hasRows(
       `matchday_reference_composition_items?select=id&composition_id=eq.${encodeURIComponent(
         compositionId
-      )}&source_type=eq.matchday_editorial_bank_item&source_id=eq.${encodeURIComponent(bankItem.id)}`
+      )}&source_type=eq.manual_link&source_id=eq.${encodeURIComponent(bankItem.id)}`
     )
   ) {
     throw new CompositionPublicationError("Esta noticia do banco ja esta associada a composicao. Retira-a primeiro da zona atual.");
@@ -766,7 +766,7 @@ async function assignBankItemToCompositionSlot(formData: FormData) {
     body: JSON.stringify({
       composition_id: compositionId,
       slot_type: slotType,
-      source_type: "matchday_editorial_bank_item",
+      source_type: "manual_link",
       source_id: bankItem.id,
       sort_order: nextSortOrder,
       title_snapshot: bankItem.title,
@@ -794,7 +794,14 @@ async function unassignBankItemFromCompositionSlot(formData: FormData) {
     )}&composition_id=eq.${encodeURIComponent(compositionId)}`
   );
 
-  if (!item || normalizeSourceType(item.source_type) !== "matchday_editorial_bank_item" || !item.source_id) {
+  if (!item || normalizeSourceType(item.source_type) !== "manual_link" || !item.source_id) {
+    throw new Error("bank-unassignment-invalid");
+  }
+  if (
+    !(await hasRows(
+      `matchday_editorial_bank_items?select=id&id=eq.${encodeURIComponent(item.source_id)}&matchday_id=eq.${encodeURIComponent(matchdayId)}`
+    ))
+  ) {
     throw new Error("bank-unassignment-invalid");
   }
 
