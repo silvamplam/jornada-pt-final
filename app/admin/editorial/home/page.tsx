@@ -1467,7 +1467,7 @@ function itemNumber(value: number | null | undefined, fallback: number) {
   return String(value ?? fallback).padStart(2, "0");
 }
 
-function itemAnchor(prefix: "home-roundup-item" | "home-final-item", number: string) {
+function itemAnchor(prefix: "home-highlight-item" | "home-roundup-item" | "home-final-item", number: string) {
   return `${prefix}-${number}`;
 }
 
@@ -1549,6 +1549,7 @@ function errorMessage(error: string | undefined, detail?: string) {
     "missing-selection-set": "Nao foi possivel guardar: a lista de jogos disponiveis nao chegou ao servidor.",
     "invalid-featured-match": "A selecao contem um jogo invalido ou que ja nao existe.",
     "invalid-highlight-item": "Os Destaques contem um item que nao pertence a esta Home.",
+    "empty-highlight-item": "Preenche pelo menos titulo, subtitulo, etiqueta, imagem ou link antes de criar este destaque.",
     "invalid-roundup-item": "O Roundup contem um item que nao pertence a esta Home.",
     "invalid-roundup-type": "Tipo de Roundup invalido. Use video, resumo, golos ou noticia.",
     "invalid-final-zone-item": "A Zona Editorial Final contem um item que nao pertence a esta Home.",
@@ -1572,7 +1573,7 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
 }
 
 function scopedMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>, scope: FeedbackScope) {
-  if ((scope === "roundup" || scope === "final-zone") && params.item) {
+  if ((scope === "highlights" || scope === "roundup" || scope === "final-zone") && params.item) {
     return null;
   }
 
@@ -1604,7 +1605,7 @@ function scopedMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>, 
 
 function itemMessage(
   params: Awaited<NonNullable<PageProps["searchParams"]>>,
-  scope: Extract<FeedbackScope, "roundup" | "final-zone">,
+  scope: Extract<FeedbackScope, "highlights" | "roundup" | "final-zone">,
   anchor: string,
   label: string
 ) {
@@ -2072,7 +2073,17 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
 
               {editorial ? (
                 <>
-                <form className="home-admin-hidden-form" id="home-highlights-form" action="/api/admin/editorial/home" method="post" />
+                {highlightEditorRows.map((row) => {
+                  return (
+                    <form
+                      action="/api/admin/editorial/home"
+                      className="home-admin-hidden-form"
+                      id={`home-highlight-form-${row.key}`}
+                      key={`highlight-form-${row.key}`}
+                      method="post"
+                    />
+                  );
+                })}
                 {roundupEditorRows.map((item) => {
                   return (
                     <form
@@ -2223,8 +2234,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                               />
                             </div>
                             <div className="home-admin-highlights-form" role="group" aria-label="Editar Destaques abaixo da manchete">
-                              <input form="home-highlights-form" type="hidden" name="action_type" value="update_highlights" />
-                              <input form="home-highlights-form" type="hidden" name="site_editorial_id" value={editorial.id} />
                               {highlights.length === 0 ? (
                                 <p className="home-admin-muted-card home-admin-empty">
                                   Ainda nao existem destaques guardados. Preenche uma das linhas abaixo para criar um destaque seguro em
@@ -2237,19 +2246,36 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                   const itemHasContent = item ? highlightHasReadableContent(item) : false;
                                   const emptyLabel = item ? compactStateLabel(item.status, itemHasContent) : null;
                                   const cleanLink = item?.link_url?.trim();
+                                  const number = itemNumber(item?.sort_order, row.order);
+                                  const anchor = itemAnchor("home-highlight-item", number);
+                                  const formId = `home-highlight-form-${row.key}`;
+                                  const summaryTitle = textValue(item?.title, "Novo destaque editorial");
+                                  const summaryMeta = textValue(item?.label, "sem etiqueta");
                                   const cardClass = [
                                     "home-admin-highlight-editor-card",
+                                    "home-admin-collapsible-editor",
                                     index === 0 ? "is-primary" : "",
                                     item && !itemHasContent ? "is-muted" : "",
                                     item ? "" : "is-new"
                                   ].filter(Boolean).join(" ");
 
                                   return (
-                                    <fieldset className={cardClass} data-home-highlight-card="true" key={row.key}>
-                                      <legend>Destaque {row.order}</legend>
-                                      <input form="home-highlights-form" type="hidden" name="highlight_row" value={row.key} />
+                                    <details className={cardClass} data-home-highlight-card="true" id={anchor} key={row.key} open={params.item === anchor}>
+                                      <summary>
+                                        <span className="home-admin-collapsible-title">
+                                          <strong>#{number} - {emptyLabel ?? summaryTitle}</strong>
+                                          <small>{summaryMeta}</small>
+                                        </span>
+                                        <StatusPill status={item?.status} />
+                                      </summary>
+                                      <fieldset className="home-admin-item-editor-fields">
+                                      <legend className="home-admin-sr-only">Editar destaque #{number}</legend>
+                                      <input form={formId} type="hidden" name="action_type" value="update_highlight_item" />
+                                      <input form={formId} type="hidden" name="site_editorial_id" value={editorial.id} />
+                                      <input form={formId} type="hidden" name="return_anchor" value={anchor} />
+                                      <input form={formId} type="hidden" name="highlight_row" value={row.key} />
                                       <input
-                                        form="home-highlights-form"
+                                        form={formId}
                                         type="hidden"
                                         name={`highlight_${row.key}_id`}
                                         defaultValue={item?.id ?? ""}
@@ -2307,7 +2333,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                         <label className="home-admin-field">
                                           <span>Ordem</span>
                                           <input
-                                            form="home-highlights-form"
+                                            form={formId}
                                             min={1}
                                             name={`highlight_${row.key}_sort_order`}
                                             data-home-highlight-field="sort_order"
@@ -2318,7 +2344,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                         <label className="home-admin-field">
                                           <span>Etiqueta</span>
                                           <input
-                                            form="home-highlights-form"
+                                            form={formId}
                                             name={`highlight_${row.key}_label`}
                                             data-home-highlight-field="label"
                                             type="text"
@@ -2328,7 +2354,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                         <label className="home-admin-field">
                                           <span>Estado</span>
                                           <select
-                                            form="home-highlights-form"
+                                            form={formId}
                                             name={`highlight_${row.key}_status`}
                                             defaultValue={item?.status === "published" ? "published" : "draft"}
                                           >
@@ -2339,7 +2365,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                         <label className="home-admin-field is-wide">
                                           <span>Titulo</span>
                                           <input
-                                            form="home-highlights-form"
+                                            form={formId}
                                             name={`highlight_${row.key}_title`}
                                             data-home-highlight-field="title"
                                             type="text"
@@ -2349,7 +2375,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                         <label className="home-admin-field is-wide">
                                           <span>Subtitulo</span>
                                           <textarea
-                                            form="home-highlights-form"
+                                            form={formId}
                                             name={`highlight_${row.key}_subtitle`}
                                             data-home-highlight-field="subtitle"
                                             rows={3}
@@ -2359,7 +2385,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                         <label className="home-admin-field is-wide">
                                           <span>Imagem</span>
                                           <input
-                                            form="home-highlights-form"
+                                            form={formId}
                                             name={`highlight_${row.key}_image_url`}
                                             data-home-highlight-field="image_url"
                                             type="url"
@@ -2369,7 +2395,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                         <label className="home-admin-field is-wide">
                                           <span>Link</span>
                                           <input
-                                            form="home-highlights-form"
+                                            form={formId}
                                             name={`highlight_${row.key}_link_url`}
                                             data-home-highlight-field="link_url"
                                             type="text"
@@ -2377,7 +2403,12 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                           />
                                         </label>
                                       </div>
-                                    </fieldset>
+                                      <FeedbackMessage message={itemMessage(params, "highlights", anchor, `Destaque #${number}`)} />
+                                      <div className="home-admin-save-row">
+                                        <button form={formId} type="submit">Guardar destaque #{number}</button>
+                                      </div>
+                                      </fieldset>
+                                    </details>
                                   );
                                 })}
                               </div>
@@ -2387,13 +2418,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                   Estes itens continuam editaveis acima.
                                 </p>
                               ) : null}
-                              <div className="home-admin-save-row">
-                                <p>
-                                  Guarda apenas site_editorial_highlights. No laboratorio validado, alimenta os destaques abaixo
-                                  da manchete; nao cria relacao com artigos.
-                                </p>
-                                <button form="home-highlights-form" type="submit">Guardar destaques abaixo da manchete</button>
-                              </div>
                             </div>
                           </section>
                           <section
