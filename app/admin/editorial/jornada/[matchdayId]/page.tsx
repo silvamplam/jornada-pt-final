@@ -1269,12 +1269,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
       </section>
 
       <nav className="editorial-admin-block-nav" aria-label="Navegacao interna da Editorial da Jornada">
-        <a href="#manchete">Manchete</a>
-        <a href="#bloco-lateral">Bloco lateral</a>
-        <a href="#bloco-complementar">Complemento</a>
         <a href="#composicao">Abaixo da manchete</a>
-        <a href="#destaques">Destaques</a>
-        <a href="#resumo-jornada">Roundup / Videos</a>
         <a href="#ultimas-noticias">Zona Final</a>
       </nav>
 
