@@ -4,13 +4,13 @@ import { EditorialContent, EditorialContentForm, adminEditorialContentsStyles, e
 
 export const dynamic = "force-dynamic";
 
+type SearchParams = Record<string, string | string[] | undefined>;
+
 type PageProps = {
   params: Promise<{
     contentId: string;
   }>;
-  searchParams?: Promise<{
-    error?: string;
-  }>;
+  searchParams?: Promise<SearchParams>;
 };
 
 async function readEditorialContent(contentId: string) {
@@ -39,8 +39,18 @@ function pageMessage(error?: string) {
   return error ? messages[error] ?? "Nao foi possivel guardar o conteudo." : null;
 }
 
+function firstSearchParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+
+  return value;
+}
+
 export default async function EditEditorialContentPage({ params, searchParams }: PageProps) {
-  const [{ contentId }, resolvedSearchParams] = await Promise.all([params, searchParams ?? Promise.resolve({})]);
+  const { contentId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const error = firstSearchParam(resolvedSearchParams.error);
   const content = await readEditorialContent(contentId);
 
   return (
@@ -58,7 +68,7 @@ export default async function EditEditorialContentPage({ params, searchParams }:
       </section>
 
       {content ? (
-        <EditorialContentForm mode="edit" content={content} message={pageMessage(resolvedSearchParams.error)} />
+        <EditorialContentForm mode="edit" content={content} message={pageMessage(error)} />
       ) : (
         <section className="content-admin-missing">
           <h2>Conteudo nao encontrado.</h2>
