@@ -300,6 +300,38 @@ const homeEditorialStyles = `
     background: #10151b;
   }
 
+  .home-admin-block-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    border: 1px solid #f2c7ca;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 10px;
+    box-shadow: 0 10px 24px rgba(8, 15, 24, 0.08);
+  }
+
+  .home-admin-block-nav a {
+    display: inline-flex;
+    min-height: 32px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: #e5252a;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    padding: 0 10px;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .home-admin-block-nav a:hover {
+    background: #b91c1c;
+  }
+
   .home-admin-error {
     margin-top: 18px;
     border-radius: 8px;
@@ -1895,6 +1927,17 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
           </nav>
         </section>
 
+        <nav className="home-admin-block-nav" aria-label="Navegacao interna da Home Editorial">
+          <a href="#home-games">Jogos</a>
+          <a href="#home-headline">Manchete</a>
+          <a href="#home-side-block">Bloco lateral</a>
+          <a href="#home-composition">Composicao</a>
+          <a href="#home-highlights">Destaques</a>
+          <a href="#home-roundup">Roundup / Videos</a>
+          <a href="#home-complement">Complemento</a>
+          <a href="#home-final-zone">Zona Final</a>
+        </nav>
+
         {error ? <div className="home-admin-error">Erro ao ler site_*: {error}</div> : null}
         {!error && !editorial ? (
           <div className="home-admin-error">Nao foi encontrado registo em site_editorials com slug=&quot;home&quot;.</div>
@@ -1923,7 +1966,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       <strong>{selectedFeaturedMatches.length} jogos selecionados para a barra da Home</strong>
                       {selectedFeaturedMatches.length > 0 ? (
                         <div className="home-admin-selected-chips" aria-label="Jogos selecionados">
-                          {selectedFeaturedMatches.slice(0, 10).map((item) => {
+                          {selectedFeaturedMatches.map((item) => {
                             const match = matchesById.get(item.match_id);
 
                             return (
@@ -1932,9 +1975,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                               </span>
                             );
                           })}
-                          {selectedFeaturedMatches.length > 10 ? (
-                            <span className="home-admin-selected-chip">+{selectedFeaturedMatches.length - 10} jogos</span>
-                          ) : null}
                         </div>
                       ) : (
                         <p className="home-admin-empty" style={{ padding: 0 }}>
