@@ -118,7 +118,7 @@ function cleanReturnAnchor(value: FormDataEntryValue | null) {
     return null;
   }
 
-  if (/^home-(roundup|final)-item-\d{2,3}$/.test(cleanValue)) {
+  if (/^home-(highlight|roundup|final)-item-\d{2,3}$/.test(cleanValue)) {
     return cleanValue;
   }
 
@@ -489,6 +489,74 @@ async function updateHighlights(request: Request, formData: FormData) {
   return redirectTo(request, { saved: "highlights" }, contextAnchors.highlights);
 }
 
+async function updateHighlightItem(request: Request, formData: FormData) {
+  const siteEditorialId = cleanText(formData.get("site_editorial_id"));
+  const returnAnchor = cleanReturnAnchor(formData.get("return_anchor"));
+  if (!siteEditorialId) {
+    throw new HomeEditorialAdminError("missing-home-editorial");
+  }
+
+  await ensureHomeEditorialExists(siteEditorialId);
+
+  const rowKey = cleanText(formData.get("highlight_row"));
+  if (!rowKey) {
+    throw new HomeEditorialAdminError("invalid-highlight-item");
+  }
+
+  const rowId = cleanText(formData.get(`highlight_${rowKey}_id`));
+  const sortOrder = cleanInteger(formData.get(`highlight_${rowKey}_sort_order`)) ?? 1;
+  const now = new Date().toISOString();
+  const payload = {
+    sort_order: sortOrder,
+    label: cleanText(formData.get(`highlight_${rowKey}_label`)),
+    title: cleanText(formData.get(`highlight_${rowKey}_title`)),
+    subtitle: cleanText(formData.get(`highlight_${rowKey}_subtitle`)),
+    image_url: cleanText(formData.get(`highlight_${rowKey}_image_url`)),
+    link_url: cleanText(formData.get(`highlight_${rowKey}_link_url`)),
+    status: cleanStatus(cleanText(formData.get(`highlight_${rowKey}_status`))),
+    updated_at: now
+  };
+
+  if (rowId) {
+    const currentRows = await fetchSupabaseAdminTable<SiteEditorialHighlightRow>(
+      `site_editorial_highlights?select=id,site_editorial_id,sort_order&id=eq.${encodeURIComponent(
+        rowId
+      )}&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}&limit=1`
+    );
+
+    if (!currentRows[0]) {
+      throw new HomeEditorialAdminError("invalid-highlight-item");
+    }
+
+    await writeSupabaseAdmin(
+      `site_editorial_highlights?id=eq.${encodeURIComponent(rowId)}&site_editorial_id=eq.${encodeURIComponent(siteEditorialId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      }
+    );
+  } else {
+    if (!hasHighlightContent(payload)) {
+      throw new HomeEditorialAdminError("empty-highlight-item");
+    }
+
+    await writeSupabaseAdmin("site_editorial_highlights", {
+      method: "POST",
+      body: JSON.stringify({
+        id: randomUUID(),
+        site_editorial_id: siteEditorialId,
+        created_at: now,
+        ...payload
+      })
+    });
+  }
+
+  return redirectTo(request, {
+    saved: "highlights",
+    ...(returnAnchor ? { item: returnAnchor } : {})
+  }, returnAnchor ?? contextAnchors.highlights);
+}
+
 async function updateRoundupItems(request: Request, formData: FormData) {
   const siteEditorialId = cleanText(formData.get("site_editorial_id"));
   const returnAnchor = cleanReturnAnchor(formData.get("return_anchor"));
@@ -628,6 +696,8 @@ export async function POST(request: Request) {
   const actionType = cleanText(formData.get("action_type"));
   const saveContext = actionType === "update_featured_matches"
     ? "games"
+    : actionType === "update_highlight_item"
+      ? "highlights"
     : actionType === "update_highlights"
       ? "highlights"
     : actionType === "update_roundup_items"
@@ -639,6 +709,7 @@ export async function POST(request: Request) {
   if (
     actionType !== "update_site_editorial_home" &&
     actionType !== "update_featured_matches" &&
+    actionType !== "update_highlight_item" &&
     actionType !== "update_highlights" &&
     actionType !== "update_roundup_items" &&
     actionType !== "update_final_zone"
@@ -649,6 +720,9 @@ export async function POST(request: Request) {
   try {
     if (actionType === "update_featured_matches") {
       return await updateFeaturedMatches(request, formData);
+    }
+    if (actionType === "update_highlight_item") {
+      return await updateHighlightItem(request, formData);
     }
     if (actionType === "update_highlights") {
       return await updateHighlights(request, formData);
