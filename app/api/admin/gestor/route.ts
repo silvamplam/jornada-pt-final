@@ -1139,6 +1139,7 @@ async function saveMatchdayBelowHeadline(formData: FormData) {
   const matchdayId = cleanText(formData.get("matchday_id"));
   const belowHeadlineModeValue = cleanText(formData.get("below_headline_mode")) ?? "highlights";
   const belowHeadlineMode = belowHeadlineModeValue === "roundup" ? "roundup" : "highlights";
+  const complementaryMode = belowHeadlineMode === "roundup" ? "roundup_video" : "complementary_story";
   const belowHeadlineHeading = cleanText(formData.get("below_headline_heading"));
   const belowHeadlineSubtitle = cleanText(formData.get("below_headline_subtitle"));
   const belowHeadlineHeadingColor = cleanText(formData.get("below_headline_heading_color"));
@@ -1159,6 +1160,7 @@ async function saveMatchdayBelowHeadline(formData: FormData) {
     below_headline_heading: belowHeadlineHeading,
     below_headline_subtitle: belowHeadlineSubtitle,
     below_headline_heading_color: belowHeadlineHeadingColor,
+    complementary_mode: complementaryMode,
     updated_at: new Date().toISOString()
   };
 

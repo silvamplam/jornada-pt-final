@@ -1760,7 +1760,16 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                     section.hidden = section.getAttribute('data-complementary-section') !== mode;
                   });
                 }
-                if (belowSelect) belowSelect.addEventListener('change', syncBelowSections);
+                function syncComplementWithBelowMode() {
+                  if (!belowSelect || !complementSelect) {
+                    syncBelowSections();
+                    return;
+                  }
+                  complementSelect.value = belowSelect.value === 'roundup' ? 'roundup_video' : 'complementary_story';
+                  syncBelowSections();
+                  syncComplementSections();
+                }
+                if (belowSelect) belowSelect.addEventListener('change', syncComplementWithBelowMode);
                 if (complementSelect) complementSelect.addEventListener('change', syncComplementSections);
                 if (complementArticleSelect) complementArticleSelect.addEventListener('change', applyComplementArticle);
                 syncBelowSections();
