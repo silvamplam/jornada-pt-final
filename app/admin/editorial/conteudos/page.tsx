@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 type PageProps = {
   searchParams?: Promise<{
     created?: string;
+    updated?: string;
     saved?: string;
     error?: string;
   }>;
@@ -44,6 +45,9 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
   if (params.created) {
     return "Conteudo criado.";
   }
+  if (params.updated) {
+    return "Conteudo atualizado.";
+  }
   if (params.saved) {
     return "Conteudo guardado.";
   }
@@ -54,6 +58,7 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
     "invalid-status": "Estado invalido.",
     "invalid-scope": "Ambito invalido.",
     "invalid-content-type": "Tipo de conteudo invalido.",
+    "invalid-action": "Acao invalida para este formulario.",
     "missing-content": "O conteudo selecionado ja nao existe.",
     "save-failed": "Nao foi possivel guardar o conteudo.",
   };

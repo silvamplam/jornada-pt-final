@@ -32,6 +32,7 @@ function pageMessage(error?: string) {
     "invalid-status": "Estado invalido.",
     "invalid-scope": "Ambito invalido.",
     "invalid-content-type": "Tipo de conteudo invalido.",
+    "invalid-action": "A edicao deve ser guardada pelo fluxo de alteracoes.",
     "missing-content": "O conteudo selecionado ja nao existe.",
     "save-failed": "Nao foi possivel guardar o conteudo.",
   };

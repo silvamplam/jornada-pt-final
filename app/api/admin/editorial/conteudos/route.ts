@@ -186,6 +186,21 @@ function errorCode(error: unknown) {
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
+    const actionType = cleanText(formData.get("action_type"));
+
+    if (actionType !== "create_content") {
+      if (actionType === "update_content") {
+        const contentId = cleanText(formData.get("content_id"));
+        const path = contentId
+          ? `/admin/editorial/conteudos/${encodeURIComponent(contentId)}/editar`
+          : "/admin/editorial/conteudos";
+
+        return redirectTo(request, path, { error: "invalid-action" });
+      }
+
+      return redirectTo(request, "/admin/editorial/conteudos/novo", { error: "invalid-action" });
+    }
+
     const payload = await buildPayload(formData, null);
     const rows = await writeSupabaseAdminReturning<EditorialContentIdRow>("editorial_contents?select=id,slug", {
       method: "POST",
@@ -221,7 +236,7 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      redirect: `/admin/editorial/conteudos?contentId=${encodeURIComponent(contentId)}&saved=1`,
+      redirect: `/admin/editorial/conteudos?contentId=${encodeURIComponent(contentId)}&updated=1`,
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: errorCode(error) }, { status: 400 });

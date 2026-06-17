@@ -283,7 +283,7 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
       <div className="content-admin-actions">
         <a href="/admin/editorial/conteudos">Voltar a lista</a>
         <button type="submit" data-content-submit>
-          {isEdit ? "Guardar conteudo" : "Criar conteudo"}
+          {isEdit ? "Guardar alteracoes" : "Criar conteudo"}
         </button>
       </div>
 
