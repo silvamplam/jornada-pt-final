@@ -1928,13 +1928,9 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
         </section>
 
         <nav className="home-admin-block-nav" aria-label="Navegacao interna da Home Editorial">
-          <a href="#home-games">Jogos</a>
           <a href="#home-headline">Manchete</a>
           <a href="#home-side-block">Bloco lateral</a>
           <a href="#home-composition">Composicao</a>
-          <a href="#home-highlights">Destaques</a>
-          <a href="#home-roundup">Roundup / Videos</a>
-          <a href="#home-complement">Complemento</a>
           <a href="#home-final-zone">Zona Final</a>
         </nav>
 
