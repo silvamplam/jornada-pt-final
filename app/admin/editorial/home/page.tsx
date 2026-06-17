@@ -2917,8 +2917,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                             <input form={formId} min={1} name={`final_news_${row.key}_sort_order`} type="number" defaultValue={item?.sort_order ?? row.order} />
                                           </label>
                                           <label className="home-admin-field">
-                                            <span>Hora da noticia</span>
-                                            <input data-home-final-field="time_label" form={formId} name={`final_news_${row.key}_time_label`} type="text" defaultValue={item?.time_label ?? ""} />
+                                            <span>Hora da notícia</span>
+                                            <input data-home-final-field="time_label" form={formId} name={`final_news_${row.key}_time_label`} type="text" placeholder="13:12" defaultValue={item?.time_label ?? ""} />
                                           </label>
                                           <label className="home-admin-field">
                                             <span>Estado</span>
