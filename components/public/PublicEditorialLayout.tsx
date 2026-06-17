@@ -129,13 +129,8 @@ export function PublicSideBlock({ data, ariaLabel = "Bloco editorial lateral da 
                   <strong style={data.titleColor ? { color: data.titleColor } : undefined}>{data.title}</strong>
                 )
               ) : null}
-              {data.author ? <small>Por {data.author}</small> : null}
+              {data.author ? <small>{data.author}</small> : null}
               {data.text ? <p>{data.text}</p> : null}
-              {data.linkUrl ? (
-                <a className="public-editorial-more-link" href={data.linkUrl}>
-                  Ler mais <span aria-hidden="true">›</span>
-                </a>
-              ) : null}
             </div>
           </>
         ) : (
@@ -254,11 +249,6 @@ export function PublicComplementaryBlock({ data, ariaLabel = "Bloco complementar
               )
             ) : null}
             {data.text ? <p>{data.text}</p> : null}
-            {data.linkUrl ? (
-              <a className="public-editorial-more-link" href={data.linkUrl}>
-                Ver mais <span aria-hidden="true">›</span>
-              </a>
-            ) : null}
           </div>
         </>
       ) : (

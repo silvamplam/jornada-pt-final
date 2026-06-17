@@ -2896,7 +2896,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                                 <option
                                                   key={article.id}
                                                   value={article.id}
-                                                  data-home-final-time-label={textValue(article.label)}
                                                   data-home-final-title={textValue(article.title)}
                                                   data-home-final-subtitle={articleSnapshotSubtitle(article)}
                                                   data-home-final-image-url={textValue(article.image_url)}
@@ -2918,7 +2917,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                             <input form={formId} min={1} name={`final_news_${row.key}_sort_order`} type="number" defaultValue={item?.sort_order ?? row.order} />
                                           </label>
                                           <label className="home-admin-field">
-                                            <span>Hora / etiqueta temporal</span>
+                                            <span>Hora da noticia</span>
                                             <input data-home-final-field="time_label" form={formId} name={`final_news_${row.key}_time_label`} type="text" defaultValue={item?.time_label ?? ""} />
                                           </label>
                                           <label className="home-admin-field">
@@ -3043,7 +3042,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                         var card = select.closest('[data-home-final-card]');
                         var option = select.options[select.selectedIndex];
                         if (!card || !option || !option.value) return;
-                        setHomeFinalField(card, 'time_label', option.dataset.homeFinalTimeLabel);
                         setHomeFinalField(card, 'title', option.dataset.homeFinalTitle);
                         setHomeFinalField(card, 'subtitle', option.dataset.homeFinalSubtitle);
                         setHomeFinalField(card, 'image_url', option.dataset.homeFinalImageUrl);
