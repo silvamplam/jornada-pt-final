@@ -1146,6 +1146,13 @@ export const publicEditorialStyles = `
     line-height: 1.15;
   }
 
+  .public-below-headline-highlights .public-cover-story small {
+    color: #607086;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.35;
+  }
+
   .public-matchday-main-lower:has(.public-below-headline-highlights) .public-below-headline-side {
     padding-top: 22px;
   }
