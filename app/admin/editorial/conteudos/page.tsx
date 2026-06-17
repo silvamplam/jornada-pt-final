@@ -16,6 +16,7 @@ type PageProps = {
   searchParams?: Promise<{
     created?: string;
     updated?: string;
+    archived?: string;
     saved?: string;
     error?: string;
   }>;
@@ -29,7 +30,7 @@ type ReadEditorialContentsResult = {
 async function readEditorialContents(): Promise<ReadEditorialContentsResult> {
   try {
     const contents = await fetchSupabaseAdminTable<EditorialContent>(
-      `editorial_contents?select=${editorialContentsSelect}&order=published_at.desc.nullslast,created_at.desc.nullslast`,
+      `editorial_contents?select=${editorialContentsSelect}&or=(status.is.null,status.neq.archived)&order=published_at.desc.nullslast,created_at.desc.nullslast`,
     );
 
     return { contents, error: null };
@@ -47,6 +48,9 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
   }
   if (params.updated) {
     return "Conteudo atualizado.";
+  }
+  if (params.archived) {
+    return "Conteudo arquivado.";
   }
   if (params.saved) {
     return "Conteudo guardado.";

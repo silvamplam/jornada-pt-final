@@ -108,46 +108,12 @@ function formatDateTimeLocal(value: string | null | undefined) {
   )}`;
 }
 
-const editFormEnhancer = `
-(function () {
-  document.querySelectorAll("[data-editorial-content-edit-form]").forEach(function (form) {
-    form.addEventListener("submit", async function (event) {
-      event.preventDefault();
-      var submitter = form.querySelector("[data-content-submit]");
-      if (submitter) {
-        submitter.setAttribute("disabled", "disabled");
-      }
-
-      try {
-        var response = await fetch(form.action, {
-          method: "PATCH",
-          body: new FormData(form),
-        });
-        var payload = await response.json().catch(function () { return {}; });
-        if (payload.redirect) {
-          window.location.href = payload.redirect;
-          return;
-        }
-        window.location.href = "/admin/editorial/conteudos?error=" + encodeURIComponent(payload.error || "save-failed");
-      } catch (error) {
-        window.location.href = "/admin/editorial/conteudos?error=save-failed";
-      }
-    });
-  });
-})();
-`;
-
 export function EditorialContentForm({ mode, content, message }: ContentFormProps) {
   const isEdit = mode === "edit";
   const action = "/api/admin/editorial/conteudos";
 
   return (
-    <form
-      className="content-admin-form"
-      action={action}
-      method="post"
-      data-editorial-content-edit-form={isEdit ? true : undefined}
-    >
+    <form className="content-admin-form" action={action} method="post">
       <input type="hidden" name="action_type" value={isEdit ? "update_content" : "create_content"} />
       {isEdit ? <input type="hidden" name="content_id" value={content?.id ?? ""} /> : null}
 
@@ -286,8 +252,6 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
           {isEdit ? "Guardar alteracoes" : "Criar conteudo"}
         </button>
       </div>
-
-      {isEdit ? <script dangerouslySetInnerHTML={{ __html: editFormEnhancer }} /> : null}
     </form>
   );
 }
