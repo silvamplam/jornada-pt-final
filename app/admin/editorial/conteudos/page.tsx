@@ -15,6 +15,8 @@ export const dynamic = "force-dynamic";
 type PageProps = {
   searchParams?: Promise<{
     created?: string;
+    updated?: string;
+    archived?: string;
     saved?: string;
     error?: string;
   }>;
@@ -28,7 +30,7 @@ type ReadEditorialContentsResult = {
 async function readEditorialContents(): Promise<ReadEditorialContentsResult> {
   try {
     const contents = await fetchSupabaseAdminTable<EditorialContent>(
-      `editorial_contents?select=${editorialContentsSelect}&order=published_at.desc.nullslast,created_at.desc.nullslast`,
+      `editorial_contents?select=${editorialContentsSelect}&or=(status.is.null,status.neq.archived)&order=published_at.desc.nullslast,created_at.desc.nullslast`,
     );
 
     return { contents, error: null };
@@ -44,6 +46,12 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
   if (params.created) {
     return "Conteudo criado.";
   }
+  if (params.updated) {
+    return "Conteudo atualizado.";
+  }
+  if (params.archived) {
+    return "Conteudo arquivado.";
+  }
   if (params.saved) {
     return "Conteudo guardado.";
   }
@@ -54,6 +62,7 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
     "invalid-status": "Estado invalido.",
     "invalid-scope": "Ambito invalido.",
     "invalid-content-type": "Tipo de conteudo invalido.",
+    "invalid-action": "Acao invalida para este formulario.",
     "missing-content": "O conteudo selecionado ja nao existe.",
     "save-failed": "Nao foi possivel guardar o conteudo.",
   };

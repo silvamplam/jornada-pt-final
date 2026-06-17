@@ -15,6 +15,7 @@ function pageMessage(error?: string) {
     "invalid-status": "Estado invalido.",
     "invalid-scope": "Ambito invalido.",
     "invalid-content-type": "Tipo de conteudo invalido.",
+    "invalid-action": "Acao invalida para este formulario.",
     "save-failed": "Nao foi possivel criar o conteudo.",
   };
 

@@ -126,23 +126,31 @@ async function uniqueSlug(baseSlug: string, currentContentId: string | null) {
   return `${baseSlug}-${Date.now()}`;
 }
 
-async function assertContentExists(contentId: string) {
+async function readExistingContent(contentId: string) {
   const rows = await fetchSupabaseAdminTable<EditorialContentIdRow>(
     `editorial_contents?select=id,slug&id=eq.${encodeURIComponent(contentId)}&limit=1`,
   );
 
-  if (!rows[0]?.id) {
+  const content = rows[0] ?? null;
+  if (!content?.id) {
     throw new EditorialContentAdminError("missing-content");
   }
+
+  return content;
 }
 
-async function buildPayload(formData: FormData, currentContentId: string | null): Promise<EditorialContentPayload> {
+async function buildPayload(
+  formData: FormData,
+  currentContentId: string | null,
+  currentSlug: string | null = null,
+): Promise<EditorialContentPayload> {
   const title = cleanText(formData.get("title"));
   if (!title) {
     throw new EditorialContentAdminError("missing-title");
   }
 
-  const baseSlug = normalizeSlug(cleanText(formData.get("slug")) ?? title);
+  const submittedSlug = cleanText(formData.get("slug"));
+  const baseSlug = normalizeSlug(submittedSlug ?? currentSlug ?? title);
   if (!baseSlug) {
     throw new EditorialContentAdminError("missing-slug");
   }
@@ -183,9 +191,49 @@ function errorCode(error: unknown) {
   return error instanceof EditorialContentAdminError ? error.code : "save-failed";
 }
 
+async function updateContent(formData: FormData) {
+  const contentId = cleanText(formData.get("content_id"));
+  if (!contentId) {
+    throw new EditorialContentAdminError("missing-content");
+  }
+
+  const existing = await readExistingContent(contentId);
+  const payload = await buildPayload(formData, contentId, existing.slug);
+
+  await writeSupabaseAdmin(`editorial_contents?id=eq.${encodeURIComponent(contentId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+
+  return { contentId, status: payload.status };
+}
+
 export async function POST(request: Request) {
+  let failurePath = "/admin/editorial/conteudos/novo";
+
   try {
     const formData = await request.formData();
+    const actionType = cleanText(formData.get("action_type"));
+
+    if (actionType === "update_content") {
+      const submittedContentId = cleanText(formData.get("content_id"));
+      if (submittedContentId) {
+        failurePath = `/admin/editorial/conteudos/${encodeURIComponent(submittedContentId)}/editar`;
+      }
+
+      const { contentId, status } = await updateContent(formData);
+
+      return redirectTo(request, "/admin/editorial/conteudos", {
+        contentId,
+        [status === "archived" ? "archived" : "updated"]: "1",
+      });
+    }
+
+    if (actionType !== "create_content") {
+      return redirectTo(request, "/admin/editorial/conteudos/novo", { error: "invalid-action" });
+    }
+
+    failurePath = "/admin/editorial/conteudos/novo";
     const payload = await buildPayload(formData, null);
     const rows = await writeSupabaseAdminReturning<EditorialContentIdRow>("editorial_contents?select=id,slug", {
       method: "POST",
@@ -199,29 +247,20 @@ export async function POST(request: Request) {
 
     return redirectTo(request, "/admin/editorial/conteudos", { created: "1", contentId: created.id });
   } catch (error) {
-    return redirectTo(request, "/admin/editorial/conteudos/novo", { error: errorCode(error) });
+    return redirectTo(request, failurePath, { error: errorCode(error) });
   }
 }
 
 export async function PATCH(request: Request) {
   try {
     const formData = await request.formData();
-    const contentId = cleanText(formData.get("content_id"));
-    if (!contentId) {
-      throw new EditorialContentAdminError("missing-content");
-    }
-
-    await assertContentExists(contentId);
-    const payload = await buildPayload(formData, contentId);
-
-    await writeSupabaseAdmin(`editorial_contents?id=eq.${encodeURIComponent(contentId)}`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    });
+    const { contentId, status } = await updateContent(formData);
 
     return NextResponse.json({
       ok: true,
-      redirect: `/admin/editorial/conteudos?contentId=${encodeURIComponent(contentId)}&saved=1`,
+      redirect: `/admin/editorial/conteudos?contentId=${encodeURIComponent(contentId)}&${
+        status === "archived" ? "archived" : "updated"
+      }=1`,
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: errorCode(error) }, { status: 400 });
