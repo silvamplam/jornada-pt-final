@@ -142,6 +142,38 @@ const editorialPageStyles = `
     white-space: nowrap;
   }
 
+  .editorial-admin-block-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    border: 1px solid #f2c7ca;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 10px;
+    box-shadow: 0 10px 24px rgba(8, 15, 24, 0.08);
+  }
+
+  .editorial-admin-block-nav a {
+    display: inline-flex;
+    min-height: 32px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: #e5252a;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    padding: 0 10px;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .editorial-admin-block-nav a:hover {
+    background: #b91c1c;
+  }
+
   .editorial-admin-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
@@ -1235,6 +1267,16 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
           </a>
         </nav>
       </section>
+
+      <nav className="editorial-admin-block-nav" aria-label="Navegacao interna da Editorial da Jornada">
+        <a href="#manchete">Manchete</a>
+        <a href="#bloco-lateral">Bloco lateral</a>
+        <a href="#bloco-complementar">Complemento</a>
+        <a href="#composicao">Abaixo da manchete</a>
+        <a href="#destaques">Destaques</a>
+        <a href="#resumo-jornada">Roundup / Videos</a>
+        <a href="#ultimas-noticias">Zona Final</a>
+      </nav>
 
       {feedbackScope ? null : messageFor(created, error)}
 
