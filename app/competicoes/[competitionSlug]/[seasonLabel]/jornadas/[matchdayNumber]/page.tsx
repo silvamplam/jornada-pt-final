@@ -2856,7 +2856,6 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
   const complementaryLinkUrl = usePublishedReferenceComposition
     ? cleanReferenceSnapshotText(referenceComplement?.link_url_snapshot)
     : editorial?.complementary_link_url?.trim() || null;
-  const hasRoundupVideoComplement = complementaryMode === "roundup_video" && effectiveRoundupItems.length > 0;
   const sideBlockImageUrl = usePublishedReferenceComposition
     ? cleanReferenceSnapshotText(referenceSideBlock?.image_url_snapshot)
     : editorial?.side_block_image_url?.trim() || null;
@@ -3096,14 +3095,6 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                   items={effectiveRoundupItems}
                   heading={editorial?.roundup_video_heading ?? belowHeadlineHeading}
                   headingColor={editorial?.roundup_video_heading_color ?? belowHeadlineHeadingColor ?? null}
-                  matchdayNumber={context.matchday.number}
-                />
-              ) : hasRoundupVideoComplement ? (
-                <RoundupVideoSwitcher
-                  items={effectiveRoundupItems}
-                  initialItemId={editorial?.complementary_roundup_item_id ?? null}
-                  heading={editorial?.roundup_video_heading ?? null}
-                  headingColor={editorial?.roundup_video_heading_color ?? null}
                   matchdayNumber={context.matchday.number}
                 />
               ) : (
