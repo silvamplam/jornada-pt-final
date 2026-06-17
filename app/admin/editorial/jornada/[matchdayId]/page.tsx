@@ -1731,7 +1731,6 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 var belowSelect = form.querySelector('[name="below_headline_mode"]');
                 var complementSelect = form.querySelector('[data-complementary-form] [name="complementary_mode"]');
                 var complementArticleSelect = form.querySelector('[data-complementary-article-select]');
-                var suggestedComplement = form.querySelector('[data-suggested-complement]');
                 var belowSections = Array.prototype.slice.call(form.querySelectorAll('[data-below-section]'));
                 var sections = Array.prototype.slice.call(form.querySelectorAll('[data-complementary-section]'));
                 function setComplementField(name, value) {
@@ -1757,19 +1756,11 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 }
                 function syncComplementSections() {
                   var mode = complementSelect ? complementSelect.value : 'none';
-                  if (suggestedComplement) suggestedComplement.value = mode;
                   sections.forEach(function (section) {
                     section.hidden = section.getAttribute('data-complementary-section') !== mode;
                   });
                 }
-                function suggestComplement() {
-                  if (!belowSelect || !complementSelect) return;
-                  complementSelect.value = belowSelect.value === 'roundup' ? 'roundup_video' : 'complementary_story';
-                  if (suggestedComplement) suggestedComplement.value = complementSelect.value;
-                  syncBelowSections();
-                  syncComplementSections();
-                }
-                if (belowSelect) belowSelect.addEventListener('change', suggestComplement);
+                if (belowSelect) belowSelect.addEventListener('change', syncBelowSections);
                 if (complementSelect) complementSelect.addEventListener('change', syncComplementSections);
                 if (complementArticleSelect) complementArticleSelect.addEventListener('change', applyComplementArticle);
                 syncBelowSections();
