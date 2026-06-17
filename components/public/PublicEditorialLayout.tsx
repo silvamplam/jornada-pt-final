@@ -13,6 +13,7 @@ export type PublicEditorialLatestNews = {
   id: string;
   timeLabel?: string | null;
   title?: string | null;
+  subtitle?: string | null;
   imageUrl?: string | null;
   linkUrl?: string | null;
 };
@@ -322,6 +323,7 @@ export function PublicLatestNewsBlock({ items, title = "Últimas notícias" }: {
               ) : (
                 <span className="public-news-title">{item.title}</span>
               )}
+              {item.subtitle ? <p className="public-news-subtitle">{item.subtitle}</p> : null}
             </div>
           </li>
         ))}

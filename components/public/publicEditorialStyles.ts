@@ -1421,6 +1421,13 @@ export const publicEditorialStyles = `
     line-height: 1.15;
   }
 
+  .public-news-subtitle {
+    margin: 0;
+    color: #607086;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
   .public-matchday-summary {
     display: grid;
     gap: 0;
