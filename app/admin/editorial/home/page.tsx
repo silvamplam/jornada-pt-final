@@ -102,6 +102,7 @@ type HomeEditorialArticleOption = {
   excerpt?: string | null;
   label?: string | null;
   image_url?: string | null;
+  author?: string | null;
   status?: string | null;
   published_at?: string | null;
   created_at?: string | null;
@@ -2162,6 +2163,30 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                             <h3>Conteudo da manchete</h3>
                             <small>site_editorials.headline_*</small>
                           </div>
+                          <div className="home-admin-muted-card home-admin-empty">
+                            <label className="home-admin-field is-wide">
+                              <span>Preencher manchete com artigo publicado</span>
+                              <select data-home-headline-article-select defaultValue="">
+                                <option value="">Escolher artigo publicado</option>
+                                {publishedArticles.map((article) => (
+                                  <option
+                                    key={article.id}
+                                    value={article.id}
+                                    data-home-headline-title={textValue(article.title)}
+                                    data-home-headline-subtitle={articleSnapshotSubtitle(article)}
+                                    data-home-headline-image-url={textValue(article.image_url)}
+                                    data-home-headline-link-url={articlePublicHref(article)}
+                                  >
+                                    {textValue(article.title, article.slug, article.id)}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <p>
+                              Ao escolher um artigo, a manchete recebe um snapshot editavel com titulo,
+                              subtitulo, imagem e link para /noticias/[slug].
+                            </p>
+                          </div>
                           <div className="home-admin-form-grid">
                             <TextField label="Titulo" name="headline_title" value={editorial.headline_title} wide />
                             <TextAreaField label="Subtitulo" name="headline_subtitle" value={editorial.headline_subtitle} />
@@ -2192,6 +2217,32 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                           <div className="home-admin-zone-kicker">
                             <h3>Conteudo do bloco lateral</h3>
                             <small>site_editorials.side_block_*</small>
+                          </div>
+                          <div className="home-admin-muted-card home-admin-empty">
+                            <label className="home-admin-field is-wide">
+                              <span>Preencher bloco lateral com artigo publicado</span>
+                              <select data-home-side-article-select defaultValue="">
+                                <option value="">Escolher artigo publicado</option>
+                                {publishedArticles.map((article) => (
+                                  <option
+                                    key={article.id}
+                                    value={article.id}
+                                    data-home-side-label={textValue(article.label)}
+                                    data-home-side-title={textValue(article.title)}
+                                    data-home-side-text={articleSnapshotSubtitle(article)}
+                                    data-home-side-image-url={textValue(article.image_url)}
+                                    data-home-side-link-url={articlePublicHref(article)}
+                                    data-home-side-author={textValue(article.author)}
+                                  >
+                                    {textValue(article.title, article.slug, article.id)}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <p>
+                              Ao escolher um artigo, o bloco lateral recebe um snapshot editavel com etiqueta,
+                              titulo, texto, imagem, autor quando existir e link para /noticias/[slug].
+                            </p>
                           </div>
                           <div className="home-admin-form-grid">
                             <TextField label="Tipo" name="side_block_type" value={editorial.side_block_type} />
@@ -2877,9 +2928,36 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       var complementSelect = document.querySelector('[data-home-complement-select]');
                       var belowSections = Array.prototype.slice.call(document.querySelectorAll('[data-home-below-section]'));
                       var complementSections = Array.prototype.slice.call(document.querySelectorAll('[data-home-complement-section]'));
+                      var headlineArticleSelect = document.querySelector('[data-home-headline-article-select]');
+                      var sideArticleSelect = document.querySelector('[data-home-side-article-select]');
                       var highlightArticleSelects = Array.prototype.slice.call(document.querySelectorAll('[data-home-highlight-article-select]'));
                       function expectedComplementMode() {
                         return belowSelect && belowSelect.value === 'roundup' ? 'roundup_video' : 'complementary_story';
+                      }
+                      function setHomeEditorialField(name, value, allowEmpty) {
+                        if (!allowEmpty && !value) return;
+                        var field = document.querySelector('[name="' + name + '"]');
+                        if (field) field.value = value || '';
+                      }
+                      function applyHomeHeadlineArticle() {
+                        if (!headlineArticleSelect) return;
+                        var option = headlineArticleSelect.options[headlineArticleSelect.selectedIndex];
+                        if (!option || !option.value) return;
+                        setHomeEditorialField('headline_title', option.dataset.homeHeadlineTitle, true);
+                        setHomeEditorialField('headline_subtitle', option.dataset.homeHeadlineSubtitle, true);
+                        setHomeEditorialField('headline_image_url', option.dataset.homeHeadlineImageUrl, true);
+                        setHomeEditorialField('headline_link_url', option.dataset.homeHeadlineLinkUrl, true);
+                      }
+                      function applyHomeSideArticle() {
+                        if (!sideArticleSelect) return;
+                        var option = sideArticleSelect.options[sideArticleSelect.selectedIndex];
+                        if (!option || !option.value) return;
+                        setHomeEditorialField('side_block_label', option.dataset.homeSideLabel, true);
+                        setHomeEditorialField('side_block_title', option.dataset.homeSideTitle, true);
+                        setHomeEditorialField('side_block_text', option.dataset.homeSideText, true);
+                        setHomeEditorialField('side_block_image_url', option.dataset.homeSideImageUrl, true);
+                        setHomeEditorialField('side_block_link_url', option.dataset.homeSideLinkUrl, true);
+                        setHomeEditorialField('side_block_author', option.dataset.homeSideAuthor, false);
                       }
                       function setHomeHighlightField(card, name, value) {
                         var field = card.querySelector('[data-home-highlight-field="' + name + '"]');
@@ -2914,6 +2992,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       }
                       if (belowSelect) belowSelect.addEventListener('change', syncComposition);
                       if (complementSelect) complementSelect.addEventListener('change', syncComplementSections);
+                      if (headlineArticleSelect) headlineArticleSelect.addEventListener('change', applyHomeHeadlineArticle);
+                      if (sideArticleSelect) sideArticleSelect.addEventListener('change', applyHomeSideArticle);
                       highlightArticleSelects.forEach(function (select) {
                         select.addEventListener('change', function () {
                           applyHomeHighlightArticle(select);
