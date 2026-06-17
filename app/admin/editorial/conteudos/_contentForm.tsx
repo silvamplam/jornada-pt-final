@@ -1,0 +1,636 @@
+export type EditorialContent = {
+  id: string;
+  slug: string | null;
+  status: string | null;
+  scope: string | null;
+  content_type: string | null;
+  label: string | null;
+  title: string | null;
+  subtitle: string | null;
+  summary: string | null;
+  body: string | null;
+  author: string | null;
+  image_url: string | null;
+  image_caption: string | null;
+  thumbnail_url: string | null;
+  video_url: string | null;
+  video_provider: string | null;
+  embed_url: string | null;
+  duration: string | null;
+  is_embeddable: boolean | null;
+  published_at: string | null;
+  competition_id: string | null;
+  season_id: string | null;
+  matchday_id: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+type ContentFormProps = {
+  mode: "create" | "edit";
+  content?: EditorialContent | null;
+  message?: string | null;
+};
+
+export const editorialContentsSelect = [
+  "id",
+  "slug",
+  "status",
+  "scope",
+  "content_type",
+  "label",
+  "title",
+  "subtitle",
+  "summary",
+  "body",
+  "author",
+  "image_url",
+  "image_caption",
+  "thumbnail_url",
+  "video_url",
+  "video_provider",
+  "embed_url",
+  "duration",
+  "is_embeddable",
+  "published_at",
+  "competition_id",
+  "season_id",
+  "matchday_id",
+  "created_at",
+  "updated_at",
+].join(",");
+
+export function firstText(...values: Array<string | null | undefined>) {
+  for (const value of values) {
+    const cleanValue = value?.trim();
+    if (cleanValue) {
+      return cleanValue;
+    }
+  }
+
+  return "";
+}
+
+export function formatDateTime(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("pt-PT", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function formatDateTimeLocal(value: string | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  const match = value.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
+  if (match) {
+    return match[1];
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(
+    date.getMinutes(),
+  )}`;
+}
+
+const editFormEnhancer = `
+(function () {
+  document.querySelectorAll("[data-editorial-content-edit-form]").forEach(function (form) {
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      var submitter = form.querySelector("[data-content-submit]");
+      if (submitter) {
+        submitter.setAttribute("disabled", "disabled");
+      }
+
+      try {
+        var response = await fetch(form.action, {
+          method: "PATCH",
+          body: new FormData(form),
+        });
+        var payload = await response.json().catch(function () { return {}; });
+        if (payload.redirect) {
+          window.location.href = payload.redirect;
+          return;
+        }
+        window.location.href = "/admin/editorial/conteudos?error=" + encodeURIComponent(payload.error || "save-failed");
+      } catch (error) {
+        window.location.href = "/admin/editorial/conteudos?error=save-failed";
+      }
+    });
+  });
+})();
+`;
+
+export function EditorialContentForm({ mode, content, message }: ContentFormProps) {
+  const isEdit = mode === "edit";
+  const action = "/api/admin/editorial/conteudos";
+
+  return (
+    <form
+      className="content-admin-form"
+      action={action}
+      method="post"
+      data-editorial-content-edit-form={isEdit ? true : undefined}
+    >
+      <input type="hidden" name="action_type" value={isEdit ? "update_content" : "create_content"} />
+      {isEdit ? <input type="hidden" name="content_id" value={content?.id ?? ""} /> : null}
+
+      {message ? <p className="content-admin-alert">{message}</p> : null}
+
+      <section className="content-admin-panel">
+        <div className="content-admin-panel-heading">
+          <p>Identidade editorial</p>
+          <span>Conteudo publicado ou em preparacao.</span>
+        </div>
+
+        <div className="content-admin-grid">
+          <label className="content-admin-full">
+            <span>Titulo</span>
+            <input name="title" defaultValue={content?.title ?? ""} required />
+          </label>
+
+          <label>
+            <span>Slug</span>
+            <input name="slug" defaultValue={content?.slug ?? ""} placeholder="gerado-a-partir-do-titulo" />
+          </label>
+
+          <label>
+            <span>Estado</span>
+            <select name="status" defaultValue={content?.status ?? "draft"}>
+              <option value="draft">draft</option>
+              <option value="published">published</option>
+              <option value="archived">archived</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Ambito</span>
+            <select name="scope" defaultValue={content?.scope ?? "general"}>
+              <option value="general">general</option>
+              <option value="home">home</option>
+              <option value="competition">competition</option>
+              <option value="matchday">matchday</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Tipo</span>
+            <select name="content_type" defaultValue={content?.content_type ?? "video"}>
+              <option value="video">video</option>
+              <option value="reportagem">reportagem</option>
+              <option value="entrevista">entrevista</option>
+              <option value="especial">especial</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Etiqueta</span>
+            <input name="label" defaultValue={content?.label ?? ""} placeholder="REPORTAGEM, ENTREVISTA..." />
+          </label>
+
+          <label>
+            <span>Autor</span>
+            <input name="author" defaultValue={content?.author ?? ""} placeholder="Nome do autor" />
+          </label>
+
+          <label>
+            <span>Publicado em</span>
+            <input name="published_at" type="datetime-local" defaultValue={formatDateTimeLocal(content?.published_at)} />
+          </label>
+
+          <label className="content-admin-full">
+            <span>Subtitulo</span>
+            <textarea name="subtitle" rows={3} defaultValue={content?.subtitle ?? ""} />
+          </label>
+
+          <label className="content-admin-full">
+            <span>Resumo</span>
+            <textarea name="summary" rows={3} defaultValue={content?.summary ?? ""} />
+          </label>
+
+          <label className="content-admin-full">
+            <span>Corpo / descricao longa</span>
+            <textarea name="body" rows={8} defaultValue={content?.body ?? ""} />
+          </label>
+        </div>
+      </section>
+
+      <section className="content-admin-panel">
+        <div className="content-admin-panel-heading">
+          <p>Media</p>
+          <span>Preparado para futuro media slot. Nao liga a Home, Jornada ou Composicao nesta fase.</span>
+        </div>
+
+        <div className="content-admin-grid">
+          <label className="content-admin-full">
+            <span>Imagem principal</span>
+            <input name="image_url" defaultValue={content?.image_url ?? ""} placeholder="https://..." />
+          </label>
+
+          <label className="content-admin-full">
+            <span>Legenda da imagem</span>
+            <input name="image_caption" defaultValue={content?.image_caption ?? ""} />
+          </label>
+
+          <label className="content-admin-full">
+            <span>Thumbnail</span>
+            <input name="thumbnail_url" defaultValue={content?.thumbnail_url ?? ""} placeholder="https://..." />
+          </label>
+
+          <label className="content-admin-full">
+            <span>Video URL</span>
+            <input name="video_url" defaultValue={content?.video_url ?? ""} placeholder="https://..." />
+          </label>
+
+          <label>
+            <span>Provider</span>
+            <input name="video_provider" defaultValue={content?.video_provider ?? ""} placeholder="youtube, vimeo..." />
+          </label>
+
+          <label>
+            <span>Duracao</span>
+            <input name="duration" defaultValue={content?.duration ?? ""} placeholder="5:42" />
+          </label>
+
+          <label className="content-admin-full">
+            <span>Embed URL</span>
+            <input name="embed_url" defaultValue={content?.embed_url ?? ""} placeholder="https://..." />
+          </label>
+
+          <label className="content-admin-checkbox">
+            <input name="is_embeddable" type="checkbox" defaultChecked={Boolean(content?.is_embeddable)} value="true" />
+            <span>Permitir embed quando a pagina publica existir</span>
+          </label>
+        </div>
+      </section>
+
+      <div className="content-admin-actions">
+        <a href="/admin/editorial/conteudos">Voltar a lista</a>
+        <button type="submit" data-content-submit>
+          {isEdit ? "Guardar conteudo" : "Criar conteudo"}
+        </button>
+      </div>
+
+      {isEdit ? <script dangerouslySetInnerHTML={{ __html: editFormEnhancer }} /> : null}
+    </form>
+  );
+}
+
+export const adminEditorialContentsStyles = `
+  .content-admin-shell {
+    min-height: 100vh;
+    background: #f4f6f8;
+    color: #111827;
+    padding: 32px;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  .content-admin-header,
+  .content-admin-notes,
+  .content-admin-empty,
+  .content-admin-card,
+  .content-admin-alert,
+  .content-admin-form,
+  .content-admin-missing {
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  .content-admin-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    align-items: flex-start;
+    margin-bottom: 18px;
+    border-radius: 10px;
+    background: #10151b;
+    color: #fff;
+    padding: 26px;
+    box-shadow: 0 18px 40px rgba(8, 15, 24, 0.14);
+  }
+
+  .content-admin-eyebrow,
+  .content-admin-label {
+    margin: 0 0 8px;
+    color: #d71920;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .content-admin-header h1 {
+    margin: 0;
+    font-size: 32px;
+    line-height: 1.08;
+  }
+
+  .content-admin-header p {
+    max-width: 760px;
+    margin: 10px 0 0;
+    color: #cbd5e1;
+    line-height: 1.55;
+  }
+
+  .content-admin-primary-action,
+  .content-admin-actions a,
+  .content-admin-actions button,
+  .content-admin-edit-link {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #111827;
+    border-radius: 8px;
+    padding: 0 14px;
+    background: #111827;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .content-admin-header .content-admin-primary-action {
+    border-color: #fff;
+    background: #fff;
+    color: #10151b;
+  }
+
+  .content-admin-actions a {
+    border-color: #d1d5db;
+    background: #fff;
+    color: #111827;
+  }
+
+  .content-admin-notes {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .content-admin-notes p,
+  .content-admin-alert,
+  .content-admin-empty,
+  .content-admin-card,
+  .content-admin-panel,
+  .content-admin-missing {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+  }
+
+  .content-admin-notes p {
+    margin: 0;
+    padding: 12px 14px;
+    color: #374151;
+    line-height: 1.5;
+  }
+
+  .content-admin-notes code {
+    border-radius: 5px;
+    background: #f3f4f6;
+    padding: 2px 5px;
+    color: #111827;
+    font-size: 12px;
+  }
+
+  .content-admin-alert {
+    margin-bottom: 18px;
+    padding: 14px;
+    border-color: #fecaca;
+    background: #fff1f2;
+    color: #991b1b;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .content-admin-empty,
+  .content-admin-missing {
+    padding: 34px 26px;
+    text-align: center;
+  }
+
+  .content-admin-empty h2,
+  .content-admin-missing h2 {
+    margin: 0;
+    font-size: 22px;
+  }
+
+  .content-admin-empty p,
+  .content-admin-missing p {
+    margin: 8px 0 0;
+    color: #6b7280;
+  }
+
+  .content-admin-list {
+    display: grid;
+    gap: 16px;
+  }
+
+  .content-admin-card,
+  .content-admin-panel {
+    padding: 18px;
+  }
+
+  .content-admin-card-main {
+    display: grid;
+    grid-template-columns: 180px minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+
+  .content-admin-thumb {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #e5e7eb;
+  }
+
+  .content-admin-thumb-empty {
+    display: grid;
+    place-items: center;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .content-admin-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .content-admin-badges span {
+    border-radius: 999px;
+    background: #f3f4f6;
+    padding: 5px 8px;
+    color: #374151;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .content-admin-card h2 {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.18;
+  }
+
+  .content-admin-subtitle,
+  .content-admin-summary {
+    margin: 8px 0 0;
+    color: #4b5563;
+    line-height: 1.5;
+  }
+
+  .content-admin-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 14px;
+  }
+
+  .content-admin-fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 18px 0 0;
+  }
+
+  .content-admin-field {
+    min-width: 0;
+    border-radius: 8px;
+    background: #f9fafb;
+    padding: 10px;
+  }
+
+  .content-admin-field dt {
+    margin: 0 0 4px;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .content-admin-field dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: #111827;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .content-admin-form {
+    display: grid;
+    gap: 16px;
+  }
+
+  .content-admin-panel-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: baseline;
+    margin-bottom: 14px;
+  }
+
+  .content-admin-panel-heading p {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 850;
+  }
+
+  .content-admin-panel-heading span {
+    color: #6b7280;
+    font-size: 13px;
+  }
+
+  .content-admin-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .content-admin-grid label {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 750;
+  }
+
+  .content-admin-full,
+  .content-admin-checkbox {
+    grid-column: 1 / -1;
+  }
+
+  .content-admin-grid input,
+  .content-admin-grid select,
+  .content-admin-grid textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    padding: 10px 11px;
+    color: #111827;
+    font: inherit;
+  }
+
+  .content-admin-grid textarea {
+    resize: vertical;
+  }
+
+  .content-admin-checkbox {
+    display: flex !important;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+  }
+
+  .content-admin-checkbox input {
+    width: auto;
+  }
+
+  .content-admin-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    align-items: center;
+  }
+
+  @media (max-width: 860px) {
+    .content-admin-shell {
+      padding: 18px;
+    }
+
+    .content-admin-header,
+    .content-admin-panel-heading {
+      display: grid;
+    }
+
+    .content-admin-card-main,
+    .content-admin-fields,
+    .content-admin-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+`;

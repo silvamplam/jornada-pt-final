@@ -1,67 +1,29 @@
+import Link from "next/link";
+
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
+
+import {
+  EditorialContent,
+  adminEditorialContentsStyles,
+  editorialContentsSelect,
+  firstText,
+  formatDateTime,
+} from "./_contentForm";
 
 export const dynamic = "force-dynamic";
 
-type EditorialContent = {
-  id: string;
-  slug: string | null;
-  status: string | null;
-  scope: string | null;
-  content_type: string | null;
-  label: string | null;
-  title: string | null;
-  subtitle: string | null;
-  summary: string | null;
-  body: string | null;
-  author: string | null;
-  image_url: string | null;
-  image_caption: string | null;
-  thumbnail_url: string | null;
-  video_url: string | null;
-  video_provider: string | null;
-  embed_url: string | null;
-  duration: string | null;
-  is_embeddable: boolean | null;
-  published_at: string | null;
-  competition_id: string | null;
-  season_id: string | null;
-  matchday_id: string | null;
-  created_at: string | null;
-  updated_at: string | null;
+type PageProps = {
+  searchParams?: Promise<{
+    created?: string;
+    saved?: string;
+    error?: string;
+  }>;
 };
 
 type ReadEditorialContentsResult = {
   contents: EditorialContent[];
   error: string | null;
 };
-
-const editorialContentsSelect = [
-  "id",
-  "slug",
-  "status",
-  "scope",
-  "content_type",
-  "label",
-  "title",
-  "subtitle",
-  "summary",
-  "body",
-  "author",
-  "image_url",
-  "image_caption",
-  "thumbnail_url",
-  "video_url",
-  "video_provider",
-  "embed_url",
-  "duration",
-  "is_embeddable",
-  "published_at",
-  "competition_id",
-  "season_id",
-  "matchday_id",
-  "created_at",
-  "updated_at",
-].join(",");
 
 async function readEditorialContents(): Promise<ReadEditorialContentsResult> {
   try {
@@ -78,31 +40,25 @@ async function readEditorialContents(): Promise<ReadEditorialContentsResult> {
   }
 }
 
-function firstText(...values: Array<string | null | undefined>) {
-  for (const value of values) {
-    const cleanValue = value?.trim();
-    if (cleanValue) {
-      return cleanValue;
-    }
+function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
+  if (params.created) {
+    return "Conteudo criado.";
+  }
+  if (params.saved) {
+    return "Conteudo guardado.";
   }
 
-  return "";
-}
+  const messages: Record<string, string> = {
+    "missing-title": "Indique um titulo.",
+    "missing-slug": "Nao foi possivel gerar um slug.",
+    "invalid-status": "Estado invalido.",
+    "invalid-scope": "Ambito invalido.",
+    "invalid-content-type": "Tipo de conteudo invalido.",
+    "missing-content": "O conteudo selecionado ja nao existe.",
+    "save-failed": "Nao foi possivel guardar o conteudo.",
+  };
 
-function formatDateTime(value: string | null) {
-  if (!value) {
-    return "";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("pt-PT", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
+  return params.error ? messages[params.error] ?? "Nao foi possivel guardar o conteudo." : null;
 }
 
 function Field({ label, value }: { label: string; value: string | boolean | null | undefined }) {
@@ -159,12 +115,19 @@ function ContentCard({ content }: { content: EditorialContent }) {
         <Field label="Epoca" value={content.season_id} />
         <Field label="Jornada" value={content.matchday_id} />
       </dl>
+
+      <div className="content-admin-card-actions">
+        <Link className="content-admin-edit-link" href={`/admin/editorial/conteudos/${content.id}/editar`}>
+          Editar
+        </Link>
+      </div>
     </article>
   );
 }
 
-export default async function AdminEditorialContentsPage() {
-  const { contents, error } = await readEditorialContents();
+export default async function AdminEditorialContentsPage({ searchParams }: PageProps) {
+  const params = searchParams ? await searchParams : {};
+  const [{ contents, error }, message] = await Promise.all([readEditorialContents(), Promise.resolve(pageMessage(params))]);
 
   return (
     <main className="content-admin-shell">
@@ -180,14 +143,14 @@ export default async function AdminEditorialContentsPage() {
           </p>
         </div>
 
-        <span className="content-admin-disabled-action" aria-disabled="true">
-          Novo conteudo - em fase futura
-        </span>
+        <Link className="content-admin-primary-action" href="/admin/editorial/conteudos/novo">
+          Novo conteudo
+        </Link>
       </section>
 
       <section className="content-admin-notes" aria-label="Notas de arquitetura">
         <p>
-          <strong>Separacao:</strong> Artigos/Noticias continuam em <code>editorial_articles</code>. Esta pagina le
+          <strong>Separacao:</strong> Artigos/Noticias continuam em <code>editorial_articles</code>. Esta pagina gere
           apenas <code>editorial_contents</code>.
         </p>
         <p>
@@ -196,12 +159,13 @@ export default async function AdminEditorialContentsPage() {
         </p>
       </section>
 
+      {message ? <p className="content-admin-alert">{message}</p> : null}
       {error ? <p className="content-admin-alert">{error}</p> : null}
 
       {contents.length === 0 ? (
         <section className="content-admin-empty">
           <h2>Ainda nao existem conteudos editoriais audiovisuais.</h2>
-          <p>A criacao/edicao sera adicionada numa fase futura.</p>
+          <p>A criacao/edicao ja esta disponivel nesta area admin.</p>
         </section>
       ) : (
         <section className="content-admin-list" aria-label="Conteudos editoriais audiovisuais">
@@ -213,234 +177,3 @@ export default async function AdminEditorialContentsPage() {
     </main>
   );
 }
-
-const adminEditorialContentsStyles = `
-  .content-admin-shell {
-    min-height: 100vh;
-    background: #f4f6f8;
-    color: #111827;
-    padding: 32px;
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  }
-
-  .content-admin-header,
-  .content-admin-notes,
-  .content-admin-empty,
-  .content-admin-card,
-  .content-admin-alert {
-    max-width: 1180px;
-    margin: 0 auto;
-  }
-
-  .content-admin-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 24px;
-    align-items: flex-start;
-    margin-bottom: 18px;
-    border-radius: 10px;
-    background: #10151b;
-    color: #fff;
-    padding: 26px;
-    box-shadow: 0 18px 40px rgba(8, 15, 24, 0.14);
-  }
-
-  .content-admin-eyebrow,
-  .content-admin-label {
-    margin: 0 0 8px;
-    color: #d71920;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0;
-    text-transform: uppercase;
-  }
-
-  .content-admin-header h1 {
-    margin: 0;
-    font-size: 32px;
-    line-height: 1.08;
-  }
-
-  .content-admin-header p {
-    max-width: 760px;
-    margin: 10px 0 0;
-    color: #cbd5e1;
-    line-height: 1.55;
-  }
-
-  .content-admin-disabled-action {
-    display: inline-flex;
-    min-height: 38px;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    border-radius: 8px;
-    padding: 0 14px;
-    color: #cbd5e1;
-    font-size: 13px;
-    font-weight: 800;
-    white-space: nowrap;
-  }
-
-  .content-admin-notes {
-    display: grid;
-    gap: 10px;
-    margin-bottom: 18px;
-  }
-
-  .content-admin-notes p,
-  .content-admin-alert,
-  .content-admin-empty,
-  .content-admin-card {
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    background: #fff;
-  }
-
-  .content-admin-notes p {
-    margin: 0;
-    padding: 12px 14px;
-    color: #374151;
-    line-height: 1.5;
-  }
-
-  .content-admin-notes code {
-    border-radius: 5px;
-    background: #f3f4f6;
-    padding: 2px 5px;
-    color: #111827;
-    font-size: 12px;
-  }
-
-  .content-admin-alert {
-    margin-bottom: 18px;
-    padding: 14px;
-    border-color: #fecaca;
-    background: #fff1f2;
-    color: #991b1b;
-    font-size: 13px;
-    font-weight: 700;
-  }
-
-  .content-admin-empty {
-    padding: 34px 26px;
-    text-align: center;
-  }
-
-  .content-admin-empty h2 {
-    margin: 0;
-    font-size: 22px;
-  }
-
-  .content-admin-empty p {
-    margin: 8px 0 0;
-    color: #6b7280;
-  }
-
-  .content-admin-list {
-    display: grid;
-    gap: 16px;
-  }
-
-  .content-admin-card {
-    padding: 18px;
-  }
-
-  .content-admin-card-main {
-    display: grid;
-    grid-template-columns: 180px minmax(0, 1fr);
-    gap: 18px;
-    align-items: start;
-  }
-
-  .content-admin-thumb {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    border-radius: 8px;
-    object-fit: cover;
-    background: #e5e7eb;
-  }
-
-  .content-admin-thumb-empty {
-    display: grid;
-    place-items: center;
-    color: #6b7280;
-    font-size: 12px;
-    font-weight: 800;
-  }
-
-  .content-admin-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 10px;
-  }
-
-  .content-admin-badges span {
-    border-radius: 999px;
-    background: #f3f4f6;
-    padding: 5px 8px;
-    color: #374151;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-  }
-
-  .content-admin-card h2 {
-    margin: 0;
-    font-size: 24px;
-    line-height: 1.18;
-  }
-
-  .content-admin-subtitle,
-  .content-admin-summary {
-    margin: 8px 0 0;
-    color: #4b5563;
-    line-height: 1.5;
-  }
-
-  .content-admin-fields {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-    margin: 18px 0 0;
-  }
-
-  .content-admin-field {
-    min-width: 0;
-    border-radius: 8px;
-    background: #f9fafb;
-    padding: 10px;
-  }
-
-  .content-admin-field dt {
-    margin: 0 0 4px;
-    color: #6b7280;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-  }
-
-  .content-admin-field dd {
-    margin: 0;
-    overflow-wrap: anywhere;
-    color: #111827;
-    font-size: 13px;
-    line-height: 1.4;
-  }
-
-  @media (max-width: 860px) {
-    .content-admin-shell {
-      padding: 18px;
-    }
-
-    .content-admin-header {
-      display: grid;
-    }
-
-    .content-admin-card-main,
-    .content-admin-fields {
-      grid-template-columns: 1fr;
-    }
-  }
-`;
