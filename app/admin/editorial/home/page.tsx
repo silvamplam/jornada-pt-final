@@ -2692,6 +2692,31 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                 <h4>Complemento da manchete</h4>
                                 <small>site_editorials.complementary_*</small>
                               </div>
+                              <div className="home-admin-muted-card home-admin-empty">
+                                <label className="home-admin-field is-wide">
+                                  <span>Preencher complemento com artigo publicado</span>
+                                  <select data-home-complement-article-select defaultValue="">
+                                    <option value="">Escolher artigo publicado</option>
+                                    {publishedArticles.map((article) => (
+                                      <option
+                                        key={article.id}
+                                        value={article.id}
+                                        data-home-complement-label={textValue(article.label)}
+                                        data-home-complement-title={textValue(article.title)}
+                                        data-home-complement-text={articleSnapshotSubtitle(article)}
+                                        data-home-complement-image-url={textValue(article.image_url)}
+                                        data-home-complement-link-url={articlePublicHref(article)}
+                                      >
+                                        {textValue(article.title, article.slug, article.id)}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                                <p>
+                                  Ao escolher um artigo, o complemento recebe um snapshot editavel com etiqueta,
+                                  titulo, texto, imagem e link para /noticias/[slug].
+                                </p>
+                              </div>
                               <div className="home-admin-form-grid">
                                 <TextField label="Etiqueta" name="complementary_label" value={editorial.complementary_label} />
                                 <TextField label="Titulo" name="complementary_title" value={editorial.complementary_title} wide />
@@ -2955,6 +2980,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       var complementSections = Array.prototype.slice.call(document.querySelectorAll('[data-home-complement-section]'));
                       var headlineArticleSelect = document.querySelector('[data-home-headline-article-select]');
                       var sideArticleSelect = document.querySelector('[data-home-side-article-select]');
+                      var complementArticleSelect = document.querySelector('[data-home-complement-article-select]');
                       var highlightArticleSelects = Array.prototype.slice.call(document.querySelectorAll('[data-home-highlight-article-select]'));
                       var finalArticleSelects = Array.prototype.slice.call(document.querySelectorAll('[data-home-final-article-select]'));
                       function expectedComplementMode() {
@@ -2984,6 +3010,16 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                         setHomeEditorialField('side_block_image_url', option.dataset.homeSideImageUrl, true);
                         setHomeEditorialField('side_block_link_url', option.dataset.homeSideLinkUrl, true);
                         setHomeEditorialField('side_block_author', option.dataset.homeSideAuthor, false);
+                      }
+                      function applyHomeComplementArticle() {
+                        if (!complementArticleSelect) return;
+                        var option = complementArticleSelect.options[complementArticleSelect.selectedIndex];
+                        if (!option || !option.value) return;
+                        setHomeEditorialField('complementary_label', option.dataset.homeComplementLabel, true);
+                        setHomeEditorialField('complementary_title', option.dataset.homeComplementTitle, true);
+                        setHomeEditorialField('complementary_text', option.dataset.homeComplementText, true);
+                        setHomeEditorialField('complementary_image_url', option.dataset.homeComplementImageUrl, true);
+                        setHomeEditorialField('complementary_link_url', option.dataset.homeComplementLinkUrl, true);
                       }
                       function setHomeHighlightField(card, name, value) {
                         var field = card.querySelector('[data-home-highlight-field="' + name + '"]');
@@ -3034,6 +3070,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       if (complementSelect) complementSelect.addEventListener('change', syncComplementSections);
                       if (headlineArticleSelect) headlineArticleSelect.addEventListener('change', applyHomeHeadlineArticle);
                       if (sideArticleSelect) sideArticleSelect.addEventListener('change', applyHomeSideArticle);
+                      if (complementArticleSelect) complementArticleSelect.addEventListener('change', applyHomeComplementArticle);
                       highlightArticleSelects.forEach(function (select) {
                         select.addEventListener('change', function () {
                           applyHomeHighlightArticle(select);
