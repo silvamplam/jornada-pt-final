@@ -2823,7 +2823,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                   ].filter(Boolean).join(" ");
 
                                   return (
-                                    <details className={cardClass} id={anchor} key={row.key} open={params.item === anchor}>
+                                    <details className={cardClass} data-home-final-card id={anchor} key={row.key} open={params.item === anchor}>
                                       <summary>
                                         <span className="home-admin-collapsible-title">
                                           <strong>#{number} - {emptyLabel ?? summaryTitle}</strong>
@@ -2862,6 +2862,31 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                             </div>
                                           </div>
                                         </div>
+                                        <div className="home-admin-muted-card home-admin-empty">
+                                          <label className="home-admin-field is-wide">
+                                            <span>Preencher com artigo publicado</span>
+                                            <select data-home-final-article-select defaultValue="">
+                                              <option value="">Escolher artigo publicado</option>
+                                              {publishedArticles.map((article) => (
+                                                <option
+                                                  key={article.id}
+                                                  value={article.id}
+                                                  data-home-final-time-label={textValue(article.label)}
+                                                  data-home-final-title={textValue(article.title)}
+                                                  data-home-final-subtitle={articleSnapshotSubtitle(article)}
+                                                  data-home-final-image-url={textValue(article.image_url)}
+                                                  data-home-final-link-url={articlePublicHref(article)}
+                                                >
+                                                  {textValue(article.title, article.slug, article.id)}
+                                                </option>
+                                              ))}
+                                            </select>
+                                          </label>
+                                          <p>
+                                            Ao escolher um artigo, este item recebe um snapshot editavel com etiqueta,
+                                            titulo, subtitulo, imagem e link para /noticias/[slug].
+                                          </p>
+                                        </div>
                                         <div className="home-admin-form-grid">
                                           <label className="home-admin-field">
                                             <span>Ordem</span>
@@ -2869,7 +2894,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                           </label>
                                           <label className="home-admin-field">
                                             <span>Hora / etiqueta temporal</span>
-                                            <input form={formId} name={`final_news_${row.key}_time_label`} type="text" defaultValue={item?.time_label ?? ""} />
+                                            <input data-home-final-field="time_label" form={formId} name={`final_news_${row.key}_time_label`} type="text" defaultValue={item?.time_label ?? ""} />
                                           </label>
                                           <label className="home-admin-field">
                                             <span>Estado</span>
@@ -2880,19 +2905,19 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                           </label>
                                           <label className="home-admin-field is-wide">
                                             <span>Titulo</span>
-                                            <input form={formId} name={`final_news_${row.key}_title`} type="text" defaultValue={item?.title ?? ""} />
+                                            <input data-home-final-field="title" form={formId} name={`final_news_${row.key}_title`} type="text" defaultValue={item?.title ?? ""} />
                                           </label>
                                           <label className="home-admin-field is-wide">
                                             <span>Subtitulo / resumo</span>
-                                            <textarea form={formId} name={`final_news_${row.key}_subtitle`} rows={3} defaultValue={item?.subtitle ?? ""} />
+                                            <textarea data-home-final-field="subtitle" form={formId} name={`final_news_${row.key}_subtitle`} rows={3} defaultValue={item?.subtitle ?? ""} />
                                           </label>
                                           <label className="home-admin-field is-wide">
                                             <span>Imagem</span>
-                                            <input form={formId} name={`final_news_${row.key}_image_url`} type="url" defaultValue={item?.image_url ?? ""} />
+                                            <input data-home-final-field="image_url" form={formId} name={`final_news_${row.key}_image_url`} type="url" defaultValue={item?.image_url ?? ""} />
                                           </label>
                                           <label className="home-admin-field is-wide">
                                             <span>Link</span>
-                                            <input form={formId} name={`final_news_${row.key}_link_url`} type="text" defaultValue={item?.link_url ?? ""} />
+                                            <input data-home-final-field="link_url" form={formId} name={`final_news_${row.key}_link_url`} type="text" defaultValue={item?.link_url ?? ""} />
                                           </label>
                                         </div>
                                         <FeedbackMessage message={itemMessage(params, "final-zone", anchor, `Item #${number}`)} />
@@ -2931,6 +2956,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       var headlineArticleSelect = document.querySelector('[data-home-headline-article-select]');
                       var sideArticleSelect = document.querySelector('[data-home-side-article-select]');
                       var highlightArticleSelects = Array.prototype.slice.call(document.querySelectorAll('[data-home-highlight-article-select]'));
+                      var finalArticleSelects = Array.prototype.slice.call(document.querySelectorAll('[data-home-final-article-select]'));
                       function expectedComplementMode() {
                         return belowSelect && belowSelect.value === 'roundup' ? 'roundup_video' : 'complementary_story';
                       }
@@ -2973,6 +2999,20 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                         setHomeHighlightField(card, 'image_url', option.dataset.homeHighlightImageUrl);
                         setHomeHighlightField(card, 'link_url', option.dataset.homeHighlightLinkUrl);
                       }
+                      function setHomeFinalField(card, name, value) {
+                        var field = card.querySelector('[data-home-final-field="' + name + '"]');
+                        if (field) field.value = value || '';
+                      }
+                      function applyHomeFinalArticle(select) {
+                        var card = select.closest('[data-home-final-card]');
+                        var option = select.options[select.selectedIndex];
+                        if (!card || !option || !option.value) return;
+                        setHomeFinalField(card, 'time_label', option.dataset.homeFinalTimeLabel);
+                        setHomeFinalField(card, 'title', option.dataset.homeFinalTitle);
+                        setHomeFinalField(card, 'subtitle', option.dataset.homeFinalSubtitle);
+                        setHomeFinalField(card, 'image_url', option.dataset.homeFinalImageUrl);
+                        setHomeFinalField(card, 'link_url', option.dataset.homeFinalLinkUrl);
+                      }
                       function syncBelowSections() {
                         var mode = belowSelect ? belowSelect.value : 'highlights';
                         belowSections.forEach(function (section) {
@@ -2997,6 +3037,11 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       highlightArticleSelects.forEach(function (select) {
                         select.addEventListener('change', function () {
                           applyHomeHighlightArticle(select);
+                        });
+                      });
+                      finalArticleSelects.forEach(function (select) {
+                        select.addEventListener('change', function () {
+                          applyHomeFinalArticle(select);
                         });
                       });
                       syncComposition();
