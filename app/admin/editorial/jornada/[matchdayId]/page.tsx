@@ -1189,27 +1189,27 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                     <input id={`latest-news-${order}-link-url`} name="latest_news_link_url" defaultValue={item?.link_url ?? ""} placeholder="/noticias/slug-do-artigo" />
                   </div>
                   <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
-                    <legend>Ligar artigo publicado</legend>
+                    <legend>Ligar fonte publicada</legend>
                     <div className="editorial-admin-field">
-                      <label htmlFor={`latest-news-${order}-article-source`}>Preencher com artigo publicado</label>
+                      <label htmlFor={`latest-news-${order}-article-source`}>Preencher com fonte publicada</label>
                       <select id={`latest-news-${order}-article-source`} data-latest-news-article-select defaultValue="">
-                        <option value="">Escolher artigo publicado</option>
-                        {sideBlockArticleOptions.map((article) => (
+                        <option value="">Escolher fonte publicada</option>
+                        {publishedSources.map((source) => (
                           <option
-                            key={article.id}
-                            value={article.id}
-                            data-latest-news-title={cleanText(article.title)}
-                            data-latest-news-subtitle={sideBlockTextFromArticle(article)}
-                            data-latest-news-image-url={cleanText(article.image_url)}
-                            data-latest-news-link-url={articlePublicHref(article)}
+                            key={`${source.source_type}-${source.source_id}`}
+                            value={`${source.source_type}:${source.source_id}`}
+                            data-latest-news-title={cleanText(source.title)}
+                            data-latest-news-subtitle={publishedSourceComplementText(source)}
+                            data-latest-news-image-url={publishedSourceComplementImageUrl(source)}
+                            data-latest-news-link-url={cleanText(source.link_url)}
                           >
-                            {cleanText(article.title) || cleanText(article.slug) || article.id}
+                            {publishedSourceOptionLabel(source)}
                           </option>
                         ))}
                       </select>
                     </div>
                     <p className="editorial-admin-muted">
-                      Ao escolher um artigo, este item recebe titulo, subtitulo, imagem e link interno. Pode ajustar manualmente antes de guardar.
+                      Ao escolher uma fonte, este item recebe titulo, subtitulo, imagem e link interno. Pode ajustar manualmente antes de guardar.
                     </p>
                   </fieldset>
                   {item?.image_url ? (
