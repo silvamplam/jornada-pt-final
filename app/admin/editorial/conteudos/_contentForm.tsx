@@ -1,3 +1,5 @@
+import Script from "next/script";
+
 export type EditorialContent = {
   id: string;
   slug: string | null;
@@ -210,6 +212,19 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
             <span className="content-admin-help">Link original do video, por exemplo YouTube ou Vimeo.</span>
           </label>
 
+          <div className="content-admin-upload content-admin-full" data-content-video-upload>
+            <label>
+              <span>Carregar video proprio</span>
+              <input data-content-video-file type="file" accept="video/mp4,video/webm,video/ogg,.mp4,.webm,.ogg" />
+            </label>
+            <button type="button" data-content-video-upload-button>
+              Carregar video
+            </button>
+            <span className="content-admin-help" data-content-video-upload-status>
+              Pronto para carregar .mp4, .webm ou .ogg.
+            </span>
+          </div>
+
           <label>
             <span>Provider</span>
             <input name="video_provider" defaultValue={content?.video_provider ?? ""} placeholder="youtube, vimeo..." />
@@ -275,6 +290,146 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
           {isEdit ? "Guardar alteracoes" : "Criar conteudo"}
         </button>
       </div>
+      <Script
+        id="editorial-content-video-upload"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function () {
+              if (window.__editorialContentVideoUploadBound) return;
+              window.__editorialContentVideoUploadBound = true;
+              var allowedExtensions = /\\.(mp4|webm|ogg)$/i;
+              var allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'application/ogg'];
+
+              function uploadParts(uploadRoot) {
+                var fileInput = uploadRoot ? uploadRoot.querySelector('[data-content-video-file]') : null;
+                var uploadButton = uploadRoot ? uploadRoot.querySelector('[data-content-video-upload-button]') : null;
+                var status = uploadRoot ? uploadRoot.querySelector('[data-content-video-upload-status]') : null;
+                var form = uploadRoot ? uploadRoot.closest('form') : null;
+                var videoUrlInput = form ? form.querySelector('[name="video_url"]') : null;
+                return { fileInput: fileInput, uploadButton: uploadButton, status: status, videoUrlInput: videoUrlInput };
+              }
+
+              function setStatus(parts, message, state) {
+                var status = parts.status;
+                if (!status) return;
+                status.textContent = message;
+                status.setAttribute('data-upload-state', state || 'idle');
+              }
+
+              function selectedFile(parts) {
+                var fileInput = parts.fileInput;
+                return fileInput && fileInput.files ? fileInput.files[0] : null;
+              }
+
+              function validateFile(file) {
+                if (!file) return 'Escolhe um ficheiro de video.';
+                if (!allowedExtensions.test(file.name || '') || allowedTypes.indexOf(file.type) === -1) {
+                  return 'Formato invalido. Usa .mp4, .webm ou .ogg.';
+                }
+                if (file.size <= 0) return 'O ficheiro escolhido esta vazio.';
+                return '';
+              }
+
+              function uploadLimitMessage(maxUploadMb) {
+                return 'O ficheiro é demasiado grande. Limite atual: ' + (maxUploadMb || 45) + ' MB.';
+              }
+
+              function setLoading(parts, isLoading) {
+                if (parts.uploadButton) parts.uploadButton.disabled = isLoading;
+                if (parts.fileInput) parts.fileInput.disabled = isLoading;
+              }
+
+              async function uploadVideo(uploadRoot) {
+                var parts = uploadParts(uploadRoot);
+                var file = selectedFile(parts);
+                var validationError = validateFile(file);
+                if (validationError) {
+                  setStatus(parts, validationError, 'error');
+                  return;
+                }
+
+                setLoading(parts, true);
+                setStatus(parts, 'A preparar upload...', 'loading');
+
+                try {
+                  var signResponse = await fetch('/api/admin/editorial/conteudos/upload-video/sign', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      filename: file.name,
+                      contentType: file.type,
+                      size: file.size
+                    })
+                  });
+                  var signPayload = await signResponse.json().catch(function () { return null; });
+                  if (!signResponse.ok) {
+                    if (signPayload && signPayload.error === 'video-too-large') {
+                      throw new Error('video-too-large:' + (signPayload.maxUploadMb || 45));
+                    }
+                    throw new Error(signPayload && signPayload.error ? signPayload.error : 'sign-failed');
+                  }
+                  if (!signPayload || !signPayload.signedUrl || !signPayload.publicUrl) {
+                    throw new Error('sign-failed');
+                  }
+
+                  setStatus(parts, 'A carregar video...', 'loading');
+                  var uploadResponse = await fetch(signPayload.signedUrl, {
+                    method: 'PUT',
+                    headers: {
+                      'Content-Type': file.type,
+                      'x-upsert': 'false'
+                    },
+                    body: file
+                  });
+                  if (!uploadResponse.ok) {
+                    throw new Error('upload-failed');
+                  }
+
+                  if (parts.videoUrlInput) {
+                    parts.videoUrlInput.value = signPayload.publicUrl;
+                    parts.videoUrlInput.dispatchEvent(new Event('input', { bubbles: true }));
+                  }
+                  setStatus(parts, 'Video carregado. O URL foi preenchido automaticamente.', 'success');
+                } catch (error) {
+                  var message = 'Nao foi possivel carregar o video.';
+                  if (error && error.message === 'missing-editorial-videos-bucket') {
+                    message = 'Nao foi possivel preparar o upload. Confirma o bucket editorial-videos.';
+                  }
+                  if (error && /^video-too-large:/.test(error.message || '')) {
+                    message = uploadLimitMessage(error.message.split(':')[1]);
+                  }
+                  setStatus(parts, message, 'error');
+                } finally {
+                  setLoading(parts, false);
+                }
+              }
+
+              document.addEventListener('click', function (event) {
+                var uploadButton = event.target && event.target.closest
+                  ? event.target.closest('[data-content-video-upload-button]')
+                  : null;
+                if (!uploadButton) return;
+                var uploadRoot = uploadButton.closest('[data-content-video-upload]');
+                if (!uploadRoot) return;
+                event.preventDefault();
+                uploadVideo(uploadRoot);
+              });
+
+              document.addEventListener('change', function (event) {
+                var fileInput = event.target && event.target.closest
+                  ? event.target.closest('[data-content-video-file]')
+                  : null;
+                if (!fileInput) return;
+                var uploadRoot = fileInput.closest('[data-content-video-upload]');
+                var parts = uploadParts(uploadRoot);
+                var error = validateFile(selectedFile(parts));
+                setStatus(parts, error || 'Pronto para carregar video.', error ? 'error' : 'idle');
+              });
+            })();
+          `
+        }}
+      />
     </form>
   );
 }
@@ -659,6 +814,40 @@ export const adminEditorialContentsStyles = `
 
   .content-admin-checkbox input {
     width: auto;
+  }
+
+  .content-admin-upload {
+    display: grid;
+    gap: 10px;
+    border: 1px solid #dbe2ea;
+    border-radius: 8px;
+    background: #f8fafc;
+    padding: 12px;
+  }
+
+  .content-admin-upload button {
+    justify-self: start;
+    border: 0;
+    border-radius: 8px;
+    background: #111827;
+    padding: 10px 14px;
+    color: #fff;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .content-admin-upload button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+
+  [data-upload-state="success"] {
+    color: #047857;
+  }
+
+  [data-upload-state="error"] {
+    color: #b91c1c;
   }
 
   .content-admin-actions {
