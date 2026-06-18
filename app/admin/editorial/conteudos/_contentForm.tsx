@@ -1,3 +1,5 @@
+import Script from "next/script";
+
 export type EditorialContent = {
   id: string;
   slug: string | null;
@@ -288,27 +290,35 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
           {isEdit ? "Guardar alteracoes" : "Criar conteudo"}
         </button>
       </div>
-      <script
+      <Script
+        id="editorial-content-video-upload"
+        strategy="afterInteractive"
         dangerouslySetInnerHTML={{
           __html: `
             (function () {
-              var uploadRoot = document.querySelector('[data-content-video-upload]');
-              if (!uploadRoot) return;
-              var fileInput = uploadRoot.querySelector('[data-content-video-file]');
-              var uploadButton = uploadRoot.querySelector('[data-content-video-upload-button]');
-              var status = uploadRoot.querySelector('[data-content-video-upload-status]');
-              var form = uploadRoot.closest('form');
-              var videoUrlInput = form ? form.querySelector('[name="video_url"]') : null;
+              if (window.__editorialContentVideoUploadBound) return;
+              window.__editorialContentVideoUploadBound = true;
               var allowedExtensions = /\\.(mp4|webm|ogg)$/i;
               var allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'application/ogg'];
 
-              function setStatus(message, state) {
+              function uploadParts(uploadRoot) {
+                var fileInput = uploadRoot ? uploadRoot.querySelector('[data-content-video-file]') : null;
+                var uploadButton = uploadRoot ? uploadRoot.querySelector('[data-content-video-upload-button]') : null;
+                var status = uploadRoot ? uploadRoot.querySelector('[data-content-video-upload-status]') : null;
+                var form = uploadRoot ? uploadRoot.closest('form') : null;
+                var videoUrlInput = form ? form.querySelector('[name="video_url"]') : null;
+                return { fileInput: fileInput, uploadButton: uploadButton, status: status, videoUrlInput: videoUrlInput };
+              }
+
+              function setStatus(parts, message, state) {
+                var status = parts.status;
                 if (!status) return;
                 status.textContent = message;
                 status.setAttribute('data-upload-state', state || 'idle');
               }
 
-              function selectedFile() {
+              function selectedFile(parts) {
+                var fileInput = parts.fileInput;
                 return fileInput && fileInput.files ? fileInput.files[0] : null;
               }
 
@@ -325,21 +335,22 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
                 return 'O ficheiro é demasiado grande. Limite atual: ' + (maxUploadMb || 45) + ' MB.';
               }
 
-              function setLoading(isLoading) {
-                if (uploadButton) uploadButton.disabled = isLoading;
-                if (fileInput) fileInput.disabled = isLoading;
+              function setLoading(parts, isLoading) {
+                if (parts.uploadButton) parts.uploadButton.disabled = isLoading;
+                if (parts.fileInput) parts.fileInput.disabled = isLoading;
               }
 
-              async function uploadVideo() {
-                var file = selectedFile();
+              async function uploadVideo(uploadRoot) {
+                var parts = uploadParts(uploadRoot);
+                var file = selectedFile(parts);
                 var validationError = validateFile(file);
                 if (validationError) {
-                  setStatus(validationError, 'error');
+                  setStatus(parts, validationError, 'error');
                   return;
                 }
 
-                setLoading(true);
-                setStatus('A carregar video...', 'loading');
+                setLoading(parts, true);
+                setStatus(parts, 'A preparar upload...', 'loading');
 
                 try {
                   var signResponse = await fetch('/api/admin/editorial/conteudos/upload-video/sign', {
@@ -362,6 +373,7 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
                     throw new Error('sign-failed');
                   }
 
+                  setStatus(parts, 'A carregar video...', 'loading');
                   var uploadResponse = await fetch(signPayload.signedUrl, {
                     method: 'PUT',
                     headers: {
@@ -374,11 +386,11 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
                     throw new Error('upload-failed');
                   }
 
-                  if (videoUrlInput) {
-                    videoUrlInput.value = signPayload.publicUrl;
-                    videoUrlInput.dispatchEvent(new Event('input', { bubbles: true }));
+                  if (parts.videoUrlInput) {
+                    parts.videoUrlInput.value = signPayload.publicUrl;
+                    parts.videoUrlInput.dispatchEvent(new Event('input', { bubbles: true }));
                   }
-                  setStatus('Video carregado. O URL foi preenchido automaticamente.', 'success');
+                  setStatus(parts, 'Video carregado. O URL foi preenchido automaticamente.', 'success');
                 } catch (error) {
                   var message = 'Nao foi possivel carregar o video.';
                   if (error && error.message === 'missing-editorial-videos-bucket') {
@@ -387,21 +399,33 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
                   if (error && /^video-too-large:/.test(error.message || '')) {
                     message = uploadLimitMessage(error.message.split(':')[1]);
                   }
-                  setStatus(message, 'error');
+                  setStatus(parts, message, 'error');
                 } finally {
-                  setLoading(false);
+                  setLoading(parts, false);
                 }
               }
 
-              if (uploadButton) {
-                uploadButton.addEventListener('click', uploadVideo);
-              }
-              if (fileInput) {
-                fileInput.addEventListener('change', function () {
-                  var error = validateFile(selectedFile());
-                  setStatus(error || 'Pronto para carregar video.', error ? 'error' : 'idle');
-                });
-              }
+              document.addEventListener('click', function (event) {
+                var uploadButton = event.target && event.target.closest
+                  ? event.target.closest('[data-content-video-upload-button]')
+                  : null;
+                if (!uploadButton) return;
+                var uploadRoot = uploadButton.closest('[data-content-video-upload]');
+                if (!uploadRoot) return;
+                event.preventDefault();
+                uploadVideo(uploadRoot);
+              });
+
+              document.addEventListener('change', function (event) {
+                var fileInput = event.target && event.target.closest
+                  ? event.target.closest('[data-content-video-file]')
+                  : null;
+                if (!fileInput) return;
+                var uploadRoot = fileInput.closest('[data-content-video-upload]');
+                var parts = uploadParts(uploadRoot);
+                var error = validateFile(selectedFile(parts));
+                setStatus(parts, error || 'Pronto para carregar video.', error ? 'error' : 'idle');
+              });
             })();
           `
         }}
