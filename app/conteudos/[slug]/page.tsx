@@ -87,6 +87,15 @@ function safeExternalUrl(value: string | null | undefined) {
   }
 }
 
+function isDirectVideoUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return /\.(mp4|webm|ogg)$/i.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
 function formatDate(value: string | null) {
   if (!value) {
     return "";
@@ -170,6 +179,7 @@ export default async function PublicEditorialContentPage({ params }: PageProps) 
   const imageCaption = cleanText(content.image_caption);
   const embedUrl = content.is_embeddable ? safeExternalUrl(content.embed_url) : "";
   const videoUrl = safeExternalUrl(content.video_url);
+  const directVideoUrl = videoUrl && isDirectVideoUrl(videoUrl) ? videoUrl : "";
   const publishedAt = formatDate(content.published_at);
   const author = cleanText(content.author);
   const duration = cleanText(content.duration);
@@ -213,6 +223,14 @@ export default async function PublicEditorialContentPage({ params }: PageProps) 
               loading="lazy"
             />
           </section>
+        ) : directVideoUrl ? (
+          <figure className="editorial-content-media">
+            <video controls poster={imageUrl || undefined}>
+              <source src={directVideoUrl} />
+              O seu navegador nao suporta video HTML5.
+            </video>
+            {imageCaption ? <figcaption>{imageCaption}</figcaption> : null}
+          </figure>
         ) : imageUrl ? (
           <figure className="editorial-content-media">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -374,12 +392,17 @@ const publicEditorialContentStyles = `
   }
 
   .editorial-content-media iframe,
-  .editorial-content-media img {
+  .editorial-content-media img,
+  .editorial-content-media video {
     display: block;
     width: 100%;
     aspect-ratio: 16 / 9;
     border: 0;
     background: #eef2f6;
+  }
+
+  .editorial-content-media video {
+    background: #0f1720;
   }
 
   .editorial-content-media img {
