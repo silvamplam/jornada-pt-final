@@ -1369,21 +1369,21 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               />
             </div>
             <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
-              <legend>Ligar artigo publicado à manchete</legend>
+              <legend>Ligar fonte publicada à manchete</legend>
               <div className="editorial-admin-field">
-                <label htmlFor="headline-article-source">Preencher manchete com artigo publicado</label>
+                <label htmlFor="headline-article-source">Preencher manchete com fonte publicada</label>
                 <select id="headline-article-source" data-headline-article-select defaultValue="">
-                  <option value="">Escolher artigo publicado</option>
-                  {sideBlockArticleOptions.map((article) => (
+                  <option value="">Escolher fonte publicada</option>
+                  {publishedSources.map((source) => (
                     <option
-                      key={article.id}
-                      value={article.id}
-                      data-headline-title={article.title ?? ""}
-                      data-headline-summary={sideBlockTextFromArticle(article)}
-                      data-headline-image-url={article.image_url ?? ""}
-                      data-headline-link-url={articlePublicHref(article)}
+                      key={`${source.source_type}-${source.source_id}`}
+                      value={`${source.source_type}:${source.source_id}`}
+                      data-headline-title={cleanText(source.title)}
+                      data-headline-summary={publishedSourceComplementText(source)}
+                      data-headline-image-url={publishedSourceComplementImageUrl(source)}
+                      data-headline-link-url={cleanText(source.link_url)}
                     >
-                      {article.title} {article.label ? `- ${article.label}` : ""}
+                      {publishedSourceOptionLabel(source)}
                     </option>
                   ))}
                 </select>
