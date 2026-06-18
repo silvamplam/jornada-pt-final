@@ -2911,26 +2911,26 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                         </div>
                                         <div className="home-admin-muted-card home-admin-empty">
                                           <label className="home-admin-field is-wide">
-                                            <span>Preencher com artigo publicado</span>
+                                            <span>Preencher com fonte publicada</span>
                                             <select data-home-final-article-select defaultValue="">
-                                              <option value="">Escolher artigo publicado</option>
-                                              {publishedArticles.map((article) => (
+                                              <option value="">Escolher fonte publicada</option>
+                                              {publishedSources.map((source) => (
                                                 <option
-                                                  key={article.id}
-                                                  value={article.id}
-                                                  data-home-final-title={textValue(article.title)}
-                                                  data-home-final-subtitle={articleSnapshotSubtitle(article)}
-                                                  data-home-final-image-url={textValue(article.image_url)}
-                                                  data-home-final-link-url={articlePublicHref(article)}
+                                                  key={`${source.source_type}-${source.source_id}`}
+                                                  value={`${source.source_type}:${source.source_id}`}
+                                                  data-home-final-title={textValue(source.title)}
+                                                  data-home-final-subtitle={textValue(source.subtitle, source.summary)}
+                                                  data-home-final-image-url={textValue(source.thumbnail_url, source.image_url)}
+                                                  data-home-final-link-url={textValue(source.link_url)}
                                                 >
-                                                  {textValue(article.title, article.slug, article.id)}
+                                                  {textValue(source.title, source.source_slug, source.source_id)} - {source.origin_label}
                                                 </option>
                                               ))}
                                             </select>
                                           </label>
                                           <p>
-                                            Ao escolher um artigo, este item recebe um snapshot editavel com etiqueta,
-                                            titulo, subtitulo, imagem e link para /noticias/[slug].
+                                            Ao escolher uma fonte, este item recebe um snapshot editavel com titulo,
+                                            subtitulo, imagem e link publico.
                                           </p>
                                         </div>
                                         <div className="home-admin-form-grid">
