@@ -7,6 +7,7 @@ export type EditorialPublishedSource = {
   content_type: string;
   media_kind: "image" | "video" | "mixed";
   label: string | null;
+  author: string | null;
   title: string;
   subtitle: string | null;
   summary: string | null;
@@ -39,6 +40,7 @@ type EditorialContentRow = {
   status: string | null;
   content_type: string | null;
   label: string | null;
+  author: string | null;
   title: string | null;
   subtitle: string | null;
   summary: string | null;
@@ -103,6 +105,7 @@ function normalizeArticle(article: EditorialArticleRow): EditorialPublishedSourc
     content_type: "article",
     media_kind: "image",
     label: cleanText(article.label),
+    author: cleanText(article.author),
     title,
     subtitle: cleanText(article.subtitle),
     summary: null,
@@ -132,6 +135,7 @@ function normalizeContent(content: EditorialContentRow): EditorialPublishedSourc
     content_type: cleanText(content.content_type) ?? "conteudo",
     media_kind: contentMediaKind(content),
     label: cleanText(content.label),
+    author: cleanText(content.author),
     title,
     subtitle: cleanText(content.subtitle),
     summary: cleanText(content.summary),
@@ -157,7 +161,7 @@ export async function getEditorialPublishedSources(): Promise<EditorialPublished
       "editorial_articles?select=id,slug,title,subtitle,label,author,image_url,status,published_at,created_at&status=eq.published&order=published_at.desc.nullslast,created_at.desc.nullslast",
     ).catch(() => []),
     fetchSupabaseAdminTable<EditorialContentRow>(
-      "editorial_contents?select=id,slug,status,content_type,label,title,subtitle,summary,body,image_url,thumbnail_url,video_url,embed_url,duration,published_at,created_at&status=eq.published&order=published_at.desc.nullslast,created_at.desc.nullslast",
+      "editorial_contents?select=id,slug,status,content_type,label,author,title,subtitle,summary,body,image_url,thumbnail_url,video_url,embed_url,duration,published_at,created_at&status=eq.published&order=published_at.desc.nullslast,created_at.desc.nullslast",
     ).catch(() => []),
   ]);
 
