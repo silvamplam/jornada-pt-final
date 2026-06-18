@@ -9,6 +9,10 @@ import {
   type SupabaseMatchdayRoundupItem,
   type SupabaseSeason
 } from "@/lib/supabase";
+import {
+  getEditorialPublishedSources,
+  type EditorialPublishedSource
+} from "@/lib/editorial-published-sources";
 
 export const dynamic = "force-dynamic";
 
@@ -587,6 +591,27 @@ function sideBlockTextFromArticle(article: EditorialArticleForSideBlock) {
   return cleanText(article.subtitle) || excerptFromBody(article.body);
 }
 
+function publishedSourceComplementLabel(source: EditorialPublishedSource) {
+  if (source.source_type === "article") {
+    return cleanText(source.label) || "Artigo";
+  }
+
+  return cleanText(source.label) || cleanText(source.content_type) || "Conteudo";
+}
+
+function publishedSourceComplementText(source: EditorialPublishedSource) {
+  return cleanText(source.subtitle) || cleanText(source.summary);
+}
+
+function publishedSourceComplementImageUrl(source: EditorialPublishedSource) {
+  return cleanText(source.thumbnail_url) || cleanText(source.image_url);
+}
+
+function publishedSourceOptionLabel(source: EditorialPublishedSource) {
+  const sourceKind = source.source_type === "article" ? "Artigo" : publishedSourceComplementLabel(source);
+  return `${cleanText(source.title) || cleanText(source.source_slug) || source.source_id} - ${sourceKind}`;
+}
+
 async function readFirst<T>(path: string): Promise<T | null> {
   const rows = await fetchSupabaseAdminTable<T>(`${path}&limit=1`);
   return rows[0] ?? null;
@@ -839,6 +864,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const latestNews = await readMatchdayLatestNews(matchday.id);
   const publishedReferenceComposition = await readPublishedReferenceComposition(matchday.id);
   const publishedEditorialArticles = await readPublishedEditorialArticles();
+  const publishedSources = await getEditorialPublishedSources().catch(() => []);
   const sideBlockArticleOptions = publishedEditorialArticles.filter((article) => articlePublicHref(article));
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = editorial?.complementary_mode ?? "none";
@@ -1670,28 +1696,28 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                       <input id="complementary-link-url" name="complementary_link_url" defaultValue={editorial?.complementary_link_url ?? ""} placeholder="/noticias/slug-do-artigo" />
                     </div>
                     <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
-                      <legend>Ligar artigo publicado ao complemento</legend>
+                      <legend>Ligar fonte publicada ao complemento</legend>
                       <div className="editorial-admin-field">
-                        <label htmlFor="complementary-article-source">Preencher complemento com artigo publicado</label>
+                        <label htmlFor="complementary-article-source">Preencher complemento com fonte publicada</label>
                         <select id="complementary-article-source" data-complementary-article-select defaultValue="">
-                          <option value="">Escolher artigo publicado</option>
-                          {sideBlockArticleOptions.map((article) => (
+                          <option value="">Escolher fonte publicada</option>
+                          {publishedSources.map((source) => (
                             <option
-                              key={article.id}
-                              value={article.id}
-                              data-complementary-label={cleanText(article.label)}
-                              data-complementary-title={cleanText(article.title)}
-                              data-complementary-text={sideBlockTextFromArticle(article)}
-                              data-complementary-image-url={cleanText(article.image_url)}
-                              data-complementary-link-url={articlePublicHref(article)}
+                              key={`${source.source_type}-${source.source_id}`}
+                              value={`${source.source_type}:${source.source_id}`}
+                              data-complementary-label={publishedSourceComplementLabel(source)}
+                              data-complementary-title={cleanText(source.title)}
+                              data-complementary-text={publishedSourceComplementText(source)}
+                              data-complementary-image-url={publishedSourceComplementImageUrl(source)}
+                              data-complementary-link-url={cleanText(source.link_url)}
                             >
-                              {cleanText(article.title) || cleanText(article.slug) || article.id}
+                              {publishedSourceOptionLabel(source)}
                             </option>
                           ))}
                         </select>
                       </div>
                       <p className="editorial-admin-muted">
-                        Preenche etiqueta, titulo, texto, imagem e link interno. Pode ajustar antes de guardar.
+                        Preenche etiqueta, titulo, texto, imagem e link publico. Pode ajustar antes de guardar.
                       </p>
                     </fieldset>
                     <div className="editorial-admin-field">
