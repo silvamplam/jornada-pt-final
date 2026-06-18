@@ -942,28 +942,28 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                   <input form={highlightFormId} id={`highlight-${order}-link-url`} name="highlight_link_url" defaultValue={highlight?.link_url ?? ""} placeholder="/noticias/slug-do-artigo" />
                 </div>
                 <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
-                  <legend>Ligar artigo publicado ao destaque</legend>
+                  <legend>Ligar fonte publicada ao destaque</legend>
                   <div className="editorial-admin-field">
-                    <label htmlFor={`highlight-${order}-article-source`}>Preencher destaque com artigo publicado</label>
+                    <label htmlFor={`highlight-${order}-article-source`}>Preencher destaque com fonte publicada</label>
                     <select id={`highlight-${order}-article-source`} data-highlight-article-select defaultValue="">
-                      <option value="">Escolher artigo publicado</option>
-                      {sideBlockArticleOptions.map((article) => (
+                      <option value="">Escolher fonte publicada</option>
+                      {publishedSources.map((source) => (
                         <option
-                          key={article.id}
-                          value={article.id}
-                          data-highlight-label={cleanText(article.label)}
-                          data-highlight-title={cleanText(article.title)}
-                          data-highlight-subtitle={sideBlockTextFromArticle(article)}
-                          data-highlight-image-url={cleanText(article.image_url)}
-                          data-highlight-link-url={articlePublicHref(article)}
+                          key={`${source.source_type}-${source.source_id}`}
+                          value={`${source.source_type}:${source.source_id}`}
+                          data-highlight-label={publishedSourceComplementLabel(source)}
+                          data-highlight-title={cleanText(source.title)}
+                          data-highlight-subtitle={publishedSourceComplementText(source)}
+                          data-highlight-image-url={publishedSourceComplementImageUrl(source)}
+                          data-highlight-link-url={cleanText(source.link_url)}
                         >
-                          {cleanText(article.title) || cleanText(article.slug) || article.id}
+                          {publishedSourceOptionLabel(source)}
                         </option>
                       ))}
                     </select>
                   </div>
                   <p className="editorial-admin-muted">
-                    Ao escolher um artigo, o destaque recebe etiqueta, titulo, imagem e link interno. Pode ajustar manualmente antes de guardar.
+                    Ao escolher uma fonte, o destaque recebe etiqueta, titulo, imagem e link interno. Pode ajustar manualmente antes de guardar.
                   </p>
                 </fieldset>
                 {highlight?.image_url ? (
