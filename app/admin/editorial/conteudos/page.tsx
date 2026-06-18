@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   searchParams?: Promise<{
+    status?: string;
     created?: string;
     updated?: string;
     archived?: string;
@@ -27,10 +28,14 @@ type ReadEditorialContentsResult = {
   error: string | null;
 };
 
-async function readEditorialContents(): Promise<ReadEditorialContentsResult> {
+type ContentStatusView = "active" | "archived";
+
+async function readEditorialContents(statusView: ContentStatusView): Promise<ReadEditorialContentsResult> {
   try {
+    const statusFilter =
+      statusView === "archived" ? "status=eq.archived" : "or=(status.is.null,status.neq.archived)";
     const contents = await fetchSupabaseAdminTable<EditorialContent>(
-      `editorial_contents?select=${editorialContentsSelect}&or=(status.is.null,status.neq.archived)&order=published_at.desc.nullslast,created_at.desc.nullslast`,
+      `editorial_contents?select=${editorialContentsSelect}&${statusFilter}&order=published_at.desc.nullslast,created_at.desc.nullslast`,
     );
 
     return { contents, error: null };
@@ -68,6 +73,10 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
   };
 
   return params.error ? messages[params.error] ?? "Nao foi possivel guardar o conteudo." : null;
+}
+
+function contentStatusView(params: Awaited<NonNullable<PageProps["searchParams"]>>): ContentStatusView {
+  return params.status === "archived" ? "archived" : "active";
 }
 
 function Field({ label, value }: { label: string; value: string | boolean | null | undefined }) {
@@ -136,7 +145,12 @@ function ContentCard({ content }: { content: EditorialContent }) {
 
 export default async function AdminEditorialContentsPage({ searchParams }: PageProps) {
   const params = searchParams ? await searchParams : {};
-  const [{ contents, error }, message] = await Promise.all([readEditorialContents(), Promise.resolve(pageMessage(params))]);
+  const statusView = contentStatusView(params);
+  const [{ contents, error }, message] = await Promise.all([
+    readEditorialContents(statusView),
+    Promise.resolve(pageMessage(params)),
+  ]);
+  const isArchivedView = statusView === "archived";
 
   return (
     <main className="content-admin-shell">
@@ -166,15 +180,36 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
           <strong>Video da Jornada:</strong> <code>matchday_roundup_items</code>, <code>site_editorial_roundup_items</code>{" "}
           e <code>matchdays.video_url</code> continuam independentes.
         </p>
+        <p>
+          <strong>Arquivo:</strong> a lista principal mostra rascunhos e publicados. Conteudos arquivados ficam ocultos,
+          mas nao sao apagados.
+        </p>
       </section>
+
+      <nav className="content-admin-view-tabs" aria-label="Filtro de conteudos">
+        <Link className={!isArchivedView ? "active" : undefined} href="/admin/editorial/conteudos">
+          Ativos
+        </Link>
+        <Link className={isArchivedView ? "active" : undefined} href="/admin/editorial/conteudos?status=archived">
+          Arquivados
+        </Link>
+      </nav>
 
       {message ? <p className="content-admin-alert">{message}</p> : null}
       {error ? <p className="content-admin-alert">{error}</p> : null}
 
       {contents.length === 0 ? (
         <section className="content-admin-empty">
-          <h2>Ainda nao existem conteudos editoriais audiovisuais.</h2>
-          <p>A criacao/edicao ja esta disponivel nesta area admin.</p>
+          <h2>
+            {isArchivedView
+              ? "Nao existem conteudos editoriais audiovisuais arquivados."
+              : "Ainda nao existem conteudos editoriais audiovisuais ativos."}
+          </h2>
+          <p>
+            {isArchivedView
+              ? "Conteudos arquivados continuam na base e podem ser editados para voltar a draft ou published."
+              : "A criacao/edicao ja esta disponivel nesta area admin."}
+          </p>
         </section>
       ) : (
         <section className="content-admin-list" aria-label="Conteudos editoriais audiovisuais">
