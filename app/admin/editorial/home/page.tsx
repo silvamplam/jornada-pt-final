@@ -1,3 +1,7 @@
+import {
+  getEditorialPublishedSources,
+  type EditorialPublishedSource
+} from "@/lib/editorial-published-sources";
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -1380,6 +1384,22 @@ function articleSnapshotSubtitle(article: HomeEditorialArticleOption) {
   return textValue(article.subtitle, article.summary, article.excerpt);
 }
 
+function publishedSourceHighlightLabel(source: EditorialPublishedSource) {
+  if (source.source_type === "article") {
+    return textValue(source.label, "Artigo");
+  }
+
+  return textValue(source.label, source.content_type);
+}
+
+function publishedSourceHighlightSubtitle(source: EditorialPublishedSource) {
+  return textValue(source.subtitle, source.summary);
+}
+
+function publishedSourceHighlightImageUrl(source: EditorialPublishedSource) {
+  return textValue(source.thumbnail_url, source.image_url);
+}
+
 function statusText(value: string | null | undefined) {
   return textValue(value, "sem estado");
 }
@@ -1773,11 +1793,13 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
   const [
     { editorial, highlights, latestNews, roundupItems, featuredMatches, error },
     gameSelection,
-    publishedArticles
+    publishedArticles,
+    publishedSources
   ] = await Promise.all([
     readHomeEditorialData(),
     readHomeGameSelectionData(),
-    readPublishedHomeEditorialArticles()
+    readPublishedHomeEditorialArticles(),
+    getEditorialPublishedSources().catch(() => [])
   ]);
   const visibleRoundupItems = roundupItems.filter(roundupHasReadableContent);
   const roundupEditorRows = [...roundupItems].sort((first, second) => (first.sort_order ?? 9999) - (second.sort_order ?? 9999));
@@ -2393,27 +2415,27 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                                       </div>
                                       <div className="home-admin-muted-card home-admin-empty">
                                         <label className="home-admin-field is-wide">
-                                          <span>Preencher com artigo publicado</span>
+                                          <span>Preencher com fonte publicada</span>
                                           <select data-home-highlight-article-select defaultValue="">
-                                            <option value="">Escolher artigo publicado</option>
-                                            {publishedArticles.map((article) => (
+                                            <option value="">Escolher fonte publicada</option>
+                                            {publishedSources.map((source) => (
                                               <option
-                                                key={article.id}
-                                                value={article.id}
-                                                data-home-highlight-label={textValue(article.label)}
-                                                data-home-highlight-title={textValue(article.title)}
-                                                data-home-highlight-subtitle={articleSnapshotSubtitle(article)}
-                                                data-home-highlight-image-url={textValue(article.image_url)}
-                                                data-home-highlight-link-url={articlePublicHref(article)}
+                                                key={`${source.source_type}-${source.source_id}`}
+                                                value={`${source.source_type}:${source.source_id}`}
+                                                data-home-highlight-label={publishedSourceHighlightLabel(source)}
+                                                data-home-highlight-title={textValue(source.title)}
+                                                data-home-highlight-subtitle={publishedSourceHighlightSubtitle(source)}
+                                                data-home-highlight-image-url={publishedSourceHighlightImageUrl(source)}
+                                                data-home-highlight-link-url={textValue(source.link_url)}
                                               >
-                                                {textValue(article.title, article.slug, article.id)}
+                                                {textValue(source.title, source.source_slug, source.source_id)} - {source.origin_label}
                                               </option>
                                             ))}
                                           </select>
                                         </label>
                                         <p>
-                                          Ao escolher um artigo, este destaque recebe um snapshot editavel com etiqueta, titulo,
-                                          subtitulo, imagem e link para /noticias/[slug].
+                                          Ao escolher uma fonte, este destaque recebe um snapshot editavel com etiqueta, titulo,
+                                          subtitulo, imagem e link publico.
                                         </p>
                                       </div>
                                       <div className="home-admin-form-grid">
