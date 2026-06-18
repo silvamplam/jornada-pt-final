@@ -121,38 +121,14 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
 
       <section className="content-admin-panel">
         <div className="content-admin-panel-heading">
-          <p>Identidade editorial</p>
-          <span>Conteudo publicado ou em preparacao.</span>
+          <p>Essencial</p>
+          <span>Campos principais para identificar e preparar o conteudo.</span>
         </div>
 
         <div className="content-admin-grid">
           <label className="content-admin-full">
             <span>Titulo</span>
             <input name="title" defaultValue={content?.title ?? ""} required />
-          </label>
-
-          <label>
-            <span>Slug</span>
-            <input name="slug" defaultValue={content?.slug ?? ""} placeholder="gerado-a-partir-do-titulo" />
-          </label>
-
-          <label>
-            <span>Estado</span>
-            <select name="status" defaultValue={content?.status ?? "draft"}>
-              <option value="draft">draft</option>
-              <option value="published">published</option>
-              <option value="archived">archived</option>
-            </select>
-          </label>
-
-          <label>
-            <span>Ambito</span>
-            <select name="scope" defaultValue={content?.scope ?? "general"}>
-              <option value="general">general</option>
-              <option value="home">home</option>
-              <option value="competition">competition</option>
-              <option value="matchday">matchday</option>
-            </select>
           </label>
 
           <label>
@@ -171,13 +147,12 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
           </label>
 
           <label>
-            <span>Autor</span>
-            <input name="author" defaultValue={content?.author ?? ""} placeholder="Nome do autor" />
-          </label>
-
-          <label>
-            <span>Publicado em</span>
-            <input name="published_at" type="datetime-local" defaultValue={formatDateTimeLocal(content?.published_at)} />
+            <span>Estado</span>
+            <select name="status" defaultValue={content?.status ?? "draft"}>
+              <option value="draft">draft</option>
+              <option value="published">published</option>
+              <option value="archived">archived</option>
+            </select>
           </label>
 
           <label className="content-admin-full">
@@ -188,6 +163,20 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
           <label className="content-admin-full">
             <span>Resumo</span>
             <textarea name="summary" rows={3} defaultValue={content?.summary ?? ""} />
+          </label>
+        </div>
+      </section>
+
+      <section className="content-admin-panel">
+        <div className="content-admin-panel-heading">
+          <p>Texto / autoria</p>
+          <span>Informacao editorial complementar.</span>
+        </div>
+
+        <div className="content-admin-grid">
+          <label>
+            <span>Autor</span>
+            <input name="author" defaultValue={content?.author ?? ""} placeholder="Nome do autor" />
           </label>
 
           <label className="content-admin-full">
@@ -210,18 +199,15 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
           </label>
 
           <label className="content-admin-full">
-            <span>Legenda da imagem</span>
-            <input name="image_caption" defaultValue={content?.image_caption ?? ""} />
-          </label>
-
-          <label className="content-admin-full">
             <span>Thumbnail</span>
             <input name="thumbnail_url" defaultValue={content?.thumbnail_url ?? ""} placeholder="https://..." />
+            <span className="content-admin-help">Imagem alternativa para video.</span>
           </label>
 
           <label className="content-admin-full">
             <span>Video URL</span>
             <input name="video_url" defaultValue={content?.video_url ?? ""} placeholder="https://..." />
+            <span className="content-admin-help">Link original do video, por exemplo YouTube ou Vimeo.</span>
           </label>
 
           <label>
@@ -237,6 +223,12 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
           <label className="content-admin-full">
             <span>Embed URL</span>
             <input name="embed_url" defaultValue={content?.embed_url ?? ""} placeholder="https://..." />
+            <span className="content-admin-help">Opcional. Sera usado numa fase futura para media slot.</span>
+          </label>
+
+          <label className="content-admin-full">
+            <span>Legenda da imagem</span>
+            <input name="image_caption" defaultValue={content?.image_caption ?? ""} />
           </label>
 
           <label className="content-admin-checkbox">
@@ -245,6 +237,37 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
           </label>
         </div>
       </section>
+
+      <details className="content-admin-panel content-admin-advanced">
+        <summary>
+          <span>Avancado / tecnico</span>
+          <small>Slug, ambito e data de publicacao.</small>
+        </summary>
+
+        <div className="content-admin-grid">
+          <label>
+            <span>Slug</span>
+            <input name="slug" defaultValue={content?.slug ?? ""} placeholder="gerado-a-partir-do-titulo" />
+            <span className="content-admin-help">E gerado automaticamente a partir do titulo. So altere se souber o que esta a fazer.</span>
+          </label>
+
+          <label>
+            <span>Ambito</span>
+            <select name="scope" defaultValue={content?.scope ?? "general"}>
+              <option value="general">general</option>
+              <option value="home">home</option>
+              <option value="competition">competition</option>
+              <option value="matchday">matchday</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Publicado em</span>
+            <input name="published_at" type="datetime-local" defaultValue={formatDateTimeLocal(content?.published_at)} />
+            <span className="content-admin-help">Se publicar sem data, o sistema preenche automaticamente.</span>
+          </label>
+        </div>
+      </details>
 
       <div className="content-admin-actions">
         <a href="/admin/editorial/conteudos">Voltar a lista</a>
@@ -374,6 +397,35 @@ export const adminEditorialContentsStyles = `
     padding: 2px 5px;
     color: #111827;
     font-size: 12px;
+  }
+
+  .content-admin-view-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-width: 1180px;
+    margin: 0 auto 18px;
+  }
+
+  .content-admin-view-tabs a {
+    display: inline-flex;
+    min-height: 34px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    padding: 0 12px;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 800;
+    text-decoration: none;
+  }
+
+  .content-admin-view-tabs a.active {
+    border-color: #111827;
+    background: #111827;
+    color: #fff;
   }
 
   .content-admin-alert {
@@ -527,6 +579,34 @@ export const adminEditorialContentsStyles = `
     font-size: 13px;
   }
 
+  .content-admin-advanced {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .content-admin-advanced summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    padding: 16px 18px;
+    color: #374151;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 850;
+  }
+
+  .content-admin-advanced summary small {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 650;
+  }
+
+  .content-admin-advanced .content-admin-grid {
+    border-top: 1px solid #e5e7eb;
+    padding: 18px;
+  }
+
   .content-admin-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -562,6 +642,13 @@ export const adminEditorialContentsStyles = `
 
   .content-admin-grid textarea {
     resize: vertical;
+  }
+
+  .content-admin-help {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 550;
+    line-height: 1.35;
   }
 
   .content-admin-checkbox {
