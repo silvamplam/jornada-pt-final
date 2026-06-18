@@ -1511,23 +1511,23 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               <input id="side-block-link-url" name="side_block_link_url" defaultValue={editorial?.side_block_link_url ?? ""} placeholder="/noticias/slug-do-artigo" />
             </div>
             <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
-              <legend>Ligar notícia/artigo publicado</legend>
+              <legend>Ligar fonte publicada ao bloco lateral</legend>
               <div className="editorial-admin-field">
-                <label htmlFor="side-block-article-source">Preencher com artigo publicado</label>
+                <label htmlFor="side-block-article-source">Preencher bloco lateral com fonte publicada</label>
                 <select id="side-block-article-source" data-side-block-article-select defaultValue="">
-                  <option value="">Escolher artigo publicado</option>
-                  {sideBlockArticleOptions.map((article) => (
+                  <option value="">Escolher fonte publicada</option>
+                  {publishedSources.map((source) => (
                     <option
-                      key={article.id}
-                      value={article.id}
-                      data-side-title={cleanText(article.title)}
-                      data-side-text={sideBlockTextFromArticle(article)}
-                      data-side-label={cleanText(article.label)}
-                      data-side-author={cleanText(article.author)}
-                      data-side-image-url={cleanText(article.image_url)}
-                      data-side-link-url={articlePublicHref(article)}
+                      key={`${source.source_type}-${source.source_id}`}
+                      value={`${source.source_type}:${source.source_id}`}
+                      data-side-title={cleanText(source.title)}
+                      data-side-text={publishedSourceComplementText(source)}
+                      data-side-label={publishedSourceComplementLabel(source)}
+                      data-side-author={cleanText(source.author)}
+                      data-side-image-url={publishedSourceComplementImageUrl(source)}
+                      data-side-link-url={cleanText(source.link_url)}
                     >
-                      {cleanText(article.title) || cleanText(article.slug) || article.id}
+                      {publishedSourceOptionLabel(source)}
                     </option>
                   ))}
                 </select>
