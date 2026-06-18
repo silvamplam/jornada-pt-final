@@ -25,10 +25,9 @@ type EditorialArticleRow = {
   slug: string | null;
   title: string | null;
   subtitle?: string | null;
-  summary?: string | null;
-  excerpt?: string | null;
   image_url?: string | null;
   label?: string | null;
+  author?: string | null;
   status: string | null;
   published_at?: string | null;
   created_at?: string | null;
@@ -106,7 +105,7 @@ function normalizeArticle(article: EditorialArticleRow): EditorialPublishedSourc
     label: cleanText(article.label),
     title,
     subtitle: cleanText(article.subtitle),
-    summary: firstText(article.summary, article.excerpt),
+    summary: null,
     image_url: cleanText(article.image_url),
     thumbnail_url: null,
     video_url: null,
@@ -155,7 +154,7 @@ function publishedTime(value: EditorialPublishedSource) {
 export async function getEditorialPublishedSources(): Promise<EditorialPublishedSource[]> {
   const [articleRows, contentRows] = await Promise.all([
     fetchSupabaseAdminTable<EditorialArticleRow>(
-      "editorial_articles?select=id,slug,title,subtitle,summary,excerpt,image_url,label,status,published_at,created_at&status=eq.published&order=published_at.desc.nullslast,created_at.desc.nullslast",
+      "editorial_articles?select=id,slug,title,subtitle,label,author,image_url,status,published_at,created_at&status=eq.published&order=published_at.desc.nullslast,created_at.desc.nullslast",
     ).catch(() => []),
     fetchSupabaseAdminTable<EditorialContentRow>(
       "editorial_contents?select=id,slug,status,content_type,label,title,subtitle,summary,body,image_url,thumbnail_url,video_url,embed_url,duration,published_at,created_at&status=eq.published&order=published_at.desc.nullslast,created_at.desc.nullslast",

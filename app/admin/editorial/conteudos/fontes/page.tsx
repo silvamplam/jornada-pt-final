@@ -86,6 +86,8 @@ function SourceCard({ source }: { source: EditorialPublishedSource }) {
 
 export default async function AdminEditorialPublishedSourcesPage() {
   const sources = await getEditorialPublishedSources();
+  const articleCount = sources.filter((source) => source.source_type === "article").length;
+  const editorialContentCount = sources.filter((source) => source.source_type === "editorial_content").length;
 
   return (
     <main className="content-admin-shell">
@@ -110,6 +112,10 @@ export default async function AdminEditorialPublishedSourcesPage() {
         <p>
           <strong>Read-only:</strong> esta pagina apenas lista fontes publicadas de <code>editorial_articles</code> e{" "}
           <code>editorial_contents</code>.
+        </p>
+        <p>
+          <strong>Contagem:</strong> artigos publicados: {articleCount}. Conteudos editoriais publicados:{" "}
+          {editorialContentCount}. Total de fontes: {sources.length}.
         </p>
         <p>
           <strong>Sem zonas:</strong> nao associa conteudos a Home, Editorial da Jornada, Composicao, Manchete,
