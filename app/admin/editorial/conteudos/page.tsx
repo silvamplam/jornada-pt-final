@@ -90,6 +90,24 @@ function Field({ label, value }: { label: string; value: string | boolean | null
   );
 }
 
+function PublicStatus({ content }: { content: EditorialContent }) {
+  if (content.status === "published" && content.slug) {
+    return (
+      <Link className="content-admin-edit-link" href={`/conteudos/${encodeURIComponent(content.slug)}`}>
+        Ver publico
+      </Link>
+    );
+  }
+
+  const message = content.status === "archived" ? "Arquivado - nao publico" : "Rascunho - sem pagina publica";
+
+  return (
+    <span style={{ color: "#6b7280", fontSize: 12, fontWeight: 750, lineHeight: 1.3 }}>
+      {message}
+    </span>
+  );
+}
+
 function ContentCard({ content }: { content: EditorialContent }) {
   const mediaUrl = firstText(content.thumbnail_url, content.image_url);
   const title = firstText(content.title, "Conteudo sem titulo");
@@ -135,6 +153,7 @@ function ContentCard({ content }: { content: EditorialContent }) {
       </dl>
 
       <div className="content-admin-card-actions">
+        <PublicStatus content={content} />
         <Link className="content-admin-edit-link" href={`/admin/editorial/conteudos/${content.id}/editar`}>
           Editar
         </Link>
