@@ -1,6 +1,26 @@
-import { getAdminBroadcastChannels } from "@/lib/supabase";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+
+import { fetchSupabaseAdminTable, writeSupabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
+
+type ChannelsPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+type BroadcastChannelRow = {
+  id: string;
+  name: string | null;
+  platform: string | null;
+  country: string | null;
+  logo_url: string | null;
+};
+
+type MatchBroadcastRow = {
+  id: string;
+  broadcast_channel_id: string | null;
+};
 
 const channelAdminStyles = `
   body {
@@ -18,7 +38,7 @@ const channelAdminStyles = `
 
   .channel-admin-hero {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 20px;
     padding: 28px;
@@ -116,7 +136,7 @@ const channelAdminStyles = `
 
   .channel-form {
     display: grid;
-    grid-template-columns: 54px minmax(180px, 1.1fr) minmax(140px, 0.9fr) minmax(120px, 0.7fr) minmax(260px, 1.5fr) auto;
+    grid-template-columns: 54px minmax(170px, 1fr) minmax(140px, 0.8fr) minmax(120px, 0.7fr) minmax(240px, 1.35fr) minmax(170px, auto);
     gap: 10px;
     align-items: end;
     padding: 14px 18px;
@@ -178,6 +198,19 @@ const channelAdminStyles = `
     border-color: #e5252a;
   }
 
+  .channel-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .channel-usage {
+    grid-column: 1 / -1;
+    color: #66717f;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
   .channel-form button {
     min-height: 39px;
     padding: 10px 13px;
@@ -192,18 +225,22 @@ const channelAdminStyles = `
     cursor: pointer;
   }
 
+  .channel-form button.channel-danger {
+    background: #7f1d1d;
+  }
+
   .channel-form button:disabled,
   .channel-field input:disabled {
     cursor: not-allowed;
     opacity: 0.55;
   }
 
-  @media (max-width: 1040px) {
+  @media (max-width: 1120px) {
     .channel-form {
       grid-template-columns: 54px repeat(2, minmax(0, 1fr));
     }
 
-    .channel-form button {
+    .channel-actions {
       grid-column: 1 / -1;
     }
   }
@@ -221,139 +258,263 @@ const channelAdminStyles = `
   }
 `;
 
-type ChannelsPageProps = {
-  searchParams: Promise<{
-    created?: string;
-    updated?: string;
-    error?: string;
-  }>;
-};
-
-function errorMessage(error?: string) {
-  if (error === "missing-service") {
-    return "Falta configurar SUPABASE_SERVICE_ROLE_KEY na Vercel para gravar alteracoes.";
+function cleanText(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") {
+    return null;
   }
 
-  if (error === "missing-fields") {
-    return "Nome do canal e obrigatorio.";
+  const cleanValue = value.trim();
+  return cleanValue.length > 0 ? cleanValue : null;
+}
+
+function firstSearchParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function messageFor(params: Record<string, string | string[] | undefined>) {
+  if (firstSearchParam(params.created) === "1") {
+    return { type: "success", text: "Canal criado." };
   }
 
-  if (error === "save") {
-    return "Nao foi possivel guardar o canal TV.";
+  if (firstSearchParam(params.updated) === "1") {
+    return { type: "success", text: "Canal atualizado." };
+  }
+
+  if (firstSearchParam(params.deleted) === "1") {
+    return { type: "success", text: "Canal removido." };
+  }
+
+  if (firstSearchParam(params.deleteError) === "1") {
+    return { type: "warning", text: "Não foi possível remover o canal. Este canal pode estar associado a jogos." };
+  }
+
+  if (firstSearchParam(params.error) === "1") {
+    return { type: "warning", text: "Não foi possível guardar o canal." };
   }
 
   return null;
 }
 
+function idList(ids: string[]) {
+  return ids.map((id) => encodeURIComponent(id)).join(",");
+}
+
+async function readChannelUsage(channelIds: string[]) {
+  const usage = new Map<string, number>();
+  const uniqueIds = Array.from(new Set(channelIds.filter(Boolean)));
+
+  if (uniqueIds.length === 0) {
+    return usage;
+  }
+
+  try {
+    const matches = await fetchSupabaseAdminTable<MatchBroadcastRow>(
+      `matches?select=id,broadcast_channel_id&broadcast_channel_id=in.(${idList(uniqueIds)})&limit=5000`,
+    );
+
+    for (const match of matches) {
+      if (!match.broadcast_channel_id) {
+        continue;
+      }
+
+      usage.set(match.broadcast_channel_id, (usage.get(match.broadcast_channel_id) ?? 0) + 1);
+    }
+  } catch {
+    return usage;
+  }
+
+  return usage;
+}
+
+async function readBroadcastChannels() {
+  try {
+    const channels = await fetchSupabaseAdminTable<BroadcastChannelRow>(
+      "broadcast_channels?select=id,name,platform,country,logo_url&order=name.asc&limit=500",
+    );
+    const usage = await readChannelUsage(channels.map((channel) => channel.id));
+
+    return { channels, usage, error: null as string | null };
+  } catch (error) {
+    return {
+      channels: [] as BroadcastChannelRow[],
+      usage: new Map<string, number>(),
+      error: error instanceof Error ? error.message : "Não foi possível ler os canais TV.",
+    };
+  }
+}
+
+async function createChannel(formData: FormData) {
+  "use server";
+
+  const name = cleanText(formData.get("name"));
+  if (!name) {
+    redirect("/admin/canais-tv?error=1");
+  }
+
+  try {
+    await writeSupabaseAdmin("broadcast_channels", {
+      method: "POST",
+      body: JSON.stringify({
+        name,
+        platform: cleanText(formData.get("platform")),
+        country: cleanText(formData.get("country")),
+        logo_url: cleanText(formData.get("logo_url")),
+      }),
+    });
+
+    revalidatePath("/admin/canais-tv");
+  } catch {
+    redirect("/admin/canais-tv?error=1");
+  }
+
+  redirect("/admin/canais-tv?created=1");
+}
+
+async function updateChannel(formData: FormData) {
+  "use server";
+
+  const id = cleanText(formData.get("channel_id"));
+  const name = cleanText(formData.get("name"));
+
+  if (!id || !name) {
+    redirect("/admin/canais-tv?error=1");
+  }
+
+  try {
+    await writeSupabaseAdmin(`broadcast_channels?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        name,
+        platform: cleanText(formData.get("platform")),
+        country: cleanText(formData.get("country")),
+        logo_url: cleanText(formData.get("logo_url")),
+      }),
+    });
+
+    revalidatePath("/admin/canais-tv");
+  } catch {
+    redirect("/admin/canais-tv?error=1");
+  }
+
+  redirect("/admin/canais-tv?updated=1");
+}
+
+async function deleteChannel(formData: FormData) {
+  "use server";
+
+  const id = cleanText(formData.get("channel_id"));
+  if (!id) {
+    redirect("/admin/canais-tv?deleteError=1");
+  }
+
+  try {
+    const usage = await readChannelUsage([id]);
+    if ((usage.get(id) ?? 0) > 0) {
+      redirect("/admin/canais-tv?deleteError=1");
+    }
+
+    await writeSupabaseAdmin(`broadcast_channels?id=eq.${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+
+    revalidatePath("/admin/canais-tv");
+  } catch {
+    redirect("/admin/canais-tv?deleteError=1");
+  }
+
+  redirect("/admin/canais-tv?deleted=1");
+}
+
 export default async function AdminChannelsPage({ searchParams }: ChannelsPageProps) {
-  const params = await searchParams;
-  const overview = await getAdminBroadcastChannels();
-  const message = errorMessage(params.error);
-  const canWrite = overview.writeConfigured && !overview.error;
+  const params = searchParams ? await searchParams : {};
+  const { channels, usage, error } = await readBroadcastChannels();
+  const message = messageFor(params);
 
   return (
     <main className="channel-admin-shell">
       <style>{channelAdminStyles}</style>
+
       <header className="channel-admin-hero">
         <div>
-          <p>Jornada.pt</p>
+          <p>JORNADA.PT</p>
           <h1>Canais TV</h1>
-          <span>Gerir onde se ve cada jogo: canal, plataforma, pais e logotipo.</span>
+          <span>Gerir onde se vê cada jogo: canal, plataforma, país e logotipo.</span>
         </div>
         <a href="/admin">Voltar ao backoffice</a>
       </header>
 
-      {!overview.configured ? (
-        <section className="channel-admin-message warning">
-          Falta configurar a ligacao ao Supabase.
-        </section>
-      ) : null}
-
-      {!overview.writeConfigured ? (
-        <section className="channel-admin-message warning">
-          Modo leitura ativo. Para editar, adiciona a variavel SUPABASE_SERVICE_ROLE_KEY na Vercel.
-        </section>
-      ) : null}
-
-      {overview.error ? <section className="channel-admin-message warning">{overview.error}</section> : null}
-      {message ? <section className="channel-admin-message warning">{message}</section> : null}
-      {params.created ? <section className="channel-admin-message success">Canal criado.</section> : null}
-      {params.updated ? <section className="channel-admin-message success">Canal atualizado.</section> : null}
+      {error ? <section className="channel-admin-message warning">{error}</section> : null}
+      {message ? <section className={`channel-admin-message ${message.type}`}>{message.text}</section> : null}
 
       <section className="channel-admin-create">
         <header>
           <h2>Novo canal TV</h2>
           <small>Cria canais para associar depois aos jogos e agendas.</small>
         </header>
-        <form action="/api/admin/broadcast-channels" className="channel-form" method="post">
+        <form action={createChannel} className="channel-form">
           <figure>TV</figure>
           <div className="channel-field">
             <label htmlFor="new-name">Nome</label>
-            <input disabled={!canWrite} id="new-name" name="name" placeholder="Ex: Sport TV 1" required />
+            <input id="new-name" name="name" placeholder="Ex: Sport TV 1" required />
           </div>
           <div className="channel-field">
             <label htmlFor="new-platform">Plataforma</label>
-            <input disabled={!canWrite} id="new-platform" name="platform" placeholder="Sport TV" />
+            <input id="new-platform" name="platform" placeholder="Sport TV" />
           </div>
           <div className="channel-field">
-            <label htmlFor="new-country">Pais</label>
-            <input disabled={!canWrite} id="new-country" name="country" placeholder="Portugal" />
+            <label htmlFor="new-country">País</label>
+            <input id="new-country" name="country" placeholder="Portugal" />
           </div>
           <div className="channel-field">
             <label htmlFor="new-logo-url">Logotipo URL</label>
-            <input disabled={!canWrite} id="new-logo-url" name="logo_url" placeholder="https://..." />
+            <input id="new-logo-url" name="logo_url" placeholder="https://..." />
           </div>
-          <button disabled={!canWrite} type="submit">Criar</button>
+          <div className="channel-actions">
+            <button type="submit">Criar</button>
+          </div>
         </form>
       </section>
 
       <section className="channel-admin-list">
         <header>
           <h2>Canais existentes</h2>
-          <small>{overview.broadcastChannels.length} canais na base de dados</small>
+          <small>{channels.length} canais na base de dados</small>
         </header>
-        {overview.broadcastChannels.map((channel) => (
-          <form
-            action={`/api/admin/broadcast-channels/${channel.id}`}
-            className="channel-form"
-            key={channel.id}
-            method="post"
-          >
-            <figure>{channel.logo_url ? <img alt="" src={channel.logo_url} /> : "TV"}</figure>
-            <div className="channel-field">
-              <label htmlFor={`name-${channel.id}`}>Nome</label>
-              <input disabled={!canWrite} id={`name-${channel.id}`} name="name" required defaultValue={channel.name} />
-            </div>
-            <div className="channel-field">
-              <label htmlFor={`platform-${channel.id}`}>Plataforma</label>
-              <input
-                disabled={!canWrite}
-                id={`platform-${channel.id}`}
-                name="platform"
-                defaultValue={channel.platform ?? ""}
-              />
-            </div>
-            <div className="channel-field">
-              <label htmlFor={`country-${channel.id}`}>Pais</label>
-              <input
-                disabled={!canWrite}
-                id={`country-${channel.id}`}
-                name="country"
-                defaultValue={channel.country ?? ""}
-              />
-            </div>
-            <div className="channel-field">
-              <label htmlFor={`logo-${channel.id}`}>Logotipo URL</label>
-              <input
-                disabled={!canWrite}
-                id={`logo-${channel.id}`}
-                name="logo_url"
-                defaultValue={channel.logo_url ?? ""}
-              />
-            </div>
-            <button disabled={!canWrite} type="submit">Guardar</button>
-          </form>
-        ))}
+        {channels.map((channel) => {
+          const usedCount = usage.get(channel.id) ?? 0;
+
+          return (
+            <form action={updateChannel} className="channel-form" key={channel.id}>
+              <input name="channel_id" type="hidden" value={channel.id} />
+              <figure>{channel.logo_url ? <img alt="" src={channel.logo_url} /> : "TV"}</figure>
+              <div className="channel-field">
+                <label htmlFor={`name-${channel.id}`}>Nome</label>
+                <input id={`name-${channel.id}`} name="name" required defaultValue={channel.name ?? ""} />
+              </div>
+              <div className="channel-field">
+                <label htmlFor={`platform-${channel.id}`}>Plataforma</label>
+                <input id={`platform-${channel.id}`} name="platform" defaultValue={channel.platform ?? ""} />
+              </div>
+              <div className="channel-field">
+                <label htmlFor={`country-${channel.id}`}>País</label>
+                <input id={`country-${channel.id}`} name="country" defaultValue={channel.country ?? ""} />
+              </div>
+              <div className="channel-field">
+                <label htmlFor={`logo-${channel.id}`}>Logotipo URL</label>
+                <input id={`logo-${channel.id}`} name="logo_url" defaultValue={channel.logo_url ?? ""} />
+              </div>
+              <div className="channel-actions">
+                <span className="channel-usage">
+                  {usedCount > 0 ? `Usado em ${usedCount} jogo(s)` : "Sem jogos associados"}
+                </span>
+                <button type="submit">Guardar</button>
+                <button className="channel-danger" formAction={deleteChannel} formNoValidate type="submit">
+                  Remover
+                </button>
+              </div>
+            </form>
+          );
+        })}
       </section>
     </main>
   );
