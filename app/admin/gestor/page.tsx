@@ -132,7 +132,8 @@ const managerStyles = `
 
   .manager-hero {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
+    flex-wrap: wrap;
     justify-content: space-between;
     gap: 20px;
     padding: 28px;
@@ -161,6 +162,11 @@ const managerStyles = `
     line-height: 1;
   }
 
+  .manager-hero > div:first-child {
+    flex: 1 1 520px;
+    min-width: min(100%, 360px);
+  }
+
   .manager-hero span {
     display: block;
     margin-top: 10px;
@@ -171,11 +177,12 @@ const managerStyles = `
 
   .manager-hero-actions {
     display: flex;
-    flex: 0 0 auto;
+    flex: 1 1 420px;
     gap: 10px;
     align-items: center;
     justify-content: flex-end;
     flex-wrap: wrap;
+    max-width: 640px;
   }
 
   .manager-hero a,
@@ -2507,6 +2514,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
         <div className="manager-hero-actions">
           <a href="/admin/editorial/home">HOME EDITORIAL</a>
           <a href="/admin/editorial/artigos">ARTIGOS / NOTÍCIAS</a>
+          <a href="/admin/editorial/conteudos">CONTEÚDOS / AUDIOVISUAL</a>
           {matchdayEditorialHref ? (
             <a href={matchdayEditorialHref}>EDITORIAL DA JORNADA</a>
           ) : (
