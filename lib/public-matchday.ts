@@ -69,6 +69,7 @@ export type PublicMatchdayContext = {
   roundupItems: SupabaseMatchdayRoundupItem[];
   latestNews: SupabaseMatchdayLatestNews[];
   headlineMedia: PublicMatchdayHeadlineMedia | null;
+  complementMedia: PublicMatchdayHeadlineMedia | null;
   referenceComposition: PublicReferenceComposition | null;
   referenceCompositionItems: PublicReferenceCompositionItem[];
   referenceSlots: PublicReferenceCompositionSlots;
@@ -644,11 +645,21 @@ export async function getPublicMatchdayDiagnostic({
     const referenceHeadline = referenceSlots
       ? [...(referenceSlots.headline ?? [])].sort((a, b) => a.sort_order - b.sort_order)[0] ?? null
       : null;
+    const referenceComplement = referenceSlots
+      ? [...(referenceSlots.complement ?? [])].sort((a, b) => a.sort_order - b.sort_order)[0] ?? null
+      : null;
     const publishedHeadline = editorial?.status === "published" ? editorial : null;
     const headlineLinkUrl = referenceHeadline
       ? cleanReferenceSnapshotText(referenceHeadline.link_url_snapshot)
       : cleanReferenceSnapshotText(publishedHeadline?.headline_link_url);
     const headlineMedia = await readPublishedHeadlineMedia(headlineLinkUrl);
+    const complementLinkUrl = referenceComplement
+      ? cleanReferenceSnapshotText(referenceComplement.link_url_snapshot)
+      : editorial?.complementary_status === "published"
+        ? cleanReferenceSnapshotText(editorial.complementary_link_url)
+        : null;
+    const complementMedia =
+      complementLinkUrl && complementLinkUrl === headlineLinkUrl ? headlineMedia : await readPublishedHeadlineMedia(complementLinkUrl);
 
     return {
       context: {
@@ -668,6 +679,7 @@ export async function getPublicMatchdayDiagnostic({
         roundupItems,
         latestNews,
         headlineMedia,
+        complementMedia,
         referenceComposition: referenceCompositionBundle.referenceComposition,
         referenceCompositionItems: referenceCompositionBundle.referenceCompositionItems,
         referenceSlots: referenceCompositionBundle.referenceSlots,

@@ -1307,14 +1307,16 @@ const publicMatchdayStyles = `
   }
 
   .public-complement-media img,
-  .public-complement-media iframe {
+  .public-complement-media iframe,
+  .public-complement-media video {
     display: block;
     width: 100%;
     height: 100%;
     border: 0;
   }
 
-  .public-complement-media img {
+  .public-complement-media img,
+  .public-complement-media video {
     object-fit: cover;
     object-position: center;
   }
@@ -2860,6 +2862,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
   const complementaryLinkUrl = usePublishedReferenceComposition
     ? cleanReferenceSnapshotText(referenceComplement?.link_url_snapshot)
     : editorial?.complementary_link_url?.trim() || null;
+  const complementMedia = context.complementMedia;
   const sideBlockImageUrl = usePublishedReferenceComposition
     ? cleanReferenceSnapshotText(referenceSideBlock?.image_url_snapshot)
     : editorial?.side_block_image_url?.trim() || null;
@@ -3275,7 +3278,24 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
               <aside className="public-matchday-cover-side public-editorial-flex-block public-below-headline-side" data-editorial-slot="video-ou-imagem-noticia" aria-label="Bloco complementar da jornada">
                 {hasPublishedComplementaryStory ? (
                   <>
-                    {complementaryImageUrl ? (
+                    {complementMedia ? (
+                      <div className="public-complement-media">
+                        {complementMedia.kind === "embed" && complementMedia.embed_url ? (
+                          <iframe
+                            src={complementMedia.embed_url}
+                            title={complementMedia.title || complementaryTitle || "Complemento da manchete"}
+                            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                            loading="lazy"
+                          />
+                        ) : complementMedia.kind === "direct_video" && complementMedia.video_url ? (
+                          <video controls preload="metadata" poster={complementMedia.poster_url || undefined}>
+                            <source src={complementMedia.video_url} />
+                            O seu navegador nao suporta video HTML5.
+                          </video>
+                        ) : null}
+                      </div>
+                    ) : complementaryImageUrl ? (
                       <div className="public-complement-media">
                         <img src={complementaryImageUrl} alt="" />
                       </div>
