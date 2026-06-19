@@ -728,10 +728,13 @@ const publicMatchdayStyles = `
     background: #eef2f6;
   }
 
+  .public-editorial-main-image iframe,
+  .public-editorial-main-image video,
   .public-editorial-main-image img {
     display: block;
     width: 100%;
     height: 100%;
+    border: 0;
     object-fit: cover;
     object-position: center;
   }
@@ -2800,6 +2803,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
   const headlineLinkUrl = referenceHeadline
     ? cleanReferenceSnapshotText(referenceHeadline.link_url_snapshot)
     : cleanReferenceSnapshotText(publishedHeadline?.headline_link_url);
+  const headlineMedia = context.headlineMedia;
   const complementaryMode = editorial?.complementary_mode ?? "none";
   const referenceHighlightItems = usePublishedReferenceComposition
     ? [...(context.referenceSlots.highlight ?? [])]
@@ -3068,7 +3072,24 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
           <div className="public-matchday-main-column">
             <article className="public-matchday-editorial">
               <div className="public-cover-headline">
-                {headlineImageUrl ? (
+                {headlineMedia ? (
+                  <div className="public-editorial-main-image">
+                    {headlineMedia.kind === "embed" && headlineMedia.embed_url ? (
+                      <iframe
+                        src={headlineMedia.embed_url}
+                        title={headlineMedia.title || headlineTitle}
+                        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        loading="lazy"
+                      />
+                    ) : headlineMedia.kind === "direct_video" && headlineMedia.video_url ? (
+                      <video controls preload="metadata" poster={headlineMedia.poster_url || undefined}>
+                        <source src={headlineMedia.video_url} />
+                        O seu navegador nao suporta video HTML5.
+                      </video>
+                    ) : null}
+                  </div>
+                ) : headlineImageUrl ? (
                   <div className="public-editorial-main-image">
                     <img src={headlineImageUrl} alt="" />
                   </div>
