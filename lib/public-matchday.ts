@@ -44,6 +44,17 @@ export type PublicMatchdayHighlight = SupabaseMatchdayHighlight & {
   link_url?: string | null;
 };
 
+export type PublicMatchdayHeadlineMedia = {
+  kind: "embed" | "direct_video";
+  embed_url: string | null;
+  video_url: string | null;
+  poster_url: string | null;
+  caption: string | null;
+  content_slug: string;
+  content_type: string | null;
+  title: string | null;
+};
+
 export type PublicMatchdayContext = {
   competition: SupabaseCompetition;
   season: SupabaseSeason;
@@ -57,6 +68,7 @@ export type PublicMatchdayContext = {
   highlights: PublicMatchdayHighlight[];
   roundupItems: SupabaseMatchdayRoundupItem[];
   latestNews: SupabaseMatchdayLatestNews[];
+  headlineMedia: PublicMatchdayHeadlineMedia | null;
   referenceComposition: PublicReferenceComposition | null;
   referenceCompositionItems: PublicReferenceCompositionItem[];
   referenceSlots: PublicReferenceCompositionSlots;
@@ -219,6 +231,101 @@ function groupReferenceCompositionSlots(items: PublicReferenceCompositionItem[])
 function cleanReferenceSnapshotText(value?: string | null) {
   const trimmed = value?.trim();
   return trimmed || null;
+}
+
+type EditorialHeadlineContentRow = {
+  slug: string | null;
+  status: string | null;
+  content_type: string | null;
+  video_url: string | null;
+  video_provider: string | null;
+  embed_url: string | null;
+  is_embeddable: boolean | null;
+  thumbnail_url: string | null;
+  image_url: string | null;
+  image_caption: string | null;
+  title: string | null;
+};
+
+function contentSlugFromHref(value?: string | null) {
+  const cleanValue = cleanReferenceSnapshotText(value);
+  if (!cleanValue) {
+    return null;
+  }
+
+  try {
+    const isAbsoluteUrl = /^https?:\/\//i.test(cleanValue);
+    const url = new URL(cleanValue, "https://jornada.pt");
+    if (isAbsoluteUrl && url.hostname !== "jornada.pt" && url.hostname !== "www.jornada.pt") {
+      return null;
+    }
+
+    const [section, slug] = url.pathname.split("/").filter(Boolean);
+    return section === "conteudos" && slug ? decodeURIComponent(slug) : null;
+  } catch {
+    return null;
+  }
+}
+
+function isDirectVideoUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return /\.(mp4|webm|ogg)$/i.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
+async function readPublishedHeadlineMedia(linkUrl?: string | null): Promise<PublicMatchdayHeadlineMedia | null> {
+  const slug = contentSlugFromHref(linkUrl);
+  if (!slug) {
+    return null;
+  }
+
+  try {
+    const rows = await fetchSupabaseAdminTable<EditorialHeadlineContentRow>(
+      `editorial_contents?select=slug,status,content_type,video_url,video_provider,embed_url,is_embeddable,thumbnail_url,image_url,image_caption,title&slug=eq.${encodeURIComponent(
+        slug
+      )}&status=eq.published&limit=1`
+    );
+    const content = rows[0] ?? null;
+    if (!content) {
+      return null;
+    }
+
+    const posterUrl = cleanReferenceSnapshotText(content.thumbnail_url) ?? cleanReferenceSnapshotText(content.image_url);
+    const embedUrl = content.is_embeddable ? cleanReferenceSnapshotText(content.embed_url) : null;
+    if (embedUrl) {
+      return {
+        kind: "embed",
+        embed_url: embedUrl,
+        video_url: null,
+        poster_url: posterUrl,
+        caption: cleanReferenceSnapshotText(content.image_caption),
+        content_slug: slug,
+        content_type: cleanReferenceSnapshotText(content.content_type),
+        title: cleanReferenceSnapshotText(content.title)
+      };
+    }
+
+    const videoUrl = cleanReferenceSnapshotText(content.video_url);
+    if (videoUrl && isDirectVideoUrl(videoUrl)) {
+      return {
+        kind: "direct_video",
+        embed_url: null,
+        video_url: videoUrl,
+        poster_url: posterUrl,
+        caption: cleanReferenceSnapshotText(content.image_caption),
+        content_slug: slug,
+        content_type: cleanReferenceSnapshotText(content.content_type),
+        title: cleanReferenceSnapshotText(content.title)
+      };
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
 }
 
 function normalizeRoundupType(value?: string | null): SupabaseMatchdayRoundupItem["type"] {
@@ -531,6 +638,17 @@ export async function getPublicMatchdayDiagnostic({
       awayTeam: teamsById.get(match.away_team_id) ?? null,
       broadcastChannel: match.broadcast_channel_id ? broadcastChannelsById.get(match.broadcast_channel_id) ?? null : null
     }));
+    const referenceSlots = referenceCompositionBundle.hasPublishedReferenceComposition
+      ? (referenceCompositionBundle.referenceSlots as PublicReferenceCompositionSlots)
+      : null;
+    const referenceHeadline = referenceSlots
+      ? [...(referenceSlots.headline ?? [])].sort((a, b) => a.sort_order - b.sort_order)[0] ?? null
+      : null;
+    const publishedHeadline = editorial?.status === "published" ? editorial : null;
+    const headlineLinkUrl = referenceHeadline
+      ? cleanReferenceSnapshotText(referenceHeadline.link_url_snapshot)
+      : cleanReferenceSnapshotText(publishedHeadline?.headline_link_url);
+    const headlineMedia = await readPublishedHeadlineMedia(headlineLinkUrl);
 
     return {
       context: {
@@ -549,6 +667,7 @@ export async function getPublicMatchdayDiagnostic({
         highlights,
         roundupItems,
         latestNews,
+        headlineMedia,
         referenceComposition: referenceCompositionBundle.referenceComposition,
         referenceCompositionItems: referenceCompositionBundle.referenceCompositionItems,
         referenceSlots: referenceCompositionBundle.referenceSlots,
