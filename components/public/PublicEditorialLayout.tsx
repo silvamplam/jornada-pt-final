@@ -30,11 +30,23 @@ export type PublicSideBlockData = {
   placeholder?: string;
 };
 
+export type PublicInlineMedia = {
+  kind: "embed" | "direct_video";
+  embedUrl?: string | null;
+  videoUrl?: string | null;
+  posterUrl?: string | null;
+  caption?: string | null;
+  contentSlug?: string | null;
+  contentType?: string | null;
+  title?: string | null;
+};
+
 export type PublicHeadlineData = {
   title?: string | null;
   subtitle?: string | null;
   imageUrl?: string | null;
   linkUrl?: string | null;
+  inlineMedia?: PublicInlineMedia | null;
   titleColor?: string | null;
   fallbackTitle: string;
   fallbackSubtitle: string;
@@ -147,13 +159,56 @@ export function PublicHeadlineBlock({ data }: { data: PublicHeadlineData }) {
   const subtitle = data.subtitle || data.fallbackSubtitle;
   const linkUrl = data.linkUrl?.trim();
   const TitleTag = data.titleTag ?? "h2";
+  const inlineMedia = data.inlineMedia;
+  const media = inlineMedia ? (
+    <div className="public-editorial-main-image">
+      {inlineMedia.kind === "embed" && inlineMedia.embedUrl ? (
+        <iframe
+          src={inlineMedia.embedUrl}
+          title={inlineMedia.title || title}
+          allow="encrypted-media; picture-in-picture; web-share"
+          allowFullScreen
+          loading="lazy"
+        />
+      ) : inlineMedia.kind === "direct_video" && inlineMedia.videoUrl ? (
+        <video controls preload="metadata" poster={inlineMedia.posterUrl || data.imageUrl || undefined}>
+          <source src={inlineMedia.videoUrl} />
+          O seu navegador nao suporta video HTML5.
+        </video>
+      ) : null}
+    </div>
+  ) : data.imageUrl ? (
+    <div className="public-editorial-main-image">
+      <img src={data.imageUrl} alt="" />
+    </div>
+  ) : null;
+
+  if (inlineMedia) {
+    return (
+      <article className="public-matchday-editorial">
+        <div className="public-cover-headline">
+          {media}
+          <div>
+            {linkUrl ? (
+              <a aria-label={`Abrir ${title}`} href={linkUrl} style={{ color: "inherit", textDecoration: "none" }}>
+                <TitleTag style={data.titleColor ? { color: data.titleColor } : undefined}>{title}</TitleTag>
+                <p>{subtitle}</p>
+              </a>
+            ) : (
+              <>
+                <TitleTag style={data.titleColor ? { color: data.titleColor } : undefined}>{title}</TitleTag>
+                <p>{subtitle}</p>
+              </>
+            )}
+          </div>
+        </div>
+      </article>
+    );
+  }
+
   const content = (
     <>
-      {data.imageUrl ? (
-        <div className="public-editorial-main-image">
-          <img src={data.imageUrl} alt="" />
-        </div>
-      ) : null}
+      {media}
       <div>
         <TitleTag style={data.titleColor ? { color: data.titleColor } : undefined}>{title}</TitleTag>
         <p>{subtitle}</p>
