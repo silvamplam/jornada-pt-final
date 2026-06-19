@@ -625,6 +625,7 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
           </div>
           <nav className="editorial-admin-actions" aria-label="Navegação editorial">
             <a href="/admin/editorial/home">Home Editorial</a>
+            <a href="/admin/editorial/conteudos">CONTEÚDOS / AUDIOVISUAL</a>
             <a href="/admin/editorial/composicao">Composição Editorial</a>
             <a href="/admin/editorial/jornada">Editorial da Jornada</a>
             <a href="/admin/gestor">Centro de Gestão</a>
