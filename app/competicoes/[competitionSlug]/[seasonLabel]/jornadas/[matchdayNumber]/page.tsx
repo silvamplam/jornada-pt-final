@@ -151,7 +151,7 @@ const publicMatchdayStyles = `
     border-radius: 999px;
     background: #ffffff;
     color: #66717f;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 900;
   }
 
@@ -623,7 +623,7 @@ const publicMatchdayStyles = `
 
   .public-side-editorial-copy small {
     color: #607086;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
     line-height: 1.2;
   }
@@ -659,7 +659,7 @@ const publicMatchdayStyles = `
   .public-side-editorial-placeholder {
     padding: 10px 0;
     color: #7a8796;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
     line-height: 1.35;
   }
