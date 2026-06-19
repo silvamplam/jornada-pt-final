@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { syncEditorialContentSnapshots } from "@/lib/editorial-content-snapshot-sync";
 import { fetchSupabaseAdminTable, writeSupabaseAdmin, writeSupabaseAdminReturning } from "@/lib/supabase";
 
 type EditorialContentIdRow = {
@@ -204,6 +205,7 @@ async function updateContent(formData: FormData) {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+  await syncEditorialContentSnapshots({ previousSlug: existing.slug, content: payload });
 
   return { contentId, status: payload.status };
 }
@@ -244,6 +246,7 @@ export async function POST(request: Request) {
     if (!created?.id) {
       throw new EditorialContentAdminError("save-failed");
     }
+    await syncEditorialContentSnapshots({ content: payload });
 
     return redirectTo(request, "/admin/editorial/conteudos", { created: "1", contentId: created.id });
   } catch (error) {
