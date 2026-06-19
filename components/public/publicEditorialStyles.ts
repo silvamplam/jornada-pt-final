@@ -630,12 +630,23 @@ export const publicEditorialStyles = `
     background: #eef2f6;
   }
 
-  .public-editorial-main-image img {
+  .public-editorial-main-image img,
+  .public-editorial-main-image iframe,
+  .public-editorial-main-image video {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
     object-position: center;
+  }
+
+  .public-editorial-main-image iframe {
+    border: 0;
+    background: #0f141b;
+  }
+
+  .public-editorial-main-image video {
+    background: #0f141b;
   }
 
   .public-cover-headline p {

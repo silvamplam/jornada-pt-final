@@ -78,6 +78,31 @@ type SiteLatestNews = {
   status: "draft" | "published";
 };
 
+type EditorialContentHeadlineMediaRow = {
+  slug: string;
+  status: "draft" | "published" | "archived";
+  content_type: string | null;
+  video_url: string | null;
+  video_provider: string | null;
+  embed_url: string | null;
+  is_embeddable: boolean | null;
+  thumbnail_url: string | null;
+  image_url: string | null;
+  image_caption: string | null;
+  title: string | null;
+};
+
+type HomeHeadlineInlineMedia = {
+  kind: "embed" | "direct_video";
+  embedUrl: string | null;
+  videoUrl: string | null;
+  posterUrl: string | null;
+  caption: string | null;
+  contentSlug: string;
+  contentType: string | null;
+  title: string | null;
+};
+
 type SiteFeaturedMatch = {
   match_id: string;
   sort_order: number | null;
@@ -144,6 +169,60 @@ const fallbackHighlights = [
 function cleanText(value: string | null | undefined) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function contentSlugFromHref(value: string | null | undefined) {
+  const trimmed = cleanText(value);
+  if (!trimmed) return null;
+
+  try {
+    const url = new URL(trimmed, "https://jornada.pt");
+    if (url.hostname !== "jornada.pt" && url.hostname !== "www.jornada.pt") return null;
+    const [section, slug] = url.pathname.split("/").filter(Boolean);
+    return section === "conteudos" && slug ? decodeURIComponent(slug) : null;
+  } catch {
+    return null;
+  }
+}
+
+function isDirectVideoUrl(value: string) {
+  try {
+    return /\.(mp4|webm|ogg)$/i.test(new URL(value).pathname);
+  } catch {
+    return false;
+  }
+}
+
+async function readHomeHeadlineInlineMedia(linkUrl: string | null | undefined, fallbackPosterUrl: string | null | undefined): Promise<HomeHeadlineInlineMedia | null> {
+  const slug = contentSlugFromHref(linkUrl);
+  if (!slug) return null;
+
+  const rows = await fetchSupabaseAdminTable<EditorialContentHeadlineMediaRow>(
+    `editorial_contents?select=slug,status,content_type,video_url,video_provider,embed_url,is_embeddable,thumbnail_url,image_url,image_caption,title&slug=eq.${encodeURIComponent(slug)}&status=eq.published&limit=1`
+  ).catch(() => []);
+  const content = rows[0] ?? null;
+  if (!content) return null;
+
+  const embedUrl = cleanText(content.embed_url);
+  const videoUrl = cleanText(content.video_url);
+  const posterUrl = cleanText(content.thumbnail_url) || cleanText(content.image_url) || cleanText(fallbackPosterUrl);
+  const base = {
+    posterUrl,
+    caption: cleanText(content.image_caption),
+    contentSlug: content.slug,
+    contentType: cleanText(content.content_type),
+    title: cleanText(content.title)
+  };
+
+  if (content.is_embeddable && embedUrl) {
+    return { ...base, kind: "embed", embedUrl, videoUrl: null };
+  }
+
+  if (videoUrl && isDirectVideoUrl(videoUrl)) {
+    return { ...base, kind: "direct_video", embedUrl: null, videoUrl };
+  }
+
+  return null;
 }
 
 function inFilter(values: string[]) {
@@ -331,6 +410,7 @@ export default async function HomePage() {
   const headlineImageUrl = headlineIsPublished ? cleanText(editorial.headline_image_url) : null;
   const headlineLinkUrl = headlineIsPublished ? cleanText(editorial.headline_link_url) : null;
   const headlineTitleColor = headlineIsPublished ? cleanText(editorial.headline_title_color) : null;
+  const headlineInlineMedia = await readHomeHeadlineInlineMedia(headlineLinkUrl, headlineImageUrl);
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const belowHeadlineHeading =
     cleanText(editorial?.below_headline_heading) || (belowHeadlineMode === "roundup" ? "Resumo da Jornada" : "Destaques");
@@ -428,6 +508,7 @@ export default async function HomePage() {
           subtitle: headlineSubtitle,
           imageUrl: headlineImageUrl,
           linkUrl: headlineLinkUrl,
+          inlineMedia: headlineInlineMedia,
           titleColor: headlineTitleColor,
           fallbackTitle: "Jornada.pt",
           fallbackSubtitle: "A capa editorial do futebol, pronta para acompanhar os grandes temas antes, durante e depois dos jogos."
