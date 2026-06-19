@@ -433,11 +433,13 @@ const publicMatchdayStyles = `
 
   .public-matchday-mini-card .public-matchday-mini-status {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     justify-content: flex-start;
     gap: 4px;
+    max-width: 100%;
     min-width: 0;
+    overflow: hidden;
     padding: 2px 0 0 29px;
     border-radius: 0;
     background: transparent;
@@ -484,6 +486,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-time {
+    flex: 0 0 auto;
     color: #263241;
     white-space: nowrap;
   }
@@ -497,6 +500,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-channel {
+    flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
     color: #607086;
@@ -505,6 +509,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-separator {
+    flex: 0 0 auto;
     color: #9aa6b4;
   }
 
