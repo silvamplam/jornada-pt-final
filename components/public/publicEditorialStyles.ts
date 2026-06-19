@@ -647,6 +647,7 @@ export const publicEditorialStyles = `
 
   .public-editorial-main-image video {
     background: #0f141b;
+    object-fit: contain;
   }
 
   .public-cover-headline p {
@@ -1199,6 +1200,11 @@ export const publicEditorialStyles = `
   .public-complement-media video {
     object-fit: cover;
     object-position: center;
+  }
+
+  .public-complement-media video {
+    background: #0f141b;
+    object-fit: contain;
   }
 
   .public-roundup-video-panel {

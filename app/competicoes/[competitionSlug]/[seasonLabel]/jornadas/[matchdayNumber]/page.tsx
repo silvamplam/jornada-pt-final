@@ -739,6 +739,11 @@ const publicMatchdayStyles = `
     object-position: center;
   }
 
+  .public-editorial-main-image video {
+    background: #0f141b;
+    object-fit: contain;
+  }
+
   .public-cover-headline p {
     max-width: 100%;
     color: #526174;
@@ -1319,6 +1324,11 @@ const publicMatchdayStyles = `
   .public-complement-media video {
     object-fit: cover;
     object-position: center;
+  }
+
+  .public-complement-media video {
+    background: #0f141b;
+    object-fit: contain;
   }
 
   .public-roundup-video-panel {
