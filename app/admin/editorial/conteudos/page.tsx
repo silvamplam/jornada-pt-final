@@ -190,7 +190,16 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
         </Link>
       </section>
 
+        <nav className="content-admin-actions" style={{ marginBottom: 18 }} aria-label="Navegação editorial">
+          <a href="/admin/editorial/home">Home Editorial</a>
+          <a href="/admin/editorial/artigos">Artigos / Notícias</a>
+          <a href="/admin/editorial/composicao">Composição Editorial</a>
+          <a href="/admin/editorial/jornada">Editorial da Jornada</a>
+          <a href="/admin/gestor">Centro de Gestão</a>
+          <a href="/admin">Backoffice</a>
+        </nav>
       <section className="content-admin-notes" aria-label="Notas de arquitetura">
+
         <p>
           <strong>Separacao:</strong> Artigos/Noticias continuam em <code>editorial_articles</code>. Esta pagina gere
           apenas <code>editorial_contents</code>.

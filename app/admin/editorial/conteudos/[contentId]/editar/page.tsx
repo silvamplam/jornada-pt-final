@@ -68,7 +68,16 @@ export default async function EditEditorialContentPage({ params, searchParams }:
         </div>
       </section>
 
+        <nav className="content-admin-actions" style={{ marginBottom: 18 }} aria-label="Navegação editorial">
+          <a href="/admin/editorial/home">Home Editorial</a>
+          <a href="/admin/editorial/artigos">Artigos / Notícias</a>
+          <a href="/admin/editorial/composicao">Composição Editorial</a>
+          <a href="/admin/editorial/jornada">Editorial da Jornada</a>
+          <a href="/admin/gestor">Centro de Gestão</a>
+          <a href="/admin">Backoffice</a>
+        </nav>
       {content ? (
+
         <EditorialContentForm mode="edit" content={content} message={pageMessage(error)} />
       ) : (
         <section className="content-admin-missing">
