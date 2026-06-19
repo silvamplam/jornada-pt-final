@@ -638,8 +638,11 @@ export async function getPublicMatchdayDiagnostic({
       awayTeam: teamsById.get(match.away_team_id) ?? null,
       broadcastChannel: match.broadcast_channel_id ? broadcastChannelsById.get(match.broadcast_channel_id) ?? null : null
     }));
-    const referenceHeadline = referenceCompositionBundle.hasPublishedReferenceComposition
-      ? [...(referenceCompositionBundle.referenceSlots.headline ?? [])].sort((a, b) => a.sort_order - b.sort_order)[0] ?? null
+    const referenceSlots = referenceCompositionBundle.hasPublishedReferenceComposition
+      ? (referenceCompositionBundle.referenceSlots as PublicReferenceCompositionSlots)
+      : null;
+    const referenceHeadline = referenceSlots
+      ? [...(referenceSlots.headline ?? [])].sort((a, b) => a.sort_order - b.sort_order)[0] ?? null
       : null;
     const publishedHeadline = editorial?.status === "published" ? editorial : null;
     const headlineLinkUrl = referenceHeadline
