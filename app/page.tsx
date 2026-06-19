@@ -434,6 +434,11 @@ export default async function HomePage() {
   const hasComplementaryStory =
     editorial?.complementary_status === "published" &&
     Boolean(complementaryTitle || complementaryText || complementaryImageUrl);
+  const complementaryInlineMedia = hasComplementaryStory
+    ? complementaryLinkUrl && complementaryLinkUrl === headlineLinkUrl
+      ? headlineInlineMedia
+      : await readHomeHeadlineInlineMedia(complementaryLinkUrl, complementaryImageUrl)
+    : null;
   const validHighlights = highlights.filter((item) => Boolean(cleanText(item.title) || cleanText(item.image_url) || cleanText(item.link_url)));
   const validRoundupItems = roundupItems.filter((item) => Boolean(cleanText(item.title) || cleanText(item.image_url) || cleanText(item.video_url)));
   const visibleHighlights = belowHeadlineMode === "highlights" ? (validHighlights.length > 0 ? validHighlights : fallbackHighlights) : [];
@@ -530,6 +535,7 @@ export default async function HomePage() {
             text: complementaryText,
             imageUrl: complementaryImageUrl,
             linkUrl: complementaryLinkUrl,
+            inlineMedia: complementaryInlineMedia,
             fallbackTitle: "Leitura editorial",
             fallbackText: "O complemento da capa fica reservado para a proxima historia publicada."
           }
