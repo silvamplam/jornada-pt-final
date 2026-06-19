@@ -3064,7 +3064,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                     <div className="public-side-editorial-copy">
                       {sideBlockLabel ? <span className="public-side-editorial-label">{sideBlockLabel}</span> : null}
                       {sideBlockTitle ? <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong> : null}
-                      {sideBlockAuthor ? <small>Por {sideBlockAuthor}</small> : null}
+                      {sideBlockAuthor ? <small>{sideBlockAuthor}</small> : null}
                       {sideBlockText ? <p>{sideBlockText}</p> : null}
                     </div>
                   </a>
@@ -3078,7 +3078,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                   <div className="public-side-editorial-copy">
                     {sideBlockLabel ? <span className="public-side-editorial-label">{sideBlockLabel}</span> : null}
                     {sideBlockTitle ? <strong style={sideBlockTitleColor ? { color: sideBlockTitleColor } : undefined}>{sideBlockTitle}</strong> : null}
-                    {sideBlockAuthor ? <small>Por {sideBlockAuthor}</small> : null}
+                    {sideBlockAuthor ? <small>{sideBlockAuthor}</small> : null}
                     {sideBlockText ? <p>{sideBlockText}</p> : null}
                   </div>
                 </>
@@ -3330,11 +3330,6 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                         )
                       ) : null}
                       {complementaryText ? <p>{complementaryText}</p> : null}
-                      {complementaryLinkUrl ? (
-                        <a className="public-editorial-more-link" href={complementaryLinkUrl}>
-                          Ver mais <span aria-hidden="true">›</span>
-                        </a>
-                      ) : null}
                     </div>
                   </>
                 ) : (
