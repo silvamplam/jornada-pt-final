@@ -436,15 +436,15 @@ const publicMatchdayStyles = `
     flex-wrap: nowrap;
     align-items: center;
     justify-content: flex-start;
-    gap: 4px;
+    gap: 3px;
     max-width: 100%;
     min-width: 0;
     overflow: hidden;
-    padding: 2px 0 0 29px;
+    padding: 2px 0 0;
     border-radius: 0;
     background: transparent;
-    color: #607086;
-    font-size: 10.5px;
+    color: inherit;
+    font-size: 10px;
     font-weight: 800;
     line-height: 1.15;
     text-transform: none;
@@ -465,7 +465,7 @@ const publicMatchdayStyles = `
 
   .public-matchday-mini-card-live .public-matchday-mini-status > span,
   .public-matchday-mini-card-halftime .public-matchday-mini-status > span {
-    color: #286943;
+    color: inherit;
   }
 
   .public-matchday-mini-card-live .public-matchday-mini-status > span::before,
@@ -474,20 +474,20 @@ const publicMatchdayStyles = `
     width: 6px;
     height: 6px;
     border-radius: 999px;
-    background: #17a34a;
+    background: currentColor;
   }
 
   .public-matchday-mini-card-finished .public-matchday-mini-status > span {
-    color: #4e5b69;
+    color: inherit;
   }
 
   .public-matchday-mini-card-unknown .public-matchday-mini-status > span {
-    color: #506075;
+    color: inherit;
   }
 
   .public-matchday-mini-time {
     flex: 0 0 auto;
-    color: #263241;
+    color: inherit;
     white-space: nowrap;
   }
 
@@ -495,7 +495,7 @@ const publicMatchdayStyles = `
     padding: 0;
     border-radius: 0;
     background: transparent;
-    color: #6b5a22;
+    color: inherit;
     font-weight: 900;
   }
 
@@ -503,14 +503,14 @@ const publicMatchdayStyles = `
     flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
-    color: #607086;
+    color: inherit;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .public-matchday-mini-separator {
     flex: 0 0 auto;
-    color: #9aa6b4;
+    color: inherit;
   }
 
   .public-matchday-cover {
