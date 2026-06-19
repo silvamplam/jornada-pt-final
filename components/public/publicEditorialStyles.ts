@@ -1187,14 +1187,16 @@ export const publicEditorialStyles = `
   }
 
   .public-complement-media img,
-  .public-complement-media iframe {
+  .public-complement-media iframe,
+  .public-complement-media video {
     display: block;
     width: 100%;
     height: 100%;
     border: 0;
   }
 
-  .public-complement-media img {
+  .public-complement-media img,
+  .public-complement-media video {
     object-fit: cover;
     object-position: center;
   }

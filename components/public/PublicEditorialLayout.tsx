@@ -60,6 +60,7 @@ export type PublicComplementaryData = {
   text?: string | null;
   imageUrl?: string | null;
   linkUrl?: string | null;
+  inlineMedia?: PublicInlineMedia | null;
   fallbackTitle: string;
   fallbackText: string;
 };
@@ -284,15 +285,35 @@ export function PublicHighlightsBlock({ highlights }: { highlights: PublicEditor
 }
 
 export function PublicComplementaryBlock({ data, ariaLabel = "Bloco complementar da jornada" }: { data: PublicComplementaryData; ariaLabel?: string }) {
+  const inlineMedia = data.inlineMedia;
+  const media = inlineMedia ? (
+    <div className="public-complement-media">
+      {inlineMedia.kind === "embed" && inlineMedia.embedUrl ? (
+        <iframe
+          src={inlineMedia.embedUrl}
+          title={inlineMedia.title || data.title || data.fallbackTitle}
+          allow="encrypted-media; picture-in-picture; web-share"
+          allowFullScreen
+          loading="lazy"
+        />
+      ) : inlineMedia.kind === "direct_video" && inlineMedia.videoUrl ? (
+        <video controls preload="metadata" poster={inlineMedia.posterUrl || data.imageUrl || undefined}>
+          <source src={inlineMedia.videoUrl} />
+          O seu navegador nao suporta video HTML5.
+        </video>
+      ) : null}
+    </div>
+  ) : data.imageUrl ? (
+    <div className="public-complement-media">
+      <img src={data.imageUrl} alt="" />
+    </div>
+  ) : null;
+
   return (
     <aside className="public-matchday-cover-side public-editorial-flex-block public-below-headline-side" data-editorial-slot="video-ou-imagem-noticia" aria-label={ariaLabel}>
       {data.isPublished ? (
         <>
-          {data.imageUrl ? (
-            <div className="public-complement-media">
-              <img src={data.imageUrl} alt="" />
-            </div>
-          ) : null}
+          {media}
           <div className="public-complement-body">
             {data.label ? <span className="public-complement-label">{data.label}</span> : null}
             {data.title ? (
