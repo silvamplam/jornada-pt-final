@@ -1916,11 +1916,13 @@ const publicMatchdayStyles = `
 
   .public-matchday-nav {
     display: flex;
-    flex-wrap: wrap;
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
     gap: 0;
     min-width: 0;
     padding: 0;
     overflow-x: auto;
+    overflow-y: hidden;
     border-top: 2px solid #10151b;
     border-bottom: 0;
     background: #ffffff;
@@ -1940,11 +1942,39 @@ const publicMatchdayStyles = `
     font-weight: 900;
     text-decoration: none;
     text-transform: uppercase;
+    white-space: nowrap;
   }
 
   .public-matchday-nav a[aria-current="page"] {
     border-color: #c40012;
     background: #c40012;
+    color: #ffffff;
+  }
+
+  .public-matchday-leg-nav {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0;
+    border-top: 2px solid #10151b;
+    background: #ffffff;
+    white-space: nowrap;
+  }
+
+  .public-matchday-leg-nav a {
+    display: inline-block;
+    padding: 8px 11px;
+    border-right: 1px solid #dfe5ec;
+    background: #ffffff;
+    color: #263241;
+    font-size: 12px;
+    font-weight: 900;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .public-matchday-leg-nav a[aria-current="true"] {
+    background: #10151b;
     color: #ffffff;
   }
 
@@ -2257,13 +2287,14 @@ const publicMatchdayStyles = `
 
   .public-season-nav-inner {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px 18px;
     align-items: center;
     min-height: 52px;
     max-width: 1512px;
     margin: 0 auto;
     padding: 0;
+    overflow: hidden;
   }
 
   @media (max-width: 760px) {
@@ -2791,6 +2822,17 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
     selectedMatchday: context.matchday
   });
   const matchdayHref = (number: number) => `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/${number}`;
+  const shouldSplitMatchdayNav = context.matchdays.length > 20;
+  const firstLegMatchdays = shouldSplitMatchdayNav ? context.matchdays.slice(0, 19) : context.matchdays;
+  const secondLegMatchdays = shouldSplitMatchdayNav ? context.matchdays.slice(19) : [];
+  const activeMatchdayLeg =
+    shouldSplitMatchdayNav && secondLegMatchdays.some((matchday) => matchday.id === context.matchday.id)
+      ? "second"
+      : "first";
+  const visibleMatchdays =
+    shouldSplitMatchdayNav && activeMatchdayLeg === "second" ? secondLegMatchdays : firstLegMatchdays;
+  const firstLegHref = firstLegMatchdays[0] ? matchdayHref(firstLegMatchdays[0].number) : currentSeasonHref;
+  const secondLegHref = secondLegMatchdays[0] ? matchdayHref(secondLegMatchdays[0].number) : currentSeasonHref;
   const gamesPageHref = `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/${context.matchday.number}/jogos`;
   const liveMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "live");
   const halftimeMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "halftime");
@@ -2977,8 +3019,18 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
             ))}
           </select>
         </label>
+        {shouldSplitMatchdayNav ? (
+          <nav className="public-matchday-leg-nav" aria-label="Voltas da época">
+            <a aria-current={activeMatchdayLeg === "first" ? "true" : undefined} href={firstLegHref}>
+              1.ª volta
+            </a>
+            <a aria-current={activeMatchdayLeg === "second" ? "true" : undefined} href={secondLegHref}>
+              2.ª volta
+            </a>
+          </nav>
+        ) : null}
         <nav className="public-matchday-nav">
-          {context.matchdays.map((matchday) => (
+          {visibleMatchdays.map((matchday) => (
             <a
               aria-current={matchday.id === context.matchday.id ? "page" : undefined}
               href={matchdayHref(matchday.number)}
