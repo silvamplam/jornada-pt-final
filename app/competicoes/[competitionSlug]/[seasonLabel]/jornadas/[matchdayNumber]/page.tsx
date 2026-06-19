@@ -435,16 +435,17 @@ const publicMatchdayStyles = `
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 3px;
+    width: 100%;
     max-width: 100%;
     min-width: 0;
     overflow: hidden;
-    padding: 2px 0 0;
+    padding: 2px 4px 0;
     border-radius: 0;
     background: transparent;
     color: inherit;
-    font-size: 10px;
+    font-size: 10.5px;
     font-weight: 800;
     line-height: 1.15;
     text-transform: none;
@@ -500,7 +501,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-channel {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
     overflow: hidden;
     color: inherit;
