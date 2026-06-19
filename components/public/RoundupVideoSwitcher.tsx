@@ -512,11 +512,6 @@ export default function RoundupVideoSwitcher({ items, initialItemId, heading, he
               </span>
               <strong>{activeItem.title ?? "Video da jornada"}</strong>
               {activeItem.subtitle ? <p>{activeItem.subtitle}</p> : null}
-              {activeVideoUrl ? (
-                <a className="public-editorial-more-link" href={activeVideoUrl} rel="noopener noreferrer" target="_blank">
-                  Abrir video <span aria-hidden="true">›</span>
-                </a>
-              ) : null}
             </div>
           </div>
         ) : (
