@@ -1077,7 +1077,8 @@ const managerStyles = `
     text-transform: uppercase;
   }
 
-  .manager-score-field input {
+  .manager-score-field input,
+  .manager-score-field select {
     width: 64px;
     min-height: 38px;
     padding: 0 8px;
@@ -1087,6 +1088,10 @@ const managerStyles = `
     color: #10151b;
     font: inherit;
     font-size: 15px;
+  }
+
+  .manager-score-field select {
+    width: 128px;
   }
 
   .manager-finished-match {
@@ -1897,7 +1902,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
   const matchesForMatchday = await readMatchesForMatchday(selectedMatchday?.id);
   const scheduledMatchesForMatchday = matchesForMatchday.filter((match) => match.status === "scheduled");
   const futureLiveMatchesForMatchday = matchesForMatchday.filter(
-    (match) => match.status !== "scheduled" && match.status !== "finished"
+    (match) => match.status === "live" || match.status === "halftime"
   );
   const finishedMatchesForMatchday = matchesForMatchday.filter((match) => match.status === "finished");
   const matchesForSeason = await readMatchesForSeason(selectedSeason?.id);
@@ -2098,7 +2103,7 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     update_match: "Jogo atualizado na jornada selecionada.",
     remove_match: "Jogo removido da jornada selecionada.",
     clear_season_calendar: "Epoca limpa. Jogos, jornadas e participantes desta epoca foram removidos.",
-    finish_match: "Resultado final guardado.",
+    finish_match: "Estado do jogo guardado.",
     save_matchday_editorial: "Linha editorial da jornada guardada.",
     save_matchday_highlights: "Destaques guardados e definidos como zona ativa abaixo da manchete.",
     save_matchday_roundup_items: "Resumo da Jornada guardado e definido como zona ativa abaixo da manchete.",
@@ -2152,7 +2157,9 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     "clear-season-calendar-step-failed": clearCalendarErrorDetail ?? "Nao foi possivel limpar o calendario da epoca. O detalhe do passo nao foi devolvido.",
     "clear-season-calendar-fk": "Nao foi possivel limpar o calendario porque ainda existe uma dependencia ligada aos jogos ou jornadas. O detalhe ficou registado no log do servidor.",
     "clear-season-calendar-failed": "Nao foi possivel limpar o calendario da epoca. O detalhe ficou registado no log do servidor.",
-    "match-score-invalid": "O resultado tem de ter golos da casa e do fora, com numeros inteiros iguais ou superiores a zero.",
+    "match-score-invalid": "O resultado deve estar vazio ou ter golos da casa e do fora, com numeros inteiros iguais ou superiores a zero.",
+    "match-minute-invalid": "O minuto deve ser um numero entre 0 e 130.",
+    "match-status-invalid": "Escolhe um estado valido para o jogo.",
     "editorial-title-required": "Para publicar, indica uma manchete da jornada.",
     "highlight-title-required": "Para publicar um destaque, indica o titulo.",
     "roundup-title-required": "Para publicar um item do Resumo da Jornada, indica o titulo.",
@@ -2177,12 +2184,24 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     return null;
   };
 
+  const matchStatusLabel = (status: string) => {
+    const normalized = status.trim().toLowerCase();
+    if (normalized === "finished") return "Finalizado";
+    if (normalized === "live") return "Em direto";
+    if (normalized === "halftime") return "Intervalo";
+    if (normalized === "scheduled") return "Agendado";
+    return status || "Estado por definir";
+  };
+
   const renderMatchListItem = (match: SeasonAgendaMatch) => {
     const homeTeam = participantTeamsById.get(match.home_team_id);
     const awayTeam = participantTeamsById.get(match.away_team_id);
     const hasFinalScore = match.home_score !== null && match.away_score !== null;
     const hasAnyScore = match.home_score !== null || match.away_score !== null;
-    const statusLabel = match.status === "finished" ? "Finalizado" : "Agendado";
+    const statusKind = match.status.trim().toLowerCase();
+    const statusValue = ["scheduled", "live", "halftime", "finished"].includes(statusKind) ? statusKind : "scheduled";
+    const statusLabel = matchStatusLabel(match.status);
+    const minuteLabel = match.minute !== null && (statusValue === "live" || statusValue === "halftime") ? ` · ${match.minute}'` : "";
     const scoreLabel = hasFinalScore ? ` - ${match.home_score}-${match.away_score}` : "";
     const isFinished = match.status === "finished";
     const hasCompetitiveData =
@@ -2191,6 +2210,40 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
       match.status !== "scheduled" ||
       match.minute !== null ||
       match.broadcast_channel_id !== null;
+    const stateForm = (
+      <form className="manager-actions" action="/api/admin/gestor" method="post">
+        <input type="hidden" name="action_type" value="finish_match" />
+        <input type="hidden" name="return_to" value={matchesReturnTo} />
+        <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
+        <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
+        <input type="hidden" name="matchday_id" value={selectedMatchday?.id ?? ""} />
+        <input type="hidden" name="match_id" value={match.id} />
+        <label className="manager-score-field">
+          <span>Estado</span>
+          <select name="status" defaultValue={statusValue}>
+            <option value="scheduled">Agendado</option>
+            <option value="live">Em direto</option>
+            <option value="halftime">Intervalo</option>
+            <option value="finished">Finalizado</option>
+          </select>
+        </label>
+        <label className="manager-score-field">
+          <span>Minuto</span>
+          <input name="minute" type="number" min={0} max={130} step={1} defaultValue={match.minute ?? ""} />
+        </label>
+        <label className="manager-score-field">
+          <span>Casa</span>
+          <input name="home_score" type="number" min={0} step={1} defaultValue={match.home_score ?? ""} />
+        </label>
+        <label className="manager-score-field">
+          <span>Fora</span>
+          <input name="away_score" type="number" min={0} step={1} defaultValue={match.away_score ?? ""} />
+        </label>
+        <button className="manager-link-button" type="submit">
+          Guardar estado
+        </button>
+      </form>
+    );
 
     if (isFinished) {
       return (
@@ -2201,30 +2254,13 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
             </b>
             <small>
               {formatLisbonDateTime(match.kickoff_at)} - {match.venue ?? "Sem estadio"} - {statusLabel}
+              {minuteLabel}
             </small>
           </div>
           <details className="manager-manual-actions">
             <summary>Corrigir resultado</summary>
             <div className="manager-actions">
-              <form className="manager-actions" action="/api/admin/gestor" method="post">
-                <input type="hidden" name="action_type" value="finish_match" />
-                <input type="hidden" name="return_to" value={matchesReturnTo} />
-                <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
-                <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
-                <input type="hidden" name="matchday_id" value={selectedMatchday?.id ?? ""} />
-                <input type="hidden" name="match_id" value={match.id} />
-                <label className="manager-score-field">
-                  <span>Casa</span>
-                  <input name="home_score" type="number" min={0} step={1} defaultValue={match.home_score ?? ""} required />
-                </label>
-                <label className="manager-score-field">
-                  <span>Fora</span>
-                  <input name="away_score" type="number" min={0} step={1} defaultValue={match.away_score ?? ""} required />
-                </label>
-                <button className="manager-link-button" type="submit">
-                  Guardar resultado
-                </button>
-              </form>
+              {stateForm}
               <button className="manager-link-button" type="button" disabled>
                 Editar agenda
               </button>
@@ -2248,29 +2284,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
           </b>
           <small>
             {formatLisbonDateTime(match.kickoff_at)} - {match.venue ?? "Sem estadio"} - {statusLabel}
+            {minuteLabel}
             {scoreLabel}
           </small>
         </div>
         <div className="manager-actions">
-          <form className="manager-actions" action="/api/admin/gestor" method="post">
-            <input type="hidden" name="action_type" value="finish_match" />
-            <input type="hidden" name="return_to" value={matchesReturnTo} />
-            <input type="hidden" name="competition_id" value={selectedCompetition?.id ?? ""} />
-            <input type="hidden" name="season_id" value={selectedSeason?.id ?? ""} />
-            <input type="hidden" name="matchday_id" value={selectedMatchday?.id ?? ""} />
-            <input type="hidden" name="match_id" value={match.id} />
-            <label className="manager-score-field">
-              <span>Casa</span>
-              <input name="home_score" type="number" min={0} step={1} defaultValue={match.home_score ?? ""} required />
-            </label>
-            <label className="manager-score-field">
-              <span>Fora</span>
-              <input name="away_score" type="number" min={0} step={1} defaultValue={match.away_score ?? ""} required />
-            </label>
-            <button className="manager-link-button" type="submit">
-              Guardar resultado
-            </button>
-          </form>
+          {stateForm}
           {hasCompetitiveData ? (
             <button className="manager-link-button" type="button" disabled>
               Editar agenda
@@ -3736,11 +3755,18 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
                 <header>
                   <h3>Jogos em direto</h3>
                   <p>
-                    {futureLiveMatchesForMatchday.length > 0
-                      ? `${futureLiveMatchesForMatchday.length} jogos com estado reservado para operacao futura.`
-                      : "Espaco futuro para estado em direto, minuto e eventos. Controlos ainda nao ativos."}
+                    {selectedMatchday
+                      ? `${futureLiveMatchesForMatchday.length} jogos em direto ou intervalo nesta jornada.`
+                      : "Escolhe uma jornada para ver jogos em direto."}
                   </p>
                 </header>
+                {!selectedMatchday ? (
+                  <div className="manager-empty">Escolhe uma jornada para ver jogos em direto.</div>
+                ) : futureLiveMatchesForMatchday.length === 0 ? (
+                  <div className="manager-empty">Nao ha jogos em direto nesta jornada.</div>
+                ) : (
+                  <ul className="manager-list">{futureLiveMatchesForMatchday.map(renderMatchListItem)}</ul>
+                )}
               </article>
 
               <article className="manager-create-card manager-wide-card manager-match-finished">

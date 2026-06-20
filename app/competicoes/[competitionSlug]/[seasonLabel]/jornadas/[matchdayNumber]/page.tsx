@@ -458,17 +458,50 @@ const publicMatchdayStyles = `
     color: inherit;
   }
 
-  .public-matchday-mini-card-live .public-matchday-mini-status > span::before,
-  .public-matchday-mini-card-halftime .public-matchday-mini-status > span::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    border-radius: 999px;
-    background: currentColor;
-  }
-
   .public-matchday-mini-card-finished .public-matchday-mini-status > span {
     color: inherit;
+  }
+
+  .public-live-pulse-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
+  .public-live-pulse-dots span {
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: #16a34a;
+    opacity: 0.25;
+    animation: public-live-dot-alternate 1.1s infinite ease-in-out;
+  }
+
+  .public-live-pulse-dots span:nth-child(2) {
+    animation-delay: 0.55s;
+  }
+
+  @keyframes public-live-dot-alternate {
+    0%,
+    100% {
+      opacity: 0.25;
+      transform: scale(0.82);
+    }
+
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .public-live-pulse-dots span {
+      animation: none;
+      opacity: 0.75;
+      transform: none;
+    }
   }
 
   .public-matchday-mini-card-unknown .public-matchday-mini-status > span {
@@ -1847,16 +1880,6 @@ const publicMatchdayStyles = `
     color: #286943;
   }
 
-  .public-matchday-status-live::before,
-  .public-matchday-status-halftime::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    margin-right: 2px;
-    border-radius: 999px;
-    background: #17a34a;
-  }
-
   .public-matchday-status-halftime {
     background: #edf7f1;
     color: #286943;
@@ -2600,6 +2623,15 @@ function BroadcastBadge({ match }: { match: PublicSeasonMatch }) {
   );
 }
 
+function LivePulseDots() {
+  return (
+    <span className="public-live-pulse-dots" aria-hidden="true">
+      <span />
+      <span />
+    </span>
+  );
+}
+
 function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: boolean }) {
   const kind = statusKind(match.status);
   const broadcastChannelName = match.broadcastChannel?.name?.trim();
@@ -2625,7 +2657,10 @@ function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: 
         {kind === "finished" ? (
           <span>Finalizado</span>
         ) : kind === "live" || kind === "halftime" ? (
-          <span>{liveStatus}</span>
+          <span>
+            {liveStatus}
+            {kind === "live" ? <LivePulseDots /> : null}
+          </span>
         ) : kind === "scheduled" ? (
           <>
             <time className="public-matchday-mini-time" dateTime={match.kickoff_at}>{formatMiniCardKickoff(match.kickoff_at)}</time>
@@ -2661,7 +2696,10 @@ function MatchCard({ match }: { match: PublicSeasonMatch }) {
       </div>
       <div className="public-matchday-score">
         <strong>{matchResult(match)}</strong>
-        <small className={`public-matchday-status public-matchday-status-${kind}`}>{statusText}</small>
+        <small className={`public-matchday-status public-matchday-status-${kind}`}>
+          {statusText}
+          {kind === "live" ? <LivePulseDots /> : null}
+        </small>
       </div>
       <div className={`public-matchday-team ${awayWinner ? "public-matchday-team-winner" : ""}`}>
         <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />

@@ -33,11 +33,49 @@ function cleanInteger(value: FormDataEntryValue | null): number | null {
 function cleanScore(value: FormDataEntryValue | null): number | null {
   const text = cleanText(value);
 
-  if (!text || !/^\d+$/.test(text)) {
+  if (!text) {
     return null;
   }
 
+  if (!/^\d+$/.test(text)) {
+    throw new Error("match-score-invalid");
+  }
+
   return Number.parseInt(text, 10);
+}
+
+function cleanMatchMinute(value: FormDataEntryValue | null): number | null {
+  const text = cleanText(value);
+
+  if (!text) {
+    return null;
+  }
+
+  if (!/^\d+$/.test(text)) {
+    throw new Error("match-minute-invalid");
+  }
+
+  const minute = Number.parseInt(text, 10);
+  if (minute < 0 || minute > 130) {
+    throw new Error("match-minute-invalid");
+  }
+
+  return minute;
+}
+
+function cleanMatchStatus(value: FormDataEntryValue | null, fallback = "scheduled"): string {
+  const status = cleanText(value);
+  const allowed = new Set(["scheduled", "live", "halftime", "finished"]);
+
+  if (!status) {
+    return allowed.has(fallback) ? fallback : "scheduled";
+  }
+
+  if (!allowed.has(status)) {
+    throw new Error("match-status-invalid");
+  }
+
+  return status;
 }
 
 function cleanMatchdayStatus(value: FormDataEntryValue | null): string {
@@ -2315,8 +2353,13 @@ async function finishMatch(formData: FormData) {
   const matchId = cleanText(formData.get("match_id"));
   const homeScore = cleanScore(formData.get("home_score"));
   const awayScore = cleanScore(formData.get("away_score"));
+  const minute = cleanMatchMinute(formData.get("minute"));
 
-  if (!competitionId || !seasonId || !matchdayId || !matchId || homeScore === null || awayScore === null) {
+  if (!competitionId || !seasonId || !matchdayId || !matchId) {
+    throw new Error("missing-fields");
+  }
+
+  if ((homeScore === null) !== (awayScore === null)) {
     throw new Error("match-score-invalid");
   }
 
@@ -2334,7 +2377,8 @@ async function finishMatch(formData: FormData) {
     throw new Error("matchday-invalid");
   }
 
-  await readAgendaMatch(formData);
+  const match = await readAgendaMatch(formData);
+  const status = cleanMatchStatus(formData.get("status"), match.status);
 
   await writeSupabaseAdmin(
     `matches?id=eq.${encodeURIComponent(matchId)}&competition_id=eq.${encodeURIComponent(
@@ -2347,7 +2391,8 @@ async function finishMatch(formData: FormData) {
       body: JSON.stringify({
         home_score: homeScore,
         away_score: awayScore,
-        status: "finished",
+        minute,
+        status,
         data_source: "manual",
         sync_status: "manual",
         manual_override: true
