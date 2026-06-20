@@ -110,7 +110,7 @@ const publicMatchdayStyles = `
     flex-wrap: wrap;
     gap: 18px;
     align-items: center;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 900;
     text-transform: uppercase;
   }
@@ -192,7 +192,7 @@ const publicMatchdayStyles = `
     border: 1px solid #cfd7e1;
     background: #f8fafc;
     color: #263241;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 900;
     text-transform: uppercase;
     white-space: nowrap;
@@ -1924,7 +1924,7 @@ const publicMatchdayStyles = `
     border-radius: 0;
     background: #ffffff;
     color: #263241;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 900;
     text-decoration: none;
     text-transform: uppercase;
@@ -1953,7 +1953,7 @@ const publicMatchdayStyles = `
     border-right: 1px solid #dfe5ec;
     background: #ffffff;
     color: #263241;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 900;
     text-decoration: none;
     text-transform: uppercase;
@@ -1977,7 +1977,7 @@ const publicMatchdayStyles = `
     align-items: center;
     max-width: 100%;
     color: #66717f;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 800;
     line-height: 1;
     text-align: right;
