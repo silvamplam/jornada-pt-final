@@ -214,9 +214,15 @@ const articlePageStyles = `
     min-width: 0;
     overflow-x: auto;
     overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     padding: 0;
     border-top: 2px solid #10151b;
     background: #ffffff;
+  }
+
+  .public-matchday-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .public-matchday-nav a {
@@ -731,16 +737,30 @@ function formatMatchdayDateContext(matches: PublicSeasonMatch[]) {
 
   const firstDate = kickoffDates[0];
   const lastDate = kickoffDates[kickoffDates.length - 1];
-  const dateFormatter = new Intl.DateTimeFormat("pt-PT", {
+  const dayFormatter = new Intl.DateTimeFormat("pt-PT", {
     day: "numeric",
+    timeZone: "Europe/Lisbon"
+  });
+  const monthFormatter = new Intl.DateTimeFormat("pt-PT", {
     month: "long",
     timeZone: "Europe/Lisbon"
   });
+  const monthKeyFormatter = new Intl.DateTimeFormat("en-CA", {
+    month: "2-digit",
+    timeZone: "Europe/Lisbon"
+  });
 
-  const firstLabel = dateFormatter.format(firstDate);
-  const lastLabel = dateFormatter.format(lastDate);
+  const firstDay = dayFormatter.format(firstDate);
+  const lastDay = dayFormatter.format(lastDate);
+  const firstMonth = monthFormatter.format(firstDate);
+  const lastMonth = monthFormatter.format(lastDate);
+  const sameMonth = monthKeyFormatter.format(firstDate) === monthKeyFormatter.format(lastDate);
 
-  return firstLabel === lastLabel ? firstLabel : `${firstLabel} – ${lastLabel}`;
+  if (sameMonth) {
+    return firstDay === lastDay ? `${firstDay} ${firstMonth}` : `${firstDay}–${lastDay} ${lastMonth}`;
+  }
+
+  return `${firstDay} ${firstMonth} – ${lastDay} ${lastMonth}`;
 }
 
 function statusKind(status: string) {
