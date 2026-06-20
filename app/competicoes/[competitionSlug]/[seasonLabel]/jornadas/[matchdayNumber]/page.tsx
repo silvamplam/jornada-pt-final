@@ -110,7 +110,7 @@ const publicMatchdayStyles = `
     flex-wrap: wrap;
     gap: 18px;
     align-items: center;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 900;
     text-transform: uppercase;
   }
@@ -151,7 +151,7 @@ const publicMatchdayStyles = `
     border-radius: 999px;
     background: #ffffff;
     color: #66717f;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 900;
   }
 
@@ -192,7 +192,7 @@ const publicMatchdayStyles = `
     border: 1px solid #cfd7e1;
     background: #f8fafc;
     color: #263241;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 900;
     text-transform: uppercase;
     white-space: nowrap;
@@ -308,60 +308,49 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-strip {
-    display: flex;
-    gap: 14px;
+    display: grid;
+    gap: 6px;
+    grid-template-columns: repeat(10, minmax(118px, 1fr));
     overflow-x: auto;
     scroll-behavior: smooth;
-    scroll-padding: 14px;
-    padding: 8px;
+    scroll-padding: 6px;
+    padding: 6px;
     background: #ffffff;
   }
 
   .public-matchday-strip-shell {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 6px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
     align-items: center;
-    min-height: 104px;
-    padding: 0 10px;
+    min-height: 96px;
+    padding: 0 6px;
     background: #ffffff;
-  }
-
-  .public-matchday-strip-button {
-    align-self: center;
-    width: 30px;
-    height: 52px;
-    border: 1px solid #d8dee6;
-    border-radius: 999px;
-    background: #ffffff;
-    color: #263241;
-    font-size: 22px;
-    font-weight: 900;
-    cursor: pointer;
   }
 
   .public-matchday-mini-card {
     position: relative;
     display: grid;
-    flex: 0 0 176px;
     grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
+    gap: 3px;
     align-items: start;
-    min-height: 84px;
-    padding: 8px 9px;
+    width: 100%;
+    min-width: 0;
+    min-height: 76px;
+    padding: 7px;
     border: 1px solid #eef2f6;
     border-radius: 6px;
     background: #ffffff;
     box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .public-matchday-mini-card + .public-matchday-mini-card::before {
     content: "";
     position: absolute;
-    top: 10px;
-    bottom: 10px;
-    left: -7px;
+    top: 8px;
+    bottom: 8px;
+    left: -4px;
     width: 1px;
     background: #dfe5ec;
   }
@@ -395,7 +384,7 @@ const publicMatchdayStyles = `
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     overflow: hidden;
     font-weight: 800;
     text-transform: none;
@@ -416,18 +405,18 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-score {
-    min-width: 16px;
+    min-width: 14px;
     color: #10151b;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 900;
     line-height: 1;
     text-align: right;
   }
 
   .public-matchday-mini-card .public-team-badge {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     background: #ffffff;
   }
 
@@ -440,12 +429,12 @@ const publicMatchdayStyles = `
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    overflow: hidden;
-    padding: 2px 4px 0;
+    overflow: visible;
+    padding: 1px 2px 0;
     border-radius: 0;
     background: transparent;
     color: inherit;
-    font-size: 10.5px;
+    font-size: 9.5px;
     font-weight: 800;
     line-height: 1.15;
     text-transform: none;
@@ -501,11 +490,8 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-channel {
-    flex: 0 1 auto;
-    min-width: 0;
-    overflow: hidden;
+    flex: 0 0 auto;
     color: inherit;
-    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
@@ -623,7 +609,7 @@ const publicMatchdayStyles = `
 
   .public-side-editorial-copy small {
     color: #607086;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
     line-height: 1.2;
   }
@@ -659,7 +645,7 @@ const publicMatchdayStyles = `
   .public-side-editorial-placeholder {
     padding: 10px 0;
     color: #7a8796;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
     line-height: 1.35;
   }
@@ -1916,11 +1902,13 @@ const publicMatchdayStyles = `
 
   .public-matchday-nav {
     display: flex;
-    flex-wrap: wrap;
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
     gap: 0;
     min-width: 0;
     padding: 0;
     overflow-x: auto;
+    overflow-y: hidden;
     border-top: 2px solid #10151b;
     border-bottom: 0;
     background: #ffffff;
@@ -1936,15 +1924,43 @@ const publicMatchdayStyles = `
     border-radius: 0;
     background: #ffffff;
     color: #263241;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 900;
     text-decoration: none;
     text-transform: uppercase;
+    white-space: nowrap;
   }
 
   .public-matchday-nav a[aria-current="page"] {
     border-color: #c40012;
     background: #c40012;
+    color: #ffffff;
+  }
+
+  .public-matchday-leg-nav {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0;
+    border-top: 2px solid #10151b;
+    background: #ffffff;
+    white-space: nowrap;
+  }
+
+  .public-matchday-leg-nav a {
+    display: inline-block;
+    padding: 8px 11px;
+    border-right: 1px solid #dfe5ec;
+    background: #ffffff;
+    color: #263241;
+    font-size: 11px;
+    font-weight: 900;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .public-matchday-leg-nav a[aria-current="true"] {
+    background: #10151b;
     color: #ffffff;
   }
 
@@ -1961,7 +1977,7 @@ const publicMatchdayStyles = `
     align-items: center;
     max-width: 100%;
     color: #66717f;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 800;
     line-height: 1;
     text-align: right;
@@ -2257,13 +2273,14 @@ const publicMatchdayStyles = `
 
   .public-season-nav-inner {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px 18px;
     align-items: center;
     min-height: 52px;
     max-width: 1512px;
     margin: 0 auto;
     padding: 0;
+    overflow: hidden;
   }
 
   @media (max-width: 760px) {
@@ -2488,12 +2505,39 @@ function teamInitials(name?: string | null, shortName?: string | null) {
   return initials || "FC";
 }
 
+const COMPACT_TEAM_LABELS: Record<string, string> = {
+  "athletic club": "Athletic",
+  "atletico madrid": "A. Madrid",
+  "atletico de madrid": "A. Madrid",
+  "celta vigo": "Celta",
+  "rayo vallecano": "Rayo",
+  "real betis": "Betis",
+  "real madrid": "R. Madrid",
+  "real sociedad": "R. Sociedad",
+  "racing santander": "Racing",
+  "deportivo la coruna": "Deportivo"
+};
+
+function compactTeamKey(name: string) {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function shortTeamLabel(name?: string | null, shortName?: string | null) {
   const editorialName = name?.trim();
+  const compactName = editorialName ? COMPACT_TEAM_LABELS[compactTeamKey(editorialName)] : null;
   const fallback = shortName?.trim() || editorialName || "Equipa";
 
   if (!editorialName) {
     return fallback;
+  }
+
+  if (compactName) {
+    return compactName;
   }
 
   return editorialName.length <= 20 ? editorialName : fallback;
@@ -2562,17 +2606,19 @@ function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: 
   const hasScore = match.home_score !== null && match.away_score !== null;
   const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
   const liveStatus = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
+  const homeTeamName = match.homeTeam?.name ?? "Equipa da casa";
+  const awayTeamName = match.awayTeam?.name ?? "Equipa visitante";
 
   return (
     <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>
       <span className="public-matchday-mini-team">
         <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
-        <span>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</span>
+        <span title={homeTeamName}>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</span>
         {showScore ? <b className="public-matchday-mini-score">{match.home_score}</b> : null}
       </span>
       <span className="public-matchday-mini-team">
         <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
-        <span>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</span>
+        <span title={awayTeamName}>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</span>
         {showScore ? <b className="public-matchday-mini-score">{match.away_score}</b> : null}
       </span>
       <span className="public-matchday-mini-status">
@@ -2791,6 +2837,17 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
     selectedMatchday: context.matchday
   });
   const matchdayHref = (number: number) => `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/${number}`;
+  const shouldSplitMatchdayNav = context.matchdays.length > 20;
+  const firstLegMatchdays = shouldSplitMatchdayNav ? context.matchdays.slice(0, 19) : context.matchdays;
+  const secondLegMatchdays = shouldSplitMatchdayNav ? context.matchdays.slice(19) : [];
+  const activeMatchdayLeg =
+    shouldSplitMatchdayNav && secondLegMatchdays.some((matchday) => matchday.id === context.matchday.id)
+      ? "second"
+      : "first";
+  const visibleMatchdays =
+    shouldSplitMatchdayNav && activeMatchdayLeg === "second" ? secondLegMatchdays : firstLegMatchdays;
+  const firstLegHref = firstLegMatchdays[0] ? matchdayHref(firstLegMatchdays[0].number) : currentSeasonHref;
+  const secondLegHref = secondLegMatchdays[0] ? matchdayHref(secondLegMatchdays[0].number) : currentSeasonHref;
   const gamesPageHref = `/competicoes/${context.competition.slug}/${seasonSegment}/jornadas/${context.matchday.number}/jogos`;
   const liveMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "live");
   const halftimeMatches = context.matchesForMatchday.filter((match) => statusKind(match.status) === "halftime");
@@ -2977,8 +3034,18 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
             ))}
           </select>
         </label>
+        {shouldSplitMatchdayNav ? (
+          <nav className="public-matchday-leg-nav" aria-label="Voltas da época">
+            <a aria-current={activeMatchdayLeg === "first" ? "true" : undefined} href={firstLegHref}>
+              1.ª volta
+            </a>
+            <a aria-current={activeMatchdayLeg === "second" ? "true" : undefined} href={secondLegHref}>
+              2.ª volta
+            </a>
+          </nav>
+        ) : null}
         <nav className="public-matchday-nav">
-          {context.matchdays.map((matchday) => (
+          {visibleMatchdays.map((matchday) => (
             <a
               aria-current={matchday.id === context.matchday.id ? "page" : undefined}
               href={matchdayHref(matchday.number)}
@@ -3011,10 +3078,11 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
       />
       <section className="public-matchday-panel public-matchday-scoreboard-panel" aria-label="Visao rapida dos jogos">
         <div className="public-matchday-strip-shell">
-          <button className="public-matchday-strip-button" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
-            ‹
-          </button>
-          <div className="public-matchday-strip" data-matchday-strip>
+          <div
+            className="public-matchday-strip"
+            data-matchday-strip
+            style={{ gridTemplateColumns: `repeat(${Math.max(context.matchesForMatchday.length, 1)}, minmax(118px, 1fr))` }}
+          >
             {context.matchesForMatchday.length > 0 ? (
               context.matchesForMatchday.map((match) => (
                 <CompactMatchCard focus={focusedStripMatch?.id === match.id} key={match.id} match={match} />
@@ -3023,9 +3091,6 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
               <p>Ainda nao ha jogos nesta jornada.</p>
             )}
           </div>
-          <button className="public-matchday-strip-button" data-strip-scroll="right" type="button" aria-label="Ver jogos seguintes">
-            ›
-          </button>
         </div>
         <script
           dangerouslySetInnerHTML={{
@@ -3037,12 +3102,6 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                 if (focused && "scrollIntoView" in focused) {
                   focused.scrollIntoView({ block: "nearest", inline: "center" });
                 }
-                document.querySelectorAll("[data-strip-scroll]").forEach(function (button) {
-                  button.addEventListener("click", function () {
-                    var direction = button.getAttribute("data-strip-scroll") === "left" ? -1 : 1;
-                    strip.scrollBy({ left: direction * Math.max(260, Math.round(strip.clientWidth * 0.85)), behavior: "smooth" });
-                  });
-                });
               });
             `
           }}
