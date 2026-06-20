@@ -94,17 +94,29 @@ function normalizeTeamName(value: string) {
 
 const compactTeamNameOverrides: Record<string, string> = {
   "academico de viseu": "A. de Viseu",
-  "manchester city": "M. City",
-  "manchester united": "M. United",
+  "athletic club": "Athletic",
+  "atletico de madrid": "A. Madrid",
   "atletico madrid": "A. Madrid",
-  "real sociedad": "R. Sociedad",
-  "nottingham forest": "N. Forest",
   "brighton & hove albion": "Brighton",
   "brighton and hove albion": "Brighton",
-  "deportivo la coruna": "Dep. La Coruña",
-  "rayo vallecano": "R. Vallecano",
+  "celta vigo": "Celta",
+  "deportivo la coruna": "Deportivo",
+  "estoril praia": "Estoril",
+  "estrela da amadora": "Estrela",
+  "manchester city": "M. City",
+  "manchester united": "M. United",
+  "nottingham forest": "N. Forest",
+  "racing santander": "Racing",
+  "rayo vallecano": "Rayo",
+  "real betis": "Betis",
+  "real madrid": "R. Madrid",
+  "real sociedad": "R. Sociedad",
   "tottenham hotspur": "Tottenham"
 };
+
+function fullTeamName(team?: PublicMatchStripTeam | null) {
+  return team?.name?.trim() || team?.short_name?.trim() || "Equipa";
+}
 
 function compactTeamName(team?: PublicMatchStripTeam | null) {
   const editorialName = team?.name?.trim();
@@ -154,12 +166,12 @@ function CompactMatchCard({ match, focus }: { match: PublicMatchStripMatch; focu
     <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>
       <span className="public-matchday-mini-team">
         <TeamBadge team={match.homeTeam} />
-        <span>{compactTeamName(match.homeTeam)}</span>
+        <span title={fullTeamName(match.homeTeam)}>{compactTeamName(match.homeTeam)}</span>
         {showScore ? <b className="public-matchday-mini-score">{match.home_score}</b> : null}
       </span>
       <span className="public-matchday-mini-team">
         <TeamBadge team={match.awayTeam} />
-        <span>{compactTeamName(match.awayTeam)}</span>
+        <span title={fullTeamName(match.awayTeam)}>{compactTeamName(match.awayTeam)}</span>
         {showScore ? <b className="public-matchday-mini-score">{match.away_score}</b> : null}
       </span>
       <span className="public-matchday-mini-status">
@@ -173,7 +185,7 @@ function CompactMatchCard({ match, focus }: { match: PublicMatchStripMatch; focu
             {broadcastChannelName ? (
               <>
                 <span className="public-matchday-mini-separator" aria-hidden="true">{"\u00b7"}</span>
-                <span className="public-matchday-mini-channel">{broadcastChannelName}</span>
+                <span className="public-matchday-mini-channel" title={broadcastChannelName}>{broadcastChannelName}</span>
               </>
             ) : null}
           </>
@@ -188,6 +200,8 @@ export default function PublicMatchStrip({ matches }: { matches: PublicMatchStri
     const kind = statusKind(match.status);
     return kind === "live" || kind === "halftime";
   }) ?? null;
+  const matchCount = Math.max(1, matches.length);
+  const gridTemplateColumns = matchCount > 10 ? "repeat(auto-fit, minmax(108px, 1fr))" : `repeat(${matchCount}, minmax(0, 1fr))`;
 
   if (matches.length === 0) {
     return null;
@@ -196,38 +210,12 @@ export default function PublicMatchStrip({ matches }: { matches: PublicMatchStri
   return (
     <section className="public-matchday-panel public-matchday-scoreboard-panel" aria-label="Visao rapida dos jogos">
       <div className="public-matchday-strip-shell">
-        <button className="public-matchday-strip-button" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
-          {"\u2039"}
-        </button>
-        <div className="public-matchday-strip" data-matchday-strip>
+        <div className="public-matchday-strip" data-matchday-strip style={{ gridTemplateColumns }}>
           {matches.map((match) => (
             <CompactMatchCard focus={focusedMatch?.id === match.id} key={match.id} match={match} />
           ))}
         </div>
-        <button className="public-matchday-strip-button" data-strip-scroll="right" type="button" aria-label="Ver jogos seguintes">
-          {"\u203a"}
-        </button>
       </div>
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            document.addEventListener("DOMContentLoaded", function () {
-              var strip = document.querySelector("[data-matchday-strip]");
-              if (!strip) return;
-              var focused = strip.querySelector("[data-live-focus='true']");
-              if (focused && "scrollIntoView" in focused) {
-                focused.scrollIntoView({ block: "nearest", inline: "center" });
-              }
-              document.querySelectorAll("[data-strip-scroll]").forEach(function (button) {
-                button.addEventListener("click", function () {
-                  var direction = button.getAttribute("data-strip-scroll") === "left" ? -1 : 1;
-                  strip.scrollBy({ left: direction * Math.max(260, Math.round(strip.clientWidth * 0.85)), behavior: "smooth" });
-                });
-              });
-            });
-          `
-        }}
-      />
     </section>
   );
 }

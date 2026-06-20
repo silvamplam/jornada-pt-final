@@ -59,9 +59,9 @@ export const publicEditorialStyles = `
   .public-site-menu {
     display: flex;
     flex-wrap: wrap;
-    gap: 18px;
+    gap: 16px;
     align-items: center;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 900;
     text-transform: uppercase;
   }
@@ -265,52 +265,40 @@ export const publicEditorialStyles = `
   }
 
   .public-matchday-strip {
-    display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    scroll-behavior: smooth;
-    scroll-padding: 10px;
-    padding: 8px;
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    gap: 8px;
+    overflow-x: visible;
+    padding: 8px 0;
     background: #ffffff;
   }
 
   .public-matchday-strip-shell {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 6px;
-    align-items: center;
-    min-height: 104px;
-    padding: 0 10px;
+    display: block;
+    min-height: 98px;
+    padding: 0 8px;
     background: #ffffff;
   }
 
   .public-matchday-strip-button {
-    align-self: center;
-    width: 30px;
-    height: 52px;
-    border: 1px solid #d8dee6;
-    border-radius: 999px;
-    background: #ffffff;
-    color: #263241;
-    font-size: 22px;
-    font-weight: 900;
-    cursor: pointer;
+    display: none;
   }
 
   .public-matchday-mini-card {
     position: relative;
     display: grid;
-    flex: 0 0 178px;
     grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
+    min-width: 0;
+    gap: 3px;
     align-items: start;
-    min-height: 88px;
-    padding: 8px 9px 9px;
+    min-height: 84px;
+    padding: 7px 7px 8px;
     border: 1px solid #eef2f6;
     border-radius: 6px;
     background: #ffffff;
     box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .public-matchday-mini-card + .public-matchday-mini-card::before {
@@ -341,7 +329,7 @@ export const publicEditorialStyles = `
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     overflow: hidden;
     font-weight: 800;
     text-transform: none;
@@ -381,11 +369,11 @@ export const publicEditorialStyles = `
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 2px;
     min-width: 0;
     overflow: hidden;
-    padding: 3px 0 0 18px;
+    padding: 3px 0 0;
     border-radius: 0;
     background: transparent;
     color: #607086;
@@ -401,7 +389,7 @@ export const publicEditorialStyles = `
   }
 
   .public-matchday-mini-card .public-matchday-mini-status .public-matchday-mini-channel {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
   }
 
   .public-matchday-mini-time {
@@ -411,9 +399,9 @@ export const publicEditorialStyles = `
 
   .public-matchday-mini-channel {
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
     color: #607086;
-    text-overflow: ellipsis;
+    text-overflow: clip;
     white-space: nowrap;
   }
 
@@ -1927,6 +1915,22 @@ export const publicEditorialStyles = `
     .public-site-menu,
     .public-site-actions {
       display: none;
+    }
+
+    .public-matchday-strip {
+      display: flex;
+      overflow-x: auto;
+      scroll-padding: 12px;
+      padding: 8px 16px;
+    }
+
+    .public-matchday-strip-shell {
+      margin: 0 -16px;
+      padding: 0;
+    }
+
+    .public-matchday-mini-card {
+      flex: 0 0 148px;
     }
 
   .public-season-nav-bar {
