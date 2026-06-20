@@ -319,25 +319,12 @@ const publicMatchdayStyles = `
 
   .public-matchday-strip-shell {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     gap: 4px;
     align-items: center;
     min-height: 96px;
     padding: 0 6px;
     background: #ffffff;
-  }
-
-  .public-matchday-strip-button {
-    align-self: center;
-    width: 26px;
-    height: 46px;
-    border: 1px solid #d8dee6;
-    border-radius: 999px;
-    background: #ffffff;
-    color: #263241;
-    font-size: 22px;
-    font-weight: 900;
-    cursor: pointer;
   }
 
   .public-matchday-mini-card {
@@ -442,12 +429,12 @@ const publicMatchdayStyles = `
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
     padding: 1px 2px 0;
     border-radius: 0;
     background: transparent;
     color: inherit;
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 800;
     line-height: 1.15;
     text-transform: none;
@@ -503,11 +490,8 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-channel {
-    flex: 0 1 auto;
-    min-width: 0;
-    overflow: hidden;
+    flex: 0 0 auto;
     color: inherit;
-    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
@@ -3094,9 +3078,6 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
       />
       <section className="public-matchday-panel public-matchday-scoreboard-panel" aria-label="Visao rapida dos jogos">
         <div className="public-matchday-strip-shell">
-          <button className="public-matchday-strip-button" data-strip-scroll="left" type="button" aria-label="Ver jogos anteriores">
-            ‹
-          </button>
           <div className="public-matchday-strip" data-matchday-strip>
             {context.matchesForMatchday.length > 0 ? (
               context.matchesForMatchday.map((match) => (
@@ -3106,9 +3087,6 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
               <p>Ainda nao ha jogos nesta jornada.</p>
             )}
           </div>
-          <button className="public-matchday-strip-button" data-strip-scroll="right" type="button" aria-label="Ver jogos seguintes">
-            ›
-          </button>
         </div>
         <script
           dangerouslySetInnerHTML={{
@@ -3120,12 +3098,6 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
                 if (focused && "scrollIntoView" in focused) {
                   focused.scrollIntoView({ block: "nearest", inline: "center" });
                 }
-                document.querySelectorAll("[data-strip-scroll]").forEach(function (button) {
-                  button.addEventListener("click", function () {
-                    var direction = button.getAttribute("data-strip-scroll") === "left" ? -1 : 1;
-                    strip.scrollBy({ left: direction * Math.max(260, Math.round(strip.clientWidth * 0.85)), behavior: "smooth" });
-                  });
-                });
               });
             `
           }}
