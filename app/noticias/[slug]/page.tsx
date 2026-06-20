@@ -492,6 +492,48 @@ const articlePageStyles = `
     white-space: nowrap;
   }
 
+  .public-live-pulse-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
+  .public-live-pulse-dots span {
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: #16a34a;
+    opacity: 0.25;
+    animation: public-live-dot-alternate 1.1s infinite ease-in-out;
+  }
+
+  .public-live-pulse-dots span:nth-child(2) {
+    animation-delay: 0.55s;
+  }
+
+  @keyframes public-live-dot-alternate {
+    0%,
+    100% {
+      opacity: 0.25;
+      transform: scale(0.82);
+    }
+
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .public-live-pulse-dots span {
+      animation: none;
+      opacity: 0.75;
+      transform: none;
+    }
+  }
+
   .news-article-game-channel {
     min-width: 0;
     overflow: visible;
@@ -850,6 +892,15 @@ function TeamBadge({ logoUrl, name, shortName }: { logoUrl?: string | null; name
   return <PublicTeamBadge fallbackLabel={teamInitials(name, shortName)} logoUrl={logoUrl} />;
 }
 
+function LivePulseDots() {
+  return (
+    <span className="public-live-pulse-dots" aria-hidden="true">
+      <span />
+      <span />
+    </span>
+  );
+}
+
 function ArticleMatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const hasScore = match.home_score !== null && match.away_score !== null;
@@ -883,7 +934,10 @@ function ArticleMatchCard({ match }: { match: PublicSeasonMatch }) {
             ) : null}
           </>
         ) : kind === "live" || kind === "halftime" ? (
-          <span>{liveStatus}</span>
+          <span>
+            {liveStatus}
+            {kind === "live" ? <LivePulseDots /> : null}
+          </span>
         ) : (
           <span>{kind === "finished" ? "Finalizado" : statusLabel(match.status)}</span>
         )}

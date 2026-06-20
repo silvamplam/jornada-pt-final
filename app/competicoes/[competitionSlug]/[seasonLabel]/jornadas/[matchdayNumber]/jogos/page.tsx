@@ -484,6 +484,48 @@ const gamesPageStyles = `
     white-space: nowrap;
   }
 
+  .public-live-pulse-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
+  .public-live-pulse-dots span {
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: #16a34a;
+    opacity: 0.25;
+    animation: public-live-dot-alternate 1.1s infinite ease-in-out;
+  }
+
+  .public-live-pulse-dots span:nth-child(2) {
+    animation-delay: 0.55s;
+  }
+
+  @keyframes public-live-dot-alternate {
+    0%,
+    100% {
+      opacity: 0.25;
+      transform: scale(0.82);
+    }
+
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .public-live-pulse-dots span {
+      animation: none;
+      opacity: 0.75;
+      transform: none;
+    }
+  }
+
   .public-games-tv {
     display: inline-flex;
     align-items: center;
@@ -807,6 +849,15 @@ function BroadcastBadge({ match }: { match: PublicSeasonMatch }) {
   );
 }
 
+function LivePulseDots() {
+  return (
+    <span className="public-live-pulse-dots" aria-hidden="true">
+      <span />
+      <span />
+    </span>
+  );
+}
+
 function MatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const statusText = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
@@ -824,7 +875,10 @@ function MatchCard({ match }: { match: PublicSeasonMatch }) {
       </div>
       <div className="public-games-score">
         <strong>{matchResult(match)}</strong>
-        <small className={`public-games-status public-games-status-${kind}`}>{statusText}</small>
+        <small className={`public-games-status public-games-status-${kind}`}>
+          {statusText}
+          {kind === "live" ? <LivePulseDots /> : null}
+        </small>
       </div>
       <div className={`public-games-team-copy public-games-team-copy-away ${awayWinner ? "public-games-team-winner" : ""}`}>
         <strong>{match.awayTeam?.name ?? "Equipa visitante"}</strong>
@@ -859,7 +913,10 @@ function ReferenceGamesCard({ match }: { match: PublicSeasonMatch }) {
         {showScore ? <b className="public-games-team-score">{match.away_score}</b> : null}
       </span>
       <div className="public-games-meta">
-        <span>{kind === "scheduled" ? formatKickoffTime(match.kickoff_at) : statusText}</span>
+        <span>
+          {kind === "scheduled" ? formatKickoffTime(match.kickoff_at) : statusText}
+          {kind === "live" ? <LivePulseDots /> : null}
+        </span>
         <BroadcastBadge match={match} />
       </div>
     </article>
