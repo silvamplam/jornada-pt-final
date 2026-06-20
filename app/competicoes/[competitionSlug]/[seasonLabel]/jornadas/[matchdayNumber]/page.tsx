@@ -458,6 +458,10 @@ const publicMatchdayStyles = `
     color: inherit;
   }
 
+  .public-matchday-mini-card-live .public-matchday-mini-status > span {
+    color: #16a34a;
+  }
+
   .public-matchday-mini-card-finished .public-matchday-mini-status > span {
     color: inherit;
   }
@@ -1877,7 +1881,7 @@ const publicMatchdayStyles = `
 
   .public-matchday-status-live {
     background: #edf7f1;
-    color: #286943;
+    color: #16a34a;
   }
 
   .public-matchday-status-halftime {

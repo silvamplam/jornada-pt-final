@@ -387,6 +387,10 @@ export const publicEditorialStyles = `
     flex: 0 0 auto;
   }
 
+  .public-matchday-mini-card-live .public-matchday-mini-status > span {
+    color: #16a34a;
+  }
+
   .home-live-pulse-dots {
     display: inline-flex;
     align-items: center;
