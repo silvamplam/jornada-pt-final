@@ -294,10 +294,10 @@ export const publicEditorialStyles = `
     align-items: start;
     min-height: 84px;
     padding: 7px 7px 8px;
-    border: 1px solid #eef2f6;
-    border-radius: 6px;
-    background: #ffffff;
-    box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
+    border: 1px solid #e4eaf1;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.045);
     font-size: 12px;
   }
 
