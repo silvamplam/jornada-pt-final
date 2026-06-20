@@ -35,6 +35,8 @@ type SeasonRow = {
   id: string;
   label: string | null;
   competition_id?: string | null;
+  starts_on?: string | null;
+  is_current?: boolean | null;
 };
 
 type MatchdayRow = {
@@ -75,6 +77,54 @@ type PublicGamesPageContentProps = {
 };
 
 const gamesPageStyles = `
+  .public-games-season-nav .public-season-nav-inner {
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  .public-games-season-nav .public-season-select-wrap {
+    font-size: 11px;
+  }
+
+  .public-games-season-nav .public-matchday-nav {
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .public-games-season-nav .public-matchday-nav a {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .public-games-season-nav .public-matchday-leg-nav {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0;
+    border-top: 2px solid #10151b;
+    background: #ffffff;
+    white-space: nowrap;
+  }
+
+  .public-games-season-nav .public-matchday-leg-nav a {
+    display: inline-block;
+    padding: 8px 11px;
+    border-right: 1px solid #dfe5ec;
+    background: #ffffff;
+    color: #263241;
+    font-size: 11px;
+    font-weight: 900;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .public-games-season-nav .public-matchday-leg-nav a[aria-current="true"] {
+    background: #10151b;
+    color: #ffffff;
+  }
+
   .public-games-page {
     max-width: 1180px;
     margin: 26px auto 72px;
@@ -442,6 +492,10 @@ function seasonSegmentToLabel(value: string | null | undefined) {
   return decodeURIComponent(value ?? "").replace(/-/g, "/");
 }
 
+function seasonLabelToUrlSegment(value: string | null | undefined) {
+  return encodeURIComponent((value ?? "").replace(/\//g, "-"));
+}
+
 async function readRowsById<T extends { id: string }>(table: string, select: string, ids: string[]) {
   if (ids.length === 0) {
     return new Map<string, T>();
@@ -516,6 +570,14 @@ async function readSeasonByCompetitionAndSegment(competitionId: string | null | 
   return rows[0] ?? null;
 }
 
+async function readSeasonsByCompetition(competitionId: string | null | undefined) {
+  if (!competitionId) return [];
+
+  return fetchSupabaseAdminTable<SeasonRow>(
+    `seasons?select=id,label,competition_id,starts_on,is_current&competition_id=eq.${encodeURIComponent(competitionId)}&order=starts_on.desc.nullslast,label.desc`
+  ).catch(() => []);
+}
+
 async function readMatchdayBySeasonAndNumber(seasonId: string | null | undefined, matchdayNumber?: string | null) {
   if (!seasonId || !matchdayNumber) return null;
 
@@ -527,6 +589,14 @@ async function readMatchdayBySeasonAndNumber(seasonId: string | null | undefined
   ).catch(() => []);
 
   return rows[0] ?? null;
+}
+
+async function readMatchdaysBySeason(seasonId: string | null | undefined) {
+  if (!seasonId) return [];
+
+  return fetchSupabaseAdminTable<MatchdayRow>(
+    `matchdays?select=id,number&season_id=eq.${encodeURIComponent(seasonId)}&order=number.asc`
+  ).catch(() => []);
 }
 
 async function readBroadcastChannelsByMatchId(matchIds: string[], matches: MatchRow[] = []) {
@@ -813,6 +883,31 @@ function sortGamesByPublicOrder(first: PublicGame, second: PublicGame) {
   return sortGames(first, second);
 }
 
+function singleValue<T>(values: T[]) {
+  const uniqueValues = Array.from(new Set(values));
+  return uniqueValues.length === 1 ? uniqueValues[0] : null;
+}
+
+function deriveNavigationGameFromUniformContext(games: PublicGame[]) {
+  const gamesWithContext = games.filter((game) =>
+    cleanText(game.competition?.slug) &&
+    cleanText(game.season?.label) &&
+    game.season?.id &&
+    game.matchday?.id &&
+    game.matchday?.number
+  );
+
+  if (gamesWithContext.length === 0) {
+    return null;
+  }
+
+  const competitionId = singleValue(gamesWithContext.map((game) => game.competition?.id ?? ""));
+  const seasonId = singleValue(gamesWithContext.map((game) => game.season?.id ?? ""));
+  const matchdayId = singleValue(gamesWithContext.map((game) => game.matchday?.id ?? ""));
+
+  return competitionId && seasonId && matchdayId ? gamesWithContext[0] : null;
+}
+
 function liveGamesFor(games: PublicGame[]) {
   return games.filter((game) => {
     const kind = statusKind(game.status);
@@ -937,6 +1032,53 @@ export default async function PublicGamesPageContent({ competitionSlug, seasonLa
     ? `/competicoes/${activeCompetitionSlug}/${seasonLabel}/jornadas/${matchdayNumber}#classificacao`
     : null;
   const title = competition ? `Jogos - ${activeCompetitionName}` : "Jogos";
+  const explicitNavigationContext = Boolean(competition && season && selectedMatchday);
+  const navigationSourceGame = explicitNavigationContext ? null : deriveNavigationGameFromUniformContext(games);
+  const navigationCompetition = competition ?? navigationSourceGame?.competition ?? null;
+  const navigationSeason = season ?? navigationSourceGame?.season ?? null;
+  const navigationMatchday = selectedMatchday ?? navigationSourceGame?.matchday ?? null;
+  const navigationCompetitionSlug = cleanText(navigationCompetition?.slug);
+  const navigationSeasonLabel = cleanText(navigationSeason?.label);
+  const navigationSeasonSegment = navigationSeasonLabel ? seasonLabelToUrlSegment(navigationSeasonLabel) : null;
+  const navigationMatchdayNumber = navigationMatchday?.number ?? null;
+  let navigationSeasons: SeasonRow[] = [];
+  let navigationMatchdays: MatchdayRow[] = [];
+  if (navigationCompetition?.id && navigationSeason?.id) {
+    [navigationSeasons, navigationMatchdays] = await Promise.all([
+      readSeasonsByCompetition(navigationCompetition.id),
+      readMatchdaysBySeason(navigationSeason.id)
+    ]);
+  }
+  const hasSeasonNavigation = Boolean(
+    navigationCompetitionSlug &&
+    navigationSeasonSegment &&
+    navigationMatchdayNumber &&
+    navigationMatchdays.length > 0
+  );
+  const navigationMatchdayHref = (number: number) =>
+    navigationCompetitionSlug && navigationSeasonSegment
+      ? `/competicoes/${navigationCompetitionSlug}/${navigationSeasonSegment}/jornadas/${number}/jogos`
+      : "/jogos";
+  const navigationSeasonOptions = navigationCompetitionSlug
+    ? navigationSeasons.map((item) => ({
+        id: item.id,
+        label: cleanText(item.label) || "Epoca",
+        href: `/competicoes/${navigationCompetitionSlug}/${seasonLabelToUrlSegment(item.label)}/jornadas/1/jogos`
+      }))
+    : [];
+  const currentNavigationSeasonHref = navigationCompetitionSlug && navigationSeasonSegment
+    ? `/competicoes/${navigationCompetitionSlug}/${navigationSeasonSegment}/jornadas/1/jogos`
+    : "/jogos";
+  const shouldSplitMatchdayNav = navigationMatchdays.length > 20;
+  const firstLegMatchdays = shouldSplitMatchdayNav ? navigationMatchdays.slice(0, 19) : navigationMatchdays;
+  const secondLegMatchdays = shouldSplitMatchdayNav ? navigationMatchdays.slice(19) : [];
+  const activeMatchdayLeg =
+    shouldSplitMatchdayNav && secondLegMatchdays.some((item) => item.id === navigationMatchday?.id)
+      ? "second"
+      : "first";
+  const visibleMatchdays = activeMatchdayLeg === "second" ? secondLegMatchdays : firstLegMatchdays;
+  const firstLegHref = firstLegMatchdays[0]?.number ? navigationMatchdayHref(firstLegMatchdays[0].number) : currentNavigationSeasonHref;
+  const secondLegHref = secondLegMatchdays[0]?.number ? navigationMatchdayHref(secondLegMatchdays[0].number) : currentNavigationSeasonHref;
 
   return (
     <main className="public-matchday-shell">
@@ -967,7 +1109,63 @@ export default async function PublicGamesPageContent({ competitionSlug, seasonLa
             <Link href="/admin/login">Entrar</Link>
           </div>
         </header>
+        {hasSeasonNavigation ? (
+          <section className="public-season-nav-bar public-games-season-nav" aria-label="Navegacao de jornadas">
+            <div className="public-hidden-heading">
+              <h2>Jornadas</h2>
+              <p>Navegacao principal da epoca {navigationSeasonLabel}.</p>
+            </div>
+            <div className="public-season-nav-inner">
+              <label className="public-season-select-wrap">
+                <span>Epoca</span>
+                <select className="public-season-select" data-games-season-select defaultValue={currentNavigationSeasonHref}>
+                  {navigationSeasonOptions.map((item) => (
+                    <option key={item.id} value={item.href}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {shouldSplitMatchdayNav ? (
+                <nav className="public-matchday-leg-nav" aria-label="Voltas da epoca">
+                  <Link aria-current={activeMatchdayLeg === "first" ? "true" : undefined} href={firstLegHref}>
+                    1.ª volta
+                  </Link>
+                  <Link aria-current={activeMatchdayLeg === "second" ? "true" : undefined} href={secondLegHref}>
+                    2.ª volta
+                  </Link>
+                </nav>
+              ) : null}
+              <nav className="public-matchday-nav" aria-label="Jornadas">
+                {visibleMatchdays.map((item) => (
+                  item.number ? (
+                    <Link
+                      aria-current={item.id === navigationMatchday?.id ? "page" : undefined}
+                      href={navigationMatchdayHref(item.number)}
+                      key={item.id}
+                    >
+                      J{String(item.number).padStart(2, "0")}
+                    </Link>
+                  ) : null
+                ))}
+              </nav>
+            </div>
+          </section>
+        ) : null}
       </div>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            document.addEventListener("DOMContentLoaded", function () {
+              var select = document.querySelector("[data-games-season-select]");
+              if (!select) return;
+              select.addEventListener("change", function () {
+                if (select.value) window.location.href = select.value;
+              });
+            });
+          `
+        }}
+      />
 
       <div className="public-games-page">
         <div className="public-games-layout">

@@ -110,8 +110,8 @@ const articlePageStyles = `
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 18px;
-    font-size: 13px;
+    gap: 16px;
+    font-size: 12px;
     font-weight: 900;
     text-transform: uppercase;
   }
@@ -172,13 +172,14 @@ const articlePageStyles = `
 
   .public-season-nav-inner {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px 18px;
     align-items: center;
     min-height: 52px;
     max-width: 1512px;
     margin: 0 auto;
     padding: 0;
+    overflow: hidden;
   }
 
   .public-season-select-wrap {
@@ -189,7 +190,7 @@ const articlePageStyles = `
     border: 1px solid #cfd7e1;
     background: #f8fafc;
     color: #263241;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 900;
     text-transform: uppercase;
     white-space: nowrap;
@@ -207,13 +208,21 @@ const articlePageStyles = `
 
   .public-matchday-nav {
     display: flex;
-    flex-wrap: wrap;
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
     gap: 0;
     min-width: 0;
     overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     padding: 0;
     border-top: 2px solid #10151b;
     background: #ffffff;
+  }
+
+  .public-matchday-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .public-matchday-nav a {
@@ -225,16 +234,64 @@ const articlePageStyles = `
     border-radius: 0;
     background: #ffffff;
     color: #263241;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 900;
     text-decoration: none;
     text-transform: uppercase;
+    white-space: nowrap;
   }
 
   .public-matchday-nav a[aria-current="page"] {
     border-color: #c40012;
     background: #c40012;
     color: #ffffff;
+  }
+
+  .public-matchday-leg-nav {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0;
+    border-top: 2px solid #10151b;
+    background: #ffffff;
+    white-space: nowrap;
+  }
+
+  .public-matchday-leg-nav a {
+    display: inline-block;
+    padding: 8px 11px;
+    border-right: 1px solid #dfe5ec;
+    background: #ffffff;
+    color: #263241;
+    font-size: 11px;
+    font-weight: 900;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .public-matchday-leg-nav a[aria-current="true"] {
+    background: #10151b;
+    color: #ffffff;
+  }
+
+  .public-matchday-date-row {
+    display: flex;
+    flex: 0 0 auto;
+    justify-content: flex-end;
+    min-width: 0;
+    margin-left: auto;
+  }
+
+  .public-matchday-date-context {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    color: #66717f;
+    font-size: 10.5px;
+    font-weight: 800;
+    line-height: 1;
+    text-align: right;
+    white-space: nowrap;
   }
 
   .news-article-layout {
@@ -349,54 +406,41 @@ const articlePageStyles = `
   }
 
   .news-article-games-shell {
-    display: grid;
-    grid-template-columns: 28px minmax(0, 1fr) 28px;
-    gap: 8px;
-    align-items: stretch;
+    display: block;
   }
 
   .news-article-games-button {
-    display: grid;
-    place-items: center;
-    min-height: 84px;
-    border: 1px solid #e1e7ee;
-    border-radius: 6px;
-    background: #ffffff;
-    color: #253140;
-    font-size: 20px;
-    font-weight: 900;
-    line-height: 1;
-    cursor: pointer;
-    box-shadow: 0 8px 18px rgba(12, 22, 34, 0.04);
+    display: none;
   }
 
   .news-article-games-button:hover {
-    border-color: #cbd5df;
-    background: #f8fafc;
+    display: none;
   }
 
   .news-article-games-scroller {
-    display: flex;
-    gap: 8px;
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    gap: 6px;
     overflow-x: auto;
-    padding: 0 0 8px;
+    padding: 6px;
     scrollbar-width: thin;
   }
 
   .news-article-game-card {
     display: grid;
-    flex: 0 0 176px;
     grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
+    min-width: 0;
+    gap: 3px;
     align-items: center;
-    min-height: 84px;
-    padding: 8px 9px;
+    min-height: 76px;
+    padding: 7px;
     border: 1px solid #eef2f6;
     border-radius: 6px;
     background: #ffffff;
     box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
     color: #111820;
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .news-article-game-team {
@@ -438,18 +482,22 @@ const articlePageStyles = `
     min-width: 0;
     align-items: center;
     gap: 4px;
-    padding: 2px 0 0 29px;
+    justify-content: center;
+    overflow: visible;
+    padding: 1px 2px 0;
     color: #435160;
-    font-size: 10.5px;
-    font-weight: 850;
+    font-size: 9.5px;
+    font-weight: 900;
     line-height: 1.15;
     white-space: nowrap;
   }
 
   .news-article-game-channel {
-    overflow: hidden;
+    min-width: 0;
+    overflow: visible;
     color: #405061;
-    text-overflow: ellipsis;
+    text-overflow: clip;
+    white-space: nowrap;
   }
 
   .news-article-sidebar {
@@ -574,6 +622,15 @@ const articlePageStyles = `
       padding: 8px 16px 9px;
     }
 
+    .public-matchday-date-context {
+      text-align: left;
+    }
+
+    .public-matchday-date-row {
+      margin-left: 0;
+      justify-content: flex-start;
+    }
+
     .news-article-layout {
       grid-template-columns: 1fr;
       padding-top: 18px;
@@ -587,13 +644,20 @@ const articlePageStyles = `
     }
 
     .news-article-games-shell {
-      grid-template-columns: 24px minmax(0, 1fr) 24px;
-      gap: 6px;
+      display: block;
     }
 
     .news-article-games-button {
-      min-height: 84px;
-      font-size: 17px;
+      display: none;
+    }
+
+    .news-article-games-scroller {
+      display: flex;
+      padding: 6px 14px;
+    }
+
+    .news-article-game-card {
+      flex: 0 0 148px;
     }
 
     .news-article-sidebar {
@@ -663,6 +727,42 @@ function formatMiniCardKickoff(value: string) {
   return `${dayMonth} · ${formatKickoffTime(value)}`;
 }
 
+function formatMatchdayDateContext(matches: PublicSeasonMatch[]) {
+  const kickoffDates = matches
+    .map((match) => new Date(match.kickoff_at))
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((firstDate, secondDate) => firstDate.getTime() - secondDate.getTime());
+
+  if (kickoffDates.length === 0) return "Data por definir";
+
+  const firstDate = kickoffDates[0];
+  const lastDate = kickoffDates[kickoffDates.length - 1];
+  const dayFormatter = new Intl.DateTimeFormat("pt-PT", {
+    day: "numeric",
+    timeZone: "Europe/Lisbon"
+  });
+  const monthFormatter = new Intl.DateTimeFormat("pt-PT", {
+    month: "long",
+    timeZone: "Europe/Lisbon"
+  });
+  const monthKeyFormatter = new Intl.DateTimeFormat("en-CA", {
+    month: "2-digit",
+    timeZone: "Europe/Lisbon"
+  });
+
+  const firstDay = dayFormatter.format(firstDate);
+  const lastDay = dayFormatter.format(lastDate);
+  const firstMonth = monthFormatter.format(firstDate);
+  const lastMonth = monthFormatter.format(lastDate);
+  const sameMonth = monthKeyFormatter.format(firstDate) === monthKeyFormatter.format(lastDate);
+
+  if (sameMonth) {
+    return firstDay === lastDay ? `${firstDay} ${firstMonth}` : `${firstDay}–${lastDay} ${lastMonth}`;
+  }
+
+  return `${firstDay} ${firstMonth} – ${lastDay} ${lastMonth}`;
+}
+
 function statusKind(status: string) {
   const normalized = status.trim().toLowerCase();
   if (normalized === "finished") return "finished";
@@ -696,6 +796,30 @@ function teamInitials(name?: string | null, shortName?: string | null) {
   return initials || "FC";
 }
 
+function normalizeTeamName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const compactTeamNameOverrides: Record<string, string> = {
+  "athletic club": "Athletic",
+  "atletico de madrid": "A. Madrid",
+  "atletico madrid": "A. Madrid",
+  "celta vigo": "Celta",
+  "deportivo la coruna": "Deportivo",
+  "estoril praia": "Estoril",
+  "estrela da amadora": "Estrela",
+  "racing santander": "Racing",
+  "rayo vallecano": "Rayo",
+  "real betis": "Betis",
+  "real madrid": "R. Madrid",
+  "real sociedad": "R. Sociedad"
+};
+
 function shortTeamLabel(name?: string | null, shortName?: string | null) {
   const editorialName = name?.trim();
   const fallback = shortName?.trim() || editorialName || "Equipa";
@@ -704,7 +828,22 @@ function shortTeamLabel(name?: string | null, shortName?: string | null) {
     return fallback;
   }
 
-  return editorialName.length <= 20 ? editorialName : fallback;
+  const override = compactTeamNameOverrides[normalizeTeamName(editorialName)];
+  if (override) {
+    return override;
+  }
+
+  if (editorialName.length <= 13) {
+    return editorialName;
+  }
+
+  const parts = editorialName.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    const compactName = `${parts[0][0]}. ${parts.slice(1).join(" ")}`;
+    return compactName.length <= 16 ? compactName : `${parts[0][0]}. ${parts[1]}`;
+  }
+
+  return fallback.length <= 13 ? fallback : editorialName;
 }
 
 function TeamBadge({ logoUrl, name, shortName }: { logoUrl?: string | null; name?: string | null; shortName?: string | null }) {
@@ -717,17 +856,19 @@ function ArticleMatchCard({ match }: { match: PublicSeasonMatch }) {
   const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
   const liveStatus = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
   const channelName = match.broadcastChannel?.name?.trim();
+  const homeTeamName = match.homeTeam?.name?.trim() || match.homeTeam?.short_name?.trim() || "Equipa";
+  const awayTeamName = match.awayTeam?.name?.trim() || match.awayTeam?.short_name?.trim() || "Equipa";
 
   return (
-    <article className="news-article-game-card">
+    <article className={`news-article-game-card news-article-game-card-${kind}`}>
       <span className="news-article-game-team">
         <TeamBadge logoUrl={match.homeTeam?.logo_url} name={match.homeTeam?.name} shortName={match.homeTeam?.short_name} />
-        <span>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</span>
+        <span title={homeTeamName}>{shortTeamLabel(match.homeTeam?.name, match.homeTeam?.short_name)}</span>
         {showScore ? <b className="news-article-game-score">{match.home_score}</b> : null}
       </span>
       <span className="news-article-game-team">
         <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
-        <span>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</span>
+        <span title={awayTeamName}>{shortTeamLabel(match.awayTeam?.name, match.awayTeam?.short_name)}</span>
         {showScore ? <b className="news-article-game-score">{match.away_score}</b> : null}
       </span>
       <span className="news-article-game-meta">
@@ -737,7 +878,7 @@ function ArticleMatchCard({ match }: { match: PublicSeasonMatch }) {
             {channelName ? (
               <>
                 <span aria-hidden="true">·</span>
-                <span className="news-article-game-channel">{channelName}</span>
+                <span className="news-article-game-channel" title={channelName}>{channelName}</span>
               </>
             ) : null}
           </>
@@ -874,6 +1015,22 @@ export default async function NewsArticlePage({ params }: PageProps) {
         }))
       : [];
   const currentSeasonHref = articleContext && seasonSegment ? `/competicoes/${articleContext.competition.slug}/${seasonSegment}/jornadas/1` : "/";
+  const shouldSplitMatchdayNav = articleContext ? articleContext.matchdays.length > 20 : false;
+  const firstLegMatchdays = articleContext
+    ? shouldSplitMatchdayNav
+      ? articleContext.matchdays.slice(0, 19)
+      : articleContext.matchdays
+    : [];
+  const secondLegMatchdays = articleContext && shouldSplitMatchdayNav ? articleContext.matchdays.slice(19) : [];
+  const activeMatchdayLeg =
+    shouldSplitMatchdayNav && secondLegMatchdays.some((matchday) => matchday.id === articleContext?.matchday.id)
+      ? "second"
+      : "first";
+  const visibleMatchdays = activeMatchdayLeg === "second" ? secondLegMatchdays : firstLegMatchdays;
+  const firstLegHref = firstLegMatchdays[0] ? matchdayHref(firstLegMatchdays[0].number) : currentSeasonHref;
+  const secondLegHref = secondLegMatchdays[0] ? matchdayHref(secondLegMatchdays[0].number) : currentSeasonHref;
+  const selectedMatchdayDateContext = formatMatchdayDateContext(articleMatches);
+  const articleGamesGridTemplateColumns = `repeat(${Math.max(articleMatches.length, 1)}, minmax(118px, 1fr))`;
 
   return (
     <div className="news-article-shell">
@@ -920,8 +1077,18 @@ export default async function NewsArticlePage({ params }: PageProps) {
                   ))}
                 </select>
               </label>
+              {shouldSplitMatchdayNav ? (
+                <nav className="public-matchday-leg-nav" aria-label="Voltas da época">
+                  <a aria-current={activeMatchdayLeg === "first" ? "true" : undefined} href={firstLegHref}>
+                    1.ª volta
+                  </a>
+                  <a aria-current={activeMatchdayLeg === "second" ? "true" : undefined} href={secondLegHref}>
+                    2.ª volta
+                  </a>
+                </nav>
+              ) : null}
               <nav className="public-matchday-nav" aria-label="Jornadas">
-                {articleContext.matchdays.map((matchday) => (
+                {visibleMatchdays.map((matchday) => (
                   <a
                     aria-current={matchday.id === articleContext.matchday.id ? "page" : undefined}
                     href={matchdayHref(matchday.number)}
@@ -931,6 +1098,9 @@ export default async function NewsArticlePage({ params }: PageProps) {
                   </a>
                 ))}
               </nav>
+              <div className="public-matchday-date-row" aria-label="Data da jornada selecionada">
+                <span className="public-matchday-date-context">{selectedMatchdayDateContext}</span>
+              </div>
             </div>
           </section>
         ) : null}
@@ -945,15 +1115,6 @@ export default async function NewsArticlePage({ params }: PageProps) {
                   if (select.value) window.location.href = select.value;
                 });
               }
-              var gamesStrip = document.querySelector("[data-news-article-games-strip]");
-              if (gamesStrip) {
-                document.querySelectorAll("[data-news-article-games-scroll]").forEach(function (button) {
-                  button.addEventListener("click", function () {
-                    var direction = button.getAttribute("data-news-article-games-scroll") === "left" ? -1 : 1;
-                    gamesStrip.scrollBy({ left: direction * Math.max(240, Math.round(gamesStrip.clientWidth * 0.85)), behavior: "smooth" });
-                  });
-                });
-              }
             });
           `
         }}
@@ -961,17 +1122,11 @@ export default async function NewsArticlePage({ params }: PageProps) {
       {articleMatches.length > 0 ? (
         <section className="news-article-games-strip" aria-label="Jogos da jornada associados a esta notícia">
           <div className="news-article-games-shell">
-            <button className="news-article-games-button" data-news-article-games-scroll="left" type="button" aria-label="Ver jogos anteriores">
-              ‹
-            </button>
-            <div className="news-article-games-scroller" data-news-article-games-strip>
+            <div className="news-article-games-scroller" data-news-article-games-strip style={{ gridTemplateColumns: articleGamesGridTemplateColumns }}>
               {articleMatches.map((match) => (
                 <ArticleMatchCard key={match.id} match={match} />
               ))}
             </div>
-            <button className="news-article-games-button" data-news-article-games-scroll="right" type="button" aria-label="Ver jogos seguintes">
-              ›
-            </button>
           </div>
         </section>
       ) : null}

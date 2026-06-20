@@ -142,13 +142,14 @@ const gamesPageStyles = `
 
   .public-season-nav-inner {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px 18px;
+    flex-wrap: nowrap;
+    gap: 8px 12px;
     align-items: center;
-    min-height: 52px;
+    min-height: 46px;
     max-width: 1512px;
     margin: 0 auto;
     padding: 0;
+    overflow: hidden;
   }
 
   .public-season-select-wrap {
@@ -159,7 +160,7 @@ const gamesPageStyles = `
     border: 1px solid #cfd7e1;
     background: #f8fafc;
     color: #263241;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 900;
     text-transform: uppercase;
     white-space: nowrap;
@@ -177,25 +178,33 @@ const gamesPageStyles = `
 
   .public-matchday-nav {
     display: flex;
-    flex-wrap: wrap;
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
     gap: 0;
     min-width: 0;
     overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     padding: 0;
     border-top: 2px solid #10151b;
     background: #ffffff;
+    white-space: nowrap;
+  }
+
+  .public-matchday-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .public-matchday-nav a {
     display: inline-block;
     flex: 0 0 auto;
-    padding: 8px 13px;
+    padding: 7px 10px;
     border: 0;
     border-right: 1px solid #dfe5ec;
     border-radius: 0;
     background: #ffffff;
     color: #263241;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 900;
     text-decoration: none;
     text-transform: uppercase;
@@ -204,6 +213,36 @@ const gamesPageStyles = `
   .public-matchday-nav a[aria-current="page"] {
     border-color: #c40012;
     background: #c40012;
+    color: #ffffff;
+  }
+
+  .public-matchday-leg-nav {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    border: 1px solid #cfd7e1;
+    background: #f8fafc;
+    white-space: nowrap;
+  }
+
+  .public-matchday-leg-nav a {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 9px;
+    color: #263241;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .public-matchday-leg-nav a + a {
+    border-left: 1px solid #dfe5ec;
+  }
+
+  .public-matchday-leg-nav a[aria-current="true"] {
+    background: #10151b;
     color: #ffffff;
   }
 
@@ -602,6 +641,7 @@ const gamesPageStyles = `
     .public-season-nav-inner {
       gap: 8px;
       padding: 8px 16px 9px;
+      overflow-x: auto;
     }
 
     .public-site-menu,
@@ -666,11 +706,6 @@ function formatMatchdayDateContext(matches: PublicSeasonMatch[]) {
 
   const firstDate = kickoffDates[0];
   const lastDate = kickoffDates[kickoffDates.length - 1];
-  const dateFormatter = new Intl.DateTimeFormat("pt-PT", {
-    day: "numeric",
-    month: "long",
-    timeZone: "Europe/Lisbon"
-  });
   const dayFormatter = new Intl.DateTimeFormat("pt-PT", {
     day: "numeric",
     timeZone: "Europe/Lisbon"
@@ -684,16 +719,16 @@ function formatMatchdayDateContext(matches: PublicSeasonMatch[]) {
     timeZone: "Europe/Lisbon"
   });
 
-  const firstLabel = dateFormatter.format(firstDate);
-  const lastLabel = dateFormatter.format(lastDate);
-  if (firstLabel === lastLabel) return firstLabel;
-
+  const firstDay = dayFormatter.format(firstDate);
+  const lastDay = dayFormatter.format(lastDate);
+  const firstMonth = monthFormatter.format(firstDate);
+  const lastMonth = monthFormatter.format(lastDate);
   const sameMonth = monthKeyFormatter.format(firstDate) === monthKeyFormatter.format(lastDate);
   if (sameMonth) {
-    return `${dayFormatter.format(firstDate)}-${dayFormatter.format(lastDate)} ${monthFormatter.format(lastDate)}`;
+    return firstDay === lastDay ? `${firstDay} ${firstMonth}` : `${firstDay}–${lastDay} ${lastMonth}`;
   }
 
-  return `${firstLabel} - ${lastLabel}`;
+  return `${firstDay} ${firstMonth} – ${lastDay} ${lastMonth}`;
 }
 
 function statusKind(status: string) {
@@ -907,6 +942,16 @@ export default async function PublicMatchdayGamesPage({ params }: PublicMatchday
     { key: "scheduled", label: "Agendados", matches: scheduledMatches },
     { key: "other", label: "Outros estados", matches: otherMatches }
   ].filter((group) => group.matches.length > 0);
+  const shouldSplitMatchdayNav = context.matchdays.length > 20;
+  const firstLegMatchdays = shouldSplitMatchdayNav ? context.matchdays.slice(0, 19) : context.matchdays;
+  const secondLegMatchdays = shouldSplitMatchdayNav ? context.matchdays.slice(19) : [];
+  const activeMatchdayLeg =
+    shouldSplitMatchdayNav && secondLegMatchdays.some((matchday) => matchday.id === context.matchday.id)
+      ? "second"
+      : "first";
+  const visibleMatchdays = activeMatchdayLeg === "second" ? secondLegMatchdays : firstLegMatchdays;
+  const firstLegHref = firstLegMatchdays[0] ? gamesPageHref(firstLegMatchdays[0].number) : currentSeasonHref;
+  const secondLegHref = secondLegMatchdays[0] ? gamesPageHref(secondLegMatchdays[0].number) : currentSeasonHref;
   const selectedMatchdayDateContext = formatMatchdayDateContext(context.matchesForMatchday);
   const sidebarNewsItems = context.latestNews.slice(0, 4).map((item) => ({
     id: item.id,
@@ -959,8 +1004,18 @@ export default async function PublicMatchdayGamesPage({ params }: PublicMatchday
                 ))}
               </select>
             </label>
+            {shouldSplitMatchdayNav ? (
+              <nav className="public-matchday-leg-nav" aria-label="Voltas da época">
+                <a aria-current={activeMatchdayLeg === "first" ? "true" : undefined} href={firstLegHref}>
+                  1.ª volta
+                </a>
+                <a aria-current={activeMatchdayLeg === "second" ? "true" : undefined} href={secondLegHref}>
+                  2.ª volta
+                </a>
+              </nav>
+            ) : null}
             <nav className="public-matchday-nav" aria-label="Jornadas">
-              {context.matchdays.map((matchday) => (
+              {visibleMatchdays.map((matchday) => (
                 <a
                   aria-current={matchday.id === context.matchday.id ? "page" : undefined}
                   href={gamesPageHref(matchday.number)}
