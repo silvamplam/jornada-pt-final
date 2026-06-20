@@ -311,11 +311,6 @@ export const publicEditorialStyles = `
     background: #dfe5ec;
   }
 
-  .public-matchday-mini-card-live {
-    border-color: #f5c2c7;
-    background: #fff8f8;
-  }
-
   .public-matchday-mini-card-halftime {
     border-color: #ffd3a3;
     background: #fffaf2;
@@ -390,6 +385,48 @@ export const publicEditorialStyles = `
 
   .public-matchday-mini-card .public-matchday-mini-status .public-matchday-mini-channel {
     flex: 0 0 auto;
+  }
+
+  .home-live-pulse-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
+  .home-live-pulse-dots span {
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: #16a34a;
+    opacity: 0.25;
+    animation: home-live-dot-alternate 1.1s infinite ease-in-out;
+  }
+
+  .home-live-pulse-dots span:nth-child(2) {
+    animation-delay: 0.55s;
+  }
+
+  @keyframes home-live-dot-alternate {
+    0%,
+    100% {
+      opacity: 0.25;
+      transform: scale(0.82);
+    }
+
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .home-live-pulse-dots span {
+      animation: none;
+      opacity: 0.75;
+      transform: none;
+    }
   }
 
   .public-matchday-mini-time {
