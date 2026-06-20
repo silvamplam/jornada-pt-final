@@ -435,10 +435,10 @@ const articlePageStyles = `
     align-items: center;
     min-height: 76px;
     padding: 7px;
-    border: 1px solid #eef2f6;
-    border-radius: 6px;
-    background: #ffffff;
-    box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
+    border: 1px solid #d7e0ea;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.075);
     color: #111820;
     font-size: 12px;
   }
@@ -532,6 +532,13 @@ const articlePageStyles = `
       opacity: 0.75;
       transform: none;
     }
+  }
+
+  .news-article-game-live-status {
+    display: inline-flex;
+    align-items: center;
+    color: #16a34a;
+    white-space: nowrap;
   }
 
   .news-article-game-channel {
@@ -818,8 +825,8 @@ function statusLabel(status: string) {
   const normalized = status.trim().toLowerCase();
   if (normalized === "finished") return "Finalizado";
   if (normalized === "scheduled") return "Agendado";
-  if (normalized === "live") return "AO VIVO";
-  if (normalized === "halftime") return "AO VIVO";
+  if (normalized === "live") return "Em direto";
+  if (normalized === "halftime") return "Em direto";
   if (normalized === "postponed") return "Adiado";
   if (normalized === "cancelled") return "Cancelado";
   return status;
@@ -934,7 +941,7 @@ function ArticleMatchCard({ match }: { match: PublicSeasonMatch }) {
             ) : null}
           </>
         ) : kind === "live" || kind === "halftime" ? (
-          <span>
+          <span className="news-article-game-live-status">
             {liveStatus}
             {kind === "live" ? <LivePulseDots /> : null}
           </span>

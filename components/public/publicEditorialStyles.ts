@@ -294,10 +294,10 @@ export const publicEditorialStyles = `
     align-items: start;
     min-height: 84px;
     padding: 7px 7px 8px;
-    border: 1px solid #eef2f6;
-    border-radius: 6px;
-    background: #ffffff;
-    box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
+    border: 1px solid #d7e0ea;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.075);
     font-size: 12px;
   }
 
@@ -385,6 +385,10 @@ export const publicEditorialStyles = `
 
   .public-matchday-mini-card .public-matchday-mini-status .public-matchday-mini-channel {
     flex: 0 0 auto;
+  }
+
+  .public-matchday-mini-card-live .public-matchday-mini-status > span {
+    color: #16a34a;
   }
 
   .home-live-pulse-dots {
