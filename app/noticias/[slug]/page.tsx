@@ -818,8 +818,8 @@ function statusLabel(status: string) {
   const normalized = status.trim().toLowerCase();
   if (normalized === "finished") return "Finalizado";
   if (normalized === "scheduled") return "Agendado";
-  if (normalized === "live") return "AO VIVO";
-  if (normalized === "halftime") return "AO VIVO";
+  if (normalized === "live") return "Em direto";
+  if (normalized === "halftime") return "Em direto";
   if (normalized === "postponed") return "Adiado";
   if (normalized === "cancelled") return "Cancelado";
   return status;
