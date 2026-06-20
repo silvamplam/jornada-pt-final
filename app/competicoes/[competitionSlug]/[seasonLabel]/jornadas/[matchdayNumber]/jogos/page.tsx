@@ -198,7 +198,7 @@ const gamesPageStyles = `
   .public-matchday-nav a {
     display: inline-block;
     flex: 0 0 auto;
-    padding: 7px 10px;
+    padding: 8px 13px;
     border: 0;
     border-right: 1px solid #dfe5ec;
     border-radius: 0;
@@ -217,28 +217,25 @@ const gamesPageStyles = `
   }
 
   .public-matchday-leg-nav {
-    display: inline-flex;
+    display: flex;
     flex: 0 0 auto;
     align-items: center;
-    border: 1px solid #cfd7e1;
-    background: #f8fafc;
+    gap: 0;
+    border-top: 2px solid #10151b;
+    background: #ffffff;
     white-space: nowrap;
   }
 
   .public-matchday-leg-nav a {
-    display: inline-flex;
-    align-items: center;
-    padding: 6px 9px;
+    display: inline-block;
+    padding: 8px 11px;
+    border-right: 1px solid #dfe5ec;
+    background: #ffffff;
     color: #263241;
     font-size: 11px;
     font-weight: 900;
-    line-height: 1;
     text-decoration: none;
     text-transform: uppercase;
-  }
-
-  .public-matchday-leg-nav a + a {
-    border-left: 1px solid #dfe5ec;
   }
 
   .public-matchday-leg-nav a[aria-current="true"] {
