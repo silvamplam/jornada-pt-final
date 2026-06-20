@@ -701,6 +701,7 @@ async function readMatchdayContext(matchdayId: string): Promise<MatchdayContext 
 type MatchdayEditorialForAdmin = SupabaseMatchdayEditorial & {
   headline_link_url?: string | null;
   below_headline_subtitle?: string | null;
+  latest_zone_title_color?: string | null;
 };
 
 type MatchdayHighlightForAdmin = SupabaseMatchdayHighlight & {
@@ -711,7 +712,7 @@ type MatchdayHighlightForAdmin = SupabaseMatchdayHighlight & {
 async function readMatchdayEditorial(matchdayId: string): Promise<MatchdayEditorialForAdmin | null> {
   try {
     return await readFirst<MatchdayEditorialForAdmin>(
-      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,headline_link_url,below_headline_mode,below_headline_heading,below_headline_subtitle,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,latest_zone_mode,latest_zone_title,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,headline_link_url,below_headline_mode,below_headline_heading,below_headline_subtitle,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,latest_zone_mode,latest_zone_title,latest_zone_title_color,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}`
     );
@@ -1181,6 +1182,16 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 name="latest_zone_title"
                 defaultValue={editorial?.latest_zone_title ?? ""}
                 placeholder={latestZoneMode === "latest_news" ? "Principais acontecimentos" : "Pode ficar vazio"}
+              />
+            </div>
+            <div className="editorial-admin-field">
+              <label htmlFor="latest-zone-title-color">Cor do titulo publico da zona</label>
+              <input
+                id="latest-zone-title-color"
+                name="latest_zone_title_color"
+                defaultValue={editorial?.latest_zone_title_color ?? ""}
+                placeholder="#0b1f3a"
+                pattern="^#[0-9A-Fa-f]{6}$"
               />
             </div>
           </div>

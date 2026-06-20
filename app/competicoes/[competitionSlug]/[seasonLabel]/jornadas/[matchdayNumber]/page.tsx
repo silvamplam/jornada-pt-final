@@ -2956,6 +2956,11 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
   const latestZoneTitle = usePublishedReferenceComposition
     ? ""
     : latestZoneMode === "latest_news" ? configuredLatestZoneTitle || "Últimas notícias" : configuredLatestZoneTitle;
+  const configuredLatestZoneTitleColor = editorial?.latest_zone_title_color?.trim() ?? "";
+  const latestZoneTitleColor =
+    !usePublishedReferenceComposition && /^#[0-9A-Fa-f]{6}$/.test(configuredLatestZoneTitleColor)
+      ? configuredLatestZoneTitleColor
+      : null;
   const latestNewsItems = usePublishedReferenceComposition
     ? referenceEditorialLineItems.map((item) => ({
         id: item.id,
@@ -3404,7 +3409,7 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
           </div>
           {showLatestZone ? (
           <aside className="public-matchday-news" aria-label={latestZoneTitle || "Linha editorial"}>
-            {latestZoneTitle ? <h3>{latestZoneTitle}</h3> : null}
+            {latestZoneTitle ? <h3 style={latestZoneTitleColor ? { color: latestZoneTitleColor } : undefined}>{latestZoneTitle}</h3> : null}
             <ul className="public-news-list">
               {latestNewsItems.map((item) => (
                 <li className="public-news-item" key={item.id}>
