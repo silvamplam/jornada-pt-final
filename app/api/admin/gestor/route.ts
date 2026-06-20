@@ -13,6 +13,12 @@ function cleanText(value: FormDataEntryValue | null): string | null {
   return trimmed ? trimmed : null;
 }
 
+function cleanHexColor(value: FormDataEntryValue | null): string | null {
+  const text = cleanText(value);
+
+  return text && /^#[0-9A-Fa-f]{6}$/.test(text) ? text : null;
+}
+
 function cleanInteger(value: FormDataEntryValue | null): number | null {
   const text = cleanText(value);
 
@@ -1508,6 +1514,7 @@ async function saveMatchdayLatestNews(formData: FormData) {
   const latestZoneMode = latestZoneModeValue === "editorial_line" ? "editorial_line" : "latest_news";
   const latestZoneTitleValue = formData.get("latest_zone_title");
   const latestZoneTitle = typeof latestZoneTitleValue === "string" ? latestZoneTitleValue.trim() : "";
+  const latestZoneTitleColor = cleanHexColor(formData.get("latest_zone_title_color"));
 
   if (!matchdayId) {
     throw new Error("missing-fields");
@@ -1526,6 +1533,7 @@ async function saveMatchdayLatestNews(formData: FormData) {
       matchday_id: matchdayId,
       latest_zone_mode: latestZoneMode,
       latest_zone_title: latestZoneTitle,
+      latest_zone_title_color: latestZoneTitleColor,
       updated_at: new Date().toISOString()
     })
   });
