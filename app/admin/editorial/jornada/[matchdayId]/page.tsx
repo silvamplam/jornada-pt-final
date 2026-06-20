@@ -187,6 +187,8 @@ const editorialPageStyles = `
 
   .editorial-admin-composition {
     margin-top: 18px;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .editorial-admin-composition-grid {
@@ -194,16 +196,22 @@ const editorialPageStyles = `
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 16px;
     align-items: start;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .editorial-admin-composition-card {
     display: grid;
     gap: 14px;
     align-content: start;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
     padding: 16px;
     border: 1px solid #dce3eb;
     border-radius: 8px;
     background: #f8fafc;
+    overflow-wrap: anywhere;
   }
 
   .editorial-admin-composition-card h3 {
@@ -223,6 +231,43 @@ const editorialPageStyles = `
     gap: 16px;
     align-content: start;
     min-width: 0;
+    max-width: 100%;
+  }
+
+  .editorial-admin-composition .editorial-admin-form,
+  .editorial-admin-composition .editorial-admin-stack,
+  .editorial-admin-composition .editorial-admin-compact-stack,
+  .editorial-admin-composition .editorial-admin-field,
+  .editorial-admin-composition .editorial-admin-fieldset,
+  .editorial-admin-composition .editorial-admin-item-form,
+  .editorial-admin-composition .editorial-admin-item-details,
+  .editorial-admin-composition .editorial-admin-item-details-body {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .editorial-admin-composition .editorial-admin-field input,
+  .editorial-admin-composition .editorial-admin-field textarea,
+  .editorial-admin-composition .editorial-admin-field select {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .editorial-admin-composition .editorial-admin-muted,
+  .editorial-admin-composition .editorial-admin-field label,
+  .editorial-admin-composition .editorial-admin-fieldset legend,
+  .editorial-admin-composition .editorial-admin-item-details > summary {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .editorial-admin-composition .editorial-admin-item-details > summary::after,
+  .editorial-admin-composition .editorial-admin-item-status,
+  .editorial-admin-composition .editorial-admin-button {
+    flex: 0 0 auto;
   }
 
   .editorial-admin-panel {
