@@ -155,6 +155,15 @@ function TeamBadge({ team }: { team?: PublicMatchStripTeam | null }) {
   );
 }
 
+function LivePulseDots() {
+  return (
+    <span className="home-live-pulse-dots" aria-hidden="true">
+      <span />
+      <span />
+    </span>
+  );
+}
+
 function CompactMatchCard({ match, focus }: { match: PublicMatchStripMatch; focus?: boolean }) {
   const kind = statusKind(match.status);
   const broadcastChannelName = match.broadcastChannel?.name?.trim();
@@ -178,7 +187,10 @@ function CompactMatchCard({ match, focus }: { match: PublicMatchStripMatch; focu
         {kind === "finished" ? (
           <span>Finalizado</span>
         ) : kind === "live" || kind === "halftime" ? (
-          <span>{liveStatus}</span>
+          <span>
+            {liveStatus}
+            {kind === "live" ? <LivePulseDots /> : null}
+          </span>
         ) : (
           <>
             <time className="public-matchday-mini-time" dateTime={match.kickoff_at ?? undefined}>{formatMiniCardKickoff(match.kickoff_at)}</time>
