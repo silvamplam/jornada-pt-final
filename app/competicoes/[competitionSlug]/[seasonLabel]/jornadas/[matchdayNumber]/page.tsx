@@ -308,8 +308,9 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-strip {
-    display: flex;
+    display: grid;
     gap: 6px;
+    grid-template-columns: repeat(10, minmax(118px, 1fr));
     overflow-x: auto;
     scroll-behavior: smooth;
     scroll-padding: 6px;
@@ -330,12 +331,11 @@ const publicMatchdayStyles = `
   .public-matchday-mini-card {
     position: relative;
     display: grid;
-    flex: 1 1 0;
     grid-template-columns: minmax(0, 1fr);
     gap: 3px;
     align-items: start;
-    min-width: 118px;
-    max-width: 136px;
+    width: 100%;
+    min-width: 0;
     min-height: 76px;
     padding: 7px;
     border: 1px solid #eef2f6;
@@ -3078,7 +3078,11 @@ export default async function PublicMatchdayPage({ params, searchParams }: Publi
       />
       <section className="public-matchday-panel public-matchday-scoreboard-panel" aria-label="Visao rapida dos jogos">
         <div className="public-matchday-strip-shell">
-          <div className="public-matchday-strip" data-matchday-strip>
+          <div
+            className="public-matchday-strip"
+            data-matchday-strip
+            style={{ gridTemplateColumns: `repeat(${Math.max(context.matchesForMatchday.length, 1)}, minmax(118px, 1fr))` }}
+          >
             {context.matchesForMatchday.length > 0 ? (
               context.matchesForMatchday.map((match) => (
                 <CompactMatchCard focus={focusedStripMatch?.id === match.id} key={match.id} match={match} />
