@@ -1709,18 +1709,6 @@ async function readMatchdaysForSeason(seasonId?: string): Promise<SeasonMatchday
   }
 }
 
-async function readFirstAvailableMatchdayId(): Promise<string | null> {
-  try {
-    const rows = await fetchSupabaseAdminTable<{ id: string }>(
-      "matchdays?select=id&order=starts_on.asc.nullslast,number.asc&limit=1"
-    );
-
-    return rows[0]?.id ?? null;
-  } catch {
-    return null;
-  }
-}
-
 async function readMatchesForMatchday(matchdayId?: string): Promise<SeasonAgendaMatch[]> {
   if (!matchdayId) {
     return [];
@@ -2327,13 +2315,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     epoca: selectedSeason?.id ?? "",
     jornada: selectedMatchday?.id ?? ""
   };
-  const fallbackMatchdayId = selectedMatchday?.id ?? (await readFirstAvailableMatchdayId());
-  const matchdayEditorialHref = fallbackMatchdayId
-    ? `/admin/editorial/jornada/${encodeURIComponent(fallbackMatchdayId)}`
-    : null;
-  const matchdayCompositionHref = fallbackMatchdayId
-    ? `/admin/editorial/composicao/${encodeURIComponent(fallbackMatchdayId)}`
-    : null;
+  const matchdayEditorialHref = selectedMatchday?.id
+    ? `/admin/editorial/jornada/${encodeURIComponent(selectedMatchday.id)}`
+    : "/admin/editorial/jornada";
+  const matchdayCompositionHref = selectedMatchday?.id
+    ? `/admin/editorial/composicao/${encodeURIComponent(selectedMatchday.id)}`
+    : "/admin/editorial/composicao";
 
   return (
     <main className="manager-shell">
