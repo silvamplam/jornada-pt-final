@@ -311,11 +311,6 @@ export const publicEditorialStyles = `
     background: #dfe5ec;
   }
 
-  .public-matchday-mini-card-live {
-    border-color: #f5c2c7;
-    background: #fff8f8;
-  }
-
   .public-matchday-mini-card-halftime {
     border-color: #ffd3a3;
     background: #fffaf2;
