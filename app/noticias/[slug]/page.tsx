@@ -491,7 +491,7 @@ const articlePageStyles = `
   }
 
   .news-article-game-card-live .news-article-game-team:first-of-type .news-article-game-score {
-    padding-right: 24px;
+    padding-right: 0;
   }
 
   .news-article-game-meta {
@@ -511,13 +511,9 @@ const articlePageStyles = `
 
   .public-live-pulse-dots {
     display: inline-flex;
-    position: absolute;
-    top: 5px;
-    right: 7px;
-    z-index: 2;
     align-items: center;
     gap: 3px;
-    margin-left: 0;
+    margin-left: 5px;
     vertical-align: middle;
   }
 
@@ -581,6 +577,7 @@ const articlePageStyles = `
   .news-article-game-live-status {
     display: inline-flex;
     align-items: center;
+    gap: 4px;
     color: #10151b;
     white-space: nowrap;
   }
@@ -592,6 +589,11 @@ const articlePageStyles = `
 
   .news-article-game-live-minute {
     color: #16a34a;
+  }
+
+  .news-article-game-live-channel {
+    color: #263241;
+    white-space: nowrap;
   }
 
   .news-article-game-channel {
@@ -879,7 +881,7 @@ function statusLabel(status: string) {
   const normalized = status.trim().toLowerCase();
   if (normalized === "finished") return "Finalizado";
   if (normalized === "scheduled") return "Agendado";
-  if (normalized === "live") return "Em direto";
+  if (normalized === "live") return "Live";
   if (normalized === "halftime") return "Intervalo";
   if (normalized === "postponed") return "Adiado";
   if (normalized === "cancelled") return "Cancelado";
@@ -962,28 +964,25 @@ function LivePulseDots() {
   );
 }
 
+function compactTvLabel(value?: string | null) {
+  return value?.replace(/\s+/g, "") ?? "";
+}
+
 function ArticleMatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const hasScore = match.home_score !== null && match.away_score !== null;
   const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
   const publicMinute = getPublicLiveMinute(match);
   const channelName = match.broadcastChannel?.name?.trim();
-  const livePrimeClassName = match.is_clock_running === true ? "public-live-minute-prime public-live-minute-prime-active" : "public-live-minute-prime";
+  const compactChannelName = compactTvLabel(channelName);
+  const livePrimeClassName = "public-live-minute-prime public-live-minute-prime-active";
   const liveStatus = kind === "live" ? (
     <>
-      <span className="news-article-game-live-label">Direto</span>
+      <span className="news-article-game-live-label">Live</span>
       {publicMinute !== null ? (
-        <>
-          <span className="news-article-game-live-separator" aria-hidden="true">{"\u00b7"}</span>
-          <span className="news-article-game-live-minute">{publicMinute}<span className={livePrimeClassName}>'</span></span>
-        </>
+        <span className="news-article-game-live-minute">{publicMinute}<span className={livePrimeClassName}>'</span></span>
       ) : null}
-      {channelName ? (
-        <>
-          <span className="news-article-game-live-separator" aria-hidden="true">{"\u00b7"}</span>
-          <span className="news-article-game-channel" title={channelName}>{channelName}</span>
-        </>
-      ) : null}
+      {compactChannelName ? <span className="news-article-game-live-channel" title={channelName}>{compactChannelName}</span> : null}
     </>
   ) : statusLabel(match.status);
   const homeTeamName = match.homeTeam?.name?.trim() || match.homeTeam?.short_name?.trim() || "Equipa";

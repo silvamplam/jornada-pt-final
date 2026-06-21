@@ -356,7 +356,7 @@ export const publicEditorialStyles = `
   }
 
   .public-matchday-mini-card-live .public-matchday-mini-team:first-of-type .public-matchday-mini-score {
-    padding-right: 24px;
+    padding-right: 0;
   }
 
   .public-matchday-mini-card .public-team-badge {
@@ -393,18 +393,17 @@ export const publicEditorialStyles = `
   }
 
   .public-matchday-mini-card-live .public-matchday-mini-status > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     color: #10151b;
   }
 
   .home-live-pulse-dots {
     display: inline-flex;
-    position: absolute;
-    top: 5px;
-    right: 7px;
-    z-index: 2;
     align-items: center;
     gap: 3px;
-    margin-left: 0;
+    margin-left: 5px;
     vertical-align: middle;
   }
 

@@ -59,7 +59,7 @@ function statusLabel(status?: string | null) {
   const normalized = status?.trim().toLowerCase();
   if (normalized === "finished") return "Finalizado";
   if (normalized === "scheduled") return "Agendado";
-  if (normalized === "live") return "Em direto";
+  if (normalized === "live") return "Live";
   if (normalized === "halftime") return "Intervalo";
   if (normalized === "postponed") return "Adiado";
   if (normalized === "cancelled") return "Cancelado";
@@ -169,34 +169,31 @@ function LivePulseDots() {
   );
 }
 
+function compactTvLabel(value?: string | null) {
+  return value?.replace(/\s+/g, "") ?? "";
+}
+
 function CompactMatchCard({ match, focus }: { match: PublicMatchStripMatch; focus?: boolean }) {
   const kind = statusKind(match.status);
   const broadcastChannelName = match.broadcastChannel?.name?.trim();
+  const compactBroadcastChannelName = compactTvLabel(broadcastChannelName);
   const hasScore = match.home_score !== null && match.home_score !== undefined && match.away_score !== null && match.away_score !== undefined;
   const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
   const publicMinute = getPublicLiveMinute(match);
-  const livePrimeClassName = match.is_clock_running === true ? "home-live-minute-prime home-live-minute-prime-active" : "home-live-minute-prime";
+  const livePrimeClassName = "home-live-minute-prime home-live-minute-prime-active";
   const liveStatus = kind === "live" ? (
     <>
-      <span className="public-matchday-live-label">Direto</span>
+      <span className="public-matchday-live-label">Live</span>
       {publicMinute !== null ? (
-        <>
-          <span className="public-matchday-mini-separator" aria-hidden="true">{"\u00b7"}</span>
-          <span className="public-matchday-live-minute">{publicMinute}<span className={livePrimeClassName}>'</span></span>
-        </>
+        <span className="public-matchday-live-minute">{publicMinute}<span className={livePrimeClassName}>'</span></span>
       ) : null}
-      {broadcastChannelName ? (
-        <>
-          <span className="public-matchday-mini-separator" aria-hidden="true">{"\u00b7"}</span>
-          <span className="public-matchday-mini-channel" title={broadcastChannelName}>{broadcastChannelName}</span>
-        </>
-      ) : null}
+      {compactBroadcastChannelName ? <span className="public-matchday-mini-channel" title={broadcastChannelName}>{compactBroadcastChannelName}</span> : null}
+      <LivePulseDots />
     </>
   ) : statusLabel(match.status);
 
   return (
     <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>
-      {kind === "live" ? <LivePulseDots /> : null}
       <span className="public-matchday-mini-team">
         <TeamBadge team={match.homeTeam} />
         <span title={fullTeamName(match.homeTeam)}>{compactTeamName(match.homeTeam)}</span>
