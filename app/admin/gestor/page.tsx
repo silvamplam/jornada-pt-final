@@ -2420,12 +2420,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
       </li>
     );
   };
-  const matchdayEditorialHref = selectedMatchday?.id
-    ? `/admin/editorial/jornada/${encodeURIComponent(selectedMatchday.id)}`
-    : "/admin/editorial/jornada";
-  const matchdayCompositionHref = selectedMatchday?.id
-    ? `/admin/editorial/composicao/${encodeURIComponent(selectedMatchday.id)}`
-    : "";
+  const matchdayEditorialHref = "/admin/editorial/jornada";
+  const matchdayCompositionHref = "/admin/editorial/composicao";
 
   return (
     <main className="manager-shell">
