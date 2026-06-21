@@ -256,7 +256,7 @@ const publicMatchdayStyles = `
 
   .public-matchday-scoreboard-panel {
     margin-top: 0;
-    padding: 8px 0 10px;
+    padding: 2px 0 10px;
     border-top: 1px solid #dbe4ee;
     border-bottom: 1px solid #d4deea;
     border-left: 0;

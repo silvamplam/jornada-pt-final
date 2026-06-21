@@ -405,7 +405,7 @@ const articlePageStyles = `
     margin: 0 -24px;
     margin-left: -24px;
     margin-right: -24px;
-    padding: 8px 24px 10px;
+    padding: 2px 24px 10px;
     border-top: 1px solid #dbe4ee;
     border-bottom: 1px solid #d4deea;
     background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
@@ -744,7 +744,7 @@ const articlePageStyles = `
       width: calc(100% + 28px);
       margin: 0 -14px;
       margin-top: 0;
-      padding: 7px 14px 8px;
+      padding: 2px 14px 8px;
     }
 
     .news-article-games-shell {
