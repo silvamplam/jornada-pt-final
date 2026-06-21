@@ -1,3 +1,5 @@
+import { getPublicLiveMinute } from "@/lib/live-match-clock";
+
 export type PublicMatchStripTeam = {
   name?: string | null;
   short_name?: string | null;
@@ -14,6 +16,9 @@ export type PublicMatchStripMatch = {
   kickoff_at?: string | null;
   status?: string | null;
   minute?: number | string | null;
+  live_started_at?: string | null;
+  live_base_minute?: number | string | null;
+  is_clock_running?: boolean | null;
   home_score?: number | null;
   away_score?: number | null;
   homeTeam?: PublicMatchStripTeam | null;
@@ -169,7 +174,8 @@ function CompactMatchCard({ match, focus }: { match: PublicMatchStripMatch; focu
   const broadcastChannelName = match.broadcastChannel?.name?.trim();
   const hasScore = match.home_score !== null && match.home_score !== undefined && match.away_score !== null && match.away_score !== undefined;
   const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
-  const liveStatus = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} \u00b7 ${match.minute}'` : statusLabel(match.status);
+  const publicMinute = getPublicLiveMinute(match);
+  const liveStatus = publicMinute !== null && kind === "live" ? `${statusLabel(match.status)} \u00b7 ${publicMinute}'` : statusLabel(match.status);
 
   return (
     <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>

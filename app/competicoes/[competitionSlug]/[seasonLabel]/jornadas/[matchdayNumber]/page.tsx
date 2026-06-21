@@ -1,4 +1,5 @@
-﻿import { buildAccumulatedClassification, totalClassificationStats, type ClassificationSplit } from "@/lib/classification";
+import { buildAccumulatedClassification, totalClassificationStats, type ClassificationSplit } from "@/lib/classification";
+import { getPublicLiveMinute } from "@/lib/live-match-clock";
 import { getPublicMatchdayDiagnostic, seasonLabelToUrlSegment, type PublicMatchdayContext, type PublicMatchdayDiagnostic, type PublicReferenceCompositionItem, type PublicSeasonMatch } from "@/lib/public-matchday";
 import { getPublicCompetitionMenu } from "@/lib/public-competition-menu";
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
@@ -2412,7 +2413,7 @@ function statusLabel(status: string) {
   if (normalized === "finished") return "Finalizado";
   if (normalized === "scheduled") return "Agendado";
   if (normalized === "live") return "Em direto";
-  if (normalized === "halftime") return "Em direto";
+  if (normalized === "halftime") return "Intervalo";
   if (normalized === "postponed") return "Adiado";
   if (normalized === "cancelled") return "Cancelado";
   return status;
@@ -2641,7 +2642,8 @@ function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: 
   const broadcastChannelName = match.broadcastChannel?.name?.trim();
   const hasScore = match.home_score !== null && match.away_score !== null;
   const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
-  const liveStatus = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
+  const publicMinute = getPublicLiveMinute(match);
+  const liveStatus = publicMinute !== null && kind === "live" ? `${statusLabel(match.status)} · ${publicMinute}'` : statusLabel(match.status);
   const homeTeamName = match.homeTeam?.name ?? "Equipa da casa";
   const awayTeamName = match.awayTeam?.name ?? "Equipa visitante";
 
@@ -2685,7 +2687,8 @@ function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: 
 
 function MatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
-  const statusText = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
+  const publicMinute = getPublicLiveMinute(match);
+  const statusText = publicMinute !== null && kind === "live" ? `${statusLabel(match.status)} · ${publicMinute}'` : statusLabel(match.status);
   const homeWinner = isWinner(match, "home");
   const awayWinner = isWinner(match, "away");
 

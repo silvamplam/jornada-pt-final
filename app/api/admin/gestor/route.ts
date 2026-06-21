@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getPublicLiveMinute } from "@/lib/live-match-clock";
 import { fetchSupabaseAdminTable, getSupabaseServiceConfig, writeSupabaseAdmin, writeSupabaseAdminReturning } from "@/lib/supabase";
 
 const ROUNDUP_EDITOR_SORT_ORDERS = Array.from({ length: 10 }, (_, index) => index + 1);
@@ -78,6 +79,16 @@ function cleanMatchStatus(value: FormDataEntryValue | null, fallback = "schedule
   return status;
 }
 
+function cleanClockAction(value: FormDataEntryValue | null): "start_clock" | "pause_clock" | null {
+  const action = cleanText(value);
+  return action === "start_clock" || action === "pause_clock" ? action : null;
+}
+
+function cleanClockRunning(value: FormDataEntryValue | null): boolean {
+  const text = cleanText(value);
+  return text === "true" || text === "1" || text === "on";
+}
+
 function cleanMatchdayStatus(value: FormDataEntryValue | null): string {
   const status = cleanText(value);
   const allowed = new Set(["scheduled", "live", "finished", "archived"]);
@@ -108,6 +119,9 @@ type AgendaMatchRow = {
   matchday_id: string | null;
   status: string;
   minute: number | null;
+  live_started_at: string | null;
+  live_base_minute: number | null;
+  is_clock_running: boolean | null;
   home_score: number | null;
   away_score: number | null;
   broadcast_channel_id: string | null;
@@ -2043,7 +2057,7 @@ async function readAgendaMatch(formData: FormData): Promise<AgendaMatchRow> {
   }
 
   const rows = await fetchSupabaseAdminTable<AgendaMatchRow>(
-    `matches?select=id,competition_id,season_id,matchday_id,status,minute,home_score,away_score,broadcast_channel_id&id=eq.${encodeURIComponent(
+    `matches?select=id,competition_id,season_id,matchday_id,status,minute,live_started_at,live_base_minute,is_clock_running,home_score,away_score,broadcast_channel_id&id=eq.${encodeURIComponent(
       matchId
     )}&competition_id=eq.${encodeURIComponent(competitionId)}&season_id=eq.${encodeURIComponent(
       seasonId
@@ -2353,7 +2367,11 @@ async function finishMatch(formData: FormData) {
   const matchId = cleanText(formData.get("match_id"));
   const homeScore = cleanScore(formData.get("home_score"));
   const awayScore = cleanScore(formData.get("away_score"));
-  const minute = cleanMatchMinute(formData.get("minute"));
+  let minute = cleanMatchMinute(formData.get("minute"));
+  let liveBaseMinute = cleanMatchMinute(formData.get("live_base_minute"));
+  let isClockRunning = cleanClockRunning(formData.get("is_clock_running"));
+  let liveStartedAt: string | null = null;
+  const clockAction = cleanClockAction(formData.get("clock_action"));
 
   if (!competitionId || !seasonId || !matchdayId || !matchId) {
     throw new Error("missing-fields");
@@ -2378,7 +2396,41 @@ async function finishMatch(formData: FormData) {
   }
 
   const match = await readAgendaMatch(formData);
-  const status = cleanMatchStatus(formData.get("status"), match.status);
+  let status = cleanMatchStatus(formData.get("status"), match.status);
+  const currentLiveMinute = getPublicLiveMinute(match);
+
+  if (clockAction === "start_clock") {
+    status = "live";
+    liveBaseMinute = liveBaseMinute ?? minute ?? currentLiveMinute ?? match.minute ?? 0;
+    minute = liveBaseMinute;
+    liveStartedAt = new Date().toISOString();
+    isClockRunning = true;
+  } else if (clockAction === "pause_clock") {
+    const frozenMinute = currentLiveMinute ?? liveBaseMinute ?? minute ?? match.minute;
+    liveBaseMinute = frozenMinute;
+    minute = frozenMinute;
+    liveStartedAt = null;
+    isClockRunning = false;
+  } else if (status === "live" && isClockRunning) {
+    liveBaseMinute = liveBaseMinute ?? minute ?? currentLiveMinute ?? match.minute ?? 0;
+    minute = liveBaseMinute;
+    liveStartedAt =
+      match.is_clock_running && match.live_started_at && match.live_base_minute === liveBaseMinute
+        ? match.live_started_at
+        : new Date().toISOString();
+  } else if (status === "live") {
+    liveBaseMinute = liveBaseMinute ?? minute ?? match.live_base_minute ?? match.minute;
+    liveStartedAt = null;
+    isClockRunning = false;
+  } else {
+    liveStartedAt = null;
+    isClockRunning = false;
+    if (status === "scheduled") {
+      liveBaseMinute = null;
+    } else {
+      liveBaseMinute = liveBaseMinute ?? minute ?? currentLiveMinute ?? match.live_base_minute ?? match.minute;
+    }
+  }
 
   await writeSupabaseAdmin(
     `matches?id=eq.${encodeURIComponent(matchId)}&competition_id=eq.${encodeURIComponent(
@@ -2392,6 +2444,9 @@ async function finishMatch(formData: FormData) {
         home_score: homeScore,
         away_score: awayScore,
         minute,
+        live_base_minute: liveBaseMinute,
+        live_started_at: liveStartedAt,
+        is_clock_running: isClockRunning,
         status,
         data_source: "manual",
         sync_status: "manual",
