@@ -5,6 +5,7 @@
   type ClassificationRow,
   type ClassificationSplit
 } from "@/lib/classification";
+import { getPublicLiveMinute } from "@/lib/live-match-clock";
 import {
   fetchSupabaseAdminTable,
   getAdminSeasonParticipants,
@@ -50,6 +51,9 @@ type SeasonAgendaMatch = {
   venue: string | null;
   status: string;
   minute: number | null;
+  live_started_at: string | null;
+  live_base_minute: number | null;
+  is_clock_running: boolean | null;
   home_score: number | null;
   away_score: number | null;
   broadcast_channel_id: string | null;
@@ -1721,7 +1725,7 @@ async function readMatchesForMatchday(matchdayId?: string): Promise<SeasonAgenda
 
   try {
     return await fetchSupabaseAdminTable<SeasonAgendaMatch>(
-      `matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,kickoff_at,venue,status,minute,home_score,away_score,broadcast_channel_id&matchday_id=eq.${encodeURIComponent(
+      `matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,kickoff_at,venue,status,minute,live_started_at,live_base_minute,is_clock_running,home_score,away_score,broadcast_channel_id&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}&manual_override=is.true&order=kickoff_at.asc`
     );
@@ -1737,7 +1741,7 @@ async function readMatchesForSeason(seasonId?: string): Promise<SeasonAgendaMatc
 
   try {
     return await fetchSupabaseAdminTable<SeasonAgendaMatch>(
-      `matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,kickoff_at,venue,status,minute,home_score,away_score,broadcast_channel_id&season_id=eq.${encodeURIComponent(
+      `matches?select=id,competition_id,season_id,matchday_id,home_team_id,away_team_id,kickoff_at,venue,status,minute,live_started_at,live_base_minute,is_clock_running,home_score,away_score,broadcast_channel_id&season_id=eq.${encodeURIComponent(
         seasonId
       )}&manual_override=is.true&order=kickoff_at.asc`
     );
@@ -2201,7 +2205,8 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
     const statusKind = match.status.trim().toLowerCase();
     const statusValue = ["scheduled", "live", "halftime", "finished"].includes(statusKind) ? statusKind : "scheduled";
     const statusLabel = matchStatusLabel(match.status);
-    const minuteLabel = match.minute !== null && (statusValue === "live" || statusValue === "halftime") ? ` · ${match.minute}'` : "";
+    const publicMinute = getPublicLiveMinute(match);
+    const minuteLabel = publicMinute !== null && statusValue === "live" ? ` · ${publicMinute}'` : "";
     const scoreLabel = hasFinalScore ? ` - ${match.home_score}-${match.away_score}` : "";
     const isFinished = match.status === "finished";
     const hasCompetitiveData =
@@ -2232,6 +2237,17 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
           <input name="minute" type="number" min={0} max={130} step={1} defaultValue={match.minute ?? ""} />
         </label>
         <label className="manager-score-field">
+          <span>Minuto base</span>
+          <input name="live_base_minute" type="number" min={0} max={130} step={1} defaultValue={match.live_base_minute ?? match.minute ?? ""} />
+        </label>
+        <label className="manager-score-field">
+          <span>Relogio</span>
+          <select name="is_clock_running" defaultValue={match.is_clock_running ? "true" : "false"}>
+            <option value="false">Parado</option>
+            <option value="true">A correr</option>
+          </select>
+        </label>
+        <label className="manager-score-field">
           <span>Casa</span>
           <input name="home_score" type="number" min={0} step={1} defaultValue={match.home_score ?? ""} />
         </label>
@@ -2241,6 +2257,12 @@ export default async function AdminSeasonManagerPage({ searchParams }: { searchP
         </label>
         <button className="manager-link-button" type="submit">
           Guardar estado
+        </button>
+        <button className="manager-link-button" name="clock_action" type="submit" value="start_clock">
+          Iniciar/retomar relogio
+        </button>
+        <button className="manager-link-button" name="clock_action" type="submit" value="pause_clock">
+          Pausar relogio
         </button>
       </form>
     );

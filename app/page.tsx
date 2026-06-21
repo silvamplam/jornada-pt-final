@@ -116,6 +116,9 @@ type HomeMatchRow = {
   kickoff_at: string | null;
   status: string | null;
   minute: number | string | null;
+  live_started_at: string | null;
+  live_base_minute: number | string | null;
+  is_clock_running: boolean | null;
   home_score: number | null;
   away_score: number | null;
   broadcast_channel_id: string | null;
@@ -296,7 +299,7 @@ async function readHomeFeaturedMatches(): Promise<PublicMatchStripMatch[]> {
 
   const matchesById = await readRowsById<HomeMatchRow>(
     "matches",
-    "id,home_team_id,away_team_id,kickoff_at,status,minute,home_score,away_score,broadcast_channel_id",
+    "id,home_team_id,away_team_id,kickoff_at,status,minute,live_started_at,live_base_minute,is_clock_running,home_score,away_score,broadcast_channel_id",
     matchIds
   );
   const matches = Array.from(matchesById.values());
@@ -321,6 +324,9 @@ async function readHomeFeaturedMatches(): Promise<PublicMatchStripMatch[]> {
       kickoff_at: match.kickoff_at,
       status: match.status ?? "scheduled",
       minute: match.minute,
+      live_started_at: match.live_started_at,
+      live_base_minute: match.live_base_minute,
+      is_clock_running: match.is_clock_running,
       home_score: match.home_score,
       away_score: match.away_score,
       homeTeam: match.home_team_id ? teamsById.get(match.home_team_id) ?? null : null,

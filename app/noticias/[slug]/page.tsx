@@ -2,6 +2,7 @@
 
 import PublicTeamBadge from "@/components/public/PublicTeamBadge";
 import { getPublicCompetitionMenu } from "@/lib/public-competition-menu";
+import { getPublicLiveMinute } from "@/lib/live-match-clock";
 import {
   getPublicMatchdayDiagnostic,
   seasonLabelToUrlSegment,
@@ -826,7 +827,7 @@ function statusLabel(status: string) {
   if (normalized === "finished") return "Finalizado";
   if (normalized === "scheduled") return "Agendado";
   if (normalized === "live") return "Em direto";
-  if (normalized === "halftime") return "Em direto";
+  if (normalized === "halftime") return "Intervalo";
   if (normalized === "postponed") return "Adiado";
   if (normalized === "cancelled") return "Cancelado";
   return status;
@@ -912,7 +913,8 @@ function ArticleMatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const hasScore = match.home_score !== null && match.away_score !== null;
   const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
-  const liveStatus = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
+  const publicMinute = getPublicLiveMinute(match);
+  const liveStatus = publicMinute !== null && kind === "live" ? `${statusLabel(match.status)} · ${publicMinute}'` : statusLabel(match.status);
   const channelName = match.broadcastChannel?.name?.trim();
   const homeTeamName = match.homeTeam?.name?.trim() || match.homeTeam?.short_name?.trim() || "Equipa";
   const awayTeamName = match.awayTeam?.name?.trim() || match.awayTeam?.short_name?.trim() || "Equipa";
