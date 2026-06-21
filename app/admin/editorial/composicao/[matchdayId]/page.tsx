@@ -39,6 +39,14 @@ type MatchdayContext = {
   country: SupabaseCountry | null;
 };
 
+type ContextSelectorData = {
+  countries: SupabaseCountry[];
+  competitions: SupabaseCompetition[];
+  seasons: SupabaseSeason[];
+  matchdays: SupabaseMatchday[];
+  error: string;
+};
+
 type SupabaseArticle = {
   id: string;
   title: string;
@@ -564,6 +572,77 @@ const compositionPageStyles = `
     text-transform: uppercase;
   }
 
+  .composition-context-selector {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.8fr) minmax(0, 2.2fr);
+    gap: 14px;
+    align-items: end;
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
+  }
+
+  .composition-context-selector p,
+  .composition-context-selector strong,
+  .composition-context-selector label {
+    margin: 0;
+  }
+
+  .composition-context-selector p {
+    color: #e5252a;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .composition-context-selector strong {
+    display: block;
+    margin-top: 4px;
+    color: #10151b;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .composition-context-selector-form {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(120px, 1fr)) auto;
+    gap: 10px;
+    align-items: end;
+  }
+
+  .composition-context-selector-field {
+    display: grid;
+    gap: 5px;
+  }
+
+  .composition-context-selector-field label {
+    color: #607086;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .composition-context-selector-field select {
+    min-height: 38px;
+    width: 100%;
+    border: 1px solid #cdd6e1;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #10151b;
+    font: inherit;
+    font-size: 13px;
+  }
+
+  .composition-context-selector-empty {
+    color: #607086;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
   .composition-admin-layout {
     display: grid;
     grid-template-columns: minmax(360px, 1.05fr) minmax(420px, 0.95fr);
@@ -902,6 +981,11 @@ const compositionPageStyles = `
     .composition-admin-actions {
       justify-content: flex-start;
     }
+
+    .composition-context-selector,
+    .composition-context-selector-form {
+      grid-template-columns: 1fr;
+    }
   }
 `;
 
@@ -944,6 +1028,47 @@ async function readMatchdayContext(matchdayId: string): Promise<MatchdayContext 
     : null;
 
   return { matchday, season, competition, country };
+}
+
+async function readContextSelectorData(): Promise<ContextSelectorData> {
+  try {
+    const [countries, competitions, seasons, matchdays] = await Promise.all([
+      fetchSupabaseAdminTable<SupabaseCountry>("countries?select=id,name,slug,iso2,flag_emoji,is_active&order=name.asc"),
+      fetchSupabaseAdminTable<SupabaseCompetition>(
+        "competitions?select=id,country_id,name,slug,is_active&order=name.asc"
+      ),
+      fetchSupabaseAdminTable<SupabaseSeason>(
+        "seasons?select=id,competition_id,label,is_current,starts_on,ends_on&order=label.desc"
+      ),
+      fetchSupabaseAdminTable<SupabaseMatchday>(
+        "matchdays?select=id,season_id,number,label,starts_on,ends_on,status&order=number.asc"
+      )
+    ]);
+
+    return { countries, competitions, seasons, matchdays, error: "" };
+  } catch (error) {
+    return {
+      countries: [],
+      competitions: [],
+      seasons: [],
+      matchdays: [],
+      error: error instanceof Error ? error.message : "Nao foi possivel carregar o seletor de jornadas."
+    };
+  }
+}
+
+function formatContextSelectorMatchdayLabel(
+  item: SupabaseMatchday,
+  seasonById: Map<string, SupabaseSeason>,
+  competitionById: Map<string, SupabaseCompetition>,
+  countryById: Map<string, SupabaseCountry>
+) {
+  const itemSeason = seasonById.get(item.season_id);
+  const itemCompetition = itemSeason ? competitionById.get(itemSeason.competition_id) : null;
+  const itemCountry = itemCompetition?.country_id ? countryById.get(itemCompetition.country_id) : null;
+  return `${itemCountry?.name ?? "Pais"} / ${itemCompetition?.name ?? "Competicao"} / ${
+    itemSeason?.label ?? "Epoca"
+  } / ${item.label}`;
 }
 
 async function readMatchdayEditorial(matchdayId: string): Promise<MatchdayEditorialWithHeadlineLink | null> {
@@ -1679,6 +1804,10 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
   const publishedAtLabel = formatPublishedAt(draftComposition?.published_at);
   const latestZoneMode = editorial?.latest_zone_mode === "editorial_line" ? "Linha editorial" : "Últimas notícias";
   const contextLabel = `${country?.name ?? "Pais"} / ${competition.name} / ${season.label} / ${matchday.label}`;
+  const contextSelector = await readContextSelectorData();
+  const selectorCountryById = new Map(contextSelector.countries.map((item) => [item.id, item]));
+  const selectorCompetitionById = new Map(contextSelector.competitions.map((item) => [item.id, item]));
+  const selectorSeasonById = new Map(contextSelector.seasons.map((item) => [item.id, item]));
   const activeBankItems = bankItems.filter((item) => item.status !== "archived");
   const archivedBankItems = bankItems.filter((item) => item.status === "archived");
   const bankSavedCount = Math.max(0, Number.parseInt(query.bank_saved ?? "0", 10) || 0);
@@ -1734,6 +1863,96 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
           </a>
         </nav>
       </section>
+
+      <section className="composition-context-selector" aria-label="Alterar jornada da composicao">
+        <div>
+          <p>Alterar jornada</p>
+          <strong>{contextLabel}</strong>
+        </div>
+        {contextSelector.error ? (
+          <span className="composition-context-selector-empty">Nao foi possivel carregar o seletor: {contextSelector.error}</span>
+        ) : (
+          <form className="composition-context-selector-form" data-context-switcher data-target-base="/admin/editorial/composicao">
+            <div className="composition-context-selector-field">
+              <label htmlFor="composition-context-competition">Competição</label>
+              <select id="composition-context-competition" name="competition_id" defaultValue={competition.id}>
+                {contextSelector.competitions.map((item) => (
+                  <option key={item.id} value={item.id} data-country={item.country_id ?? ""}>
+                    {selectorCountryById.get(item.country_id ?? "")?.name
+                      ? `${selectorCountryById.get(item.country_id ?? "")?.name} / ${item.name}`
+                      : item.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="composition-context-selector-field">
+              <label htmlFor="composition-context-season">Época</label>
+              <select id="composition-context-season" name="season_id" defaultValue={season.id}>
+                {contextSelector.seasons.map((item) => (
+                  <option key={item.id} value={item.id} data-competition={item.competition_id ?? ""}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="composition-context-selector-field">
+              <label htmlFor="composition-context-matchday">Jornada</label>
+              <select id="composition-context-matchday" name="matchday_id" defaultValue={matchday.id}>
+                {contextSelector.matchdays.map((item) => (
+                  <option key={item.id} value={item.id} data-season={item.season_id ?? ""}>
+                    {formatContextSelectorMatchdayLabel(item, selectorSeasonById, selectorCompetitionById, selectorCountryById)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button className="composition-admin-button" type="submit">
+              Abrir Composição Editorial
+            </button>
+          </form>
+        )}
+      </section>
+
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function () {
+              Array.prototype.forEach.call(document.querySelectorAll("[data-context-switcher]"), function (form) {
+                var competition = form.querySelector("select[name='competition_id']");
+                var season = form.querySelector("select[name='season_id']");
+                var matchday = form.querySelector("select[name='matchday_id']");
+                if (!competition || !season || !matchday) return;
+
+                function syncOptions() {
+                  Array.prototype.forEach.call(season.options, function (option) {
+                    option.hidden = option.getAttribute("data-competition") !== competition.value;
+                  });
+                  if (season.selectedOptions[0] && season.selectedOptions[0].hidden) {
+                    var firstSeason = Array.prototype.find.call(season.options, function (option) { return !option.hidden; });
+                    if (firstSeason) season.value = firstSeason.value;
+                  }
+
+                  Array.prototype.forEach.call(matchday.options, function (option) {
+                    option.hidden = option.getAttribute("data-season") !== season.value;
+                  });
+                  if (matchday.selectedOptions[0] && matchday.selectedOptions[0].hidden) {
+                    var firstMatchday = Array.prototype.find.call(matchday.options, function (option) { return !option.hidden; });
+                    if (firstMatchday) matchday.value = firstMatchday.value;
+                  }
+                }
+
+                competition.addEventListener("change", syncOptions);
+                season.addEventListener("change", syncOptions);
+                form.addEventListener("submit", function (event) {
+                  event.preventDefault();
+                  if (!matchday.value) return;
+                  window.location.href = form.getAttribute("data-target-base") + "/" + encodeURIComponent(matchday.value);
+                });
+                syncOptions();
+              });
+            })();
+          `
+        }}
+      />
 
       <div className="composition-admin-layout">
         <section className="composition-admin-panel">
