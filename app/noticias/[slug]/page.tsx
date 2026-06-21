@@ -965,7 +965,8 @@ function LivePulseDots() {
 }
 
 function compactTvLabel(value?: string | null) {
-  return value?.replace(/\s+/g, "") ?? "";
+  const label = value?.trim();
+  return label ? label.replace(/^Sport\s*TV\s*/i, "SportTV") : "";
 }
 
 function ArticleMatchCard({ match }: { match: PublicSeasonMatch }) {
@@ -1007,7 +1008,7 @@ function ArticleMatchCard({ match }: { match: PublicSeasonMatch }) {
             {channelName ? (
               <>
                 <span aria-hidden="true">·</span>
-                <span className="news-article-game-channel" title={channelName}>{channelName}</span>
+                <span className="news-article-game-channel" title={channelName}>{compactChannelName}</span>
               </>
             ) : null}
           </>

@@ -170,7 +170,8 @@ function LivePulseDots() {
 }
 
 function compactTvLabel(value?: string | null) {
-  return value?.replace(/\s+/g, "") ?? "";
+  const label = value?.trim();
+  return label ? label.replace(/^Sport\s*TV\s*/i, "SportTV") : "";
 }
 
 function CompactMatchCard({ match, focus }: { match: PublicMatchStripMatch; focus?: boolean }) {
@@ -217,7 +218,7 @@ function CompactMatchCard({ match, focus }: { match: PublicMatchStripMatch; focu
             {broadcastChannelName ? (
               <>
                 <span className="public-matchday-mini-separator" aria-hidden="true">{"\u00b7"}</span>
-                <span className="public-matchday-mini-channel" title={broadcastChannelName}>{broadcastChannelName}</span>
+                <span className="public-matchday-mini-channel" title={broadcastChannelName}>{compactBroadcastChannelName}</span>
               </>
             ) : null}
           </>

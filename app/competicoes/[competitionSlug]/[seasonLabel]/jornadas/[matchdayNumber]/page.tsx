@@ -2676,10 +2676,13 @@ function BroadcastBadge({ match }: { match: PublicSeasonMatch }) {
     return null;
   }
 
+  const broadcastChannelName = match.broadcastChannel.name?.trim();
+  const displayBroadcastChannelName = compactTvLabel(broadcastChannelName);
+
   return (
     <span className="public-matchday-tv">
       {match.broadcastChannel.logo_url ? <img alt="" src={match.broadcastChannel.logo_url} /> : null}
-      <span>{match.broadcastChannel.name}</span>
+      <span>{displayBroadcastChannelName}</span>
     </span>
   );
 }
@@ -2694,7 +2697,8 @@ function LivePulseDots() {
 }
 
 function compactTvLabel(value?: string | null) {
-  return value?.replace(/\s+/g, "") ?? "";
+  const label = value?.trim();
+  return label ? label.replace(/^Sport\s*TV\s*/i, "SportTV") : "";
 }
 
 function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: boolean }) {
@@ -2743,7 +2747,7 @@ function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: 
             {broadcastChannelName ? (
               <>
                 <span className="public-matchday-mini-separator" aria-hidden="true">·</span>
-                <span className="public-matchday-mini-channel">{broadcastChannelName}</span>
+                <span className="public-matchday-mini-channel" title={broadcastChannelName}>{compactBroadcastChannelName}</span>
               </>
             ) : null}
           </>

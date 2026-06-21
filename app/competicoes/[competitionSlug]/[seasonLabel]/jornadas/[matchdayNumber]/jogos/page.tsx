@@ -896,16 +896,20 @@ function BroadcastBadge({ match }: { match: PublicSeasonMatch }) {
     return null;
   }
 
+  const broadcastChannelName = match.broadcastChannel.name?.trim();
+  const displayBroadcastChannelName = compactTvLabel(broadcastChannelName);
+
   return (
     <span className="public-games-tv">
       {match.broadcastChannel.logo_url ? <img alt="" src={match.broadcastChannel.logo_url} /> : null}
-      <span>{match.broadcastChannel.name}</span>
+      <span>{displayBroadcastChannelName}</span>
     </span>
   );
 }
 
 function compactTvLabel(value?: string | null) {
-  return value?.replace(/\s+/g, "") ?? "";
+  const label = value?.trim();
+  return label ? label.replace(/^Sport\s*TV\s*/i, "SportTV") : "";
 }
 
 function LivePulseDots() {
