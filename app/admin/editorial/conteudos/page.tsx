@@ -39,6 +39,15 @@ type ContentContextLookups = {
 
 type ContentStatusView = "active" | "archived";
 
+const editorialNavigationLinks = [
+  { href: "/admin/editorial/home", label: "HOME EDITORIAL" },
+  { href: "/admin/editorial/artigos", label: "ARTIGOS / NOTÍCIAS" },
+  { href: "/admin/editorial/jornada", label: "EDITORIAL DA JORNADA" },
+  { href: "/admin/editorial/composicao", label: "COMPOSIÇÃO EDITORIAL" },
+  { href: "/admin/gestor", label: "CENTRO DE GESTÃO" },
+  { href: "/admin", label: "BACKOFFICE" },
+];
+
 async function readEditorialContents(statusView: ContentStatusView): Promise<ReadEditorialContentsResult> {
   try {
     const statusFilter =
@@ -240,10 +249,37 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
             Conteudos editoriais audiovisuais publicados ou em preparacao. Esta area nao substitui Artigos/Noticias e
             nao alimenta automaticamente as areas fixas de video da Jornada.
           </p>
+          <nav
+            aria-label="Navegacao editorial"
+            style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 18 }}
+          >
+            {editorialNavigationLinks.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  alignItems: "center",
+                  border: "1px solid rgba(255,255,255,0.38)",
+                  borderRadius: 8,
+                  color: "#fff",
+                  display: "inline-flex",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  justifyContent: "center",
+                  minHeight: 34,
+                  padding: "0 12px",
+                  textDecoration: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
         </div>
 
         <Link className="content-admin-primary-action" href="/admin/editorial/conteudos/novo">
-          Novo conteudo
+          Novo conteúdo
         </Link>
       </section>
 
