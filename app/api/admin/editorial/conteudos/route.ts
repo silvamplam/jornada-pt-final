@@ -28,6 +28,9 @@ type EditorialContentPayload = {
   duration: string | null;
   is_embeddable: boolean;
   published_at: string | null;
+  competition_id: string | null;
+  season_id: string | null;
+  matchday_id: string | null;
 };
 
 class EditorialContentAdminError extends Error {
@@ -159,6 +162,12 @@ async function buildPayload(
   const status = cleanStatus(cleanText(formData.get("status")) ?? "draft");
   const scope = cleanScope(cleanText(formData.get("scope")) ?? "general");
   const contentType = cleanContentType(cleanText(formData.get("content_type")) ?? "video");
+  const submittedCompetitionId = cleanText(formData.get("competition_id"));
+  const submittedSeasonId = cleanText(formData.get("season_id"));
+  const submittedMatchdayId = cleanText(formData.get("matchday_id"));
+  const competitionId = scope === "competition" || scope === "matchday" ? submittedCompetitionId : null;
+  const seasonId = scope === "competition" || scope === "matchday" ? submittedSeasonId : null;
+  const matchdayId = scope === "matchday" ? submittedMatchdayId : null;
   let publishedAt = normalizePublishedAt(cleanText(formData.get("published_at")));
 
   if (status === "published" && !publishedAt) {
@@ -185,6 +194,9 @@ async function buildPayload(
     duration: cleanText(formData.get("duration")),
     is_embeddable: cleanText(formData.get("is_embeddable")) === "true",
     published_at: publishedAt,
+    competition_id: competitionId,
+    season_id: seasonId,
+    matchday_id: matchdayId,
   };
 }
 

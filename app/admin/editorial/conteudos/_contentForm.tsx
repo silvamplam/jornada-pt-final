@@ -32,6 +32,37 @@ type ContentFormProps = {
   mode: "create" | "edit";
   content?: EditorialContent | null;
   message?: string | null;
+  competitions?: EditorialContentCompetition[];
+  seasons?: EditorialContentSeason[];
+  matchdays?: EditorialContentMatchday[];
+};
+
+export type EditorialContentCompetition = {
+  id: string;
+  name: string | null;
+  slug?: string | null;
+  country?: string | null;
+  country_id?: string | null;
+  is_active?: boolean | null;
+};
+
+export type EditorialContentSeason = {
+  id: string;
+  competition_id: string | null;
+  label: string | null;
+  is_current?: boolean | null;
+  starts_on?: string | null;
+  ends_on?: string | null;
+};
+
+export type EditorialContentMatchday = {
+  id: string;
+  season_id: string | null;
+  number: number | null;
+  label: string | null;
+  starts_on?: string | null;
+  ends_on?: string | null;
+  status?: string | null;
 };
 
 export const editorialContentsSelect = [
@@ -110,9 +141,29 @@ function formatDateTimeLocal(value: string | null | undefined) {
   )}`;
 }
 
-export function EditorialContentForm({ mode, content, message }: ContentFormProps) {
+function matchdayOptionLabel(matchday: EditorialContentMatchday) {
+  const number = Number.isFinite(matchday.number) ? `J${String(matchday.number).padStart(2, "0")}` : "";
+  return [number, matchday.label].filter(Boolean).join(" - ") || "Jornada sem nome";
+}
+
+export function EditorialContentForm({
+  mode,
+  content,
+  message,
+  competitions = [],
+  seasons = [],
+  matchdays = [],
+}: ContentFormProps) {
   const isEdit = mode === "edit";
   const action = "/api/admin/editorial/conteudos";
+  const initialMatchday = content?.matchday_id ? matchdays.find((item) => item.id === content.matchday_id) : null;
+  const initialSeasonId = content?.season_id ?? initialMatchday?.season_id ?? "";
+  const initialSeason = initialSeasonId ? seasons.find((item) => item.id === initialSeasonId) : null;
+  const initialCompetitionId = content?.competition_id ?? initialSeason?.competition_id ?? "";
+  const initialScope = content?.scope ?? "general";
+  const showCompetition = initialScope === "competition" || initialScope === "matchday";
+  const showSeason = showCompetition && Boolean(initialCompetitionId);
+  const showMatchday = initialScope === "matchday" && Boolean(initialSeasonId);
 
   return (
     <form className="content-admin-form" action={action} method="post">
@@ -208,7 +259,7 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
           >
             <label>
               <span>Carregar imagem principal</span>
-              <input data-content-image-file type="file" accept="image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif" />
+              <input data-content-image-file type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif" />
             </label>
             <button type="button" data-content-image-upload-button>
               Carregar imagem
@@ -232,7 +283,7 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
           >
             <label>
               <span>Carregar thumbnail</span>
-              <input data-content-image-file type="file" accept="image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif" />
+              <input data-content-image-file type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif" />
             </label>
             <button type="button" data-content-image-upload-button>
               Carregar thumbnail
@@ -289,10 +340,65 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
         </div>
       </section>
 
+      <section className="content-admin-panel" data-content-context-panel>
+        <div className="content-admin-panel-heading">
+          <p>Contexto editorial</p>
+          <span>Define onde este conteudo deve ficar disponivel no admin editorial.</span>
+        </div>
+
+        <div className="content-admin-grid">
+          <label>
+            <span>Ambito</span>
+            <select name="scope" defaultValue={initialScope} data-content-scope>
+              <option value="general">Geral</option>
+              <option value="home">Home</option>
+              <option value="competition">Competicao</option>
+              <option value="matchday">Jornada</option>
+            </select>
+          </label>
+
+          <label data-content-context-field="competition" hidden={!showCompetition}>
+            <span>Competicao / Liga</span>
+            <select name="competition_id" defaultValue={initialCompetitionId}>
+              <option value="">Sem competicao</option>
+              {competitions.map((competition) => (
+                <option key={competition.id} value={competition.id}>
+                  {[competition.country, competition.name].filter(Boolean).join(" / ") || competition.slug || competition.id}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label data-content-context-field="season" hidden={!showSeason}>
+            <span>Epoca</span>
+            <select name="season_id" defaultValue={initialSeasonId}>
+              <option value="">Sem epoca</option>
+              {seasons.map((season) => (
+                <option key={season.id} value={season.id} data-competition={season.competition_id ?? ""}>
+                  {season.label ?? "Epoca sem nome"}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label data-content-context-field="matchday" hidden={!showMatchday}>
+            <span>Jornada</span>
+            <select name="matchday_id" defaultValue={content?.matchday_id ?? ""}>
+              <option value="">Sem jornada</option>
+              {matchdays.map((matchday) => (
+                <option key={matchday.id} value={matchday.id} data-season={matchday.season_id ?? ""}>
+                  {matchdayOptionLabel(matchday)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </section>
+
       <details className="content-admin-panel content-admin-advanced">
         <summary>
           <span>Avancado / tecnico</span>
-          <small>Slug, ambito e data de publicacao.</small>
+          <small>Slug e data de publicacao.</small>
         </summary>
 
         <div className="content-admin-grid">
@@ -300,16 +406,6 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
             <span>Slug</span>
             <input name="slug" defaultValue={content?.slug ?? ""} placeholder="gerado-a-partir-do-titulo" />
             <span className="content-admin-help">E gerado automaticamente a partir do titulo. So altere se souber o que esta a fazer.</span>
-          </label>
-
-          <label>
-            <span>Ambito</span>
-            <select name="scope" defaultValue={content?.scope ?? "general"}>
-              <option value="general">general</option>
-              <option value="home">home</option>
-              <option value="competition">competition</option>
-              <option value="matchday">matchday</option>
-            </select>
           </label>
 
           <label>
@@ -326,6 +422,80 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
           {isEdit ? "Guardar alteracoes" : "Criar conteudo"}
         </button>
       </div>
+      <Script
+        id="editorial-content-context-selector"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function () {
+              if (window.__editorialContentContextSelectorBound) return;
+              window.__editorialContentContextSelectorBound = true;
+
+              function syncContext(form) {
+                var scope = form.querySelector('[data-content-scope]');
+                var competition = form.querySelector('[name="competition_id"]');
+                var season = form.querySelector('[name="season_id"]');
+                var matchday = form.querySelector('[name="matchday_id"]');
+                var competitionField = form.querySelector('[data-content-context-field="competition"]');
+                var seasonField = form.querySelector('[data-content-context-field="season"]');
+                var matchdayField = form.querySelector('[data-content-context-field="matchday"]');
+                if (!scope || !competition || !season || !matchday) return;
+
+                var scopedToCompetition = scope.value === 'competition' || scope.value === 'matchday';
+                var scopedToMatchday = scope.value === 'matchday';
+                if (competitionField) competitionField.hidden = !scopedToCompetition;
+                if (!scopedToCompetition) {
+                  competition.value = '';
+                  season.value = '';
+                  matchday.value = '';
+                }
+                if (!competition.value) {
+                  season.value = '';
+                  matchday.value = '';
+                }
+                if (!season.value) {
+                  matchday.value = '';
+                }
+                Array.prototype.forEach.call(season.options, function (option) {
+                  if (!option.value) return;
+                  var visible = !competition.value || option.getAttribute('data-competition') === competition.value;
+                  option.hidden = !visible;
+                  option.disabled = !visible;
+                });
+                if (season.selectedOptions[0] && season.selectedOptions[0].disabled) {
+                  season.value = '';
+                }
+
+                Array.prototype.forEach.call(matchday.options, function (option) {
+                  if (!option.value) return;
+                  var visible = !season.value || option.getAttribute('data-season') === season.value;
+                  option.hidden = !visible;
+                  option.disabled = !visible;
+                });
+                if (matchday.selectedOptions[0] && matchday.selectedOptions[0].disabled) {
+                  matchday.value = '';
+                }
+                if (seasonField) seasonField.hidden = !scopedToCompetition || !competition.value;
+                if (matchdayField) matchdayField.hidden = !scopedToMatchday || !season.value;
+              }
+
+              document.addEventListener('change', function (event) {
+                var control = event.target && event.target.closest
+                  ? event.target.closest('[data-content-scope], [name="competition_id"], [name="season_id"]')
+                  : null;
+                if (!control) return;
+                var form = control.closest('form');
+                if (form) syncContext(form);
+              });
+
+              Array.prototype.forEach.call(document.querySelectorAll('[data-content-context-panel]'), function (panel) {
+                var form = panel.closest('form');
+                if (form) syncContext(form);
+              });
+            })();
+          `
+        }}
+      />
       <Script
         id="editorial-content-video-upload"
         strategy="afterInteractive"
@@ -475,7 +645,7 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
               if (window.__editorialContentImageUploadBound) return;
               window.__editorialContentImageUploadBound = true;
               var allowedExtensions = /\\.(jpe?g|png|webp|avif)$/i;
-              var allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+              var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/avif'];
 
               function uploadParts(uploadRoot) {
                 var fileInput = uploadRoot ? uploadRoot.querySelector('[data-content-image-file]') : null;
@@ -512,6 +682,10 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
                 return 'Imagem demasiado grande. Limite atual: ' + (maxUploadMb || 8) + ' MB.';
               }
 
+              function detailMessage(detail) {
+                return detail ? ' Detalhe: ' + String(detail).slice(0, 180) : '';
+              }
+
               function setLoading(parts, isLoading) {
                 if (parts.uploadButton) parts.uploadButton.disabled = isLoading;
                 if (parts.fileInput) parts.fileInput.disabled = isLoading;
@@ -544,7 +718,9 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
                     if (signPayload && signPayload.error === 'image-too-large') {
                       throw new Error('image-too-large:' + (signPayload.maxUploadMb || 8));
                     }
-                    throw new Error(signPayload && signPayload.error ? signPayload.error : 'sign-failed');
+                    var apiError = signPayload && signPayload.error ? signPayload.error : 'sign-failed';
+                    var apiDetail = signPayload && signPayload.detail ? ':' + signPayload.detail : '';
+                    throw new Error(apiError + apiDetail);
                   }
                   if (!signPayload || !signPayload.signedUrl || !signPayload.publicUrl) {
                     throw new Error('sign-failed');
@@ -560,7 +736,8 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
                     body: file
                   });
                   if (!uploadResponse.ok) {
-                    throw new Error('upload-failed');
+                    var uploadDetail = await uploadResponse.text().catch(function () { return ''; });
+                    throw new Error('upload-failed:' + (uploadDetail || uploadResponse.status));
                   }
 
                   if (parts.targetInput) {
@@ -574,14 +751,29 @@ export function EditorialContentForm({ mode, content, message }: ContentFormProp
                   );
                 } catch (error) {
                   var message = 'Nao foi possivel carregar a imagem.';
-                  if (error && error.message === 'missing-editorial-images-bucket') {
-                    message = 'Nao foi possivel preparar o upload. Confirma o bucket editorial-images.';
+                  if (error && /^missing-editorial-images-bucket/.test(error.message || '')) {
+                    message = 'Bucket editorial-images nao encontrado ou indisponivel.' + detailMessage(error.message.split(':').slice(1).join(':'));
+                  }
+                  if (error && /^signed-upload-failed/.test(error.message || '')) {
+                    message = 'Nao foi possivel assinar o upload da imagem.' + detailMessage(error.message.split(':').slice(1).join(':'));
+                  }
+                  if (error && /^sign-failed/.test(error.message || '')) {
+                    message = 'Nao foi possivel assinar o upload da imagem.';
+                  }
+                  if (error && error.message === 'missing-signed-upload-url') {
+                    message = 'Nao foi possivel assinar o upload da imagem.';
+                  }
+                  if (error && error.message === 'missing-supabase-service-config') {
+                    message = 'Nao foi possivel preparar o upload. Falta configuracao da Supabase.';
                   }
                   if (error && error.message === 'invalid-image-format') {
                     message = 'Formato de imagem nao suportado.';
                   }
                   if (error && /^image-too-large:/.test(error.message || '')) {
                     message = uploadLimitMessage(error.message.split(':')[1]);
+                  }
+                  if (error && /^upload-failed:/.test(error.message || '')) {
+                    message = 'Nao foi possivel enviar a imagem para o Storage.' + detailMessage(error.message.split(':').slice(1).join(':'));
                   }
                   setStatus(parts, message, 'error');
                 } finally {
