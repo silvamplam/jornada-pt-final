@@ -3,7 +3,10 @@ import Link from "next/link";
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
 import {
-  EditorialContent,
+  type EditorialContent,
+  type EditorialContentCompetition,
+  type EditorialContentMatchday,
+  type EditorialContentSeason,
   adminEditorialContentsStyles,
   editorialContentsSelect,
   firstText,
@@ -28,6 +31,12 @@ type ReadEditorialContentsResult = {
   error: string | null;
 };
 
+type ContentContextLookups = {
+  competitions: Map<string, string>;
+  seasons: Map<string, string>;
+  matchdays: Map<string, string>;
+};
+
 type ContentStatusView = "active" | "archived";
 
 async function readEditorialContents(statusView: ContentStatusView): Promise<ReadEditorialContentsResult> {
@@ -45,6 +54,33 @@ async function readEditorialContents(statusView: ContentStatusView): Promise<Rea
       error: error instanceof Error ? error.message : "Nao foi possivel ler public.editorial_contents.",
     };
   }
+}
+
+async function readContentContextLookups(): Promise<ContentContextLookups> {
+  const [competitions, seasons, matchdays] = await Promise.all([
+    fetchSupabaseAdminTable<EditorialContentCompetition>(
+      "competitions?select=id,name,slug&order=name.asc",
+    ).catch(() => []),
+    fetchSupabaseAdminTable<EditorialContentSeason>(
+      "seasons?select=id,label,competition_id&order=label.desc",
+    ).catch(() => []),
+    fetchSupabaseAdminTable<EditorialContentMatchday>(
+      "matchdays?select=id,season_id,number,label&order=number.asc",
+    ).catch(() => []),
+  ]);
+
+  return {
+    competitions: new Map(
+      competitions.map((competition) => [
+        competition.id,
+        firstText(competition.name, competition.slug, "Competicao sem nome") ?? "Competicao sem nome",
+      ] as [string, string]),
+    ),
+    seasons: new Map(
+      seasons.map((season) => [season.id, firstText(season.label, "Epoca sem nome") ?? "Epoca sem nome"] as [string, string]),
+    ),
+    matchdays: new Map(matchdays.map((matchday) => [matchday.id, matchdayDisplayLabel(matchday)] as [string, string])),
+  };
 }
 
 function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
@@ -90,6 +126,19 @@ function Field({ label, value }: { label: string; value: string | boolean | null
   );
 }
 
+function matchdayDisplayLabel(matchday: EditorialContentMatchday) {
+  const number = Number.isFinite(matchday.number) ? `J${String(matchday.number).padStart(2, "0")}` : "";
+  return [number, matchday.label].filter(Boolean).join(" - ") || "Jornada sem nome";
+}
+
+function lookupContentContextLabel(id: string | null | undefined, lookup: Map<string, string>, missingLabel: string) {
+  if (!id) {
+    return null;
+  }
+
+  return lookup.get(id) ?? missingLabel;
+}
+
 function PublicStatus({ content }: { content: EditorialContent }) {
   if (content.status === "published" && content.slug) {
     return (
@@ -108,9 +157,16 @@ function PublicStatus({ content }: { content: EditorialContent }) {
   );
 }
 
-function ContentCard({ content }: { content: EditorialContent }) {
+function ContentCard({ content, lookups }: { content: EditorialContent; lookups: ContentContextLookups }) {
   const mediaUrl = firstText(content.thumbnail_url, content.image_url);
   const title = firstText(content.title, "Conteudo sem titulo");
+  const competitionLabel = lookupContentContextLabel(
+    content.competition_id,
+    lookups.competitions,
+    "Competicao nao encontrada",
+  );
+  const seasonLabel = lookupContentContextLabel(content.season_id, lookups.seasons, "Epoca nao encontrada");
+  const matchdayLabel = lookupContentContextLabel(content.matchday_id, lookups.matchdays, "Jornada nao encontrada");
 
   return (
     <article className="content-admin-card">
@@ -147,9 +203,9 @@ function ContentCard({ content }: { content: EditorialContent }) {
         <Field label="Duracao" value={content.duration} />
         <Field label="Embeddable" value={content.is_embeddable} />
         <Field label="Publicado" value={formatDateTime(content.published_at)} />
-        <Field label="Competicao" value={content.competition_id} />
-        <Field label="Epoca" value={content.season_id} />
-        <Field label="Jornada" value={content.matchday_id} />
+        <Field label="Competicao" value={competitionLabel} />
+        <Field label="Epoca" value={seasonLabel} />
+        <Field label="Jornada" value={matchdayLabel} />
       </dl>
 
       <div className="content-admin-card-actions">
@@ -165,8 +221,9 @@ function ContentCard({ content }: { content: EditorialContent }) {
 export default async function AdminEditorialContentsPage({ searchParams }: PageProps) {
   const params = searchParams ? await searchParams : {};
   const statusView = contentStatusView(params);
-  const [{ contents, error }, message] = await Promise.all([
+  const [{ contents, error }, lookups, message] = await Promise.all([
     readEditorialContents(statusView),
+    readContentContextLookups(),
     Promise.resolve(pageMessage(params)),
   ]);
   const isArchivedView = statusView === "archived";
@@ -190,16 +247,7 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
         </Link>
       </section>
 
-        <nav className="content-admin-actions" style={{ marginBottom: 18 }} aria-label="Navegação editorial">
-          <a href="/admin/editorial/home">Home Editorial</a>
-          <a href="/admin/editorial/artigos">Artigos / Notícias</a>
-          <a href="/admin/editorial/composicao">Composição Editorial</a>
-          <a href="/admin/editorial/jornada">Editorial da Jornada</a>
-          <a href="/admin/gestor">Centro de Gestão</a>
-          <a href="/admin">Backoffice</a>
-        </nav>
       <section className="content-admin-notes" aria-label="Notas de arquitetura">
-
         <p>
           <strong>Separacao:</strong> Artigos/Noticias continuam em <code>editorial_articles</code>. Esta pagina gere
           apenas <code>editorial_contents</code>.
@@ -242,7 +290,7 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
       ) : (
         <section className="content-admin-list" aria-label="Conteudos editoriais audiovisuais">
           {contents.map((content) => (
-            <ContentCard key={content.id} content={content} />
+            <ContentCard key={content.id} content={content} lookups={lookups} />
           ))}
         </section>
       )}
