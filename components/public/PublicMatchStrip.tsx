@@ -178,7 +178,7 @@ function CompactMatchCard({ match, focus }: { match: PublicMatchStripMatch; focu
   const livePrimeClassName = match.is_clock_running === true ? "home-live-minute-prime home-live-minute-prime-active" : "home-live-minute-prime";
   const liveStatus = kind === "live" ? (
     <>
-      <span className="public-matchday-live-label">{statusLabel(match.status)}</span>
+      <span className="public-matchday-live-label">Direto</span>
       {publicMinute !== null ? (
         <>
           <span className="public-matchday-mini-separator" aria-hidden="true">{"\u00b7"}</span>

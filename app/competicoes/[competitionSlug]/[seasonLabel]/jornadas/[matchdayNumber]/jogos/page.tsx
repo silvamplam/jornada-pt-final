@@ -449,6 +449,10 @@ const gamesPageStyles = `
     text-align: right;
   }
 
+  .public-games-card-live .public-games-team-line:first-of-type .public-games-team-score {
+    padding-right: 24px;
+  }
+
   .public-games-team-winner strong {
     color: #137a3a;
   }
@@ -504,8 +508,8 @@ const gamesPageStyles = `
   .public-live-pulse-dots {
     display: inline-flex;
     position: absolute;
-    top: 8px;
-    right: 9px;
+    top: 5px;
+    right: 7px;
     z-index: 2;
     align-items: center;
     gap: 3px;
@@ -514,12 +518,12 @@ const gamesPageStyles = `
   }
 
   .public-live-pulse-dots span {
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
     border-radius: 999px;
     background: #16a34a;
-    opacity: 0.25;
-    animation: public-live-dot-alternate 1.1s infinite ease-in-out;
+    opacity: 0.35;
+    animation: public-live-dot-alternate 1.15s infinite ease-in-out;
   }
 
   .public-live-pulse-dots span:nth-child(2) {
@@ -538,13 +542,11 @@ const gamesPageStyles = `
   @keyframes public-live-dot-alternate {
     0%,
     100% {
-      opacity: 0.25;
-      transform: scale(0.82);
+      opacity: 0.35;
     }
 
     50% {
       opacity: 1;
-      transform: scale(1);
     }
   }
 
@@ -914,11 +916,15 @@ function LivePulseDots() {
 function MatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const livePrimeClassName = match.is_clock_running === true ? "public-live-minute-prime public-live-minute-prime-active" : "public-live-minute-prime";
-  const statusText = match.minute && kind === "live" ? (
+  const statusText = kind === "live" ? (
     <>
-      <span className="public-games-live-label">{statusLabel(match.status)}</span>
-      <span className="public-games-live-separator" aria-hidden="true">{"\u00b7"}</span>
-      <span className="public-games-live-minute">{match.minute}<span className={livePrimeClassName}>'</span></span>
+      <span className="public-games-live-label">Direto</span>
+      {match.minute ? (
+        <>
+          <span className="public-games-live-separator" aria-hidden="true">{"\u00b7"}</span>
+          <span className="public-games-live-minute">{match.minute}<span className={livePrimeClassName}>'</span></span>
+        </>
+      ) : null}
     </>
   ) : match.minute && kind === "halftime" ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
   const homeWinner = isWinner(match, "home");
@@ -959,11 +965,15 @@ function ReferenceGamesCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const showScore = (kind === "finished" || kind === "live" || kind === "halftime") && match.home_score !== null && match.away_score !== null;
   const livePrimeClassName = match.is_clock_running === true ? "public-live-minute-prime public-live-minute-prime-active" : "public-live-minute-prime";
-  const statusText = match.minute && kind === "live" ? (
+  const statusText = kind === "live" ? (
     <>
-      <span className="public-games-live-label">{statusLabel(match.status)}</span>
-      <span className="public-games-live-separator" aria-hidden="true">{"\u00b7"}</span>
-      <span className="public-games-live-minute">{match.minute}<span className={livePrimeClassName}>'</span></span>
+      <span className="public-games-live-label">Direto</span>
+      {match.minute ? (
+        <>
+          <span className="public-games-live-separator" aria-hidden="true">{"\u00b7"}</span>
+          <span className="public-games-live-minute">{match.minute}<span className={livePrimeClassName}>'</span></span>
+        </>
+      ) : null}
     </>
   ) : match.minute && kind === "halftime" ? `${statusLabel(match.status)} - ${match.minute}'` : statusLabel(match.status);
 

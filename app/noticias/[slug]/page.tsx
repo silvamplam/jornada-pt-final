@@ -491,7 +491,7 @@ const articlePageStyles = `
   }
 
   .news-article-game-card-live .news-article-game-team:first-of-type .news-article-game-score {
-    padding-right: 18px;
+    padding-right: 24px;
   }
 
   .news-article-game-meta {
@@ -512,8 +512,8 @@ const articlePageStyles = `
   .public-live-pulse-dots {
     display: inline-flex;
     position: absolute;
-    top: 7px;
-    right: 8px;
+    top: 5px;
+    right: 7px;
     z-index: 2;
     align-items: center;
     gap: 3px;
@@ -522,12 +522,12 @@ const articlePageStyles = `
   }
 
   .public-live-pulse-dots span {
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
     border-radius: 999px;
     background: #16a34a;
-    opacity: 0.25;
-    animation: public-live-dot-alternate 1.1s infinite ease-in-out;
+    opacity: 0.35;
+    animation: public-live-dot-alternate 1.15s infinite ease-in-out;
   }
 
   .public-live-pulse-dots span:nth-child(2) {
@@ -546,13 +546,11 @@ const articlePageStyles = `
   @keyframes public-live-dot-alternate {
     0%,
     100% {
-      opacity: 0.25;
-      transform: scale(0.82);
+      opacity: 0.35;
     }
 
     50% {
       opacity: 1;
-      transform: scale(1);
     }
   }
 
@@ -973,7 +971,7 @@ function ArticleMatchCard({ match }: { match: PublicSeasonMatch }) {
   const livePrimeClassName = match.is_clock_running === true ? "public-live-minute-prime public-live-minute-prime-active" : "public-live-minute-prime";
   const liveStatus = kind === "live" ? (
     <>
-      <span className="news-article-game-live-label">{statusLabel(match.status)}</span>
+      <span className="news-article-game-live-label">Direto</span>
       {publicMinute !== null ? (
         <>
           <span className="news-article-game-live-separator" aria-hidden="true">{"\u00b7"}</span>

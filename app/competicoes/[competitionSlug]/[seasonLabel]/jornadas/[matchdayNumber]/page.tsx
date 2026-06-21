@@ -423,7 +423,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-card-live .public-matchday-mini-team:first-of-type .public-matchday-mini-score {
-    padding-right: 18px;
+    padding-right: 24px;
   }
 
   .public-matchday-mini-card .public-team-badge {
@@ -491,8 +491,8 @@ const publicMatchdayStyles = `
   .public-live-pulse-dots {
     display: inline-flex;
     position: absolute;
-    top: 7px;
-    right: 8px;
+    top: 5px;
+    right: 7px;
     z-index: 2;
     align-items: center;
     gap: 3px;
@@ -501,12 +501,12 @@ const publicMatchdayStyles = `
   }
 
   .public-live-pulse-dots span {
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
     border-radius: 999px;
     background: #16a34a;
-    opacity: 0.25;
-    animation: public-live-dot-alternate 1.1s infinite ease-in-out;
+    opacity: 0.35;
+    animation: public-live-dot-alternate 1.15s infinite ease-in-out;
   }
 
   .public-live-pulse-dots span:nth-child(2) {
@@ -525,13 +525,11 @@ const publicMatchdayStyles = `
   @keyframes public-live-dot-alternate {
     0%,
     100% {
-      opacity: 0.25;
-      transform: scale(0.82);
+      opacity: 0.35;
     }
 
     50% {
       opacity: 1;
-      transform: scale(1);
     }
   }
 
@@ -2704,7 +2702,7 @@ function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: 
   const livePrimeClassName = match.is_clock_running === true ? "public-live-minute-prime public-live-minute-prime-active" : "public-live-minute-prime";
   const liveStatus = kind === "live" ? (
     <>
-      <span className="public-matchday-live-label">{statusLabel(match.status)}</span>
+      <span className="public-matchday-live-label">Direto</span>
       {publicMinute !== null ? (
         <>
           <span className="public-matchday-mini-separator" aria-hidden="true">{"\u00b7"}</span>
@@ -2764,11 +2762,15 @@ function MatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const publicMinute = getPublicLiveMinute(match);
   const livePrimeClassName = match.is_clock_running === true ? "public-live-minute-prime public-live-minute-prime-active" : "public-live-minute-prime";
-  const statusText = publicMinute !== null && kind === "live" ? (
+  const statusText = kind === "live" ? (
     <>
-      <span className="public-matchday-live-label">{statusLabel(match.status)}</span>
-      <span className="public-matchday-mini-separator" aria-hidden="true">{"\u00b7"}</span>
-      <span className="public-matchday-live-minute">{publicMinute}<span className={livePrimeClassName}>'</span></span>
+      <span className="public-matchday-live-label">Direto</span>
+      {publicMinute !== null ? (
+        <>
+          <span className="public-matchday-mini-separator" aria-hidden="true">{"\u00b7"}</span>
+          <span className="public-matchday-live-minute">{publicMinute}<span className={livePrimeClassName}>'</span></span>
+        </>
+      ) : null}
     </>
   ) : statusLabel(match.status);
   const homeWinner = isWinner(match, "home");
