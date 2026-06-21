@@ -391,6 +391,7 @@ const gamesPageStyles = `
   }
 
   .public-games-card {
+    position: relative;
     display: grid;
     flex: 0 0 176px;
     grid-template-columns: minmax(0, 1fr);
@@ -448,6 +449,10 @@ const gamesPageStyles = `
     text-align: right;
   }
 
+  .public-games-card-live .public-games-team-line:first-of-type .public-games-team-score {
+    padding-right: 0;
+  }
+
   .public-games-team-winner strong {
     color: #137a3a;
   }
@@ -475,7 +480,7 @@ const gamesPageStyles = `
 
   .public-games-meta {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: flex-start;
     gap: 4px;
     min-width: 0;
@@ -488,24 +493,42 @@ const gamesPageStyles = `
   }
 
   .public-games-status-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #10151b;
+    white-space: nowrap;
+  }
+
+  .public-games-live-label,
+  .public-games-live-separator {
+    color: #10151b;
+  }
+
+  .public-games-live-minute {
     color: #16a34a;
+  }
+
+  .public-games-live-channel {
+    color: #263241;
+    white-space: nowrap;
   }
 
   .public-live-pulse-dots {
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    margin-left: 4px;
+    margin-left: 5px;
     vertical-align: middle;
   }
 
   .public-live-pulse-dots span {
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
     border-radius: 999px;
     background: #16a34a;
-    opacity: 0.25;
-    animation: public-live-dot-alternate 1.1s infinite ease-in-out;
+    opacity: 0.35;
+    animation: public-live-dot-alternate 1.15s infinite ease-in-out;
   }
 
   .public-live-pulse-dots span:nth-child(2) {
@@ -515,19 +538,20 @@ const gamesPageStyles = `
   .public-live-minute-prime {
     display: inline-block;
     color: inherit;
+  }
+
+  .public-live-minute-prime-active {
     animation: public-live-prime-pulse 1s infinite ease-in-out;
   }
 
   @keyframes public-live-dot-alternate {
     0%,
     100% {
-      opacity: 0.25;
-      transform: scale(0.82);
+      opacity: 0.35;
     }
 
     50% {
       opacity: 1;
-      transform: scale(1);
     }
   }
 
@@ -549,7 +573,7 @@ const gamesPageStyles = `
       transform: none;
     }
 
-    .public-live-minute-prime {
+    .public-live-minute-prime-active {
       animation: none;
       opacity: 1;
     }
@@ -557,6 +581,7 @@ const gamesPageStyles = `
 
   .public-games-tv {
     display: inline-flex;
+    flex: 0 0 auto;
     align-items: center;
     gap: 4px;
     min-width: 0;
@@ -566,6 +591,7 @@ const gamesPageStyles = `
     background: transparent;
     color: #263241;
     font-weight: 800;
+    white-space: nowrap;
   }
 
   .public-games-tv img {
@@ -812,8 +838,8 @@ function statusLabel(status: string) {
   const normalized = status.trim().toLowerCase();
   if (normalized === "finished") return "Finalizado";
   if (normalized === "scheduled") return "Agendado";
-  if (normalized === "live") return "Em direto";
-  if (normalized === "halftime") return "Em direto";
+  if (normalized === "live") return "Live";
+  if (normalized === "halftime") return "Intervalo";
   if (normalized === "postponed") return "Adiado";
   if (normalized === "cancelled") return "Cancelado";
   return status || "Estado por definir";
@@ -870,12 +896,20 @@ function BroadcastBadge({ match }: { match: PublicSeasonMatch }) {
     return null;
   }
 
+  const broadcastChannelName = match.broadcastChannel.name?.trim();
+  const displayBroadcastChannelName = compactTvLabel(broadcastChannelName);
+
   return (
     <span className="public-games-tv">
       {match.broadcastChannel.logo_url ? <img alt="" src={match.broadcastChannel.logo_url} /> : null}
-      <span>{match.broadcastChannel.name}</span>
+      <span>{displayBroadcastChannelName}</span>
     </span>
   );
+}
+
+function compactTvLabel(value?: string | null) {
+  const label = value?.trim();
+  return label ? label.replace(/^Sport\s*TV\s*/i, "SportTV") : "";
 }
 
 function LivePulseDots() {
@@ -889,9 +923,16 @@ function LivePulseDots() {
 
 function MatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
-  const statusText = match.minute && kind === "live" ? (
+  const compactBroadcastChannelName = compactTvLabel(match.broadcastChannel?.name?.trim());
+  const scheduledMeta = compactBroadcastChannelName ? `${formatKickoffTime(match.kickoff_at)} \u00b7 ${compactBroadcastChannelName}` : formatKickoffTime(match.kickoff_at);
+  const livePrimeClassName = "public-live-minute-prime public-live-minute-prime-active";
+  const statusText = kind === "live" ? (
     <>
-      {statusLabel(match.status)} {"\u00b7"} {match.minute}<span className="public-live-minute-prime">'</span>
+      <span className="public-games-live-label">Live</span>
+      {match.minute ? (
+        <span className="public-games-live-minute">{match.minute}<span className={livePrimeClassName}>'</span></span>
+      ) : null}
+      {compactBroadcastChannelName ? <span className="public-games-live-channel" title={match.broadcastChannel?.name ?? undefined}>{compactBroadcastChannelName}</span> : null}
     </>
   ) : match.minute && kind === "halftime" ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
   const homeWinner = isWinner(match, "home");
@@ -921,8 +962,8 @@ function MatchCard({ match }: { match: PublicSeasonMatch }) {
         <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
       </div>
       <div className="public-games-meta">
-        <span>{statusKind(match.status) === "scheduled" ? formatKickoffTime(match.kickoff_at) : formatKickoff(match.kickoff_at)}</span>
-        <BroadcastBadge match={match} />
+        <span>{kind === "scheduled" ? scheduledMeta : formatKickoff(match.kickoff_at)}</span>
+        {kind === "scheduled" || kind === "live" ? null : <BroadcastBadge match={match} />}
       </div>
     </article>
   );
@@ -931,9 +972,16 @@ function MatchCard({ match }: { match: PublicSeasonMatch }) {
 function ReferenceGamesCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const showScore = (kind === "finished" || kind === "live" || kind === "halftime") && match.home_score !== null && match.away_score !== null;
-  const statusText = match.minute && kind === "live" ? (
+  const compactBroadcastChannelName = compactTvLabel(match.broadcastChannel?.name?.trim());
+  const scheduledMeta = compactBroadcastChannelName ? `${formatKickoffTime(match.kickoff_at)} \u00b7 ${compactBroadcastChannelName}` : formatKickoffTime(match.kickoff_at);
+  const livePrimeClassName = "public-live-minute-prime public-live-minute-prime-active";
+  const statusText = kind === "live" ? (
     <>
-      {statusLabel(match.status)} {"\u00b7"} {match.minute}<span className="public-live-minute-prime">'</span>
+      <span className="public-games-live-label">Live</span>
+      {match.minute ? (
+        <span className="public-games-live-minute">{match.minute}<span className={livePrimeClassName}>'</span></span>
+      ) : null}
+      {compactBroadcastChannelName ? <span className="public-games-live-channel" title={match.broadcastChannel?.name ?? undefined}>{compactBroadcastChannelName}</span> : null}
     </>
   ) : match.minute && kind === "halftime" ? `${statusLabel(match.status)} - ${match.minute}'` : statusLabel(match.status);
 
@@ -951,10 +999,10 @@ function ReferenceGamesCard({ match }: { match: PublicSeasonMatch }) {
       </span>
       <div className="public-games-meta">
         <span className={kind === "live" ? "public-games-status-live" : undefined}>
-          {kind === "scheduled" ? formatKickoffTime(match.kickoff_at) : statusText}
+          {kind === "scheduled" ? scheduledMeta : statusText}
           {kind === "live" ? <LivePulseDots /> : null}
         </span>
-        <BroadcastBadge match={match} />
+        {kind === "scheduled" || kind === "live" ? null : <BroadcastBadge match={match} />}
       </div>
     </article>
   );
@@ -1028,7 +1076,7 @@ export default async function PublicMatchdayGamesPage({ params }: PublicMatchday
     return kind !== "live" && kind !== "halftime" && kind !== "finished" && kind !== "scheduled";
   });
   const matchGroups = [
-    { key: "live", label: "Em direto", matches: liveMatches },
+    { key: "live", label: "Live", matches: liveMatches },
     { key: "finished", label: "Finalizados", matches: finishedMatches },
     { key: "scheduled", label: "Agendados", matches: scheduledMatches },
     { key: "other", label: "Outros estados", matches: otherMatches }

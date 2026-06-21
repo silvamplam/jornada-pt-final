@@ -256,7 +256,7 @@ const publicMatchdayStyles = `
 
   .public-matchday-scoreboard-panel {
     margin-top: 0;
-    padding: 8px 0 10px;
+    padding: 2px 0 10px;
     border-top: 1px solid #dbe4ee;
     border-bottom: 1px solid #d4deea;
     border-left: 0;
@@ -422,6 +422,10 @@ const publicMatchdayStyles = `
     text-align: right;
   }
 
+  .public-matchday-mini-card-live .public-matchday-mini-team:first-of-type .public-matchday-mini-score {
+    padding-right: 0;
+  }
+
   .public-matchday-mini-card .public-team-badge {
     width: 22px;
     height: 22px;
@@ -446,6 +450,7 @@ const publicMatchdayStyles = `
     font-weight: 800;
     line-height: 1.15;
     text-transform: none;
+    white-space: nowrap;
   }
 
   .public-matchday-mini-card-live .public-matchday-mini-status > span,
@@ -467,6 +472,15 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-card-live .public-matchday-mini-status > span {
+    color: #10151b;
+  }
+
+  .public-matchday-live-label,
+  .public-matchday-mini-separator {
+    color: #10151b;
+  }
+
+  .public-matchday-live-minute {
     color: #16a34a;
   }
 
@@ -478,17 +492,17 @@ const publicMatchdayStyles = `
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    margin-left: 4px;
+    margin-left: 5px;
     vertical-align: middle;
   }
 
   .public-live-pulse-dots span {
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
     border-radius: 999px;
     background: #16a34a;
-    opacity: 0.25;
-    animation: public-live-dot-alternate 1.1s infinite ease-in-out;
+    opacity: 0.35;
+    animation: public-live-dot-alternate 1.15s infinite ease-in-out;
   }
 
   .public-live-pulse-dots span:nth-child(2) {
@@ -498,19 +512,20 @@ const publicMatchdayStyles = `
   .public-live-minute-prime {
     display: inline-block;
     color: inherit;
+  }
+
+  .public-live-minute-prime-active {
     animation: public-live-prime-pulse 1s infinite ease-in-out;
   }
 
   @keyframes public-live-dot-alternate {
     0%,
     100% {
-      opacity: 0.25;
-      transform: scale(0.82);
+      opacity: 0.35;
     }
 
     50% {
       opacity: 1;
-      transform: scale(1);
     }
   }
 
@@ -532,7 +547,7 @@ const publicMatchdayStyles = `
       transform: none;
     }
 
-    .public-live-minute-prime {
+    .public-live-minute-prime-active {
       animation: none;
       opacity: 1;
     }
@@ -557,8 +572,8 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-channel {
-    flex: 0 0 auto;
-    color: inherit;
+    flex: 0 1 auto;
+    color: #263241;
     white-space: nowrap;
   }
 
@@ -1780,6 +1795,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-card {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     gap: 10px;
@@ -1911,8 +1927,12 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-status-live {
-    background: #edf7f1;
-    color: #16a34a;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    color: #10151b;
+    white-space: nowrap;
   }
 
   .public-matchday-status-halftime {
@@ -2448,7 +2468,7 @@ function statusLabel(status: string) {
   const normalized = status.trim().toLowerCase();
   if (normalized === "finished") return "Finalizado";
   if (normalized === "scheduled") return "Agendado";
-  if (normalized === "live") return "Em direto";
+  if (normalized === "live") return "Live";
   if (normalized === "halftime") return "Intervalo";
   if (normalized === "postponed") return "Adiado";
   if (normalized === "cancelled") return "Cancelado";
@@ -2656,10 +2676,13 @@ function BroadcastBadge({ match }: { match: PublicSeasonMatch }) {
     return null;
   }
 
+  const broadcastChannelName = match.broadcastChannel.name?.trim();
+  const displayBroadcastChannelName = compactTvLabel(broadcastChannelName);
+
   return (
     <span className="public-matchday-tv">
       {match.broadcastChannel.logo_url ? <img alt="" src={match.broadcastChannel.logo_url} /> : null}
-      <span>{match.broadcastChannel.name}</span>
+      <span>{displayBroadcastChannelName}</span>
     </span>
   );
 }
@@ -2673,15 +2696,26 @@ function LivePulseDots() {
   );
 }
 
+function compactTvLabel(value?: string | null) {
+  const label = value?.trim();
+  return label ? label.replace(/^Sport\s*TV\s*/i, "SportTV") : "";
+}
+
 function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: boolean }) {
   const kind = statusKind(match.status);
   const broadcastChannelName = match.broadcastChannel?.name?.trim();
+  const compactBroadcastChannelName = compactTvLabel(broadcastChannelName);
   const hasScore = match.home_score !== null && match.away_score !== null;
   const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
   const publicMinute = getPublicLiveMinute(match);
-  const liveStatus = publicMinute !== null && kind === "live" ? (
+  const livePrimeClassName = "public-live-minute-prime public-live-minute-prime-active";
+  const liveStatus = kind === "live" ? (
     <>
-      {statusLabel(match.status)} {"\u00b7"} {publicMinute}<span className="public-live-minute-prime">'</span>
+      <span className="public-matchday-live-label">Live</span>
+      {publicMinute !== null ? (
+        <span className="public-matchday-live-minute">{publicMinute}<span className={livePrimeClassName}>'</span></span>
+      ) : null}
+      {compactBroadcastChannelName ? <span className="public-matchday-mini-channel" title={broadcastChannelName}>{compactBroadcastChannelName}</span> : null}
     </>
   ) : statusLabel(match.status);
   const homeTeamName = match.homeTeam?.name ?? "Equipa da casa";
@@ -2713,7 +2747,7 @@ function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: 
             {broadcastChannelName ? (
               <>
                 <span className="public-matchday-mini-separator" aria-hidden="true">·</span>
-                <span className="public-matchday-mini-channel">{broadcastChannelName}</span>
+                <span className="public-matchday-mini-channel" title={broadcastChannelName}>{compactBroadcastChannelName}</span>
               </>
             ) : null}
           </>
@@ -2728,9 +2762,15 @@ function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: 
 function MatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const publicMinute = getPublicLiveMinute(match);
-  const statusText = publicMinute !== null && kind === "live" ? (
+  const compactBroadcastChannelName = compactTvLabel(match.broadcastChannel?.name?.trim());
+  const livePrimeClassName = "public-live-minute-prime public-live-minute-prime-active";
+  const statusText = kind === "live" ? (
     <>
-      {statusLabel(match.status)} {"\u00b7"} {publicMinute}<span className="public-live-minute-prime">'</span>
+      <span className="public-matchday-live-label">Live</span>
+      {publicMinute !== null ? (
+        <span className="public-matchday-live-minute">{publicMinute}<span className={livePrimeClassName}>'</span></span>
+      ) : null}
+      {compactBroadcastChannelName ? <span className="public-matchday-mini-channel" title={match.broadcastChannel?.name ?? undefined}>{compactBroadcastChannelName}</span> : null}
     </>
   ) : statusLabel(match.status);
   const homeWinner = isWinner(match, "home");
@@ -2762,7 +2802,7 @@ function MatchCard({ match }: { match: PublicSeasonMatch }) {
       <div className="public-matchday-meta">
         <span>{formatKickoff(match.kickoff_at)}</span>
         {match.venue ? <span>{match.venue}</span> : null}
-        <BroadcastBadge match={match} />
+        {kind === "live" ? null : <BroadcastBadge match={match} />}
       </div>
     </article>
   );

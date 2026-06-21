@@ -59,7 +59,7 @@ function statusLabel(status?: string | null) {
   const normalized = status?.trim().toLowerCase();
   if (normalized === "finished") return "Finalizado";
   if (normalized === "scheduled") return "Agendado";
-  if (normalized === "live") return "Em direto";
+  if (normalized === "live") return "Live";
   if (normalized === "halftime") return "Intervalo";
   if (normalized === "postponed") return "Adiado";
   if (normalized === "cancelled") return "Cancelado";
@@ -169,15 +169,27 @@ function LivePulseDots() {
   );
 }
 
+function compactTvLabel(value?: string | null) {
+  const label = value?.trim();
+  return label ? label.replace(/^Sport\s*TV\s*/i, "SportTV") : "";
+}
+
 function CompactMatchCard({ match, focus }: { match: PublicMatchStripMatch; focus?: boolean }) {
   const kind = statusKind(match.status);
   const broadcastChannelName = match.broadcastChannel?.name?.trim();
+  const compactBroadcastChannelName = compactTvLabel(broadcastChannelName);
   const hasScore = match.home_score !== null && match.home_score !== undefined && match.away_score !== null && match.away_score !== undefined;
   const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
   const publicMinute = getPublicLiveMinute(match);
-  const liveStatus = publicMinute !== null && kind === "live" ? (
+  const livePrimeClassName = "home-live-minute-prime home-live-minute-prime-active";
+  const liveStatus = kind === "live" ? (
     <>
-      {statusLabel(match.status)} {"\u00b7"} {publicMinute}<span className="home-live-minute-prime">'</span>
+      <span className="public-matchday-live-label">Live</span>
+      {publicMinute !== null ? (
+        <span className="public-matchday-live-minute">{publicMinute}<span className={livePrimeClassName}>'</span></span>
+      ) : null}
+      {compactBroadcastChannelName ? <span className="public-matchday-mini-channel" title={broadcastChannelName}>{compactBroadcastChannelName}</span> : null}
+      <LivePulseDots />
     </>
   ) : statusLabel(match.status);
 
@@ -199,7 +211,6 @@ function CompactMatchCard({ match, focus }: { match: PublicMatchStripMatch; focu
         ) : kind === "live" || kind === "halftime" ? (
           <span>
             {liveStatus}
-            {kind === "live" ? <LivePulseDots /> : null}
           </span>
         ) : (
           <>
@@ -207,7 +218,7 @@ function CompactMatchCard({ match, focus }: { match: PublicMatchStripMatch; focu
             {broadcastChannelName ? (
               <>
                 <span className="public-matchday-mini-separator" aria-hidden="true">{"\u00b7"}</span>
-                <span className="public-matchday-mini-channel" title={broadcastChannelName}>{broadcastChannelName}</span>
+                <span className="public-matchday-mini-channel" title={broadcastChannelName}>{compactBroadcastChannelName}</span>
               </>
             ) : null}
           </>

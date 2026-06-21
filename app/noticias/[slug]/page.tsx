@@ -405,7 +405,7 @@ const articlePageStyles = `
     margin: 0 -24px;
     margin-left: -24px;
     margin-right: -24px;
-    padding: 8px 24px 10px;
+    padding: 2px 24px 10px;
     border-top: 1px solid #dbe4ee;
     border-bottom: 1px solid #d4deea;
     background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
@@ -440,6 +440,7 @@ const articlePageStyles = `
   }
 
   .news-article-game-card {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     min-width: 0;
@@ -489,6 +490,10 @@ const articlePageStyles = `
     text-align: right;
   }
 
+  .news-article-game-card-live .news-article-game-team:first-of-type .news-article-game-score {
+    padding-right: 0;
+  }
+
   .news-article-game-meta {
     display: flex;
     min-width: 0;
@@ -508,17 +513,17 @@ const articlePageStyles = `
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    margin-left: 4px;
+    margin-left: 5px;
     vertical-align: middle;
   }
 
   .public-live-pulse-dots span {
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
     border-radius: 999px;
     background: #16a34a;
-    opacity: 0.25;
-    animation: public-live-dot-alternate 1.1s infinite ease-in-out;
+    opacity: 0.35;
+    animation: public-live-dot-alternate 1.15s infinite ease-in-out;
   }
 
   .public-live-pulse-dots span:nth-child(2) {
@@ -528,19 +533,20 @@ const articlePageStyles = `
   .public-live-minute-prime {
     display: inline-block;
     color: inherit;
+  }
+
+  .public-live-minute-prime-active {
     animation: public-live-prime-pulse 1s infinite ease-in-out;
   }
 
   @keyframes public-live-dot-alternate {
     0%,
     100% {
-      opacity: 0.25;
-      transform: scale(0.82);
+      opacity: 0.35;
     }
 
     50% {
       opacity: 1;
-      transform: scale(1);
     }
   }
 
@@ -562,7 +568,7 @@ const articlePageStyles = `
       transform: none;
     }
 
-    .public-live-minute-prime {
+    .public-live-minute-prime-active {
       animation: none;
       opacity: 1;
     }
@@ -571,14 +577,29 @@ const articlePageStyles = `
   .news-article-game-live-status {
     display: inline-flex;
     align-items: center;
+    gap: 4px;
+    color: #10151b;
+    white-space: nowrap;
+  }
+
+  .news-article-game-live-label,
+  .news-article-game-live-separator {
+    color: #10151b;
+  }
+
+  .news-article-game-live-minute {
     color: #16a34a;
+  }
+
+  .news-article-game-live-channel {
+    color: #263241;
     white-space: nowrap;
   }
 
   .news-article-game-channel {
     min-width: 0;
     overflow: visible;
-    color: #405061;
+    color: #263241;
     text-overflow: clip;
     white-space: nowrap;
   }
@@ -723,7 +744,7 @@ const articlePageStyles = `
       width: calc(100% + 28px);
       margin: 0 -14px;
       margin-top: 0;
-      padding: 7px 14px 8px;
+      padding: 2px 14px 8px;
     }
 
     .news-article-games-shell {
@@ -860,7 +881,7 @@ function statusLabel(status: string) {
   const normalized = status.trim().toLowerCase();
   if (normalized === "finished") return "Finalizado";
   if (normalized === "scheduled") return "Agendado";
-  if (normalized === "live") return "Em direto";
+  if (normalized === "live") return "Live";
   if (normalized === "halftime") return "Intervalo";
   if (normalized === "postponed") return "Adiado";
   if (normalized === "cancelled") return "Cancelado";
@@ -943,17 +964,28 @@ function LivePulseDots() {
   );
 }
 
+function compactTvLabel(value?: string | null) {
+  const label = value?.trim();
+  return label ? label.replace(/^Sport\s*TV\s*/i, "SportTV") : "";
+}
+
 function ArticleMatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const hasScore = match.home_score !== null && match.away_score !== null;
   const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
   const publicMinute = getPublicLiveMinute(match);
-  const liveStatus = publicMinute !== null && kind === "live" ? (
+  const channelName = match.broadcastChannel?.name?.trim();
+  const compactChannelName = compactTvLabel(channelName);
+  const livePrimeClassName = "public-live-minute-prime public-live-minute-prime-active";
+  const liveStatus = kind === "live" ? (
     <>
-      {statusLabel(match.status)} {"\u00b7"} {publicMinute}<span className="public-live-minute-prime">'</span>
+      <span className="news-article-game-live-label">Live</span>
+      {publicMinute !== null ? (
+        <span className="news-article-game-live-minute">{publicMinute}<span className={livePrimeClassName}>'</span></span>
+      ) : null}
+      {compactChannelName ? <span className="news-article-game-live-channel" title={channelName}>{compactChannelName}</span> : null}
     </>
   ) : statusLabel(match.status);
-  const channelName = match.broadcastChannel?.name?.trim();
   const homeTeamName = match.homeTeam?.name?.trim() || match.homeTeam?.short_name?.trim() || "Equipa";
   const awayTeamName = match.awayTeam?.name?.trim() || match.awayTeam?.short_name?.trim() || "Equipa";
 
@@ -976,7 +1008,7 @@ function ArticleMatchCard({ match }: { match: PublicSeasonMatch }) {
             {channelName ? (
               <>
                 <span aria-hidden="true">·</span>
-                <span className="news-article-game-channel" title={channelName}>{channelName}</span>
+                <span className="news-article-game-channel" title={channelName}>{compactChannelName}</span>
               </>
             ) : null}
           </>
