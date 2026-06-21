@@ -1,6 +1,14 @@
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
-import { EditorialContent, EditorialContentForm, adminEditorialContentsStyles, editorialContentsSelect } from "../../_contentForm";
+import {
+  EditorialContent,
+  EditorialContentForm,
+  adminEditorialContentsStyles,
+  editorialContentsSelect,
+  type EditorialContentCompetition,
+  type EditorialContentMatchday,
+  type EditorialContentSeason
+} from "../../_contentForm";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +31,22 @@ async function readEditorialContent(contentId: string) {
   } catch {
     return null;
   }
+}
+
+async function readContentContextOptions() {
+  const [competitions, seasons, matchdays] = await Promise.all([
+    fetchSupabaseAdminTable<EditorialContentCompetition>(
+      "competitions?select=id,country_id,country,name,slug,is_active&order=name.asc"
+    ).catch(() => []),
+    fetchSupabaseAdminTable<EditorialContentSeason>(
+      "seasons?select=id,competition_id,label,is_current,starts_on,ends_on&order=label.desc"
+    ).catch(() => []),
+    fetchSupabaseAdminTable<EditorialContentMatchday>(
+      "matchdays?select=id,season_id,number,label,starts_on,ends_on,status&order=number.asc"
+    ).catch(() => [])
+  ]);
+
+  return { competitions, seasons, matchdays };
 }
 
 function pageMessage(error?: string) {
@@ -52,7 +76,7 @@ export default async function EditEditorialContentPage({ params, searchParams }:
   const { contentId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const error = firstSearchParam(resolvedSearchParams.error);
-  const content = await readEditorialContent(contentId);
+  const [content, contextOptions] = await Promise.all([readEditorialContent(contentId), readContentContextOptions()]);
 
   return (
     <main className="content-admin-shell">
@@ -68,17 +92,15 @@ export default async function EditEditorialContentPage({ params, searchParams }:
         </div>
       </section>
 
-        <nav className="content-admin-actions" style={{ marginBottom: 18 }} aria-label="Navegação editorial">
-          <a href="/admin/editorial/home">Home Editorial</a>
-          <a href="/admin/editorial/artigos">Artigos / Notícias</a>
-          <a href="/admin/editorial/composicao">Composição Editorial</a>
-          <a href="/admin/editorial/jornada">Editorial da Jornada</a>
-          <a href="/admin/gestor">Centro de Gestão</a>
-          <a href="/admin">Backoffice</a>
-        </nav>
       {content ? (
-
-        <EditorialContentForm mode="edit" content={content} message={pageMessage(error)} />
+        <EditorialContentForm
+          mode="edit"
+          content={content}
+          message={pageMessage(error)}
+          competitions={contextOptions.competitions}
+          seasons={contextOptions.seasons}
+          matchdays={contextOptions.matchdays}
+        />
       ) : (
         <section className="content-admin-missing">
           <h2>Conteudo nao encontrado.</h2>

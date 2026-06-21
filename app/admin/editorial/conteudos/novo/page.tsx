@@ -1,4 +1,12 @@
-import { EditorialContentForm, adminEditorialContentsStyles } from "../_contentForm";
+import { fetchSupabaseAdminTable } from "@/lib/supabase";
+
+import {
+  EditorialContentForm,
+  adminEditorialContentsStyles,
+  type EditorialContentCompetition,
+  type EditorialContentMatchday,
+  type EditorialContentSeason
+} from "../_contentForm";
 
 export const dynamic = "force-dynamic";
 
@@ -22,8 +30,25 @@ function pageMessage(error?: string) {
   return error ? messages[error] ?? "Nao foi possivel criar o conteudo." : null;
 }
 
+async function readContentContextOptions() {
+  const [competitions, seasons, matchdays] = await Promise.all([
+    fetchSupabaseAdminTable<EditorialContentCompetition>(
+      "competitions?select=id,country_id,country,name,slug,is_active&order=name.asc"
+    ).catch(() => []),
+    fetchSupabaseAdminTable<EditorialContentSeason>(
+      "seasons?select=id,competition_id,label,is_current,starts_on,ends_on&order=label.desc"
+    ).catch(() => []),
+    fetchSupabaseAdminTable<EditorialContentMatchday>(
+      "matchdays?select=id,season_id,number,label,starts_on,ends_on,status&order=number.asc"
+    ).catch(() => [])
+  ]);
+
+  return { competitions, seasons, matchdays };
+}
+
 export default async function NewEditorialContentPage({ searchParams }: PageProps) {
   const params = searchParams ? await searchParams : {};
+  const contextOptions = await readContentContextOptions();
 
   return (
     <main className="content-admin-shell">
@@ -40,16 +65,13 @@ export default async function NewEditorialContentPage({ searchParams }: PageProp
         </div>
       </section>
 
-        <nav className="content-admin-actions" style={{ marginBottom: 18 }} aria-label="Navegação editorial">
-          <a href="/admin/editorial/home">Home Editorial</a>
-          <a href="/admin/editorial/artigos">Artigos / Notícias</a>
-          <a href="/admin/editorial/composicao">Composição Editorial</a>
-          <a href="/admin/editorial/jornada">Editorial da Jornada</a>
-          <a href="/admin/gestor">Centro de Gestão</a>
-          <a href="/admin">Backoffice</a>
-        </nav>
-      <EditorialContentForm mode="create" message={pageMessage(params.error)} />
-
+      <EditorialContentForm
+        mode="create"
+        message={pageMessage(params.error)}
+        competitions={contextOptions.competitions}
+        seasons={contextOptions.seasons}
+        matchdays={contextOptions.matchdays}
+      />
     </main>
   );
 }
