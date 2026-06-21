@@ -212,14 +212,14 @@ export const publicEditorialStyles = `
 
   .public-matchday-scoreboard-panel {
     margin-top: 0;
-    padding: 6px 0 8px;
-    border-top: 1px solid #edf2f7;
-    border-bottom: 1px solid #e3eaf2;
+    padding: 8px 0 10px;
+    border-top: 1px solid #dbe4ee;
+    border-bottom: 1px solid #d4deea;
     border-left: 0;
     border-right: 0;
     border-radius: 0;
-    background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 10px 22px rgba(15, 23, 42, 0.055);
     min-height: 0;
   }
 
@@ -277,8 +277,8 @@ export const publicEditorialStyles = `
 
   .public-matchday-strip-shell {
     display: block;
-    min-height: 92px;
-    padding: 0 10px;
+    min-height: 94px;
+    padding: 0 12px;
     background: transparent;
   }
 
@@ -295,10 +295,10 @@ export const publicEditorialStyles = `
     align-items: start;
     min-height: 80px;
     padding: 7px 8px 8px;
-    border: 1px solid #d6e0ea;
+    border: 1px solid #ccd8e5;
     border-radius: 8px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-    box-shadow: 0 7px 16px rgba(15, 23, 42, 0.07);
+    background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.085);
     font-size: 12px;
   }
 
@@ -313,12 +313,12 @@ export const publicEditorialStyles = `
   }
 
   .public-matchday-mini-card-halftime {
-    border-color: #d6e0ea;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border-color: #ccd8e5;
+    background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
   }
 
   .public-matchday-mini-card-finished {
-    border-color: #dce8e1;
+    border-color: #ccd8e5;
   }
 
   .public-matchday-mini-team {
@@ -413,6 +413,12 @@ export const publicEditorialStyles = `
     animation-delay: 0.55s;
   }
 
+  .home-live-minute-prime {
+    display: inline-block;
+    color: inherit;
+    animation: home-live-prime-pulse 1s infinite ease-in-out;
+  }
+
   @keyframes home-live-dot-alternate {
     0%,
     100% {
@@ -426,11 +432,27 @@ export const publicEditorialStyles = `
     }
   }
 
+  @keyframes home-live-prime-pulse {
+    0%,
+    100% {
+      opacity: 0.35;
+    }
+
+    50% {
+      opacity: 1;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .home-live-pulse-dots span {
       animation: none;
       opacity: 0.75;
       transform: none;
+    }
+
+    .home-live-minute-prime {
+      animation: none;
+      opacity: 1;
     }
   }
 
@@ -483,8 +505,9 @@ export const publicEditorialStyles = `
     min-width: 0;
     box-sizing: border-box;
     padding: 16px;
-    border: 1px solid #e3e9f0;
+    border: 1px solid #dbe4ee;
     background: #ffffff;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.045);
   }
 
   .public-matchday-main-column {

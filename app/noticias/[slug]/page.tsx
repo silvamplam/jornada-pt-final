@@ -164,8 +164,10 @@ const articlePageStyles = `
   .public-season-nav-bar {
     margin: 0;
     padding: 0;
-    border-bottom: 1px solid #e3eaf2;
-    background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%);
+    border-top: 1px solid #dbe4ee;
+    border-bottom: 1px solid #d4deea;
+    background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 10px 22px rgba(15, 23, 42, 0.045);
   }
 
   .public-hidden-heading {
@@ -177,7 +179,7 @@ const articlePageStyles = `
     flex-wrap: nowrap;
     gap: 8px 12px;
     align-items: center;
-    min-height: 44px;
+    min-height: 46px;
     max-width: 1512px;
     margin: 0 auto;
     padding: 0;
@@ -189,8 +191,8 @@ const articlePageStyles = `
     align-items: center;
     gap: 8px;
     padding: 5px 8px;
-    border: 1px solid #d6e0ea;
-    background: #fbfcfe;
+    border: 1px solid #ccd8e5;
+    background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
     color: #263241;
     font-size: 10.5px;
     font-weight: 900;
@@ -403,10 +405,11 @@ const articlePageStyles = `
     margin: 0 -24px;
     margin-left: -24px;
     margin-right: -24px;
-    padding: 7px 24px 8px;
-    border-top: 1px solid #edf2f7;
-    border-bottom: 1px solid #e3eaf2;
-    background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%);
+    padding: 8px 24px 10px;
+    border-top: 1px solid #dbe4ee;
+    border-bottom: 1px solid #d4deea;
+    background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
   }
 
   .news-article-games-shell {
@@ -444,10 +447,10 @@ const articlePageStyles = `
     align-items: center;
     min-height: 78px;
     padding: 7px 8px;
-    border: 1px solid #d7e0ea;
+    border: 1px solid #ccd8e5;
     border-radius: 8px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-    box-shadow: 0 7px 16px rgba(15, 23, 42, 0.07);
+    background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.085);
     color: #111820;
     font-size: 12px;
   }
@@ -522,6 +525,12 @@ const articlePageStyles = `
     animation-delay: 0.55s;
   }
 
+  .public-live-minute-prime {
+    display: inline-block;
+    color: inherit;
+    animation: public-live-prime-pulse 1s infinite ease-in-out;
+  }
+
   @keyframes public-live-dot-alternate {
     0%,
     100% {
@@ -535,11 +544,27 @@ const articlePageStyles = `
     }
   }
 
+  @keyframes public-live-prime-pulse {
+    0%,
+    100% {
+      opacity: 0.35;
+    }
+
+    50% {
+      opacity: 1;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .public-live-pulse-dots span {
       animation: none;
       opacity: 0.75;
       transform: none;
+    }
+
+    .public-live-minute-prime {
+      animation: none;
+      opacity: 1;
     }
   }
 
@@ -923,7 +948,11 @@ function ArticleMatchCard({ match }: { match: PublicSeasonMatch }) {
   const hasScore = match.home_score !== null && match.away_score !== null;
   const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
   const publicMinute = getPublicLiveMinute(match);
-  const liveStatus = publicMinute !== null && kind === "live" ? `${statusLabel(match.status)} · ${publicMinute}'` : statusLabel(match.status);
+  const liveStatus = publicMinute !== null && kind === "live" ? (
+    <>
+      {statusLabel(match.status)} {"\u00b7"} {publicMinute}<span className="public-live-minute-prime">'</span>
+    </>
+  ) : statusLabel(match.status);
   const channelName = match.broadcastChannel?.name?.trim();
   const homeTeamName = match.homeTeam?.name?.trim() || match.homeTeam?.short_name?.trim() || "Equipa";
   const awayTeamName = match.awayTeam?.name?.trim() || match.awayTeam?.short_name?.trim() || "Equipa";

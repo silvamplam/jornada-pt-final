@@ -133,8 +133,10 @@ const gamesPageStyles = `
   .public-season-nav-bar {
     margin: 0;
     padding: 0;
-    border-bottom: 1px solid #e3eaf2;
-    background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%);
+    border-top: 1px solid #dbe4ee;
+    border-bottom: 1px solid #d4deea;
+    background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 10px 22px rgba(15, 23, 42, 0.045);
   }
 
   .public-hidden-heading {
@@ -146,7 +148,7 @@ const gamesPageStyles = `
     flex-wrap: nowrap;
     gap: 8px 12px;
     align-items: center;
-    min-height: 44px;
+    min-height: 46px;
     max-width: 1512px;
     margin: 0 auto;
     padding: 0;
@@ -158,8 +160,8 @@ const gamesPageStyles = `
     align-items: center;
     gap: 8px;
     padding: 5px 8px;
-    border: 1px solid #d6e0ea;
-    background: #fbfcfe;
+    border: 1px solid #ccd8e5;
+    background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
     color: #263241;
     font-size: 10.5px;
     font-weight: 900;
@@ -396,28 +398,28 @@ const gamesPageStyles = `
     align-items: center;
     min-height: 84px;
     padding: 8px 9px;
-    border: 1px solid #eef2f6;
-    border-radius: 6px;
-    background: #ffffff;
-    box-shadow: 0 8px 18px rgba(12, 22, 34, 0.05);
+    border: 1px solid #ccd8e5;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
     font-size: 13px;
   }
 
   .public-games-card-finished {
-    background: #ffffff;
+    background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
   }
 
   .public-games-card-live,
   .public-games-card-halftime {
-    background: #ffffff;
+    background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
   }
 
   .public-games-card-scheduled {
-    background: #ffffff;
+    background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
   }
 
   .public-games-card-unknown {
-    background: #ffffff;
+    background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
   }
 
   .public-games-team-line {
@@ -485,6 +487,10 @@ const gamesPageStyles = `
     white-space: nowrap;
   }
 
+  .public-games-status-live {
+    color: #16a34a;
+  }
+
   .public-live-pulse-dots {
     display: inline-flex;
     align-items: center;
@@ -506,6 +512,12 @@ const gamesPageStyles = `
     animation-delay: 0.55s;
   }
 
+  .public-live-minute-prime {
+    display: inline-block;
+    color: inherit;
+    animation: public-live-prime-pulse 1s infinite ease-in-out;
+  }
+
   @keyframes public-live-dot-alternate {
     0%,
     100% {
@@ -519,11 +531,27 @@ const gamesPageStyles = `
     }
   }
 
+  @keyframes public-live-prime-pulse {
+    0%,
+    100% {
+      opacity: 0.35;
+    }
+
+    50% {
+      opacity: 1;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .public-live-pulse-dots span {
       animation: none;
       opacity: 0.75;
       transform: none;
+    }
+
+    .public-live-minute-prime {
+      animation: none;
+      opacity: 1;
     }
   }
 
@@ -861,7 +889,11 @@ function LivePulseDots() {
 
 function MatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
-  const statusText = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
+  const statusText = match.minute && kind === "live" ? (
+    <>
+      {statusLabel(match.status)} {"\u00b7"} {match.minute}<span className="public-live-minute-prime">'</span>
+    </>
+  ) : match.minute && kind === "halftime" ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
   const homeWinner = isWinner(match, "home");
   const awayWinner = isWinner(match, "away");
 
@@ -899,7 +931,11 @@ function MatchCard({ match }: { match: PublicSeasonMatch }) {
 function ReferenceGamesCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const showScore = (kind === "finished" || kind === "live" || kind === "halftime") && match.home_score !== null && match.away_score !== null;
-  const statusText = match.minute && (kind === "live" || kind === "halftime") ? `${statusLabel(match.status)} - ${match.minute}'` : statusLabel(match.status);
+  const statusText = match.minute && kind === "live" ? (
+    <>
+      {statusLabel(match.status)} {"\u00b7"} {match.minute}<span className="public-live-minute-prime">'</span>
+    </>
+  ) : match.minute && kind === "halftime" ? `${statusLabel(match.status)} - ${match.minute}'` : statusLabel(match.status);
 
   return (
     <article className={`public-games-card public-games-card-${kind}`} key={match.id}>
@@ -914,7 +950,7 @@ function ReferenceGamesCard({ match }: { match: PublicSeasonMatch }) {
         {showScore ? <b className="public-games-team-score">{match.away_score}</b> : null}
       </span>
       <div className="public-games-meta">
-        <span>
+        <span className={kind === "live" ? "public-games-status-live" : undefined}>
           {kind === "scheduled" ? formatKickoffTime(match.kickoff_at) : statusText}
           {kind === "live" ? <LivePulseDots /> : null}
         </span>
