@@ -1037,7 +1037,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const latestNews = await readMatchdayLatestNews(matchday.id);
   const publishedReferenceComposition = await readPublishedReferenceComposition(matchday.id);
   const publishedEditorialArticles = await readPublishedEditorialArticles();
-  const publishedSources = await getEditorialPublishedSources().catch(() => []);
+  const publishedSources = await getEditorialPublishedSources({ matchdayId: matchday.id }).catch(() => []);
   const sideBlockArticleOptions = publishedEditorialArticles.filter((article) => articlePublicHref(article));
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = editorial?.complementary_mode ?? "none";

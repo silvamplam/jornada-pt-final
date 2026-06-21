@@ -18,7 +18,14 @@ export type EditorialPublishedSource = {
   duration: string | null;
   link_url: string;
   published_at: string | null;
+  competition_id?: string | null;
+  season_id?: string | null;
+  matchday_id?: string | null;
   origin_label: string;
+};
+
+type EditorialPublishedSourceOptions = {
+  matchdayId?: string | null;
 };
 
 type EditorialArticleRow = {
@@ -32,6 +39,9 @@ type EditorialArticleRow = {
   status: string | null;
   published_at?: string | null;
   created_at?: string | null;
+  competition_id?: string | null;
+  season_id?: string | null;
+  matchday_id?: string | null;
 };
 
 type EditorialContentRow = {
@@ -116,6 +126,9 @@ function normalizeArticle(article: EditorialArticleRow): EditorialPublishedSourc
     duration: null,
     link_url: publicContentHref("article", slug),
     published_at: cleanText(article.published_at) ?? cleanText(article.created_at),
+    competition_id: cleanText(article.competition_id),
+    season_id: cleanText(article.season_id),
+    matchday_id: cleanText(article.matchday_id),
     origin_label: "Artigo / Noticia",
   };
 }
@@ -146,6 +159,9 @@ function normalizeContent(content: EditorialContentRow): EditorialPublishedSourc
     duration: cleanText(content.duration),
     link_url: publicContentHref("editorial_content", slug),
     published_at: cleanText(content.published_at) ?? cleanText(content.created_at),
+    competition_id: null,
+    season_id: null,
+    matchday_id: null,
     origin_label: "Conteudo editorial",
   };
 }
@@ -155,10 +171,11 @@ function publishedTime(value: EditorialPublishedSource) {
   return date && !Number.isNaN(date.getTime()) ? date.getTime() : 0;
 }
 
-export async function getEditorialPublishedSources(): Promise<EditorialPublishedSource[]> {
+export async function getEditorialPublishedSources(options: EditorialPublishedSourceOptions = {}): Promise<EditorialPublishedSource[]> {
+  const matchdayId = cleanText(options.matchdayId);
   const [articleRows, contentRows] = await Promise.all([
     fetchSupabaseAdminTable<EditorialArticleRow>(
-      "editorial_articles?select=id,slug,title,subtitle,label,author,image_url,status,published_at,created_at&status=eq.published&order=published_at.desc.nullslast,created_at.desc.nullslast",
+      "editorial_articles?select=id,slug,title,subtitle,label,author,image_url,status,published_at,created_at,competition_id,season_id,matchday_id&status=eq.published&order=published_at.desc.nullslast,created_at.desc.nullslast",
     ).catch(() => []),
     fetchSupabaseAdminTable<EditorialContentRow>(
       "editorial_contents?select=id,slug,status,content_type,label,author,title,subtitle,summary,body,image_url,thumbnail_url,video_url,embed_url,duration,published_at,created_at&status=eq.published&order=published_at.desc.nullslast,created_at.desc.nullslast",
@@ -166,7 +183,7 @@ export async function getEditorialPublishedSources(): Promise<EditorialPublished
   ]);
 
   return [
-    ...articleRows.map(normalizeArticle),
+    ...articleRows.filter((article) => !matchdayId || !cleanText(article.matchday_id) || cleanText(article.matchday_id) === matchdayId).map(normalizeArticle),
     ...contentRows.map(normalizeContent),
   ]
     .filter((source): source is EditorialPublishedSource => Boolean(source))
