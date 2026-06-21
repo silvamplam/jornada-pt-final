@@ -212,7 +212,7 @@ export const publicEditorialStyles = `
 
   .public-matchday-scoreboard-panel {
     margin-top: 0;
-    padding: 2px 0 10px;
+    padding: 6px 0 6px;
     border-top: 1px solid #dbe4ee;
     border-bottom: 1px solid #d4deea;
     border-left: 0;
@@ -224,7 +224,7 @@ export const publicEditorialStyles = `
   }
 
   .public-matchday-scoreboard-panel + .public-matchday-panel {
-    margin-top: 10px;
+    margin-top: 4px;
   }
 
   .public-matchday-panel[aria-label="Capa da jornada"] {
