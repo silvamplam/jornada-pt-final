@@ -2,10 +2,6 @@ import { getAdminOverview } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
-type AdminPageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
-
 const adminPageStyles = `
   body {
     margin: 0;
@@ -405,18 +401,10 @@ const adminPageStyles = `
   }
 `;
 
-function oneParam(params: Record<string, string | string[] | undefined>, key: string) {
-  const value = params[key];
-  return Array.isArray(value) ? value[0] : value;
-}
-
-export default async function AdminPage({ searchParams }: AdminPageProps) {
-  const query = searchParams ? await searchParams : {};
-  const requestedMatchdayId = oneParam(query, "jornada");
+export default async function AdminPage() {
   const overview = await getAdminOverview();
-  const selectedMatchdayId = requestedMatchdayId ?? overview.matchdays[0]?.id ?? null;
-  const matchdayEditorialHref = selectedMatchdayId ? `/admin/editorial/jornada/${encodeURIComponent(selectedMatchdayId)}` : null;
-  const matchdayCompositionHref = selectedMatchdayId ? `/admin/editorial/composicao/${encodeURIComponent(selectedMatchdayId)}` : null;
+  const matchdayEditorialHref = "/admin/editorial/jornada";
+  const matchdayCompositionHref = "/admin/editorial/composicao";
   const countriesById = new Map(overview.countries.map((country) => [country.id, country]));
   const competitionsById = new Map(overview.competitions.map((competition) => [competition.id, competition]));
 
@@ -434,14 +422,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <a href="/admin/editorial/home">HOME EDITORIAL</a>
           <a href="/admin/editorial/artigos">ARTIGOS / NOTÍCIAS</a>
           <a href="/admin/editorial/conteudos">CONTEÚDOS / AUDIOVISUAL</a>
-          {matchdayEditorialHref ? (
-            <a href={matchdayEditorialHref}>EDITORIAL DA JORNADA</a>
-          ) : (
-            <span aria-disabled="true" className="admin-disabled-link" title="Sem jornada disponivel">
-              SEM JORNADA DISPONIVEL
-            </span>
-          )}
-          {matchdayCompositionHref ? <a href={matchdayCompositionHref}>COMPOSIÇÃO EDITORIAL</a> : null}
+          <a href={matchdayEditorialHref}>EDITORIAL DA JORNADA</a>
+          <a href={matchdayCompositionHref}>COMPOSIÇÃO EDITORIAL</a>
           <a href="/">Voltar ao site</a>
           <form action="/api/admin/logout" method="post">
             <button type="submit">Sair</button>
