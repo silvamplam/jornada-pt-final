@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+﻿import type { ReactNode } from "react";
 import {
   fetchSupabaseAdminTable,
   type SupabaseCompetition,
@@ -1719,6 +1719,9 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
           </a>
           <a className="composition-admin-button" href="/admin/editorial/artigos">
             Artigos / Notícias
+          </a>
+          <a className="composition-admin-button" href="/admin/editorial/conteudos">
+            CONTEÚDOS / AUDIOVISUAL
           </a>
           <a className="composition-admin-button" href={`/admin/editorial/jornada/${encodeURIComponent(matchday.id)}`}>
             Editorial da Jornada
