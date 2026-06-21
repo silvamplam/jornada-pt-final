@@ -64,6 +64,9 @@ type EditorialContentRow = {
   duration: string | null;
   published_at: string | null;
   created_at: string | null;
+  competition_id?: string | null;
+  season_id?: string | null;
+  matchday_id?: string | null;
 };
 
 function cleanText(value: string | null | undefined) {
@@ -84,6 +87,21 @@ function firstText(...values: Array<string | null | undefined>) {
 
 function publicContentHref(kind: "article" | "editorial_content", slug: string) {
   return kind === "article" ? `/noticias/${encodeURIComponent(slug)}` : `/conteudos/${encodeURIComponent(slug)}`;
+}
+
+function matchesContextScope(
+  source: { competition_id?: string | null; season_id?: string | null; matchday_id?: string | null },
+  context: { competitionId: string | null; seasonId: string | null; matchdayId: string | null }
+) {
+  const sourceCompetitionId = cleanText(source.competition_id);
+  const sourceSeasonId = cleanText(source.season_id);
+  const sourceMatchdayId = cleanText(source.matchday_id);
+
+  const matchesCompetition = !context.competitionId || !sourceCompetitionId || sourceCompetitionId === context.competitionId;
+  const matchesSeason = !context.seasonId || !sourceSeasonId || sourceSeasonId === context.seasonId;
+  const matchesMatchday = !context.matchdayId || !sourceMatchdayId || sourceMatchdayId === context.matchdayId;
+
+  return matchesCompetition && matchesSeason && matchesMatchday;
 }
 
 function contentMediaKind(content: EditorialContentRow): EditorialPublishedSource["media_kind"] {
@@ -161,9 +179,9 @@ function normalizeContent(content: EditorialContentRow): EditorialPublishedSourc
     duration: cleanText(content.duration),
     link_url: publicContentHref("editorial_content", slug),
     published_at: cleanText(content.published_at) ?? cleanText(content.created_at),
-    competition_id: null,
-    season_id: null,
-    matchday_id: null,
+    competition_id: cleanText(content.competition_id),
+    season_id: cleanText(content.season_id),
+    matchday_id: cleanText(content.matchday_id),
     origin_label: "Conteudo editorial",
   };
 }
@@ -182,25 +200,17 @@ export async function getEditorialPublishedSources(options: EditorialPublishedSo
       "editorial_articles?select=id,slug,title,subtitle,label,author,image_url,status,published_at,created_at,competition_id,season_id,matchday_id&status=eq.published&order=published_at.desc.nullslast,created_at.desc.nullslast",
     ).catch(() => []),
     fetchSupabaseAdminTable<EditorialContentRow>(
-      "editorial_contents?select=id,slug,status,content_type,label,author,title,subtitle,summary,body,image_url,thumbnail_url,video_url,embed_url,duration,published_at,created_at&status=eq.published&order=published_at.desc.nullslast,created_at.desc.nullslast",
+      "editorial_contents?select=id,slug,status,content_type,label,author,title,subtitle,summary,body,image_url,thumbnail_url,video_url,embed_url,duration,published_at,created_at,competition_id,season_id,matchday_id&status=eq.published&order=published_at.desc.nullslast,created_at.desc.nullslast",
     ).catch(() => []),
   ]);
 
-  const scopedArticleRows = articleRows.filter((article) => {
-    const articleCompetitionId = cleanText(article.competition_id);
-    const articleSeasonId = cleanText(article.season_id);
-    const articleMatchdayId = cleanText(article.matchday_id);
-
-    const matchesCompetition = !competitionId || !articleCompetitionId || articleCompetitionId === competitionId;
-    const matchesSeason = !seasonId || !articleSeasonId || articleSeasonId === seasonId;
-    const matchesMatchday = !matchdayId || !articleMatchdayId || articleMatchdayId === matchdayId;
-
-    return matchesCompetition && matchesSeason && matchesMatchday;
-  });
+  const context = { competitionId, seasonId, matchdayId };
+  const scopedArticleRows = articleRows.filter((article) => matchesContextScope(article, context));
+  const scopedContentRows = contentRows.filter((content) => matchesContextScope(content, context));
 
   return [
     ...scopedArticleRows.map(normalizeArticle),
-    ...contentRows.map(normalizeContent),
+    ...scopedContentRows.map(normalizeContent),
   ]
     .filter((source): source is EditorialPublishedSource => Boolean(source))
     .sort((left, right) => publishedTime(right) - publishedTime(left));
