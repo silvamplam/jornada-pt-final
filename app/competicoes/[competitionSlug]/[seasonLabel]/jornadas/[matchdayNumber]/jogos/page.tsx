@@ -133,7 +133,8 @@ const gamesPageStyles = `
   .public-season-nav-bar {
     margin: 0;
     padding: 0;
-    background: #ffffff;
+    border-bottom: 1px solid #e3eaf2;
+    background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%);
   }
 
   .public-hidden-heading {
@@ -145,7 +146,7 @@ const gamesPageStyles = `
     flex-wrap: nowrap;
     gap: 8px 12px;
     align-items: center;
-    min-height: 46px;
+    min-height: 44px;
     max-width: 1512px;
     margin: 0 auto;
     padding: 0;
@@ -156,11 +157,11 @@ const gamesPageStyles = `
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 5px 8px 5px 10px;
-    border: 1px solid #cfd7e1;
-    background: #f8fafc;
+    padding: 5px 8px;
+    border: 1px solid #d6e0ea;
+    background: #fbfcfe;
     color: #263241;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 900;
     text-transform: uppercase;
     white-space: nowrap;
@@ -198,13 +199,13 @@ const gamesPageStyles = `
   .public-matchday-nav a {
     display: inline-block;
     flex: 0 0 auto;
-    padding: 8px 13px;
+    padding: 7px 12px;
     border: 0;
     border-right: 1px solid #dfe5ec;
     border-radius: 0;
     background: #ffffff;
     color: #263241;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 900;
     text-decoration: none;
     text-transform: uppercase;
@@ -228,11 +229,11 @@ const gamesPageStyles = `
 
   .public-matchday-leg-nav a {
     display: inline-block;
-    padding: 8px 11px;
+    padding: 7px 10px;
     border-right: 1px solid #dfe5ec;
     background: #ffffff;
     color: #263241;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 900;
     text-decoration: none;
     text-transform: uppercase;
