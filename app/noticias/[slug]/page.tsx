@@ -164,7 +164,8 @@ const articlePageStyles = `
   .public-season-nav-bar {
     margin: 0;
     padding: 0;
-    background: #ffffff;
+    border-bottom: 1px solid #e3eaf2;
+    background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%);
   }
 
   .public-hidden-heading {
@@ -174,9 +175,9 @@ const articlePageStyles = `
   .public-season-nav-inner {
     display: flex;
     flex-wrap: nowrap;
-    gap: 8px 18px;
+    gap: 8px 12px;
     align-items: center;
-    min-height: 52px;
+    min-height: 44px;
     max-width: 1512px;
     margin: 0 auto;
     padding: 0;
@@ -187,11 +188,11 @@ const articlePageStyles = `
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 5px 8px 5px 10px;
-    border: 1px solid #cfd7e1;
-    background: #f8fafc;
+    padding: 5px 8px;
+    border: 1px solid #d6e0ea;
+    background: #fbfcfe;
     color: #263241;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 900;
     text-transform: uppercase;
     white-space: nowrap;
@@ -229,13 +230,13 @@ const articlePageStyles = `
   .public-matchday-nav a {
     display: inline-block;
     flex: 0 0 auto;
-    padding: 8px 13px;
+    padding: 7px 12px;
     border: 0;
     border-right: 1px solid #dfe5ec;
     border-radius: 0;
     background: #ffffff;
     color: #263241;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 900;
     text-decoration: none;
     text-transform: uppercase;
@@ -260,11 +261,11 @@ const articlePageStyles = `
 
   .public-matchday-leg-nav a {
     display: inline-block;
-    padding: 8px 11px;
+    padding: 7px 10px;
     border-right: 1px solid #dfe5ec;
     background: #ffffff;
     color: #263241;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 900;
     text-decoration: none;
     text-transform: uppercase;
@@ -402,8 +403,10 @@ const articlePageStyles = `
     margin: 0 -24px;
     margin-left: -24px;
     margin-right: -24px;
-    padding: 5px 24px 0;
-    border-top: 1px solid #edf1f5;
+    padding: 7px 24px 8px;
+    border-top: 1px solid #edf2f7;
+    border-bottom: 1px solid #e3eaf2;
+    background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%);
   }
 
   .news-article-games-shell {
@@ -422,10 +425,15 @@ const articlePageStyles = `
     display: grid;
     width: 100%;
     min-width: 0;
-    gap: 6px;
+    gap: 7px;
     overflow-x: auto;
-    padding: 6px;
-    scrollbar-width: thin;
+    padding: 6px 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .news-article-games-scroller::-webkit-scrollbar {
+    display: none;
   }
 
   .news-article-game-card {
@@ -434,12 +442,12 @@ const articlePageStyles = `
     min-width: 0;
     gap: 3px;
     align-items: center;
-    min-height: 76px;
-    padding: 7px;
+    min-height: 78px;
+    padding: 7px 8px;
     border: 1px solid #d7e0ea;
     border-radius: 8px;
-    background: linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
-    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.075);
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    box-shadow: 0 7px 16px rgba(15, 23, 42, 0.07);
     color: #111820;
     font-size: 12px;
   }
@@ -690,7 +698,7 @@ const articlePageStyles = `
       width: calc(100% + 28px);
       margin: 0 -14px;
       margin-top: 0;
-      padding: 5px 14px 0;
+      padding: 7px 14px 8px;
     }
 
     .news-article-games-shell {
@@ -704,6 +712,7 @@ const articlePageStyles = `
     .news-article-games-scroller {
       display: flex;
       padding: 6px 14px;
+      scrollbar-width: none;
     }
 
     .news-article-game-card {
