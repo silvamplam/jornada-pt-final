@@ -25,6 +25,8 @@ export type EditorialPublishedSource = {
 };
 
 type EditorialPublishedSourceOptions = {
+  competitionId?: string | null;
+  seasonId?: string | null;
   matchdayId?: string | null;
 };
 
@@ -172,6 +174,8 @@ function publishedTime(value: EditorialPublishedSource) {
 }
 
 export async function getEditorialPublishedSources(options: EditorialPublishedSourceOptions = {}): Promise<EditorialPublishedSource[]> {
+  const competitionId = cleanText(options.competitionId);
+  const seasonId = cleanText(options.seasonId);
   const matchdayId = cleanText(options.matchdayId);
   const [articleRows, contentRows] = await Promise.all([
     fetchSupabaseAdminTable<EditorialArticleRow>(
@@ -182,8 +186,20 @@ export async function getEditorialPublishedSources(options: EditorialPublishedSo
     ).catch(() => []),
   ]);
 
+  const scopedArticleRows = articleRows.filter((article) => {
+    const articleCompetitionId = cleanText(article.competition_id);
+    const articleSeasonId = cleanText(article.season_id);
+    const articleMatchdayId = cleanText(article.matchday_id);
+
+    const matchesCompetition = !competitionId || !articleCompetitionId || articleCompetitionId === competitionId;
+    const matchesSeason = !seasonId || !articleSeasonId || articleSeasonId === seasonId;
+    const matchesMatchday = !matchdayId || !articleMatchdayId || articleMatchdayId === matchdayId;
+
+    return matchesCompetition && matchesSeason && matchesMatchday;
+  });
+
   return [
-    ...articleRows.filter((article) => !matchdayId || !cleanText(article.matchday_id) || cleanText(article.matchday_id) === matchdayId).map(normalizeArticle),
+    ...scopedArticleRows.map(normalizeArticle),
     ...contentRows.map(normalizeContent),
   ]
     .filter((source): source is EditorialPublishedSource => Boolean(source))
