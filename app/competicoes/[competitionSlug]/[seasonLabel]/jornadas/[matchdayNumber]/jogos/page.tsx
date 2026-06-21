@@ -924,6 +924,7 @@ function LivePulseDots() {
 function MatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const compactBroadcastChannelName = compactTvLabel(match.broadcastChannel?.name?.trim());
+  const scheduledMeta = compactBroadcastChannelName ? `${formatKickoffTime(match.kickoff_at)} \u00b7 ${compactBroadcastChannelName}` : formatKickoffTime(match.kickoff_at);
   const livePrimeClassName = "public-live-minute-prime public-live-minute-prime-active";
   const statusText = kind === "live" ? (
     <>
@@ -961,8 +962,8 @@ function MatchCard({ match }: { match: PublicSeasonMatch }) {
         <TeamBadge logoUrl={match.awayTeam?.logo_url} name={match.awayTeam?.name} shortName={match.awayTeam?.short_name} />
       </div>
       <div className="public-games-meta">
-        <span>{statusKind(match.status) === "scheduled" ? formatKickoffTime(match.kickoff_at) : formatKickoff(match.kickoff_at)}</span>
-        {kind === "live" ? null : <BroadcastBadge match={match} />}
+        <span>{kind === "scheduled" ? scheduledMeta : formatKickoff(match.kickoff_at)}</span>
+        {kind === "scheduled" || kind === "live" ? null : <BroadcastBadge match={match} />}
       </div>
     </article>
   );
@@ -972,6 +973,7 @@ function ReferenceGamesCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const showScore = (kind === "finished" || kind === "live" || kind === "halftime") && match.home_score !== null && match.away_score !== null;
   const compactBroadcastChannelName = compactTvLabel(match.broadcastChannel?.name?.trim());
+  const scheduledMeta = compactBroadcastChannelName ? `${formatKickoffTime(match.kickoff_at)} \u00b7 ${compactBroadcastChannelName}` : formatKickoffTime(match.kickoff_at);
   const livePrimeClassName = "public-live-minute-prime public-live-minute-prime-active";
   const statusText = kind === "live" ? (
     <>
@@ -997,10 +999,10 @@ function ReferenceGamesCard({ match }: { match: PublicSeasonMatch }) {
       </span>
       <div className="public-games-meta">
         <span className={kind === "live" ? "public-games-status-live" : undefined}>
-          {kind === "scheduled" ? formatKickoffTime(match.kickoff_at) : statusText}
+          {kind === "scheduled" ? scheduledMeta : statusText}
           {kind === "live" ? <LivePulseDots /> : null}
         </span>
-        {kind === "live" ? null : <BroadcastBadge match={match} />}
+        {kind === "scheduled" || kind === "live" ? null : <BroadcastBadge match={match} />}
       </div>
     </article>
   );
