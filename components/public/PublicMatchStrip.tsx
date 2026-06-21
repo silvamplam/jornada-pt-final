@@ -175,14 +175,28 @@ function CompactMatchCard({ match, focus }: { match: PublicMatchStripMatch; focu
   const hasScore = match.home_score !== null && match.home_score !== undefined && match.away_score !== null && match.away_score !== undefined;
   const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
   const publicMinute = getPublicLiveMinute(match);
-  const liveStatus = publicMinute !== null && kind === "live" ? (
+  const livePrimeClassName = match.is_clock_running === true ? "home-live-minute-prime home-live-minute-prime-active" : "home-live-minute-prime";
+  const liveStatus = kind === "live" ? (
     <>
-      {statusLabel(match.status)} {"\u00b7"} {publicMinute}<span className="home-live-minute-prime">'</span>
+      <span className="public-matchday-live-label">{statusLabel(match.status)}</span>
+      {publicMinute !== null ? (
+        <>
+          <span className="public-matchday-mini-separator" aria-hidden="true">{"\u00b7"}</span>
+          <span className="public-matchday-live-minute">{publicMinute}<span className={livePrimeClassName}>'</span></span>
+        </>
+      ) : null}
+      {broadcastChannelName ? (
+        <>
+          <span className="public-matchday-mini-separator" aria-hidden="true">{"\u00b7"}</span>
+          <span className="public-matchday-mini-channel" title={broadcastChannelName}>{broadcastChannelName}</span>
+        </>
+      ) : null}
     </>
   ) : statusLabel(match.status);
 
   return (
     <article className={`public-matchday-mini-card public-matchday-mini-card-${kind}`} data-live-focus={focus ? "true" : undefined}>
+      {kind === "live" ? <LivePulseDots /> : null}
       <span className="public-matchday-mini-team">
         <TeamBadge team={match.homeTeam} />
         <span title={fullTeamName(match.homeTeam)}>{compactTeamName(match.homeTeam)}</span>
@@ -199,7 +213,6 @@ function CompactMatchCard({ match, focus }: { match: PublicMatchStripMatch; focu
         ) : kind === "live" || kind === "halftime" ? (
           <span>
             {liveStatus}
-            {kind === "live" ? <LivePulseDots /> : null}
           </span>
         ) : (
           <>

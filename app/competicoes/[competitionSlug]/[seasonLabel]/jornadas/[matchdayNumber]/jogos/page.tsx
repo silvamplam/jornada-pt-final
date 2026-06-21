@@ -391,6 +391,7 @@ const gamesPageStyles = `
   }
 
   .public-games-card {
+    position: relative;
     display: grid;
     flex: 0 0 176px;
     grid-template-columns: minmax(0, 1fr);
@@ -475,7 +476,7 @@ const gamesPageStyles = `
 
   .public-games-meta {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: flex-start;
     gap: 4px;
     min-width: 0;
@@ -488,14 +489,27 @@ const gamesPageStyles = `
   }
 
   .public-games-status-live {
+    color: #10151b;
+  }
+
+  .public-games-live-label,
+  .public-games-live-separator {
+    color: #10151b;
+  }
+
+  .public-games-live-minute {
     color: #16a34a;
   }
 
   .public-live-pulse-dots {
     display: inline-flex;
+    position: absolute;
+    top: 8px;
+    right: 9px;
+    z-index: 2;
     align-items: center;
     gap: 3px;
-    margin-left: 4px;
+    margin-left: 0;
     vertical-align: middle;
   }
 
@@ -515,6 +529,9 @@ const gamesPageStyles = `
   .public-live-minute-prime {
     display: inline-block;
     color: inherit;
+  }
+
+  .public-live-minute-prime-active {
     animation: public-live-prime-pulse 1s infinite ease-in-out;
   }
 
@@ -549,7 +566,7 @@ const gamesPageStyles = `
       transform: none;
     }
 
-    .public-live-minute-prime {
+    .public-live-minute-prime-active {
       animation: none;
       opacity: 1;
     }
@@ -557,6 +574,7 @@ const gamesPageStyles = `
 
   .public-games-tv {
     display: inline-flex;
+    flex: 0 0 auto;
     align-items: center;
     gap: 4px;
     min-width: 0;
@@ -566,6 +584,12 @@ const gamesPageStyles = `
     background: transparent;
     color: #263241;
     font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .public-games-tv::before {
+    content: "·";
+    color: #10151b;
   }
 
   .public-games-tv img {
@@ -889,9 +913,12 @@ function LivePulseDots() {
 
 function MatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
+  const livePrimeClassName = match.is_clock_running === true ? "public-live-minute-prime public-live-minute-prime-active" : "public-live-minute-prime";
   const statusText = match.minute && kind === "live" ? (
     <>
-      {statusLabel(match.status)} {"\u00b7"} {match.minute}<span className="public-live-minute-prime">'</span>
+      <span className="public-games-live-label">{statusLabel(match.status)}</span>
+      <span className="public-games-live-separator" aria-hidden="true">{"\u00b7"}</span>
+      <span className="public-games-live-minute">{match.minute}<span className={livePrimeClassName}>'</span></span>
     </>
   ) : match.minute && kind === "halftime" ? `${statusLabel(match.status)} · ${match.minute}'` : statusLabel(match.status);
   const homeWinner = isWinner(match, "home");
@@ -931,9 +958,12 @@ function MatchCard({ match }: { match: PublicSeasonMatch }) {
 function ReferenceGamesCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const showScore = (kind === "finished" || kind === "live" || kind === "halftime") && match.home_score !== null && match.away_score !== null;
+  const livePrimeClassName = match.is_clock_running === true ? "public-live-minute-prime public-live-minute-prime-active" : "public-live-minute-prime";
   const statusText = match.minute && kind === "live" ? (
     <>
-      {statusLabel(match.status)} {"\u00b7"} {match.minute}<span className="public-live-minute-prime">'</span>
+      <span className="public-games-live-label">{statusLabel(match.status)}</span>
+      <span className="public-games-live-separator" aria-hidden="true">{"\u00b7"}</span>
+      <span className="public-games-live-minute">{match.minute}<span className={livePrimeClassName}>'</span></span>
     </>
   ) : match.minute && kind === "halftime" ? `${statusLabel(match.status)} - ${match.minute}'` : statusLabel(match.status);
 

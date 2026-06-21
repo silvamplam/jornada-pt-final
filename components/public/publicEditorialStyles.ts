@@ -355,6 +355,10 @@ export const publicEditorialStyles = `
     text-align: right;
   }
 
+  .public-matchday-mini-card-live .public-matchday-mini-team:first-of-type .public-matchday-mini-score {
+    padding-right: 18px;
+  }
+
   .public-matchday-mini-card .public-team-badge {
     width: 24px;
     height: 24px;
@@ -385,18 +389,22 @@ export const publicEditorialStyles = `
   }
 
   .public-matchday-mini-card .public-matchday-mini-status .public-matchday-mini-channel {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
   }
 
   .public-matchday-mini-card-live .public-matchday-mini-status > span {
-    color: #16a34a;
+    color: #10151b;
   }
 
   .home-live-pulse-dots {
     display: inline-flex;
+    position: absolute;
+    top: 7px;
+    right: 8px;
+    z-index: 2;
     align-items: center;
     gap: 3px;
-    margin-left: 4px;
+    margin-left: 0;
     vertical-align: middle;
   }
 
@@ -416,7 +424,19 @@ export const publicEditorialStyles = `
   .home-live-minute-prime {
     display: inline-block;
     color: inherit;
+  }
+
+  .home-live-minute-prime-active {
     animation: home-live-prime-pulse 1s infinite ease-in-out;
+  }
+
+  .public-matchday-live-label,
+  .public-matchday-mini-separator {
+    color: #10151b;
+  }
+
+  .public-matchday-live-minute {
+    color: #16a34a;
   }
 
   @keyframes home-live-dot-alternate {
@@ -450,7 +470,7 @@ export const publicEditorialStyles = `
       transform: none;
     }
 
-    .home-live-minute-prime {
+    .home-live-minute-prime-active {
       animation: none;
       opacity: 1;
     }
@@ -464,7 +484,7 @@ export const publicEditorialStyles = `
   .public-matchday-mini-channel {
     min-width: 0;
     overflow: visible;
-    color: #607086;
+    color: #263241;
     text-overflow: clip;
     white-space: nowrap;
   }

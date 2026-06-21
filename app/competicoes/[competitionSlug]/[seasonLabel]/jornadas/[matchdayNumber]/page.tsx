@@ -422,6 +422,10 @@ const publicMatchdayStyles = `
     text-align: right;
   }
 
+  .public-matchday-mini-card-live .public-matchday-mini-team:first-of-type .public-matchday-mini-score {
+    padding-right: 18px;
+  }
+
   .public-matchday-mini-card .public-team-badge {
     width: 22px;
     height: 22px;
@@ -446,6 +450,7 @@ const publicMatchdayStyles = `
     font-weight: 800;
     line-height: 1.15;
     text-transform: none;
+    white-space: nowrap;
   }
 
   .public-matchday-mini-card-live .public-matchday-mini-status > span,
@@ -467,6 +472,15 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-card-live .public-matchday-mini-status > span {
+    color: #10151b;
+  }
+
+  .public-matchday-live-label,
+  .public-matchday-mini-separator {
+    color: #10151b;
+  }
+
+  .public-matchday-live-minute {
     color: #16a34a;
   }
 
@@ -476,9 +490,13 @@ const publicMatchdayStyles = `
 
   .public-live-pulse-dots {
     display: inline-flex;
+    position: absolute;
+    top: 7px;
+    right: 8px;
+    z-index: 2;
     align-items: center;
     gap: 3px;
-    margin-left: 4px;
+    margin-left: 0;
     vertical-align: middle;
   }
 
@@ -498,6 +516,9 @@ const publicMatchdayStyles = `
   .public-live-minute-prime {
     display: inline-block;
     color: inherit;
+  }
+
+  .public-live-minute-prime-active {
     animation: public-live-prime-pulse 1s infinite ease-in-out;
   }
 
@@ -532,7 +553,7 @@ const publicMatchdayStyles = `
       transform: none;
     }
 
-    .public-live-minute-prime {
+    .public-live-minute-prime-active {
       animation: none;
       opacity: 1;
     }
@@ -557,8 +578,8 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-mini-channel {
-    flex: 0 0 auto;
-    color: inherit;
+    flex: 0 1 auto;
+    color: #263241;
     white-space: nowrap;
   }
 
@@ -1780,6 +1801,7 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-card {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     gap: 10px;
@@ -1911,8 +1933,8 @@ const publicMatchdayStyles = `
   }
 
   .public-matchday-status-live {
-    background: #edf7f1;
-    color: #16a34a;
+    background: transparent;
+    color: #10151b;
   }
 
   .public-matchday-status-halftime {
@@ -2679,9 +2701,22 @@ function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: 
   const hasScore = match.home_score !== null && match.away_score !== null;
   const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
   const publicMinute = getPublicLiveMinute(match);
-  const liveStatus = publicMinute !== null && kind === "live" ? (
+  const livePrimeClassName = match.is_clock_running === true ? "public-live-minute-prime public-live-minute-prime-active" : "public-live-minute-prime";
+  const liveStatus = kind === "live" ? (
     <>
-      {statusLabel(match.status)} {"\u00b7"} {publicMinute}<span className="public-live-minute-prime">'</span>
+      <span className="public-matchday-live-label">{statusLabel(match.status)}</span>
+      {publicMinute !== null ? (
+        <>
+          <span className="public-matchday-mini-separator" aria-hidden="true">{"\u00b7"}</span>
+          <span className="public-matchday-live-minute">{publicMinute}<span className={livePrimeClassName}>'</span></span>
+        </>
+      ) : null}
+      {broadcastChannelName ? (
+        <>
+          <span className="public-matchday-mini-separator" aria-hidden="true">{"\u00b7"}</span>
+          <span className="public-matchday-mini-channel">{broadcastChannelName}</span>
+        </>
+      ) : null}
     </>
   ) : statusLabel(match.status);
   const homeTeamName = match.homeTeam?.name ?? "Equipa da casa";
@@ -2728,9 +2763,12 @@ function CompactMatchCard({ match, focus }: { match: PublicSeasonMatch; focus?: 
 function MatchCard({ match }: { match: PublicSeasonMatch }) {
   const kind = statusKind(match.status);
   const publicMinute = getPublicLiveMinute(match);
+  const livePrimeClassName = match.is_clock_running === true ? "public-live-minute-prime public-live-minute-prime-active" : "public-live-minute-prime";
   const statusText = publicMinute !== null && kind === "live" ? (
     <>
-      {statusLabel(match.status)} {"\u00b7"} {publicMinute}<span className="public-live-minute-prime">'</span>
+      <span className="public-matchday-live-label">{statusLabel(match.status)}</span>
+      <span className="public-matchday-mini-separator" aria-hidden="true">{"\u00b7"}</span>
+      <span className="public-matchday-live-minute">{publicMinute}<span className={livePrimeClassName}>'</span></span>
     </>
   ) : statusLabel(match.status);
   const homeWinner = isWinner(match, "home");

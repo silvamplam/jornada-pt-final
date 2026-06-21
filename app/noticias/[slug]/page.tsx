@@ -440,6 +440,7 @@ const articlePageStyles = `
   }
 
   .news-article-game-card {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     min-width: 0;
@@ -489,6 +490,10 @@ const articlePageStyles = `
     text-align: right;
   }
 
+  .news-article-game-card-live .news-article-game-team:first-of-type .news-article-game-score {
+    padding-right: 18px;
+  }
+
   .news-article-game-meta {
     display: flex;
     min-width: 0;
@@ -506,9 +511,13 @@ const articlePageStyles = `
 
   .public-live-pulse-dots {
     display: inline-flex;
+    position: absolute;
+    top: 7px;
+    right: 8px;
+    z-index: 2;
     align-items: center;
     gap: 3px;
-    margin-left: 4px;
+    margin-left: 0;
     vertical-align: middle;
   }
 
@@ -528,6 +537,9 @@ const articlePageStyles = `
   .public-live-minute-prime {
     display: inline-block;
     color: inherit;
+  }
+
+  .public-live-minute-prime-active {
     animation: public-live-prime-pulse 1s infinite ease-in-out;
   }
 
@@ -562,7 +574,7 @@ const articlePageStyles = `
       transform: none;
     }
 
-    .public-live-minute-prime {
+    .public-live-minute-prime-active {
       animation: none;
       opacity: 1;
     }
@@ -571,14 +583,23 @@ const articlePageStyles = `
   .news-article-game-live-status {
     display: inline-flex;
     align-items: center;
-    color: #16a34a;
+    color: #10151b;
     white-space: nowrap;
+  }
+
+  .news-article-game-live-label,
+  .news-article-game-live-separator {
+    color: #10151b;
+  }
+
+  .news-article-game-live-minute {
+    color: #16a34a;
   }
 
   .news-article-game-channel {
     min-width: 0;
     overflow: visible;
-    color: #405061;
+    color: #263241;
     text-overflow: clip;
     white-space: nowrap;
   }
@@ -948,12 +969,25 @@ function ArticleMatchCard({ match }: { match: PublicSeasonMatch }) {
   const hasScore = match.home_score !== null && match.away_score !== null;
   const showScore = hasScore && (kind === "finished" || kind === "live" || kind === "halftime");
   const publicMinute = getPublicLiveMinute(match);
-  const liveStatus = publicMinute !== null && kind === "live" ? (
+  const channelName = match.broadcastChannel?.name?.trim();
+  const livePrimeClassName = match.is_clock_running === true ? "public-live-minute-prime public-live-minute-prime-active" : "public-live-minute-prime";
+  const liveStatus = kind === "live" ? (
     <>
-      {statusLabel(match.status)} {"\u00b7"} {publicMinute}<span className="public-live-minute-prime">'</span>
+      <span className="news-article-game-live-label">{statusLabel(match.status)}</span>
+      {publicMinute !== null ? (
+        <>
+          <span className="news-article-game-live-separator" aria-hidden="true">{"\u00b7"}</span>
+          <span className="news-article-game-live-minute">{publicMinute}<span className={livePrimeClassName}>'</span></span>
+        </>
+      ) : null}
+      {channelName ? (
+        <>
+          <span className="news-article-game-live-separator" aria-hidden="true">{"\u00b7"}</span>
+          <span className="news-article-game-channel" title={channelName}>{channelName}</span>
+        </>
+      ) : null}
     </>
   ) : statusLabel(match.status);
-  const channelName = match.broadcastChannel?.name?.trim();
   const homeTeamName = match.homeTeam?.name?.trim() || match.homeTeam?.short_name?.trim() || "Equipa";
   const awayTeamName = match.awayTeam?.name?.trim() || match.awayTeam?.short_name?.trim() || "Equipa";
 
