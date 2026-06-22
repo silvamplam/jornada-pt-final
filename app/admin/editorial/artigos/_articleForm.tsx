@@ -209,10 +209,8 @@ const articleFormEnhancer = `
       if (scope) {
         if (matchday && matchday.value) {
           scope.value = "matchday";
-        } else if ((season && season.value) || (competition && competition.value)) {
-          scope.value = "competition";
         } else {
-          scope.value = "global";
+          scope.value = "general";
         }
       }
     }
@@ -252,14 +250,9 @@ export function ArticleEditorForm({
   const isEdit = mode === "edit";
   const currentStatus = firstText(article?.status) || "draft";
   const canOpenPublicArticle = Boolean(publicHref && currentStatus === "published");
-  const storedScope = firstText(article?.scope);
   const currentScope = article?.matchday_id
     ? "matchday"
-    : article?.season_id || article?.competition_id
-      ? "competition"
-      : storedScope === "season"
-        ? "competition"
-        : storedScope || "global";
+    : "general";
   const competitionBySeasonId = new Map(seasons.map((season) => [season.id, season.competition_id ?? ""]));
 
   return (
