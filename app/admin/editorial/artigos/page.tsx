@@ -308,9 +308,10 @@ function publicArticlePath(article: EditorialArticle) {
 
 function readableScope(article: EditorialArticle) {
   if (article.matchday_id) return "matchday";
-  if (article.season_id) return "season";
+  if (article.season_id) return "competition";
   if (article.competition_id) return "competition";
-  return firstText(article.scope) || "global";
+  const storedScope = firstText(article.scope);
+  return storedScope === "season" ? "competition" : storedScope || "global";
 }
 
 function readableMatchdayLabel(matchday?: MatchdayOption | null) {

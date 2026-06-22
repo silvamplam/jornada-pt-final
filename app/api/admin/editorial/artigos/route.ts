@@ -60,7 +60,7 @@ type ArticlePayload = {
   matchday_id: string | null;
 };
 
-type ArticleScope = "global" | "competition" | "season" | "matchday";
+type ArticleScope = "global" | "competition" | "matchday";
 
 type LinkRemovalTarget =
   | "matchday_editorials"
@@ -352,10 +352,7 @@ function scopeForContext(context: {
   if (context.matchday_id) {
     return "matchday";
   }
-  if (context.season_id) {
-    return "season";
-  }
-  if (context.competition_id) {
+  if (context.season_id || context.competition_id) {
     return "competition";
   }
 
