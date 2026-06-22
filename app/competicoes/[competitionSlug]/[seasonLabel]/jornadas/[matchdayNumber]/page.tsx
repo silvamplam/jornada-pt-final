@@ -2281,7 +2281,16 @@ const publicMatchdayStyles = `
       grid-template-columns: 1fr;
     }
 
-    .public-site-menu,
+    .public-site-menu {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px 11px;
+      align-items: center;
+      justify-content: flex-start;
+      min-width: 0;
+      font-size: 11px;
+    }
+
     .public-site-actions {
       display: none;
     }
