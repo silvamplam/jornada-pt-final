@@ -233,8 +233,7 @@ export default function PublicMatchStrip({ matches }: { matches: PublicMatchStri
     const kind = statusKind(match.status);
     return kind === "live" || kind === "halftime";
   }) ?? null;
-  const matchCount = Math.max(1, matches.length);
-  const gridTemplateColumns = matchCount > 10 ? "repeat(auto-fit, minmax(108px, 1fr))" : `repeat(${matchCount}, minmax(0, 1fr))`;
+  const gridTemplateColumns = "repeat(auto-fit, minmax(min(132px, 100%), 1fr))";
 
   if (matches.length === 0) {
     return null;

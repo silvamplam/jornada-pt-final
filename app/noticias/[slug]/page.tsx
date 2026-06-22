@@ -429,7 +429,8 @@ const articlePageStyles = `
     width: 100%;
     min-width: 0;
     gap: 7px;
-    overflow-x: auto;
+    align-items: stretch;
+    overflow-x: visible;
     padding: 6px 0;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -756,13 +757,14 @@ const articlePageStyles = `
     }
 
     .news-article-games-scroller {
-      display: flex;
-      padding: 6px 14px;
-      scrollbar-width: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(148px, 100%), 1fr)) !important;
+      padding: 6px 0;
+      overflow-x: visible;
     }
 
     .news-article-game-card {
-      flex: 0 0 148px;
+      flex: 1 1 auto;
     }
 
     .news-article-sidebar {
@@ -1163,7 +1165,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
   const firstLegHref = firstLegMatchdays[0] ? matchdayHref(firstLegMatchdays[0].number) : currentSeasonHref;
   const secondLegHref = secondLegMatchdays[0] ? matchdayHref(secondLegMatchdays[0].number) : currentSeasonHref;
   const selectedMatchdayDateContext = formatMatchdayDateContext(articleMatches);
-  const articleGamesGridTemplateColumns = `repeat(${Math.max(articleMatches.length, 1)}, minmax(118px, 1fr))`;
+  const articleGamesGridTemplateColumns = "repeat(auto-fit, minmax(min(132px, 100%), 1fr))";
 
   return (
     <div className="news-article-shell">
