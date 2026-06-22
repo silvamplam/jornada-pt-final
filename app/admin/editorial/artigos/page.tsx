@@ -33,11 +33,39 @@ type ContextOptions = {
 };
 
 type ArticleContextSummary = {
+  competitionId: string | null;
+  seasonId: string | null;
+  matchdayId: string | null;
   competitionLabel: string;
   seasonLabel: string;
   matchdayLabel: string;
   scopeLabel: string;
   stateLabel: string;
+};
+
+type ArticleSidebarItem = {
+  article: EditorialArticle;
+  articleContext: ArticleContextSummary;
+  articleDate: string;
+  isSelected: boolean;
+};
+
+type ArticleSidebarMatchdayGroup = {
+  key: string;
+  label: string;
+  articles: ArticleSidebarItem[];
+};
+
+type ArticleSidebarSeasonGroup = {
+  key: string;
+  label: string;
+  matchdayGroups: ArticleSidebarMatchdayGroup[];
+};
+
+type ArticleSidebarCompetitionGroup = {
+  key: string;
+  label: string;
+  seasonGroups: ArticleSidebarSeasonGroup[];
 };
 
 type LinkPlacement = {
@@ -130,6 +158,60 @@ const articleContextLinkStyles = `
     line-height: 1.35;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .article-admin-sidebar-groups {
+    display: grid;
+    gap: 10px;
+  }
+
+  .article-admin-sidebar-group,
+  .article-admin-sidebar-subgroup,
+  .article-admin-sidebar-leaf {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+  }
+
+  .article-admin-sidebar-subgroup,
+  .article-admin-sidebar-leaf {
+    margin-top: 8px;
+  }
+
+  .article-admin-sidebar-group summary,
+  .article-admin-sidebar-subgroup summary,
+  .article-admin-sidebar-leaf summary {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+    padding: 9px 11px;
+    color: #111827;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .article-admin-sidebar-subgroup summary {
+    color: #374151;
+    font-size: 11px;
+  }
+
+  .article-admin-sidebar-leaf summary {
+    color: #4b5563;
+    font-size: 11px;
+  }
+
+  .article-admin-sidebar-count {
+    flex: 0 0 auto;
+    color: #6b7280;
+    font-size: 10px;
+    font-weight: 800;
+  }
+
+  .article-admin-sidebar-list.is-nested {
+    padding: 0 8px 8px;
   }
 
   .article-admin-diagnostic {
@@ -330,6 +412,9 @@ function resolveArticleContext(article: EditorialArticle, context: ContextOption
   const hasAnyContext = Boolean(article.matchday_id || article.season_id || article.competition_id);
 
   return {
+    competitionId,
+    seasonId,
+    matchdayId: matchday?.id ?? article.matchday_id ?? null,
     competitionLabel: firstText(competition?.name, competition?.slug) || (hasAnyContext ? "Contexto incompleto" : "Sem competicao associada"),
     seasonLabel: firstText(season?.label) || (hasAnyContext ? "Contexto incompleto" : "Sem epoca associada"),
     matchdayLabel: readableMatchdayLabel(matchday) || (article.matchday_id ? "Contexto incompleto" : "Sem jornada associada"),
@@ -348,6 +433,90 @@ function selectedArticleFromQuery(articles: EditorialArticle[], articleId?: stri
   }
 
   return articles.find((article) => article.id === articleId) ?? null;
+}
+
+function countCompetitionArticles(group: ArticleSidebarCompetitionGroup) {
+  return group.seasonGroups.reduce(
+    (competitionCount, seasonGroup) =>
+      competitionCount +
+      seasonGroup.matchdayGroups.reduce((seasonCount, matchdayGroup) => seasonCount + matchdayGroup.articles.length, 0),
+    0,
+  );
+}
+
+function hasSelectedArticle(items: ArticleSidebarItem[]) {
+  return items.some((item) => item.isSelected);
+}
+
+function matchdayGroupHasSelected(group: ArticleSidebarMatchdayGroup) {
+  return hasSelectedArticle(group.articles);
+}
+
+function seasonGroupHasSelected(group: ArticleSidebarSeasonGroup) {
+  return group.matchdayGroups.some(matchdayGroupHasSelected);
+}
+
+function competitionGroupHasSelected(group: ArticleSidebarCompetitionGroup) {
+  return group.seasonGroups.some(seasonGroupHasSelected);
+}
+
+function findOrCreateCompetitionGroup(groups: ArticleSidebarCompetitionGroup[], item: ArticleSidebarItem) {
+  const key = item.articleContext.competitionId ?? "contexto-incompleto";
+  let group = groups.find((entry) => entry.key === key);
+
+  if (!group) {
+    group = { key, label: item.articleContext.competitionLabel, seasonGroups: [] };
+    groups.push(group);
+  }
+
+  return group;
+}
+
+function findOrCreateSeasonGroup(group: ArticleSidebarCompetitionGroup, item: ArticleSidebarItem) {
+  const key = item.articleContext.seasonId ?? "sem-epoca";
+  const label = item.articleContext.seasonId ? item.articleContext.seasonLabel : "Sem epoca associada";
+  let seasonGroup = group.seasonGroups.find((entry) => entry.key === key);
+
+  if (!seasonGroup) {
+    seasonGroup = { key, label, matchdayGroups: [] };
+    group.seasonGroups.push(seasonGroup);
+  }
+
+  return seasonGroup;
+}
+
+function findOrCreateMatchdayGroup(group: ArticleSidebarSeasonGroup, item: ArticleSidebarItem) {
+  const key = item.articleContext.matchdayId ?? "sem-jornada";
+  const label = item.articleContext.matchdayId ? item.articleContext.matchdayLabel : "Sem jornada associada";
+  let matchdayGroup = group.matchdayGroups.find((entry) => entry.key === key);
+
+  if (!matchdayGroup) {
+    matchdayGroup = { key, label, articles: [] };
+    group.matchdayGroups.push(matchdayGroup);
+  }
+
+  return matchdayGroup;
+}
+
+function groupArticleSidebarItems(items: ArticleSidebarItem[]) {
+  const generalItems: ArticleSidebarItem[] = [];
+  const competitionGroups: ArticleSidebarCompetitionGroup[] = [];
+
+  items.forEach((item) => {
+    const isGeneral = item.articleContext.scopeLabel === "general" || !item.articleContext.competitionId;
+
+    if (isGeneral) {
+      generalItems.push(item);
+      return;
+    }
+
+    const competitionGroup = findOrCreateCompetitionGroup(competitionGroups, item);
+    const seasonGroup = findOrCreateSeasonGroup(competitionGroup, item);
+    const matchdayGroup = findOrCreateMatchdayGroup(seasonGroup, item);
+    matchdayGroup.articles.push(item);
+  });
+
+  return { generalItems, competitionGroups };
 }
 
 async function safeRead<T>(query: string) {
@@ -611,6 +780,34 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
   const message = pageMessage(params);
   const selectedContext = selectedArticle ? resolveArticleContext(selectedArticle, context) : null;
   const selectedLinkData = selectedArticle ? await readArticleLinkPlacements(selectedArticle, context) : { publicPath: null, placements: [] as LinkPlacement[] };
+  const sidebarItems = articles.map((article) => ({
+    article,
+    articleContext: resolveArticleContext(article, context),
+    articleDate: firstText(formatShortDate(article.published_at), formatShortDate(article.created_at)),
+    isSelected: selectedArticle?.id === article.id,
+  }));
+  const groupedSidebarArticles = groupArticleSidebarItems(sidebarItems);
+  const renderSidebarItem = (item: ArticleSidebarItem) => (
+    <li key={item.article.id}>
+      <a
+        className={`article-admin-sidebar-item${item.isSelected ? " is-selected" : ""}`}
+        href={`/admin/editorial/artigos?articleId=${encodeURIComponent(item.article.id)}`}
+      >
+        <span className="article-admin-sidebar-meta">
+          <span>{statusLabel(item.article.status)}</span>
+          {item.article.label ? <span>{item.article.label}</span> : null}
+        </span>
+        <strong>{item.article.title ?? "Sem titulo"}</strong>
+        <span className="article-admin-sidebar-meta">
+          {item.article.slug ? <span>/{item.article.slug}</span> : null}
+          {item.articleDate ? <span>{item.articleDate}</span> : null}
+        </span>
+        <span className="article-admin-sidebar-context">
+          {item.articleContext.competitionLabel} / {item.articleContext.seasonLabel} / {item.articleContext.matchdayLabel}
+        </span>
+      </a>
+    </li>
+  );
 
   return (
     <main className="editorial-admin-shell">
@@ -650,35 +847,61 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
             {!error && articles.length === 0 ? <p className="article-admin-sidebar-item">Não há artigos editoriais para apresentar.</p> : null}
 
             {articles.length > 0 ? (
-              <ul className="article-admin-sidebar-list">
-                {articles.map((article) => {
-                  const articleDate = firstText(formatShortDate(article.published_at), formatShortDate(article.created_at));
-                  const isSelected = selectedArticle?.id === article.id;
-                  const articleContext = resolveArticleContext(article, context);
+              <div className="article-admin-sidebar-groups">
+                {groupedSidebarArticles.generalItems.length > 0 ? (
+                  <details className="article-admin-sidebar-group" open={!selectedArticle || hasSelectedArticle(groupedSidebarArticles.generalItems)}>
+                    <summary>
+                      <span>Gerais</span>
+                      <span className="article-admin-sidebar-count">{groupedSidebarArticles.generalItems.length}</span>
+                    </summary>
+                    <ul className="article-admin-sidebar-list is-nested">
+                      {groupedSidebarArticles.generalItems.map(renderSidebarItem)}
+                    </ul>
+                  </details>
+                ) : null}
 
-                  return (
-                    <li key={article.id}>
-                      <a
-                        className={`article-admin-sidebar-item${isSelected ? " is-selected" : ""}`}
-                        href={`/admin/editorial/artigos?articleId=${encodeURIComponent(article.id)}`}
+                {groupedSidebarArticles.competitionGroups.map((competitionGroup) => (
+                  <details
+                    className="article-admin-sidebar-group"
+                    key={competitionGroup.key}
+                    open={competitionGroupHasSelected(competitionGroup)}
+                  >
+                    <summary>
+                      <span>{competitionGroup.label}</span>
+                      <span className="article-admin-sidebar-count">{countCompetitionArticles(competitionGroup)}</span>
+                    </summary>
+                    {competitionGroup.seasonGroups.map((seasonGroup) => (
+                      <details
+                        className="article-admin-sidebar-subgroup"
+                        key={seasonGroup.key}
+                        open={seasonGroupHasSelected(seasonGroup)}
                       >
-                        <span className="article-admin-sidebar-meta">
-                          <span>{statusLabel(article.status)}</span>
-                          {article.label ? <span>{article.label}</span> : null}
-                        </span>
-                        <strong>{article.title ?? "Sem título"}</strong>
-                        <span className="article-admin-sidebar-meta">
-                          {article.slug ? <span>/{article.slug}</span> : null}
-                          {articleDate ? <span>{articleDate}</span> : null}
-                        </span>
-                        <span className="article-admin-sidebar-context">
-                          {articleContext.competitionLabel} / {articleContext.seasonLabel} / {articleContext.matchdayLabel}
-                        </span>
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
+                        <summary>
+                          <span>{seasonGroup.label}</span>
+                          <span className="article-admin-sidebar-count">
+                            {seasonGroup.matchdayGroups.reduce((total, matchdayGroup) => total + matchdayGroup.articles.length, 0)}
+                          </span>
+                        </summary>
+                        {seasonGroup.matchdayGroups.map((matchdayGroup) => (
+                          <details
+                            className="article-admin-sidebar-leaf"
+                            key={matchdayGroup.key}
+                            open={matchdayGroupHasSelected(matchdayGroup)}
+                          >
+                            <summary>
+                              <span>{matchdayGroup.label}</span>
+                              <span className="article-admin-sidebar-count">{matchdayGroup.articles.length}</span>
+                            </summary>
+                            <ul className="article-admin-sidebar-list is-nested">
+                              {matchdayGroup.articles.map(renderSidebarItem)}
+                            </ul>
+                          </details>
+                        ))}
+                      </details>
+                    ))}
+                  </details>
+                ))}
+              </div>
             ) : null}
           </aside>
 
