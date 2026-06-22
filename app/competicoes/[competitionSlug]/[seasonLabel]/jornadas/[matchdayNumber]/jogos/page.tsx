@@ -318,6 +318,10 @@ const gamesPageStyles = `
     margin-top: 18px;
   }
 
+  .public-games-layout > * {
+    min-width: 0;
+  }
+
   .public-games-main,
   .public-games-sidebar {
     display: grid;
@@ -366,7 +370,7 @@ const gamesPageStyles = `
   .public-games-list {
     display: grid;
     gap: 14px;
-    inline-size: min(100%, 620px);
+    inline-size: min(100%, 720px);
     justify-self: start;
     padding: 4px 0 0;
   }
@@ -717,6 +721,16 @@ const gamesPageStyles = `
     white-space: pre-wrap;
   }
 
+  @media (max-width: 1120px) {
+    .public-games-layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .public-games-list {
+      inline-size: 100%;
+    }
+  }
+
   @media (max-width: 980px) {
     .public-games-shell {
       padding: 0 14px 26px;
@@ -753,12 +767,12 @@ const gamesPageStyles = `
     }
 
     .public-games-card {
-      grid-template-columns: 34px minmax(0, 1fr) 86px minmax(0, 1fr) 34px;
-      gap: 8px;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 4px;
     }
 
     .public-games-meta {
-      grid-column: 1 / -1;
+      grid-column: auto;
     }
   }
 
