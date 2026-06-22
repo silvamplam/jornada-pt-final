@@ -1042,12 +1042,59 @@ async function readArticle(slug: string) {
   return rows[0] ?? null;
 }
 
-async function readMoreArticles(currentSlug: string) {
-  return fetchSupabaseAdminTable<EditorialArticle>(
+function articleContextPriority(candidate: EditorialArticle, current: EditorialArticle) {
+  const currentCompetitionId = firstText(current.competition_id);
+  const currentSeasonId = firstText(current.season_id);
+  const currentMatchdayId = firstText(current.matchday_id);
+  const candidateCompetitionId = firstText(candidate.competition_id);
+  const candidateSeasonId = firstText(candidate.season_id);
+  const candidateMatchdayId = firstText(candidate.matchday_id);
+  const candidateIsGeneral = !candidateCompetitionId && !candidateSeasonId && !candidateMatchdayId;
+
+  if (currentMatchdayId && candidateMatchdayId === currentMatchdayId) {
+    return 1;
+  }
+
+  if (currentCompetitionId && currentSeasonId) {
+    if (
+      candidateCompetitionId === currentCompetitionId &&
+      candidateSeasonId === currentSeasonId &&
+      !candidateMatchdayId
+    ) {
+      return 2;
+    }
+
+    if (candidateCompetitionId === currentCompetitionId && !candidateSeasonId && !candidateMatchdayId) {
+      return 3;
+    }
+
+    return candidateIsGeneral ? 4 : null;
+  }
+
+  if (currentCompetitionId) {
+    if (candidateCompetitionId === currentCompetitionId && !candidateSeasonId && !candidateMatchdayId) {
+      return 3;
+    }
+
+    return candidateIsGeneral ? 4 : null;
+  }
+
+  return candidateIsGeneral ? 4 : null;
+}
+
+async function readMoreArticles(currentArticle: EditorialArticle) {
+  const rows = await fetchSupabaseAdminTable<EditorialArticle>(
     `editorial_articles?select=*&status=eq.published&slug=neq.${encodeURIComponent(
-      currentSlug
-    )}&order=published_at.desc.nullslast&limit=5`
+      currentArticle.slug
+    )}&order=published_at.desc.nullslast&limit=80`
   ).catch(() => []);
+
+  return rows
+    .map((article, index) => ({ article, index, priority: articleContextPriority(article, currentArticle) }))
+    .filter((item): item is { article: EditorialArticle; index: number; priority: number } => item.priority !== null)
+    .sort((a, b) => a.priority - b.priority || a.index - b.index)
+    .slice(0, 5)
+    .map((item) => item.article);
 }
 
 async function readArticleMatchdayContext(article: EditorialArticle) {
@@ -1110,7 +1157,7 @@ export default async function NewsArticlePage({ params }: PageProps) {
   }
 
   const [moreArticles, articleContext, publicCompetitionMenuBase] = await Promise.all([
-    readMoreArticles(slug),
+    readMoreArticles(article),
     readArticleMatchdayContext(article),
     getPublicCompetitionMenu().catch(() => [])
   ]);

@@ -159,6 +159,16 @@ const articleFormEnhancer = `
       var competitionId = competition ? competition.value : "";
       var seasonId = season ? season.value : "";
 
+      if (!competitionId) {
+        if (season) {
+          season.value = "";
+          seasonId = "";
+        }
+        if (matchday) {
+          matchday.value = "";
+        }
+      }
+
       if (season) {
         Array.prototype.forEach.call(season.options, function (option) {
           if (!option.value) {
@@ -199,12 +209,8 @@ const articleFormEnhancer = `
       if (scope) {
         if (matchday && matchday.value) {
           scope.value = "matchday";
-        } else if (season && season.value) {
-          scope.value = "season";
-        } else if (competition && competition.value) {
-          scope.value = "competition";
         } else {
-          scope.value = "global";
+          scope.value = "general";
         }
       }
     }
@@ -213,7 +219,12 @@ const articleFormEnhancer = `
       competition.addEventListener("change", filterOptions);
     }
     if (season) {
-      season.addEventListener("change", filterOptions);
+      season.addEventListener("change", function () {
+        if (!season.value && matchday) {
+          matchday.value = "";
+        }
+        filterOptions();
+      });
     }
     if (matchday) {
       matchday.addEventListener("change", filterOptions);
@@ -241,11 +252,7 @@ export function ArticleEditorForm({
   const canOpenPublicArticle = Boolean(publicHref && currentStatus === "published");
   const currentScope = article?.matchday_id
     ? "matchday"
-    : article?.season_id
-      ? "season"
-      : article?.competition_id
-        ? "competition"
-        : firstText(article?.scope) || "global";
+    : "general";
   const competitionBySeasonId = new Map(seasons.map((season) => [season.id, season.competition_id ?? ""]));
 
   return (
