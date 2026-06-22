@@ -2367,6 +2367,192 @@ const publicMatchdayStyles = `
     overflow: hidden;
   }
 
+  @media (max-width: 1200px) {
+    .public-site-topbar {
+      gap: 14px;
+    }
+
+    .public-site-menu {
+      gap: 12px;
+      min-width: 0;
+      font-size: 11.5px;
+    }
+
+    .public-site-actions {
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .public-site-search {
+      min-width: 132px;
+    }
+
+    .public-season-nav-inner {
+      gap: 6px 10px;
+    }
+
+    .public-season-select-wrap {
+      gap: 6px;
+      padding: 5px 7px;
+    }
+
+    .public-season-select {
+      min-width: 96px;
+    }
+
+    .public-matchday-leg-nav a,
+    .public-matchday-nav a,
+    .public-matchday-nav span {
+      padding: 7px 10px;
+      font-size: 10.5px;
+    }
+
+    .public-matchday-date-context {
+      font-size: 10px;
+    }
+
+    .public-matchday-strip-shell {
+      padding: 0 10px;
+    }
+
+    .public-matchday-strip {
+      grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)) !important;
+      overflow-x: visible;
+    }
+
+    .public-matchday-cover {
+      grid-template-columns:
+        minmax(180px, 220px)
+        minmax(0, 1fr)
+        minmax(210px, 240px);
+      gap: 14px;
+    }
+
+    .public-matchday-feature,
+    .public-matchday-roundup,
+    .public-matchday-cover-side,
+    .public-matchday-news {
+      padding: 14px;
+    }
+
+    .public-cover-headline {
+      grid-template-columns: minmax(0, 1.25fr) minmax(220px, 0.85fr);
+      gap: 12px;
+    }
+
+    .public-matchday-main-lower {
+      grid-template-columns: minmax(0, 1.35fr) minmax(220px, 0.85fr);
+      gap: 16px;
+    }
+
+    .public-roundup-video-layout {
+      grid-template-columns: minmax(0, 300px) minmax(0, 330px);
+      gap: 12px;
+    }
+
+    .public-table-wrap {
+      max-width: 100%;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
+  @media (max-width: 1080px) {
+    .public-matchday-cover {
+      grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+      grid-template-areas:
+        "feature main"
+        "news news";
+      min-height: 0;
+    }
+
+    .public-matchday-news {
+      min-height: 0;
+    }
+
+    .public-news-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      overflow-y: visible;
+    }
+
+    .public-matchday-main-lower,
+    .public-matchday-main-lower:has(.public-roundup-video-panel) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .public-roundup-video-layout {
+      grid-template-columns: minmax(0, 1fr);
+      justify-content: stretch;
+    }
+
+    .public-roundup-video-layout > .public-matchday-roundup,
+    .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup {
+      justify-self: stretch;
+      width: 100%;
+      margin-left: 0;
+    }
+
+    .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup,
+    .public-matchday-main-lower:has(.public-roundup-video-panel) .public-roundup-video-panel {
+      grid-column: auto;
+      grid-row: auto;
+    }
+  }
+
+  @media (max-width: 980px) {
+    .public-site-topbar {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .public-site-actions {
+      display: none;
+    }
+
+    .public-matchday-cover {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas:
+        "feature"
+        "main"
+        "news";
+      gap: 14px;
+    }
+
+    .public-cover-headline,
+    .public-matchday-main-lower,
+    .public-matchday-main-lower:has(.public-roundup-video-panel),
+    .public-roundup-video-layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .public-matchday-main-lower:has(.public-roundup-video-panel) .public-matchday-roundup {
+      padding: 0;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .public-season-nav-inner {
+      flex-wrap: wrap;
+      align-items: flex-start;
+      min-height: 0;
+      padding: 6px 0 8px;
+      overflow: visible;
+    }
+
+    .public-matchday-nav {
+      flex: 1 1 100%;
+      flex-wrap: wrap;
+      order: 3;
+      overflow-x: visible;
+    }
+
+    .public-matchday-date-row {
+      flex: 1 1 auto;
+      justify-content: flex-start;
+      order: 4;
+      margin-left: 0;
+    }
+  }
+
   @media (max-width: 760px) {
     .public-matchday-panel[aria-label="Navegacao de jornadas"] {
       margin: 0 -16px;
