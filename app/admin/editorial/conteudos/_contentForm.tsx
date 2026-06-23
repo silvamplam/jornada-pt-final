@@ -146,6 +146,10 @@ function matchdayOptionLabel(matchday: EditorialContentMatchday) {
   return [number, matchday.label].filter(Boolean).join(" - ") || "Jornada sem nome";
 }
 
+function scriptJson(value: unknown) {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
 export function EditorialContentForm({
   mode,
   content,
@@ -164,6 +168,16 @@ export function EditorialContentForm({
   const showCompetition = initialScope === "competition" || initialScope === "matchday";
   const showSeason = showCompetition && Boolean(initialCompetitionId);
   const showMatchday = initialScope === "matchday" && Boolean(initialSeasonId);
+  const seasonsById = new Map(seasons.map((season) => [season.id, season]));
+  const matchdayOptionsById = new Map<string, EditorialContentMatchday & { competition_id: string | null }>();
+  matchdays.forEach((matchday) => {
+    const season = matchday.season_id ? seasonsById.get(matchday.season_id) : null;
+    matchdayOptionsById.set(matchday.id, { ...matchday, competition_id: season?.competition_id ?? null });
+  });
+  const matchdayOptions = Array.from(matchdayOptionsById.values());
+  const initialMatchdayOptions = matchdayOptions.filter((matchday) =>
+    initialSeasonId ? matchday.season_id === initialSeasonId : matchday.competition_id === initialCompetitionId,
+  );
 
   return (
     <form className="content-admin-form" action={action} method="post">
@@ -383,10 +397,19 @@ export function EditorialContentForm({
 
           <label data-content-context-field="matchday" hidden={!showMatchday}>
             <span>Jornada</span>
-            <select name="matchday_id" defaultValue={content?.matchday_id ?? ""}>
+            <select
+              name="matchday_id"
+              defaultValue={content?.matchday_id ?? ""}
+              data-matchday-options={scriptJson(matchdayOptions)}
+            >
               <option value="">Sem jornada</option>
-              {matchdays.map((matchday) => (
-                <option key={matchday.id} value={matchday.id} data-season={matchday.season_id ?? ""}>
+              {initialMatchdayOptions.map((matchday) => (
+                <option
+                  key={matchday.id}
+                  value={matchday.id}
+                  data-competition={matchday.competition_id ?? ""}
+                  data-season={matchday.season_id ?? ""}
+                >
                   {matchdayOptionLabel(matchday)}
                 </option>
               ))}
@@ -431,6 +454,51 @@ export function EditorialContentForm({
               if (window.__editorialContentContextSelectorBound) return;
               window.__editorialContentContextSelectorBound = true;
 
+              function readMatchdayOptions(matchday) {
+                try {
+                  return JSON.parse(matchday.getAttribute('data-matchday-options') || '[]');
+                } catch (error) {
+                  return [];
+                }
+              }
+
+              function renderMatchdays(form) {
+                var competition = form.querySelector('[name="competition_id"]');
+                var season = form.querySelector('[name="season_id"]');
+                var matchday = form.querySelector('[name="matchday_id"]');
+                if (!competition || !season || !matchday) return;
+
+                var previousValue = matchday.value;
+                while (matchday.options.length > 1) {
+                  matchday.remove(1);
+                }
+                if (!competition.value) {
+                  matchday.value = '';
+                  return;
+                }
+
+                var seen = {};
+                readMatchdayOptions(matchday).forEach(function (option) {
+                  var visible = season.value
+                    ? option.season_id === season.value
+                    : option.competition_id === competition.value;
+                  if (!visible || seen[option.id]) return;
+                  seen[option.id] = true;
+
+                  var item = document.createElement('option');
+                  item.value = option.id;
+                  item.textContent = [
+                    Number.isFinite(option.number) ? 'J' + String(option.number).padStart(2, '0') : '',
+                    option.label || ''
+                  ].filter(Boolean).join(' - ') || 'Jornada sem nome';
+                  item.setAttribute('data-competition', option.competition_id || '');
+                  item.setAttribute('data-season', option.season_id || '');
+                  matchday.appendChild(item);
+                });
+
+                matchday.value = previousValue && matchday.querySelector('option[value="' + previousValue + '"]') ? previousValue : '';
+              }
+
               function syncContext(form) {
                 var scope = form.querySelector('[data-content-scope]');
                 var competition = form.querySelector('[name="competition_id"]');
@@ -466,17 +534,9 @@ export function EditorialContentForm({
                   season.value = '';
                 }
 
-                Array.prototype.forEach.call(matchday.options, function (option) {
-                  if (!option.value) return;
-                  var visible = !season.value || option.getAttribute('data-season') === season.value;
-                  option.hidden = !visible;
-                  option.disabled = !visible;
-                });
-                if (matchday.selectedOptions[0] && matchday.selectedOptions[0].disabled) {
-                  matchday.value = '';
-                }
+                renderMatchdays(form);
                 if (seasonField) seasonField.hidden = !scopedToCompetition || !competition.value;
-                if (matchdayField) matchdayField.hidden = !scopedToMatchday || !season.value;
+                if (matchdayField) matchdayField.hidden = !scopedToMatchday || !competition.value;
               }
 
               document.addEventListener('change', function (event) {
