@@ -191,6 +191,12 @@ const contentSidebarStyles = `
     gap: 14px;
   }
 
+  .content-admin-detail-panel > .content-admin-form {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+
   .content-admin-detail-heading {
     border: 1px solid #e5e7eb;
     border-radius: 10px;
@@ -579,20 +585,14 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
               />
             </>
           ) : selectedContent ? (
-            <>
-              <div className="content-admin-detail-heading">
-                <h2>Editar conteudo audiovisual</h2>
-                <p>Edite a peca selecionada mantendo a navegacao por contexto sempre visivel.</p>
-              </div>
-              <EditorialContentForm
-                mode="edit"
-                content={selectedContent}
-                message={params.error ? message : null}
-                competitions={lookups.competitionOptions}
-                seasons={lookups.seasonOptions}
-                matchdays={lookups.matchdayOptions}
-              />
-            </>
+            <EditorialContentForm
+              mode="edit"
+              content={selectedContent}
+              message={params.error ? message : null}
+              competitions={lookups.competitionOptions}
+              seasons={lookups.seasonOptions}
+              matchdays={lookups.matchdayOptions}
+            />
           ) : params.contentId ? (
             <div className="content-admin-detail-heading">
               <h2>Conteudo nao encontrado.</h2>
