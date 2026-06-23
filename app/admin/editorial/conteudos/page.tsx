@@ -1,5 +1,16 @@
 import Link from "next/link";
 
+import {
+  countEditorialCompetitionItems,
+  countEditorialSeasonItems,
+  editorialCompetitionGroupHasSelected,
+  editorialMatchdayGroupHasSelected,
+  editorialSeasonGroupHasSelected,
+  groupEditorialSidebarItems,
+  hasSelectedEditorialItem,
+  type EditorialSidebarContext,
+  type EditorialSidebarItem,
+} from "@/lib/groupEditorialSidebarItems";
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
 import {
@@ -7,6 +18,7 @@ import {
   type EditorialContentCompetition,
   type EditorialContentMatchday,
   type EditorialContentSeason,
+  EditorialContentForm,
   adminEditorialContentsStyles,
   editorialContentsSelect,
   firstText,
@@ -23,6 +35,8 @@ type PageProps = {
     archived?: string;
     saved?: string;
     error?: string;
+    contentId?: string;
+    mode?: string;
   }>;
 };
 
@@ -35,6 +49,11 @@ type ContentContextLookups = {
   competitions: Map<string, string>;
   seasons: Map<string, string>;
   matchdays: Map<string, string>;
+  seasonCompetitionIds: Map<string, string | null>;
+  matchdaySeasonIds: Map<string, string | null>;
+  competitionOptions: EditorialContentCompetition[];
+  seasonOptions: EditorialContentSeason[];
+  matchdayOptions: EditorialContentMatchday[];
 };
 
 type ContentStatusView = "active" | "archived";
@@ -47,6 +66,167 @@ const editorialNavigationLinks = [
   { href: "/admin/gestor", label: "CENTRO DE GESTÃO" },
   { href: "/admin", label: "BACKOFFICE" },
 ];
+
+const contentSidebarStyles = `
+  .content-admin-sidebar {
+    display: grid;
+    gap: 12px;
+  }
+
+  .content-admin-workspace {
+    display: grid;
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+  }
+
+  .content-admin-sidebar-pane,
+  .content-admin-detail-panel {
+    min-width: 0;
+  }
+
+  .content-admin-sidebar-pane {
+    position: sticky;
+    top: 18px;
+    max-height: calc(100vh - 36px);
+    overflow: auto;
+  }
+
+  .content-admin-sidebar-groups {
+    display: grid;
+    gap: 10px;
+  }
+
+  .content-admin-sidebar-group,
+  .content-admin-sidebar-subgroup,
+  .content-admin-sidebar-leaf {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  .content-admin-sidebar-subgroup,
+  .content-admin-sidebar-leaf {
+    margin: 10px 12px;
+  }
+
+  .content-admin-sidebar-group summary,
+  .content-admin-sidebar-subgroup summary,
+  .content-admin-sidebar-leaf summary {
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 850;
+    list-style: none;
+  }
+
+  .content-admin-sidebar-group summary::-webkit-details-marker,
+  .content-admin-sidebar-subgroup summary::-webkit-details-marker,
+  .content-admin-sidebar-leaf summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .content-admin-sidebar-count {
+    border-radius: 999px;
+    background: #f3f4f6;
+    padding: 3px 8px;
+    color: #4b5563;
+    font-size: 11px;
+    font-weight: 850;
+  }
+
+  .content-admin-sidebar-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0 12px 12px;
+    list-style: none;
+  }
+
+  .content-admin-sidebar-item {
+    display: grid;
+    gap: 5px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    padding: 10px 12px;
+    color: #111827;
+    text-decoration: none;
+  }
+
+  .content-admin-sidebar-item.is-selected {
+    border-color: #111827;
+    box-shadow: inset 3px 0 0 #111827;
+  }
+
+  .content-admin-sidebar-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 850;
+    text-transform: uppercase;
+  }
+
+  .content-admin-sidebar-item strong {
+    font-size: 13px;
+    line-height: 1.25;
+  }
+
+  .content-admin-sidebar-context {
+    color: #4b5563;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  .content-admin-detail-panel {
+    display: grid;
+    gap: 14px;
+  }
+
+  .content-admin-detail-panel > .content-admin-form {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+
+  .content-admin-detail-heading {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    padding: 18px;
+  }
+
+  .content-admin-detail-heading h2 {
+    margin: 0;
+    font-size: 22px;
+  }
+
+  .content-admin-detail-heading p {
+    margin: 6px 0 0;
+    color: #6b7280;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 980px) {
+    .content-admin-workspace {
+      grid-template-columns: 1fr;
+    }
+
+    .content-admin-sidebar-pane {
+      position: static;
+      max-height: none;
+      overflow: visible;
+    }
+  }
+`;
 
 async function readEditorialContents(statusView: ContentStatusView): Promise<ReadEditorialContentsResult> {
   try {
@@ -89,6 +269,11 @@ async function readContentContextLookups(): Promise<ContentContextLookups> {
       seasons.map((season) => [season.id, firstText(season.label, "Epoca sem nome") ?? "Epoca sem nome"] as [string, string]),
     ),
     matchdays: new Map(matchdays.map((matchday) => [matchday.id, matchdayDisplayLabel(matchday)] as [string, string])),
+    seasonCompetitionIds: new Map(seasons.map((season) => [season.id, season.competition_id] as [string, string | null])),
+    matchdaySeasonIds: new Map(matchdays.map((matchday) => [matchday.id, matchday.season_id] as [string, string | null])),
+    competitionOptions: competitions,
+    seasonOptions: seasons,
+    matchdayOptions: matchdays,
   };
 }
 
@@ -124,15 +309,19 @@ function contentStatusView(params: Awaited<NonNullable<PageProps["searchParams"]
   return params.status === "archived" ? "archived" : "active";
 }
 
-function Field({ label, value }: { label: string; value: string | boolean | null | undefined }) {
-  const displayValue = typeof value === "boolean" ? (value ? "sim" : "nao") : firstText(value);
-
-  return (
-    <div className="content-admin-field">
-      <dt>{label}</dt>
-      <dd>{displayValue || "-"}</dd>
-    </div>
-  );
+function contentWorkspaceHref(options: { contentId?: string | null; mode?: string | null; statusView?: ContentStatusView }) {
+  const params = new URLSearchParams();
+  if (options.statusView === "archived") {
+    params.set("status", "archived");
+  }
+  if (options.mode) {
+    params.set("mode", options.mode);
+  }
+  if (options.contentId) {
+    params.set("contentId", options.contentId);
+  }
+  const query = params.toString();
+  return query ? `/admin/editorial/conteudos?${query}` : "/admin/editorial/conteudos";
 }
 
 function matchdayDisplayLabel(matchday: EditorialContentMatchday) {
@@ -148,82 +337,62 @@ function lookupContentContextLabel(id: string | null | undefined, lookup: Map<st
   return lookup.get(id) ?? missingLabel;
 }
 
-function PublicStatus({ content }: { content: EditorialContent }) {
-  if (content.status === "published" && content.slug) {
-    return (
-      <Link className="content-admin-edit-link" href={`/conteudos/${encodeURIComponent(content.slug)}`}>
-        Ver publico
-      </Link>
-    );
-  }
-
-  const message = content.status === "archived" ? "Arquivado - nao publico" : "Rascunho - sem pagina publica";
-
-  return (
-    <span style={{ color: "#6b7280", fontSize: 12, fontWeight: 750, lineHeight: 1.3 }}>
-      {message}
-    </span>
-  );
+function readableContentScope(content: EditorialContent, context: EditorialSidebarContext) {
+  if (content.matchday_id) return "matchday";
+  const storedScope = firstText(content.scope);
+  if (storedScope === "competition" || storedScope === "matchday") return storedScope;
+  return context.competitionId ? "competition" : "general";
 }
 
-function ContentCard({ content, lookups }: { content: EditorialContent; lookups: ContentContextLookups }) {
-  const mediaUrl = firstText(content.thumbnail_url, content.image_url);
-  const title = firstText(content.title, "Conteudo sem titulo");
-  const competitionLabel = lookupContentContextLabel(
-    content.competition_id,
-    lookups.competitions,
-    "Competicao nao encontrada",
-  );
-  const seasonLabel = lookupContentContextLabel(content.season_id, lookups.seasons, "Epoca nao encontrada");
-  const matchdayLabel = lookupContentContextLabel(content.matchday_id, lookups.matchdays, "Jornada nao encontrada");
+function resolveContentContext(content: EditorialContent, lookups: ContentContextLookups): EditorialSidebarContext {
+  const matchdayId = content.matchday_id;
+  const seasonId = matchdayId ? lookups.matchdaySeasonIds.get(matchdayId) ?? content.season_id : content.season_id;
+  const competitionId = seasonId ? lookups.seasonCompetitionIds.get(seasonId) ?? content.competition_id : content.competition_id;
+  const hasAnyContext = Boolean(content.matchday_id || content.season_id || content.competition_id);
+  const context = {
+    competitionId: competitionId ?? null,
+    seasonId: seasonId ?? null,
+    matchdayId: matchdayId ?? null,
+    competitionLabel:
+      lookupContentContextLabel(competitionId, lookups.competitions, "Contexto incompleto") ??
+      (hasAnyContext ? "Contexto incompleto" : "Sem competicao associada"),
+    seasonLabel:
+      lookupContentContextLabel(seasonId, lookups.seasons, "Contexto incompleto") ??
+      (hasAnyContext ? "Contexto incompleto" : "Sem epoca associada"),
+    matchdayLabel:
+      lookupContentContextLabel(matchdayId, lookups.matchdays, "Contexto incompleto") ??
+      (content.matchday_id ? "Contexto incompleto" : "Sem jornada associada"),
+    scopeLabel: null,
+  };
+
+  return { ...context, scopeLabel: readableContentScope(content, context) };
+}
+
+function ContentSidebarLink({
+  entry,
+  statusView,
+}: {
+  entry: EditorialSidebarItem<EditorialContent>;
+  statusView: ContentStatusView;
+}) {
+  const content = entry.item;
+  const dateLabel = firstText(formatDateTime(content.published_at), formatDateTime(content.created_at));
 
   return (
-    <article className="content-admin-card">
-      <div className="content-admin-card-main">
-        {mediaUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="content-admin-thumb" src={mediaUrl} alt="" />
-        ) : (
-          <div className="content-admin-thumb content-admin-thumb-empty">Sem media</div>
-        )}
-
-        <div className="content-admin-card-copy">
-          <div className="content-admin-badges">
-            <span>{firstText(content.status, "draft")}</span>
-            <span>{firstText(content.content_type, "sem tipo")}</span>
-            <span>{firstText(content.scope, "general")}</span>
-          </div>
-
-          {content.label ? <p className="content-admin-label">{content.label}</p> : null}
-          <h2>{title}</h2>
-          {content.subtitle ? <p className="content-admin-subtitle">{content.subtitle}</p> : null}
-          {content.summary ? <p className="content-admin-summary">{content.summary}</p> : null}
-        </div>
-      </div>
-
-      <dl className="content-admin-fields">
-        <Field label="Autor" value={content.author} />
-        <Field label="Slug" value={content.slug} />
-        <Field label="Imagem" value={content.image_url} />
-        <Field label="Thumbnail" value={content.thumbnail_url} />
-        <Field label="Video URL" value={content.video_url} />
-        <Field label="Provider" value={content.video_provider} />
-        <Field label="Embed" value={content.embed_url} />
-        <Field label="Duracao" value={content.duration} />
-        <Field label="Embeddable" value={content.is_embeddable} />
-        <Field label="Publicado" value={formatDateTime(content.published_at)} />
-        <Field label="Competicao" value={competitionLabel} />
-        <Field label="Epoca" value={seasonLabel} />
-        <Field label="Jornada" value={matchdayLabel} />
-      </dl>
-
-      <div className="content-admin-card-actions">
-        <PublicStatus content={content} />
-        <Link className="content-admin-edit-link" href={`/admin/editorial/conteudos/${content.id}/editar`}>
-          Editar
-        </Link>
-      </div>
-    </article>
+    <Link
+      className={`content-admin-sidebar-item${entry.isSelected ? " is-selected" : ""}`}
+      href={contentWorkspaceHref({ contentId: content.id, statusView })}
+    >
+      <span className="content-admin-sidebar-meta">
+        <span>{firstText(content.status, "draft")}</span>
+        {content.content_type ? <span>{content.content_type}</span> : null}
+      </span>
+      <strong>{firstText(content.title, "Conteudo sem titulo")}</strong>
+      <span className="content-admin-sidebar-context">
+        {entry.context.competitionLabel} / {entry.context.seasonLabel} / {entry.context.matchdayLabel}
+      </span>
+      {dateLabel ? <span className="content-admin-sidebar-context">{dateLabel}</span> : null}
+    </Link>
   );
 }
 
@@ -236,10 +405,25 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
     Promise.resolve(pageMessage(params)),
   ]);
   const isArchivedView = statusView === "archived";
+  const isCreating = params.mode === "novo";
+  const selectedContent = params.contentId ? contents.find((content) => content.id === params.contentId) ?? null : null;
+  const groupedContents = groupEditorialSidebarItems(
+    contents.map((content): EditorialSidebarItem<EditorialContent> => ({
+      item: content,
+      context: resolveContentContext(content, lookups),
+      isSelected: selectedContent?.id === content.id,
+    })),
+  );
+  const renderContentItem = (entry: EditorialSidebarItem<EditorialContent>) => (
+    <li key={entry.item.id}>
+      <ContentSidebarLink entry={entry} statusView={statusView} />
+    </li>
+  );
 
   return (
     <main className="content-admin-shell">
       <style>{adminEditorialContentsStyles}</style>
+      <style>{contentSidebarStyles}</style>
 
       <section className="content-admin-header">
         <div>
@@ -278,7 +462,7 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
           </nav>
         </div>
 
-        <Link className="content-admin-primary-action" href="/admin/editorial/conteudos/novo">
+        <Link className="content-admin-primary-action" href={contentWorkspaceHref({ mode: "novo", statusView })}>
           Novo conteúdo
         </Link>
       </section>
@@ -310,26 +494,118 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
       {message ? <p className="content-admin-alert">{message}</p> : null}
       {error ? <p className="content-admin-alert">{error}</p> : null}
 
-      {contents.length === 0 ? (
-        <section className="content-admin-empty">
-          <h2>
-            {isArchivedView
-              ? "Nao existem conteudos editoriais audiovisuais arquivados."
-              : "Ainda nao existem conteudos editoriais audiovisuais ativos."}
-          </h2>
-          <p>
-            {isArchivedView
-              ? "Conteudos arquivados continuam na base e podem ser editados para voltar a draft ou published."
-              : "A criacao/edicao ja esta disponivel nesta area admin."}
-          </p>
+      <section className="content-admin-workspace">
+        <aside className="content-admin-sidebar-pane" aria-label="Conteudos editoriais audiovisuais">
+          {contents.length === 0 ? (
+            <section className="content-admin-empty">
+              <h2>
+                {isArchivedView
+                  ? "Nao existem conteudos editoriais audiovisuais arquivados."
+                  : "Ainda nao existem conteudos editoriais audiovisuais ativos."}
+              </h2>
+              <p>
+                {isArchivedView
+                  ? "Conteudos arquivados continuam na base e podem ser editados para voltar a draft ou published."
+                  : "A criacao/edicao ja esta disponivel nesta area admin."}
+              </p>
+            </section>
+          ) : (
+            <div className="content-admin-sidebar-groups">
+              {groupedContents.generalItems.length > 0 ? (
+                <details
+                  className="content-admin-sidebar-group"
+                  open={!selectedContent || hasSelectedEditorialItem(groupedContents.generalItems)}
+                >
+                  <summary>
+                    <span>Gerais</span>
+                    <span className="content-admin-sidebar-count">{groupedContents.generalItems.length}</span>
+                  </summary>
+                  <ul className="content-admin-sidebar-list">
+                    {groupedContents.generalItems.map(renderContentItem)}
+                  </ul>
+                </details>
+              ) : null}
+
+              {groupedContents.competitionGroups.map((competitionGroup) => (
+                <details
+                  className="content-admin-sidebar-group"
+                  key={competitionGroup.key}
+                  open={editorialCompetitionGroupHasSelected(competitionGroup)}
+                >
+                  <summary>
+                    <span>{competitionGroup.label}</span>
+                    <span className="content-admin-sidebar-count">{countEditorialCompetitionItems(competitionGroup)}</span>
+                  </summary>
+                  {competitionGroup.seasonGroups.map((seasonGroup) => (
+                    <details
+                      className="content-admin-sidebar-subgroup"
+                      key={seasonGroup.key}
+                      open={editorialSeasonGroupHasSelected(seasonGroup)}
+                    >
+                      <summary>
+                        <span>{seasonGroup.label}</span>
+                        <span className="content-admin-sidebar-count">{countEditorialSeasonItems(seasonGroup)}</span>
+                      </summary>
+                      {seasonGroup.matchdayGroups.map((matchdayGroup) => (
+                        <details
+                          className="content-admin-sidebar-leaf"
+                          key={matchdayGroup.key}
+                          open={editorialMatchdayGroupHasSelected(matchdayGroup)}
+                        >
+                          <summary>
+                            <span>{matchdayGroup.label}</span>
+                            <span className="content-admin-sidebar-count">{matchdayGroup.items.length}</span>
+                          </summary>
+                          <ul className="content-admin-sidebar-list">
+                            {matchdayGroup.items.map(renderContentItem)}
+                          </ul>
+                        </details>
+                      ))}
+                    </details>
+                  ))}
+                </details>
+              ))}
+            </div>
+          )}
+        </aside>
+
+        <section className="content-admin-detail-panel" aria-label="Editor de conteudo audiovisual">
+          {isCreating ? (
+            <>
+              <div className="content-admin-detail-heading">
+                <h2>Novo conteudo audiovisual</h2>
+                <p>Preencha o formulario para criar uma nova peca audiovisual sem sair da biblioteca.</p>
+              </div>
+              <EditorialContentForm
+                mode="create"
+                message={params.error ? message : null}
+                competitions={lookups.competitionOptions}
+                seasons={lookups.seasonOptions}
+                matchdays={lookups.matchdayOptions}
+              />
+            </>
+          ) : selectedContent ? (
+            <EditorialContentForm
+              mode="edit"
+              content={selectedContent}
+              message={params.error ? message : null}
+              competitions={lookups.competitionOptions}
+              seasons={lookups.seasonOptions}
+              matchdays={lookups.matchdayOptions}
+            />
+          ) : params.contentId ? (
+            <div className="content-admin-detail-heading">
+              <h2>Conteudo nao encontrado.</h2>
+              <p>O registo pode ter sido removido ou nao existir neste ambiente.</p>
+            </div>
+          ) : (
+            <div className="content-admin-detail-heading">
+              <h2>Escolha um conteudo ou crie uma nova peca</h2>
+              <p>A sidebar fica sempre visivel. Selecione um conteudo agrupado por contexto ou use Novo conteudo.</p>
+            </div>
+          )}
         </section>
-      ) : (
-        <section className="content-admin-list" aria-label="Conteudos editoriais audiovisuais">
-          {contents.map((content) => (
-            <ContentCard key={content.id} content={content} lookups={lookups} />
-          ))}
-        </section>
-      )}
+      </section>
     </main>
   );
 }
