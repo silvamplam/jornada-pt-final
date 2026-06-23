@@ -1,5 +1,12 @@
 import Link from "next/link";
 
+import {
+  countEditorialCompetitionItems,
+  countEditorialSeasonItems,
+  groupEditorialSidebarItems,
+  type EditorialSidebarContext,
+  type EditorialSidebarItem,
+} from "@/lib/groupEditorialSidebarItems";
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
 import {
@@ -35,6 +42,8 @@ type ContentContextLookups = {
   competitions: Map<string, string>;
   seasons: Map<string, string>;
   matchdays: Map<string, string>;
+  seasonCompetitionIds: Map<string, string | null>;
+  matchdaySeasonIds: Map<string, string | null>;
 };
 
 type ContentStatusView = "active" | "archived";
@@ -47,6 +56,69 @@ const editorialNavigationLinks = [
   { href: "/admin/gestor", label: "CENTRO DE GESTÃO" },
   { href: "/admin", label: "BACKOFFICE" },
 ];
+
+const contentSidebarStyles = `
+  .content-admin-sidebar {
+    display: grid;
+    gap: 12px;
+  }
+
+  .content-admin-sidebar-groups {
+    display: grid;
+    gap: 10px;
+  }
+
+  .content-admin-sidebar-group,
+  .content-admin-sidebar-subgroup,
+  .content-admin-sidebar-leaf {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  .content-admin-sidebar-subgroup,
+  .content-admin-sidebar-leaf {
+    margin: 10px 12px;
+  }
+
+  .content-admin-sidebar-group summary,
+  .content-admin-sidebar-subgroup summary,
+  .content-admin-sidebar-leaf summary {
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 850;
+    list-style: none;
+  }
+
+  .content-admin-sidebar-group summary::-webkit-details-marker,
+  .content-admin-sidebar-subgroup summary::-webkit-details-marker,
+  .content-admin-sidebar-leaf summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .content-admin-sidebar-count {
+    border-radius: 999px;
+    background: #f3f4f6;
+    padding: 3px 8px;
+    color: #4b5563;
+    font-size: 11px;
+    font-weight: 850;
+  }
+
+  .content-admin-sidebar-list {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 0 12px 12px;
+    list-style: none;
+  }
+`;
 
 async function readEditorialContents(statusView: ContentStatusView): Promise<ReadEditorialContentsResult> {
   try {
@@ -89,6 +161,8 @@ async function readContentContextLookups(): Promise<ContentContextLookups> {
       seasons.map((season) => [season.id, firstText(season.label, "Epoca sem nome") ?? "Epoca sem nome"] as [string, string]),
     ),
     matchdays: new Map(matchdays.map((matchday) => [matchday.id, matchdayDisplayLabel(matchday)] as [string, string])),
+    seasonCompetitionIds: new Map(seasons.map((season) => [season.id, season.competition_id] as [string, string | null])),
+    matchdaySeasonIds: new Map(matchdays.map((matchday) => [matchday.id, matchday.season_id] as [string, string | null])),
   };
 }
 
@@ -146,6 +220,37 @@ function lookupContentContextLabel(id: string | null | undefined, lookup: Map<st
   }
 
   return lookup.get(id) ?? missingLabel;
+}
+
+function readableContentScope(content: EditorialContent, context: EditorialSidebarContext) {
+  if (content.matchday_id) return "matchday";
+  const storedScope = firstText(content.scope);
+  if (storedScope === "competition" || storedScope === "matchday") return storedScope;
+  return context.competitionId ? "competition" : "general";
+}
+
+function resolveContentContext(content: EditorialContent, lookups: ContentContextLookups): EditorialSidebarContext {
+  const matchdayId = content.matchday_id;
+  const seasonId = matchdayId ? lookups.matchdaySeasonIds.get(matchdayId) ?? content.season_id : content.season_id;
+  const competitionId = seasonId ? lookups.seasonCompetitionIds.get(seasonId) ?? content.competition_id : content.competition_id;
+  const hasAnyContext = Boolean(content.matchday_id || content.season_id || content.competition_id);
+  const context = {
+    competitionId: competitionId ?? null,
+    seasonId: seasonId ?? null,
+    matchdayId: matchdayId ?? null,
+    competitionLabel:
+      lookupContentContextLabel(competitionId, lookups.competitions, "Contexto incompleto") ??
+      (hasAnyContext ? "Contexto incompleto" : "Sem competicao associada"),
+    seasonLabel:
+      lookupContentContextLabel(seasonId, lookups.seasons, "Contexto incompleto") ??
+      (hasAnyContext ? "Contexto incompleto" : "Sem epoca associada"),
+    matchdayLabel:
+      lookupContentContextLabel(matchdayId, lookups.matchdays, "Contexto incompleto") ??
+      (content.matchday_id ? "Contexto incompleto" : "Sem jornada associada"),
+    scopeLabel: null,
+  };
+
+  return { ...context, scopeLabel: readableContentScope(content, context) };
 }
 
 function PublicStatus({ content }: { content: EditorialContent }) {
@@ -236,10 +341,22 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
     Promise.resolve(pageMessage(params)),
   ]);
   const isArchivedView = statusView === "archived";
+  const groupedContents = groupEditorialSidebarItems(
+    contents.map((content): EditorialSidebarItem<EditorialContent> => ({
+      item: content,
+      context: resolveContentContext(content, lookups),
+    })),
+  );
+  const renderContentItem = (entry: EditorialSidebarItem<EditorialContent>) => (
+    <li key={entry.item.id}>
+      <ContentCard content={entry.item} lookups={lookups} />
+    </li>
+  );
 
   return (
     <main className="content-admin-shell">
       <style>{adminEditorialContentsStyles}</style>
+      <style>{contentSidebarStyles}</style>
 
       <section className="content-admin-header">
         <div>
@@ -324,10 +441,48 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
           </p>
         </section>
       ) : (
-        <section className="content-admin-list" aria-label="Conteudos editoriais audiovisuais">
-          {contents.map((content) => (
-            <ContentCard key={content.id} content={content} lookups={lookups} />
-          ))}
+        <section className="content-admin-sidebar" aria-label="Conteudos editoriais audiovisuais">
+          <div className="content-admin-sidebar-groups">
+            {groupedContents.generalItems.length > 0 ? (
+              <details className="content-admin-sidebar-group" open>
+                <summary>
+                  <span>Gerais</span>
+                  <span className="content-admin-sidebar-count">{groupedContents.generalItems.length}</span>
+                </summary>
+                <ul className="content-admin-sidebar-list">
+                  {groupedContents.generalItems.map(renderContentItem)}
+                </ul>
+              </details>
+            ) : null}
+
+            {groupedContents.competitionGroups.map((competitionGroup) => (
+              <details className="content-admin-sidebar-group" key={competitionGroup.key}>
+                <summary>
+                  <span>{competitionGroup.label}</span>
+                  <span className="content-admin-sidebar-count">{countEditorialCompetitionItems(competitionGroup)}</span>
+                </summary>
+                {competitionGroup.seasonGroups.map((seasonGroup) => (
+                  <details className="content-admin-sidebar-subgroup" key={seasonGroup.key}>
+                    <summary>
+                      <span>{seasonGroup.label}</span>
+                      <span className="content-admin-sidebar-count">{countEditorialSeasonItems(seasonGroup)}</span>
+                    </summary>
+                    {seasonGroup.matchdayGroups.map((matchdayGroup) => (
+                      <details className="content-admin-sidebar-leaf" key={matchdayGroup.key}>
+                        <summary>
+                          <span>{matchdayGroup.label}</span>
+                          <span className="content-admin-sidebar-count">{matchdayGroup.items.length}</span>
+                        </summary>
+                        <ul className="content-admin-sidebar-list">
+                          {matchdayGroup.items.map(renderContentItem)}
+                        </ul>
+                      </details>
+                    ))}
+                  </details>
+                ))}
+              </details>
+            ))}
+          </div>
         </section>
       )}
     </main>
