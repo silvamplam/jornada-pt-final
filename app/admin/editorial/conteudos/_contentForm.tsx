@@ -150,7 +150,7 @@ function scriptJson(value: unknown) {
   return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
-type EditorialContentScope = "general" | "home" | "competition" | "matchday";
+type EditorialContentScope = "home" | "competition" | "matchday";
 
 function normalizedInitialScope(content?: EditorialContent | null): EditorialContentScope {
   if (content?.matchday_id) {
@@ -162,9 +162,7 @@ function normalizedInitialScope(content?: EditorialContent | null): EditorialCon
   }
 
   const storedScope = firstText(content?.scope);
-  return storedScope === "home" || storedScope === "competition" || storedScope === "matchday" || storedScope === "general"
-    ? storedScope
-    : "general";
+  return storedScope === "competition" || storedScope === "matchday" ? storedScope : "home";
 }
 
 export function EditorialContentForm({
@@ -381,7 +379,6 @@ export function EditorialContentForm({
           <label>
             <span>Ambito</span>
             <select name="scope" defaultValue={initialScope} data-content-scope>
-              <option value="general">Geral</option>
               <option value="home">Home</option>
               <option value="competition">Competicao</option>
               <option value="matchday">Jornada</option>

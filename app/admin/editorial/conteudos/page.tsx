@@ -341,7 +341,7 @@ function readableContentScope(content: EditorialContent, context: EditorialSideb
   if (content.matchday_id) return "matchday";
   const storedScope = firstText(content.scope);
   if (storedScope === "competition" || storedScope === "matchday") return storedScope;
-  return context.competitionId ? "competition" : "general";
+  return context.competitionId ? "competition" : "home";
 }
 
 function resolveContentContext(content: EditorialContent, lookups: ContentContextLookups): EditorialSidebarContext {
@@ -517,7 +517,7 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
                   open={!selectedContent || hasSelectedEditorialItem(groupedContents.generalItems)}
                 >
                   <summary>
-                    <span>Gerais</span>
+                    <span>Home</span>
                     <span className="content-admin-sidebar-count">{groupedContents.generalItems.length}</span>
                   </summary>
                   <ul className="content-admin-sidebar-list">

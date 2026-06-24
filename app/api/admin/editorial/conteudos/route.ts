@@ -223,7 +223,7 @@ async function normalizeEditorialContentContext(
     throw new EditorialContentAdminError("invalid-scope");
   }
 
-  return { scope: submittedScope, competitionId: null, seasonId: null, matchdayId: null };
+  return { scope: submittedScope === "general" ? "home" : submittedScope, competitionId: null, seasonId: null, matchdayId: null };
 }
 
 async function buildPayload(
@@ -243,7 +243,7 @@ async function buildPayload(
   }
 
   const status = cleanStatus(cleanText(formData.get("status")) ?? "draft");
-  const submittedScope = cleanScope(cleanText(formData.get("scope")) ?? "general");
+  const submittedScope = cleanScope(cleanText(formData.get("scope")) ?? "home");
   const contentType = cleanContentType(cleanText(formData.get("content_type")) ?? "video");
   const submittedCompetitionId = cleanText(formData.get("competition_id"));
   const submittedSeasonId = cleanText(formData.get("season_id"));
