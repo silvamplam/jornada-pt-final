@@ -133,6 +133,7 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
     "missing-link-target": "A ligação pedida já não existe.",
     "link-mismatch": "A ligação atual já não aponta para este artigo.",
     "link-removed": "Ligação removida.",
+    "article-has-links": "Este artigo ainda está ligado a zonas editoriais. Remova primeiro as ligações em Ligado em antes de apagar.",
     "required-field": "O Supabase recusou a gravação por campo obrigatório em falta.",
     constraint: "O Supabase recusou a gravação por constraint da tabela.",
     permission: "O Supabase recusou a gravação por permissões/RLS.",
@@ -389,9 +390,10 @@ function publicArticlePath(article: EditorialArticle) {
 }
 
 function readableScope(article: EditorialArticle) {
-  if (article.matchday_id) return "matchday";
-  const storedScope = firstText(article.scope);
-  return storedScope === "matchday" ? "matchday" : "general";
+  if (article.matchday_id) return "Jornada";
+  if (article.season_id) return "Epoca";
+  if (article.competition_id) return "Competicao";
+  return "Home";
 }
 
 function readableMatchdayLabel(matchday?: MatchdayOption | null) {
@@ -503,7 +505,7 @@ function groupArticleSidebarItems(items: ArticleSidebarItem[]) {
   const competitionGroups: ArticleSidebarCompetitionGroup[] = [];
 
   items.forEach((item) => {
-    const isGeneral = item.articleContext.scopeLabel === "general" || !item.articleContext.competitionId;
+    const isGeneral = !item.articleContext.competitionId;
 
     if (isGeneral) {
       generalItems.push(item);
@@ -851,7 +853,7 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
                 {groupedSidebarArticles.generalItems.length > 0 ? (
                   <details className="article-admin-sidebar-group" open={!selectedArticle || hasSelectedArticle(groupedSidebarArticles.generalItems)}>
                     <summary>
-                      <span>Gerais</span>
+                      <span>Home</span>
                       <span className="article-admin-sidebar-count">{groupedSidebarArticles.generalItems.length}</span>
                     </summary>
                     <ul className="article-admin-sidebar-list is-nested">
@@ -939,7 +941,7 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
                     <strong>{selectedContext.matchdayLabel}</strong>
                   </div>
                   <div className="article-admin-context-card">
-                    <span>Estado / Ambito</span>
+                    <span>Estado / Contexto</span>
                     <strong>
                       {selectedContext.stateLabel} / {selectedContext.scopeLabel}
                     </strong>
@@ -1004,20 +1006,29 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
               }
             />
             {selectedArticle ? (
-              <form className="article-admin-delete-form" action="/api/admin/editorial/artigos" method="post">
-                <input type="hidden" name="action_type" value="delete_article" />
-                <input type="hidden" name="article_id" value={selectedArticle.id} />
-                <input type="hidden" name="return_to" value="/admin/editorial/artigos" />
-                <div>
-                  <strong>Remover artigo</strong>
-                  <p>Remove apenas o registo de public.editorial_articles. O link público deixará de abrir em /noticias/{selectedArticle.slug ?? "[slug]"}.</p>
-                  <label className="article-admin-delete-confirm">
-                    <input name="confirm_delete" type="checkbox" value="yes" required />
-                    <span>Confirmo que quero remover este artigo editorial.</span>
-                  </label>
+              selectedLinkData.placements.length > 0 ? (
+                <div className="article-admin-delete-form">
+                  <div>
+                    <strong>Remover artigo bloqueado</strong>
+                    <p>Este artigo ainda está ligado a zonas editoriais. Remova primeiro todas as ligações em “Ligado em” antes de apagar o artigo.</p>
+                  </div>
                 </div>
-                <button type="submit">Remover artigo</button>
-              </form>
+              ) : (
+                <form className="article-admin-delete-form" action="/api/admin/editorial/artigos" method="post">
+                  <input type="hidden" name="action_type" value="delete_article" />
+                  <input type="hidden" name="article_id" value={selectedArticle.id} />
+                  <input type="hidden" name="return_to" value="/admin/editorial/artigos" />
+                  <div>
+                    <strong>Remover artigo</strong>
+                    <p>Remove apenas o registo de public.editorial_articles. O link público deixará de abrir em /noticias/{selectedArticle.slug ?? "[slug]"}.</p>
+                    <label className="article-admin-delete-confirm">
+                      <input name="confirm_delete" type="checkbox" value="yes" required />
+                      <span>Confirmo que quero remover este artigo editorial.</span>
+                    </label>
+                  </div>
+                  <button type="submit">Remover artigo</button>
+                </form>
+              )
             ) : null}
           </section>
         </div>
