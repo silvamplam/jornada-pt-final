@@ -393,6 +393,27 @@ async function readLinkTargetValue(target: { table: LinkRemovalTarget; field: Li
   return rows[0] ?? null;
 }
 
+async function articleHasActiveLinks(slug: string) {
+  const expectedUrl = publicArticlePath(slug);
+  const encodedUrl = encodeURIComponent(expectedUrl);
+  const queries = [
+    `matchday_editorials?select=id&headline_link_url=eq.${encodedUrl}&limit=1`,
+    `matchday_editorials?select=id&complementary_link_url=eq.${encodedUrl}&limit=1`,
+    `matchday_editorials?select=id&side_block_link_url=eq.${encodedUrl}&limit=1`,
+    `matchday_highlights?select=id&link_url=eq.${encodedUrl}&limit=1`,
+    `matchday_latest_news?select=id&link_url=eq.${encodedUrl}&limit=1`,
+    `matchday_reference_composition_items?select=id&link_url_snapshot=eq.${encodedUrl}&limit=1`,
+    `site_editorials?select=id&headline_link_url=eq.${encodedUrl}&limit=1`,
+    `site_editorials?select=id&complementary_link_url=eq.${encodedUrl}&limit=1`,
+    `site_editorials?select=id&side_block_link_url=eq.${encodedUrl}&limit=1`,
+    `site_editorial_highlights?select=id&link_url=eq.${encodedUrl}&limit=1`,
+    `site_editorial_latest_news?select=id&link_url=eq.${encodedUrl}&limit=1`,
+  ];
+
+  const linkRows = await Promise.all(queries.map((query) => fetchSupabaseAdminTable<ArticleIdRow>(query)));
+  return linkRows.some((rows) => rows.length > 0);
+}
+
 async function buildPayload(formData: FormData, currentArticleId: string | null): Promise<ArticlePayload> {
   const title = cleanText(formData.get("title"));
   if (!title) {
@@ -483,6 +504,10 @@ async function deleteArticle(request: Request, formData: FormData) {
   const article = await readArticleForDelete(articleId);
   if (!article) {
     throw new ArticleAdminError("missing-article");
+  }
+
+  if (article.slug && (await articleHasActiveLinks(article.slug))) {
+    throw new ArticleAdminError("article-has-links");
   }
 
   await writeSupabaseAdmin(`editorial_articles?id=eq.${encodeURIComponent(article.id)}`, {

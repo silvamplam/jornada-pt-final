@@ -133,6 +133,7 @@ function pageMessage(params: Awaited<NonNullable<PageProps["searchParams"]>>) {
     "missing-link-target": "A ligação pedida já não existe.",
     "link-mismatch": "A ligação atual já não aponta para este artigo.",
     "link-removed": "Ligação removida.",
+    "article-has-links": "Este artigo ainda está ligado a zonas editoriais. Remova primeiro as ligações em Ligado em antes de apagar.",
     "required-field": "O Supabase recusou a gravação por campo obrigatório em falta.",
     constraint: "O Supabase recusou a gravação por constraint da tabela.",
     permission: "O Supabase recusou a gravação por permissões/RLS.",
@@ -1005,20 +1006,29 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
               }
             />
             {selectedArticle ? (
-              <form className="article-admin-delete-form" action="/api/admin/editorial/artigos" method="post">
-                <input type="hidden" name="action_type" value="delete_article" />
-                <input type="hidden" name="article_id" value={selectedArticle.id} />
-                <input type="hidden" name="return_to" value="/admin/editorial/artigos" />
-                <div>
-                  <strong>Remover artigo</strong>
-                  <p>Remove apenas o registo de public.editorial_articles. O link público deixará de abrir em /noticias/{selectedArticle.slug ?? "[slug]"}.</p>
-                  <label className="article-admin-delete-confirm">
-                    <input name="confirm_delete" type="checkbox" value="yes" required />
-                    <span>Confirmo que quero remover este artigo editorial.</span>
-                  </label>
+              selectedLinkData.placements.length > 0 ? (
+                <div className="article-admin-delete-form">
+                  <div>
+                    <strong>Remover artigo bloqueado</strong>
+                    <p>Este artigo ainda está ligado a zonas editoriais. Remova primeiro todas as ligações em “Ligado em” antes de apagar o artigo.</p>
+                  </div>
                 </div>
-                <button type="submit">Remover artigo</button>
-              </form>
+              ) : (
+                <form className="article-admin-delete-form" action="/api/admin/editorial/artigos" method="post">
+                  <input type="hidden" name="action_type" value="delete_article" />
+                  <input type="hidden" name="article_id" value={selectedArticle.id} />
+                  <input type="hidden" name="return_to" value="/admin/editorial/artigos" />
+                  <div>
+                    <strong>Remover artigo</strong>
+                    <p>Remove apenas o registo de public.editorial_articles. O link público deixará de abrir em /noticias/{selectedArticle.slug ?? "[slug]"}.</p>
+                    <label className="article-admin-delete-confirm">
+                      <input name="confirm_delete" type="checkbox" value="yes" required />
+                      <span>Confirmo que quero remover este artigo editorial.</span>
+                    </label>
+                  </div>
+                  <button type="submit">Remover artigo</button>
+                </form>
+              )
             ) : null}
           </section>
         </div>
