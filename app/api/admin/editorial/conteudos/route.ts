@@ -156,71 +156,74 @@ async function readExistingContent(contentId: string) {
 async function readSeasonContext(seasonId: string) {
   const rows = await fetchSupabaseAdminTable<EditorialContentSeasonContextRow>(
     `seasons?select=id,competition_id&id=eq.${encodeURIComponent(seasonId)}&limit=1`,
-  ).catch(() => []);
+  );
 
-  return rows[0] ?? null;
+  const season = rows[0] ?? null;
+  if (!season?.id) {
+    throw new EditorialContentAdminError("invalid-scope");
+  }
+
+  return season;
 }
 
 async function readMatchdayContext(matchdayId: string) {
   const rows = await fetchSupabaseAdminTable<EditorialContentMatchdayContextRow>(
     `matchdays?select=id,season_id&id=eq.${encodeURIComponent(matchdayId)}&limit=1`,
-  ).catch(() => []);
+  );
 
-  return rows[0] ?? null;
-}
-
-async function normalizeEditorialContext({
-  scope,
-  competitionId,
-  seasonId,
-  matchdayId,
-}: {
-  scope: EditorialContentPayload["scope"];
-  competitionId: string | null;
-  seasonId: string | null;
-  matchdayId: string | null;
-}) {
-  if (scope === "home" || scope === "general") {
-    return { competitionId: null, seasonId: null, matchdayId: null };
+  const matchday = rows[0] ?? null;
+  if (!matchday?.id) {
+    throw new EditorialContentAdminError("invalid-scope");
   }
 
-  if (scope === "matchday") {
-    if (!matchdayId) {
-      throw new EditorialContentAdminError("invalid-scope");
-    }
+  return matchday;
+}
 
+async function normalizeEditorialContentContext(
+  submittedScope: EditorialContentPayload["scope"],
+  submittedCompetitionId: string | null,
+  submittedSeasonId: string | null,
+  submittedMatchdayId: string | null,
+) {
+  let competitionId = submittedCompetitionId;
+  let seasonId = submittedSeasonId;
+  const matchdayId = submittedMatchdayId;
+
+  if (matchdayId) {
     const matchday = await readMatchdayContext(matchdayId);
-    if (!matchday?.season_id) {
+    if (!matchday.season_id) {
       throw new EditorialContentAdminError("invalid-scope");
     }
-
     if (seasonId && seasonId !== matchday.season_id) {
       throw new EditorialContentAdminError("invalid-scope");
     }
-
     seasonId = matchday.season_id;
-  } else {
-    matchdayId = null;
   }
 
   if (seasonId) {
     const season = await readSeasonContext(seasonId);
-    if (!season?.competition_id) {
+    if (!season.competition_id) {
       throw new EditorialContentAdminError("invalid-scope");
     }
-
     if (competitionId && competitionId !== season.competition_id) {
       throw new EditorialContentAdminError("invalid-scope");
     }
-
     competitionId = season.competition_id;
   }
 
-  if (!competitionId) {
+  if (matchdayId) {
+    return { scope: "matchday" as const, competitionId, seasonId, matchdayId };
+  }
+
+  if (competitionId || seasonId) {
+    return { scope: "competition" as const, competitionId, seasonId, matchdayId: null };
+  }
+
+  if (submittedScope === "competition" || submittedScope === "matchday") {
     throw new EditorialContentAdminError("invalid-scope");
   }
 
-  return { competitionId, seasonId, matchdayId };
+  return { scope: submittedScope, competitionId: null, seasonId: null, matchdayId: null };
 }
 
 async function buildPayload(
@@ -240,17 +243,17 @@ async function buildPayload(
   }
 
   const status = cleanStatus(cleanText(formData.get("status")) ?? "draft");
-  const scope = cleanScope(cleanText(formData.get("scope")) ?? "general");
+  const submittedScope = cleanScope(cleanText(formData.get("scope")) ?? "general");
   const contentType = cleanContentType(cleanText(formData.get("content_type")) ?? "video");
   const submittedCompetitionId = cleanText(formData.get("competition_id"));
   const submittedSeasonId = cleanText(formData.get("season_id"));
   const submittedMatchdayId = cleanText(formData.get("matchday_id"));
-  const { competitionId, seasonId, matchdayId } = await normalizeEditorialContext({
-    scope,
-    competitionId: submittedCompetitionId,
-    seasonId: submittedSeasonId,
-    matchdayId: submittedMatchdayId,
-  });
+  const { scope, competitionId, seasonId, matchdayId } = await normalizeEditorialContentContext(
+    submittedScope,
+    submittedCompetitionId,
+    submittedSeasonId,
+    submittedMatchdayId,
+  );
   let publishedAt = normalizePublishedAt(cleanText(formData.get("published_at")));
 
   if (status === "published" && !publishedAt) {
@@ -306,7 +309,7 @@ async function updateContent(formData: FormData) {
 }
 
 export async function POST(request: Request) {
-  let failurePath = "/admin/editorial/conteudos/novo";
+  let failurePath = "/admin/editorial/conteudos?mode=novo";
 
   try {
     const formData = await request.formData();
@@ -315,7 +318,7 @@ export async function POST(request: Request) {
     if (actionType === "update_content") {
       const submittedContentId = cleanText(formData.get("content_id"));
       if (submittedContentId) {
-        failurePath = `/admin/editorial/conteudos/${encodeURIComponent(submittedContentId)}/editar`;
+        failurePath = `/admin/editorial/conteudos?contentId=${encodeURIComponent(submittedContentId)}`;
       }
 
       const { contentId, status } = await updateContent(formData);
@@ -327,10 +330,10 @@ export async function POST(request: Request) {
     }
 
     if (actionType !== "create_content") {
-      return redirectTo(request, "/admin/editorial/conteudos/novo", { error: "invalid-action" });
+      return redirectTo(request, "/admin/editorial/conteudos?mode=novo", { error: "invalid-action" });
     }
 
-    failurePath = "/admin/editorial/conteudos/novo";
+    failurePath = "/admin/editorial/conteudos?mode=novo";
     const payload = await buildPayload(formData, null);
     const rows = await writeSupabaseAdminReturning<EditorialContentIdRow>("editorial_contents?select=id,slug", {
       method: "POST",
