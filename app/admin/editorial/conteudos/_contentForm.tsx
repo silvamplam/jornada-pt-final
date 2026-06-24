@@ -150,6 +150,23 @@ function scriptJson(value: unknown) {
   return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
+type EditorialContentScope = "general" | "home" | "competition" | "matchday";
+
+function normalizedInitialScope(content?: EditorialContent | null): EditorialContentScope {
+  if (content?.matchday_id) {
+    return "matchday";
+  }
+
+  if (content?.season_id || content?.competition_id) {
+    return "competition";
+  }
+
+  const storedScope = firstText(content?.scope);
+  return storedScope === "home" || storedScope === "competition" || storedScope === "matchday" || storedScope === "general"
+    ? storedScope
+    : "general";
+}
+
 export function EditorialContentForm({
   mode,
   content,
@@ -164,12 +181,7 @@ export function EditorialContentForm({
   const initialSeasonId = content?.season_id ?? initialMatchday?.season_id ?? "";
   const initialSeason = initialSeasonId ? seasons.find((item) => item.id === initialSeasonId) : null;
   const initialCompetitionId = content?.competition_id ?? initialSeason?.competition_id ?? "";
-  const storedScope = content?.scope ?? "general";
-  const initialScope = content?.matchday_id
-    ? "matchday"
-    : initialCompetitionId || initialSeasonId
-      ? "competition"
-      : storedScope;
+  const initialScope = normalizedInitialScope(content);
   const showCompetition = initialScope === "competition" || initialScope === "matchday";
   const showSeason = showCompetition && Boolean(initialCompetitionId);
   const showMatchday = initialScope === "matchday" && Boolean(initialSeasonId);
@@ -378,7 +390,7 @@ export function EditorialContentForm({
 
           <label data-content-context-field="competition" hidden={!showCompetition}>
             <span>Competicao / Liga</span>
-            <select name="competition_id" defaultValue={initialCompetitionId}>
+            <select name="competition_id" defaultValue={initialCompetitionId} disabled={!showCompetition}>
               <option value="">Sem competicao</option>
               {competitions.map((competition) => (
                 <option key={competition.id} value={competition.id}>
@@ -390,7 +402,7 @@ export function EditorialContentForm({
 
           <label data-content-context-field="season" hidden={!showSeason}>
             <span>Epoca</span>
-            <select name="season_id" defaultValue={initialSeasonId}>
+            <select name="season_id" defaultValue={initialSeasonId} disabled={!showSeason}>
               <option value="">Sem epoca</option>
               {seasons.map((season) => (
                 <option key={season.id} value={season.id} data-competition={season.competition_id ?? ""}>
@@ -406,6 +418,7 @@ export function EditorialContentForm({
               name="matchday_id"
               defaultValue={content?.matchday_id ?? ""}
               data-matchday-options={scriptJson(matchdayOptions)}
+              disabled={!showMatchday}
             >
               <option value="">Sem jornada</option>
               {initialMatchdayOptions.map((matchday) => (
@@ -467,6 +480,15 @@ export function EditorialContentForm({
                 }
               }
 
+              function setFieldVisibility(field, isVisible) {
+                if (!field) return;
+                field.hidden = !isVisible;
+                field.style.display = isVisible ? '' : 'none';
+                Array.prototype.forEach.call(field.querySelectorAll('select, input, textarea'), function (control) {
+                  control.disabled = !isVisible;
+                });
+              }
+
               function renderMatchdays(form) {
                 var competition = form.querySelector('[name="competition_id"]');
                 var season = form.querySelector('[name="season_id"]');
@@ -516,7 +538,7 @@ export function EditorialContentForm({
 
                 var scopedToCompetition = scope.value === 'competition' || scope.value === 'matchday';
                 var scopedToMatchday = scope.value === 'matchday';
-                if (competitionField) competitionField.hidden = !scopedToCompetition;
+
                 if (!scopedToCompetition) {
                   competition.value = '';
                   season.value = '';
@@ -529,9 +551,10 @@ export function EditorialContentForm({
                 if (!season.value) {
                   matchday.value = '';
                 }
+
                 Array.prototype.forEach.call(season.options, function (option) {
                   if (!option.value) return;
-                  var visible = !competition.value || option.getAttribute('data-competition') === competition.value;
+                  var visible = Boolean(competition.value) && option.getAttribute('data-competition') === competition.value;
                   option.hidden = !visible;
                   option.disabled = !visible;
                 });
@@ -540,8 +563,9 @@ export function EditorialContentForm({
                 }
 
                 renderMatchdays(form);
-                if (seasonField) seasonField.hidden = !scopedToCompetition || !competition.value;
-                if (matchdayField) matchdayField.hidden = !scopedToMatchday || !competition.value;
+                setFieldVisibility(competitionField, scopedToCompetition);
+                setFieldVisibility(seasonField, scopedToCompetition && Boolean(competition.value));
+                setFieldVisibility(matchdayField, scopedToMatchday && Boolean(competition.value) && Boolean(season.value));
               }
 
               document.addEventListener('change', function (event) {
