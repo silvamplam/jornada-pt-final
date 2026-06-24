@@ -389,9 +389,10 @@ function publicArticlePath(article: EditorialArticle) {
 }
 
 function readableScope(article: EditorialArticle) {
-  if (article.matchday_id) return "matchday";
-  const storedScope = firstText(article.scope);
-  return storedScope === "matchday" ? "matchday" : "general";
+  if (article.matchday_id) return "Jornada";
+  if (article.season_id) return "Epoca";
+  if (article.competition_id) return "Competicao";
+  return "Home";
 }
 
 function readableMatchdayLabel(matchday?: MatchdayOption | null) {
@@ -503,7 +504,7 @@ function groupArticleSidebarItems(items: ArticleSidebarItem[]) {
   const competitionGroups: ArticleSidebarCompetitionGroup[] = [];
 
   items.forEach((item) => {
-    const isGeneral = item.articleContext.scopeLabel === "general" || !item.articleContext.competitionId;
+    const isGeneral = !item.articleContext.competitionId;
 
     if (isGeneral) {
       generalItems.push(item);
@@ -851,7 +852,7 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
                 {groupedSidebarArticles.generalItems.length > 0 ? (
                   <details className="article-admin-sidebar-group" open={!selectedArticle || hasSelectedArticle(groupedSidebarArticles.generalItems)}>
                     <summary>
-                      <span>Gerais</span>
+                      <span>Home</span>
                       <span className="article-admin-sidebar-count">{groupedSidebarArticles.generalItems.length}</span>
                     </summary>
                     <ul className="article-admin-sidebar-list is-nested">
@@ -939,7 +940,7 @@ export default async function AdminEditorialArticlesPage({ searchParams }: PageP
                     <strong>{selectedContext.matchdayLabel}</strong>
                   </div>
                   <div className="article-admin-context-card">
-                    <span>Estado / Ambito</span>
+                    <span>Estado / Contexto</span>
                     <strong>
                       {selectedContext.stateLabel} / {selectedContext.scopeLabel}
                     </strong>

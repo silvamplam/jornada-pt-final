@@ -155,11 +155,33 @@ const articleFormEnhancer = `
       });
     }
 
+    function setFieldState(field, enabled) {
+      if (!field) return;
+      field.hidden = !enabled;
+      Array.prototype.forEach.call(field.querySelectorAll("select"), function (select) {
+        select.disabled = !enabled;
+      });
+    }
+
     function filterOptions() {
+      var scopeValue = scope ? scope.value : "home";
+      var competitionField = form.querySelector('[data-article-context-field="competition"]');
+      var seasonField = form.querySelector('[data-article-context-field="season"]');
+      var matchdayField = form.querySelector('[data-article-context-field="matchday"]');
       var competitionId = competition ? competition.value : "";
       var seasonId = season ? season.value : "";
+      var usesCompetition = scopeValue === "competition" || scopeValue === "matchday";
+      var usesMatchday = scopeValue === "matchday";
 
-      if (!competitionId) {
+      if (!usesCompetition) {
+        if (competition) competition.value = "";
+        if (season) season.value = "";
+        if (matchday) matchday.value = "";
+        competitionId = "";
+        seasonId = "";
+      }
+
+      if (competition && !competition.value) {
         if (season) {
           season.value = "";
           seasonId = "";
@@ -176,7 +198,7 @@ const articleFormEnhancer = `
             option.disabled = false;
             return;
           }
-          var keep = !competitionId || option.getAttribute("data-competition-id") === competitionId;
+          var keep = Boolean(competitionId) && option.getAttribute("data-competition-id") === competitionId;
           option.hidden = !keep;
           option.disabled = !keep;
         });
@@ -194,35 +216,34 @@ const articleFormEnhancer = `
             option.disabled = false;
             return;
           }
-          var keepBySeason = !seasonId || option.getAttribute("data-season-id") === seasonId;
-          var keepByCompetition = !competitionId || option.getAttribute("data-competition-id") === competitionId;
-          var keep = keepBySeason && keepByCompetition;
+          var keep = Boolean(seasonId) && option.getAttribute("data-season-id") === seasonId;
           option.hidden = !keep;
           option.disabled = !keep;
         });
 
-        if (selectedOption(matchday) && selectedOption(matchday).disabled) {
+        if (!usesMatchday || (selectedOption(matchday) && selectedOption(matchday).disabled)) {
           matchday.value = "";
         }
       }
 
-      if (scope) {
-        if (matchday && matchday.value) {
-          scope.value = "matchday";
-        } else {
-          scope.value = "general";
-        }
-      }
+      setFieldState(competitionField, usesCompetition);
+      setFieldState(seasonField, usesCompetition && Boolean(competitionId));
+      setFieldState(matchdayField, usesMatchday && Boolean(seasonId));
     }
 
+    if (scope) {
+      scope.addEventListener("change", filterOptions);
+    }
     if (competition) {
-      competition.addEventListener("change", filterOptions);
+      competition.addEventListener("change", function () {
+        if (season) season.value = "";
+        if (matchday) matchday.value = "";
+        filterOptions();
+      });
     }
     if (season) {
       season.addEventListener("change", function () {
-        if (!season.value && matchday) {
-          matchday.value = "";
-        }
+        if (matchday) matchday.value = "";
         filterOptions();
       });
     }
@@ -250,9 +271,14 @@ export function ArticleEditorForm({
   const isEdit = mode === "edit";
   const currentStatus = firstText(article?.status) || "draft";
   const canOpenPublicArticle = Boolean(publicHref && currentStatus === "published");
-  const currentScope = article?.matchday_id
-    ? "matchday"
-    : "general";
+  const initialMatchday = article?.matchday_id ? matchdays.find((item) => item.id === article.matchday_id) : null;
+  const initialSeasonId = article?.season_id ?? initialMatchday?.season_id ?? "";
+  const initialSeason = initialSeasonId ? seasons.find((item) => item.id === initialSeasonId) : null;
+  const initialCompetitionId = article?.competition_id ?? initialSeason?.competition_id ?? "";
+  const currentScope = article?.matchday_id ? "matchday" : initialCompetitionId || initialSeasonId ? "competition" : "home";
+  const showCompetition = currentScope === "competition" || currentScope === "matchday";
+  const showSeason = showCompetition && Boolean(initialCompetitionId);
+  const showMatchday = currentScope === "matchday" && Boolean(initialSeasonId);
   const competitionBySeasonId = new Map(seasons.map((season) => [season.id, season.competition_id ?? ""]));
 
   return (
@@ -285,7 +311,11 @@ export function ArticleEditorForm({
 
           <label>
             <span>Âmbito</span>
-            <input name="scope" data-article-scope defaultValue={currentScope} readOnly />
+            <select name="scope" data-article-scope defaultValue={currentScope}>
+              <option value="home">Home</option>
+              <option value="competition">Competição</option>
+              <option value="matchday">Jornada</option>
+            </select>
           </label>
 
           <label>
@@ -333,9 +363,9 @@ export function ArticleEditorForm({
       <section className="article-admin-section article-admin-compact-section">
         <p className="article-admin-section-title">Contexto</p>
         <div className="article-admin-grid">
-          <label>
+          <label data-article-context-field="competition" hidden={!showCompetition}>
             <span>Competição</span>
-            <select name="competition_id" data-article-competition defaultValue={article?.competition_id ?? ""}>
+            <select name="competition_id" data-article-competition defaultValue={initialCompetitionId} disabled={!showCompetition}>
               <option value="">Sem competição</option>
               {competitions.map((competition) => (
                 <option key={competition.id} value={competition.id}>
@@ -345,9 +375,9 @@ export function ArticleEditorForm({
             </select>
           </label>
 
-          <label>
+          <label data-article-context-field="season" hidden={!showSeason}>
             <span>Época</span>
-            <select name="season_id" data-article-season defaultValue={article?.season_id ?? ""}>
+            <select name="season_id" data-article-season defaultValue={initialSeasonId} disabled={!showSeason}>
               <option value="">Sem época</option>
               {seasons.map((season) => (
                 <option key={season.id} value={season.id} data-competition-id={season.competition_id ?? ""}>
@@ -357,9 +387,9 @@ export function ArticleEditorForm({
             </select>
           </label>
 
-          <label>
+          <label data-article-context-field="matchday" hidden={!showMatchday}>
             <span>Jornada</span>
-            <select name="matchday_id" data-article-matchday defaultValue={article?.matchday_id ?? ""}>
+            <select name="matchday_id" data-article-matchday defaultValue={article?.matchday_id ?? ""} disabled={!showMatchday}>
               <option value="">Sem jornada</option>
               {matchdays.map((matchday) => (
                 <option
