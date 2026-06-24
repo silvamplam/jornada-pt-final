@@ -1916,6 +1916,9 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
               <div className="editorial-below-mode-section" data-below-section="highlights" hidden={belowHeadlineMode !== "highlights"} id="destaques">
                 <h4>Destaques abaixo da manchete</h4>
                 <p className="editorial-admin-muted">Edita os tres destaques editoriais desta zona e o texto superior que aparece no publico.</p>
+                <p className="editorial-admin-muted">
+                  Subtitulo publico da zona: ainda nao existe campo proprio em matchday_editorials. Para mostrar uma linha secundaria abaixo do titulo sera necessaria uma fase futura de schema.
+                </p>
                 <div className="editorial-admin-compact-stack">
                   <div className="editorial-admin-field">
                     <label htmlFor="below-headline-heading">Texto do topo</label>
