@@ -341,7 +341,7 @@ function readableContentScope(content: EditorialContent, context: EditorialSideb
   if (content.matchday_id) return "matchday";
   const storedScope = firstText(content.scope);
   if (storedScope === "competition" || storedScope === "matchday") return storedScope;
-  return context.competitionId ? "competition" : "home";
+  return context.competitionId ? "competition" : "general";
 }
 
 function resolveContentContext(content: EditorialContent, lookups: ContentContextLookups): EditorialSidebarContext {
@@ -467,21 +467,6 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
         </Link>
       </section>
 
-      <section className="content-admin-notes" aria-label="Notas de arquitetura">
-        <p>
-          <strong>Separacao:</strong> Artigos/Noticias continuam em <code>editorial_articles</code>. Esta pagina gere
-          apenas <code>editorial_contents</code>.
-        </p>
-        <p>
-          <strong>Video da Jornada:</strong> <code>matchday_roundup_items</code>, <code>site_editorial_roundup_items</code>{" "}
-          e <code>matchdays.video_url</code> continuam independentes.
-        </p>
-        <p>
-          <strong>Arquivo:</strong> a lista principal mostra rascunhos e publicados. Conteudos arquivados ficam ocultos,
-          mas nao sao apagados.
-        </p>
-      </section>
-
       <nav className="content-admin-view-tabs" aria-label="Filtro de conteudos">
         <Link className={!isArchivedView ? "active" : undefined} href="/admin/editorial/conteudos">
           Ativos
@@ -517,7 +502,7 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
                   open={!selectedContent || hasSelectedEditorialItem(groupedContents.generalItems)}
                 >
                   <summary>
-                    <span>Home</span>
+                    <span>Gerais</span>
                     <span className="content-admin-sidebar-count">{groupedContents.generalItems.length}</span>
                   </summary>
                   <ul className="content-admin-sidebar-list">
