@@ -8,6 +8,16 @@ type EditorialContentIdRow = {
   slug: string | null;
 };
 
+type EditorialContentSeasonContextRow = {
+  id: string;
+  competition_id: string | null;
+};
+
+type EditorialContentMatchdayContextRow = {
+  id: string;
+  season_id: string | null;
+};
+
 type EditorialContentPayload = {
   slug: string;
   status: "draft" | "published" | "archived";
@@ -143,6 +153,76 @@ async function readExistingContent(contentId: string) {
   return content;
 }
 
+async function readSeasonContext(seasonId: string) {
+  const rows = await fetchSupabaseAdminTable<EditorialContentSeasonContextRow>(
+    `seasons?select=id,competition_id&id=eq.${encodeURIComponent(seasonId)}&limit=1`,
+  ).catch(() => []);
+
+  return rows[0] ?? null;
+}
+
+async function readMatchdayContext(matchdayId: string) {
+  const rows = await fetchSupabaseAdminTable<EditorialContentMatchdayContextRow>(
+    `matchdays?select=id,season_id&id=eq.${encodeURIComponent(matchdayId)}&limit=1`,
+  ).catch(() => []);
+
+  return rows[0] ?? null;
+}
+
+async function normalizeEditorialContext({
+  scope,
+  competitionId,
+  seasonId,
+  matchdayId,
+}: {
+  scope: EditorialContentPayload["scope"];
+  competitionId: string | null;
+  seasonId: string | null;
+  matchdayId: string | null;
+}) {
+  if (scope === "home" || scope === "general") {
+    return { competitionId: null, seasonId: null, matchdayId: null };
+  }
+
+  if (scope === "matchday") {
+    if (!matchdayId) {
+      throw new EditorialContentAdminError("invalid-scope");
+    }
+
+    const matchday = await readMatchdayContext(matchdayId);
+    if (!matchday?.season_id) {
+      throw new EditorialContentAdminError("invalid-scope");
+    }
+
+    if (seasonId && seasonId !== matchday.season_id) {
+      throw new EditorialContentAdminError("invalid-scope");
+    }
+
+    seasonId = matchday.season_id;
+  } else {
+    matchdayId = null;
+  }
+
+  if (seasonId) {
+    const season = await readSeasonContext(seasonId);
+    if (!season?.competition_id) {
+      throw new EditorialContentAdminError("invalid-scope");
+    }
+
+    if (competitionId && competitionId !== season.competition_id) {
+      throw new EditorialContentAdminError("invalid-scope");
+    }
+
+    competitionId = season.competition_id;
+  }
+
+  if (!competitionId) {
+    throw new EditorialContentAdminError("invalid-scope");
+  }
+
+  return { competitionId, seasonId, matchdayId };
+}
+
 async function buildPayload(
   formData: FormData,
   currentContentId: string | null,
@@ -165,9 +245,12 @@ async function buildPayload(
   const submittedCompetitionId = cleanText(formData.get("competition_id"));
   const submittedSeasonId = cleanText(formData.get("season_id"));
   const submittedMatchdayId = cleanText(formData.get("matchday_id"));
-  const competitionId = scope === "competition" || scope === "matchday" ? submittedCompetitionId : null;
-  const seasonId = scope === "competition" || scope === "matchday" ? submittedSeasonId : null;
-  const matchdayId = scope === "matchday" ? submittedMatchdayId : null;
+  const { competitionId, seasonId, matchdayId } = await normalizeEditorialContext({
+    scope,
+    competitionId: submittedCompetitionId,
+    seasonId: submittedSeasonId,
+    matchdayId: submittedMatchdayId,
+  });
   let publishedAt = normalizePublishedAt(cleanText(formData.get("published_at")));
 
   if (status === "published" && !publishedAt) {

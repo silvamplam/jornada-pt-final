@@ -164,7 +164,12 @@ export function EditorialContentForm({
   const initialSeasonId = content?.season_id ?? initialMatchday?.season_id ?? "";
   const initialSeason = initialSeasonId ? seasons.find((item) => item.id === initialSeasonId) : null;
   const initialCompetitionId = content?.competition_id ?? initialSeason?.competition_id ?? "";
-  const initialScope = content?.scope ?? "general";
+  const storedScope = content?.scope ?? "general";
+  const initialScope = content?.matchday_id
+    ? "matchday"
+    : initialCompetitionId || initialSeasonId
+      ? "competition"
+      : storedScope;
   const showCompetition = initialScope === "competition" || initialScope === "matchday";
   const showSeason = showCompetition && Boolean(initialCompetitionId);
   const showMatchday = initialScope === "matchday" && Boolean(initialSeasonId);
