@@ -120,6 +120,28 @@ function contentMediaKind(content: EditorialContentRow): EditorialPublishedSourc
   return hasImage ? "image" : "image";
 }
 
+function contentOriginLabel(content: EditorialContentRow) {
+  const contentType = cleanText(content.content_type);
+
+  if (contentType === "video") {
+    return "Video";
+  }
+
+  if (contentType === "reportagem") {
+    return "Reportagem";
+  }
+
+  if (contentType === "entrevista") {
+    return "Entrevista";
+  }
+
+  if (contentType === "especial") {
+    return "Especial";
+  }
+
+  return "Conteudo editorial";
+}
+
 function normalizeArticle(article: EditorialArticleRow): EditorialPublishedSource | null {
   const slug = cleanText(article.slug);
   const title = cleanText(article.title);
@@ -182,7 +204,7 @@ function normalizeContent(content: EditorialContentRow): EditorialPublishedSourc
     competition_id: cleanText(content.competition_id),
     season_id: cleanText(content.season_id),
     matchday_id: cleanText(content.matchday_id),
-    origin_label: "Conteudo editorial",
+    origin_label: contentOriginLabel(content),
   };
 }
 
