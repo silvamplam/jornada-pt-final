@@ -60,7 +60,7 @@ type ArticlePayload = {
   matchday_id: string | null;
 };
 
-type ArticleScope = "general" | "matchday";
+type ArticleScope = "home" | "competition" | "matchday" | "general";
 
 type LinkRemovalTarget =
   | "matchday_editorials"
@@ -353,7 +353,11 @@ function scopeForContext(context: {
     return "matchday";
   }
 
-  return "general";
+  if (context.competition_id || context.season_id) {
+    return "competition";
+  }
+
+  return "home";
 }
 
 function cleanUuid(value: FormDataEntryValue | null) {
