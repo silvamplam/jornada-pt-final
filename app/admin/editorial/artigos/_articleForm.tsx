@@ -310,15 +310,6 @@ export function ArticleEditorForm({
           </label>
 
           <label>
-            <span>Âmbito</span>
-            <select name="scope" data-article-scope defaultValue={currentScope}>
-              <option value="home">Home</option>
-              <option value="competition">Competição</option>
-              <option value="matchday">Jornada</option>
-            </select>
-          </label>
-
-          <label>
             <span>Etiqueta</span>
             <input name="label" defaultValue={article?.label ?? ""} placeholder="OPINIÃO, ANÁLISE..." />
           </label>
@@ -363,6 +354,15 @@ export function ArticleEditorForm({
       <section className="article-admin-section article-admin-compact-section">
         <p className="article-admin-section-title">Contexto</p>
         <div className="article-admin-grid">
+          <label>
+            <span>Âmbito</span>
+            <select name="scope" data-article-scope defaultValue={currentScope}>
+              <option value="home">Home</option>
+              <option value="competition">Competição</option>
+              <option value="matchday">Jornada</option>
+            </select>
+          </label>
+
           <label data-article-context-field="competition" hidden={!showCompetition}>
             <span>Competição</span>
             <select name="competition_id" data-article-competition defaultValue={initialCompetitionId} disabled={!showCompetition}>
