@@ -158,6 +158,8 @@ const articleFormEnhancer = `
     function setFieldState(field, enabled) {
       if (!field) return;
       field.hidden = !enabled;
+      field.style.display = enabled ? "" : "none";
+      field.setAttribute("aria-hidden", enabled ? "false" : "true");
       Array.prototype.forEach.call(field.querySelectorAll("select"), function (select) {
         select.disabled = !enabled;
       });
@@ -714,6 +716,10 @@ export const editorialArticleAdminStyles = `
     gap: 6px;
     font-size: 13px;
     font-weight: 700;
+  }
+
+  .article-admin-grid label[hidden] {
+    display: none !important;
   }
 
   .article-admin-grid label > span {
