@@ -1943,7 +1943,6 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
           </div>
           <nav className="home-admin-actions" aria-label="Navegacao editorial">
             <a href="/admin/editorial/artigos">Artigos / Noticias</a>
-            <a href="/admin/editorial/conteudos">CONTEÚDOS / AUDIOVISUAL</a>
             <a href="/admin/editorial/composicao">Composicao Editorial</a>
             <a href="/admin/editorial/jornada">Editorial da Jornada</a>
             <a href="/admin/gestor">Centro de Gestao</a>
@@ -3008,10 +3007,42 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                       function expectedComplementMode() {
                         return belowSelect && belowSelect.value === 'roundup' ? 'roundup_video' : 'complementary_story';
                       }
+                      function setFieldValue(field, value) {
+                        if (!field) return;
+                        field.value = value || '';
+                        field.dispatchEvent(new Event('input', { bubbles: true }));
+                        field.dispatchEvent(new Event('change', { bubbles: true }));
+                      }
                       function setHomeEditorialField(name, value, allowEmpty) {
                         if (!allowEmpty && !value) return;
                         var field = document.querySelector('[name="' + name + '"]');
-                        if (field) field.value = value || '';
+                        setFieldValue(field, value);
+                      }
+                      function resetSourceSelect(select) {
+                        if (select) select.value = '';
+                      }
+                      function markSourceApplied(select) {
+                        if (!select || !select.parentElement) return;
+                        var message = select.parentElement.querySelector('[data-home-source-applied-message]');
+                        if (!message) {
+                          message = document.createElement('span');
+                          message.setAttribute('data-home-source-applied-message', 'true');
+                          message.style.display = 'block';
+                          message.style.marginTop = '6px';
+                          message.style.color = '#475569';
+                          message.style.fontSize = '12px';
+                          message.style.fontWeight = '700';
+                          select.insertAdjacentElement('afterend', message);
+                        }
+                        message.textContent = 'Fonte aplicada. Reve e guarda a zona.';
+                        window.clearTimeout(select._homeSourceAppliedTimer);
+                        select._homeSourceAppliedTimer = window.setTimeout(function () {
+                          message.textContent = '';
+                        }, 3500);
+                      }
+                      function finishPublishedSource(select) {
+                        markSourceApplied(select);
+                        resetSourceSelect(select);
                       }
                       function applyHomeHeadlineArticle() {
                         if (!headlineArticleSelect) return;
@@ -3021,6 +3052,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                         setHomeEditorialField('headline_subtitle', option.dataset.homeHeadlineSubtitle, true);
                         setHomeEditorialField('headline_image_url', option.dataset.homeHeadlineImageUrl, true);
                         setHomeEditorialField('headline_link_url', option.dataset.homeHeadlineLinkUrl, true);
+                        finishPublishedSource(headlineArticleSelect);
                       }
                       function applyHomeSideArticle() {
                         if (!sideArticleSelect) return;
@@ -3031,7 +3063,8 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                         setHomeEditorialField('side_block_text', option.dataset.homeSideText, true);
                         setHomeEditorialField('side_block_image_url', option.dataset.homeSideImageUrl, true);
                         setHomeEditorialField('side_block_link_url', option.dataset.homeSideLinkUrl, true);
-                        setHomeEditorialField('side_block_author', option.dataset.homeSideAuthor, false);
+                        setHomeEditorialField('side_block_author', option.dataset.homeSideAuthor, true);
+                        finishPublishedSource(sideArticleSelect);
                       }
                       function applyHomeComplementArticle() {
                         if (!complementArticleSelect) return;
@@ -3042,10 +3075,11 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                         setHomeEditorialField('complementary_text', option.dataset.homeComplementText, true);
                         setHomeEditorialField('complementary_image_url', option.dataset.homeComplementImageUrl, true);
                         setHomeEditorialField('complementary_link_url', option.dataset.homeComplementLinkUrl, true);
+                        finishPublishedSource(complementArticleSelect);
                       }
                       function setHomeHighlightField(card, name, value) {
                         var field = card.querySelector('[data-home-highlight-field="' + name + '"]');
-                        if (field) field.value = value || '';
+                        setFieldValue(field, value);
                       }
                       function applyHomeHighlightArticle(select) {
                         var card = select.closest('[data-home-highlight-card]');
@@ -3056,10 +3090,11 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                         setHomeHighlightField(card, 'subtitle', option.dataset.homeHighlightSubtitle);
                         setHomeHighlightField(card, 'image_url', option.dataset.homeHighlightImageUrl);
                         setHomeHighlightField(card, 'link_url', option.dataset.homeHighlightLinkUrl);
+                        finishPublishedSource(select);
                       }
                       function setHomeFinalField(card, name, value) {
                         var field = card.querySelector('[data-home-final-field="' + name + '"]');
-                        if (field) field.value = value || '';
+                        setFieldValue(field, value);
                       }
                       function applyHomeFinalArticle(select) {
                         var card = select.closest('[data-home-final-card]');
@@ -3069,6 +3104,7 @@ export default async function AdminEditorialHomePage({ searchParams }: PageProps
                         setHomeFinalField(card, 'subtitle', option.dataset.homeFinalSubtitle);
                         setHomeFinalField(card, 'image_url', option.dataset.homeFinalImageUrl);
                         setHomeFinalField(card, 'link_url', option.dataset.homeFinalLinkUrl);
+                        finishPublishedSource(select);
                       }
                       function syncBelowSections() {
                         var mode = belowSelect ? belowSelect.value : 'highlights';
