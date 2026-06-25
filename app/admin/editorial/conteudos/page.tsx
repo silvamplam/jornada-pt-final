@@ -68,6 +68,15 @@ const editorialNavigationLinks = [
 ];
 
 const contentSidebarStyles = `
+  .content-admin-header,
+  .content-admin-view-tabs,
+  .content-admin-workspace {
+    width: min(100%, 1360px);
+    max-width: 1360px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
   .content-admin-sidebar {
     display: grid;
     gap: 12px;
