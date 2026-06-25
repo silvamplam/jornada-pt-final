@@ -1189,9 +1189,34 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 var order = card.getAttribute('data-highlight-card');
                 var select = card.querySelector('[data-highlight-article-select]');
                 if (!order || !select) return;
+                function setFieldValue(field, value) {
+                  if (!field) return;
+                  field.value = value || '';
+                  field.dispatchEvent(new Event('input', { bubbles: true }));
+                  field.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                function finishPublishedSource() {
+                  var message = select.parentElement.querySelector('[data-source-applied-message]');
+                  if (!message) {
+                    message = document.createElement('span');
+                    message.setAttribute('data-source-applied-message', 'true');
+                    message.style.display = 'block';
+                    message.style.marginTop = '6px';
+                    message.style.color = '#475569';
+                    message.style.fontSize = '12px';
+                    message.style.fontWeight = '700';
+                    select.insertAdjacentElement('afterend', message);
+                  }
+                  message.textContent = 'Fonte aplicada. Reve e guarda a zona.';
+                  window.clearTimeout(select._sourceAppliedTimer);
+                  select._sourceAppliedTimer = window.setTimeout(function () {
+                    message.textContent = '';
+                  }, 3500);
+                  select.value = '';
+                }
                 function setHighlightField(name, value) {
                   var field = card.querySelector('[name="highlight_' + name + '"]');
-                  if (field) field.value = value || '';
+                  setFieldValue(field, value);
                 }
                 function applyHighlightArticle() {
                   var option = select.options[select.selectedIndex];
@@ -1201,6 +1226,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                   setHighlightField('subtitle', option.dataset.highlightSubtitle);
                   setHighlightField('image_url', option.dataset.highlightImageUrl);
                   setHighlightField('link_url', option.dataset.highlightLinkUrl);
+                  finishPublishedSource();
                 }
                 select.addEventListener('change', applyHighlightArticle);
               });
@@ -1433,19 +1459,44 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 var order = card.getAttribute('data-latest-news-card');
                 var select = card.querySelector('[data-latest-news-article-select]');
                 if (!order || !select) return;
-                function setLatestNewsField(name, value, allowEmpty) {
-                  if (!value && !allowEmpty) return;
+                function setFieldValue(field, value) {
+                  if (!field) return;
+                  field.value = value || '';
+                  field.dispatchEvent(new Event('input', { bubbles: true }));
+                  field.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                function finishPublishedSource() {
+                  var message = select.parentElement.querySelector('[data-source-applied-message]');
+                  if (!message) {
+                    message = document.createElement('span');
+                    message.setAttribute('data-source-applied-message', 'true');
+                    message.style.display = 'block';
+                    message.style.marginTop = '6px';
+                    message.style.color = '#475569';
+                    message.style.fontSize = '12px';
+                    message.style.fontWeight = '700';
+                    select.insertAdjacentElement('afterend', message);
+                  }
+                  message.textContent = 'Fonte aplicada. Reve e guarda a zona.';
+                  window.clearTimeout(select._sourceAppliedTimer);
+                  select._sourceAppliedTimer = window.setTimeout(function () {
+                    message.textContent = '';
+                  }, 3500);
+                  select.value = '';
+                }
+                function setLatestNewsField(name, value) {
                   var field = card.querySelector('[name="latest_news_' + name + '"]');
-                  if (field) field.value = value || '';
+                  setFieldValue(field, value);
                 }
                 function applyLatestNewsArticle() {
                   var option = select.options[select.selectedIndex];
                   if (!option || !option.value) return;
-                  setLatestNewsField('article_id', '', true);
+                  setLatestNewsField('article_id', '');
                   setLatestNewsField('title', option.dataset.latestNewsTitle);
                   setLatestNewsField('subtitle', option.dataset.latestNewsSubtitle);
                   setLatestNewsField('image_url', option.dataset.latestNewsImageUrl);
                   setLatestNewsField('link_url', option.dataset.latestNewsLinkUrl);
+                  finishPublishedSource();
                 }
                 select.addEventListener('change', applyLatestNewsArticle);
               });
@@ -1732,10 +1783,34 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                   if (!form) return;
                   var select = form.querySelector('[data-headline-article-select]');
                   if (!select) return;
+                  function setFieldValue(field, value) {
+                    if (!field) return;
+                    field.value = value || '';
+                    field.dispatchEvent(new Event('input', { bubbles: true }));
+                    field.dispatchEvent(new Event('change', { bubbles: true }));
+                  }
+                  function finishPublishedSource() {
+                    var message = select.parentElement.querySelector('[data-source-applied-message]');
+                    if (!message) {
+                      message = document.createElement('span');
+                      message.setAttribute('data-source-applied-message', 'true');
+                      message.style.display = 'block';
+                      message.style.marginTop = '6px';
+                      message.style.color = '#475569';
+                      message.style.fontSize = '12px';
+                      message.style.fontWeight = '700';
+                      select.insertAdjacentElement('afterend', message);
+                    }
+                    message.textContent = 'Fonte aplicada. Reve e guarda a zona.';
+                    window.clearTimeout(select._sourceAppliedTimer);
+                    select._sourceAppliedTimer = window.setTimeout(function () {
+                      message.textContent = '';
+                    }, 3500);
+                    select.value = '';
+                  }
                   function setField(name, value) {
-                    if (!value) return;
                     var field = form.querySelector('[name="' + name + '"]');
-                    if (field) field.value = value;
+                    setFieldValue(field, value);
                   }
                   function applySelectedArticle() {
                     var option = select.options[select.selectedIndex];
@@ -1744,6 +1819,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                     setField('summary', option.dataset.headlineSummary);
                     setField('image_url', option.dataset.headlineImageUrl);
                     setField('headline_link_url', option.dataset.headlineLinkUrl);
+                    finishPublishedSource();
                   }
                   select.addEventListener('change', applySelectedArticle);
                 })();
@@ -1864,10 +1940,34 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                   if (!form) return;
                   var select = form.querySelector('[data-side-block-article-select]');
                   if (!select) return;
+                  function setFieldValue(field, value) {
+                    if (!field) return;
+                    field.value = value || '';
+                    field.dispatchEvent(new Event('input', { bubbles: true }));
+                    field.dispatchEvent(new Event('change', { bubbles: true }));
+                  }
+                  function finishPublishedSource() {
+                    var message = select.parentElement.querySelector('[data-source-applied-message]');
+                    if (!message) {
+                      message = document.createElement('span');
+                      message.setAttribute('data-source-applied-message', 'true');
+                      message.style.display = 'block';
+                      message.style.marginTop = '6px';
+                      message.style.color = '#475569';
+                      message.style.fontSize = '12px';
+                      message.style.fontWeight = '700';
+                      select.insertAdjacentElement('afterend', message);
+                    }
+                    message.textContent = 'Fonte aplicada. Reve e guarda a zona.';
+                    window.clearTimeout(select._sourceAppliedTimer);
+                    select._sourceAppliedTimer = window.setTimeout(function () {
+                      message.textContent = '';
+                    }, 3500);
+                    select.value = '';
+                  }
                   function setField(name, value) {
-                    if (!value) return;
                     var field = form.querySelector('[name="' + name + '"]');
-                    if (field) field.value = value;
+                    setFieldValue(field, value);
                   }
                   function applySelectedArticle() {
                     var option = select.options[select.selectedIndex];
@@ -1878,6 +1978,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                     setField('side_block_author', option.getAttribute('data-side-author') || '');
                     setField('side_block_image_url', option.getAttribute('data-side-image-url') || '');
                     setField('side_block_link_url', option.getAttribute('data-side-link-url') || '');
+                    finishPublishedSource();
                   }
                   select.addEventListener('change', applySelectedArticle);
                 })();
@@ -2070,10 +2171,35 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                 var complementArticleSelect = form.querySelector('[data-complementary-article-select]');
                 var belowSections = Array.prototype.slice.call(form.querySelectorAll('[data-below-section]'));
                 var sections = Array.prototype.slice.call(form.querySelectorAll('[data-complementary-section]'));
+                function setFieldValue(field, value) {
+                  if (!field) return;
+                  field.value = value || '';
+                  field.dispatchEvent(new Event('input', { bubbles: true }));
+                  field.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                function finishPublishedSource() {
+                  if (!complementArticleSelect) return;
+                  var message = complementArticleSelect.parentElement.querySelector('[data-source-applied-message]');
+                  if (!message) {
+                    message = document.createElement('span');
+                    message.setAttribute('data-source-applied-message', 'true');
+                    message.style.display = 'block';
+                    message.style.marginTop = '6px';
+                    message.style.color = '#475569';
+                    message.style.fontSize = '12px';
+                    message.style.fontWeight = '700';
+                    complementArticleSelect.insertAdjacentElement('afterend', message);
+                  }
+                  message.textContent = 'Fonte aplicada. Reve e guarda a zona.';
+                  window.clearTimeout(complementArticleSelect._sourceAppliedTimer);
+                  complementArticleSelect._sourceAppliedTimer = window.setTimeout(function () {
+                    message.textContent = '';
+                  }, 3500);
+                  complementArticleSelect.value = '';
+                }
                 function setComplementField(name, value) {
-                  if (!value) return;
                   var field = form.querySelector('[data-complementary-form] [name="' + name + '"]');
-                  if (field) field.value = value;
+                  setFieldValue(field, value);
                 }
                 function applyComplementArticle() {
                   if (!complementArticleSelect) return;
@@ -2084,6 +2210,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
                   setComplementField('complementary_text', option.dataset.complementaryText);
                   setComplementField('complementary_image_url', option.dataset.complementaryImageUrl);
                   setComplementField('complementary_link_url', option.dataset.complementaryLinkUrl);
+                  finishPublishedSource();
                 }
                 function syncBelowSections() {
                   var mode = belowSelect ? belowSelect.value : 'highlights';
