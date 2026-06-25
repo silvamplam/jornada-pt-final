@@ -301,11 +301,30 @@ const roundSamples = [
   }
 ];
 
-const portalCards = [
+const matchSamples = [
   {
-    title: "Jogos",
-    text: "Montar calendário e jogos por jornada."
+    title: "Turma 7.º A vs Turma 7.º B",
+    meta: "Jornada 01 · por preparar"
   },
+  {
+    title: "Equipa Azul vs Equipa Branca",
+    meta: "Fase de grupos · por preparar"
+  },
+  {
+    title: "Escola Bartolomeu Perestrelo vs Escola Francisco Franco",
+    meta: "Jornada 02 · por preparar"
+  },
+  {
+    title: "Núcleo Desportivo Norte vs Associação Convidada",
+    meta: "Jornada 03 · por preparar"
+  },
+  {
+    title: "Grupo A vs Grupo B",
+    meta: "Fase final · por preparar"
+  },
+];
+
+const portalCards = [
   {
     title: "Resultados",
     text: "Atualizar resultados em fluxo controlado."
@@ -410,6 +429,44 @@ export default function PortalEscolasPage() {
               <li>Criar jornadas</li>
               <li>Definir datas</li>
               <li>Confirmar calendário antes dos jogos</li>
+            </ol>
+          </aside>
+        </section>
+
+        <section className="school-portal-participants" aria-labelledby="portal-matches-title">
+          <div>
+            <h2 id="portal-matches-title">3. Jogos</h2>
+            <p className="school-portal-participants-subtitle">
+              Montar jogos entre participantes, equipas, grupos ou entidades autorizadas, sem limitar o modelo
+              a escola contra escola.
+            </p>
+            <div className="school-portal-rounds" aria-label="Exemplo visual de jogos">
+              {matchSamples.map((match) => (
+                <article className="school-portal-round-card" key={match.title}>
+                  <div>
+                    <strong>{match.title}</strong>
+                    <span>{match.meta}</span>
+                  </div>
+                  <span className="school-portal-tag">Em breve</span>
+                </article>
+              ))}
+            </div>
+            <p className="school-portal-module-note">
+              Esta área servirá qualquer competição autorizada: interna de uma escola, entre escolas, entre
+              clubes escolares, com associações convidadas ou com grupos mistos.
+            </p>
+            <p className="school-portal-module-note">
+              Estrutura prevista: escola ou entidade organizadora, ano letivo ou contexto, competição,
+              jornada/fase, jogos, resultados e conteúdos.
+            </p>
+          </div>
+          <aside className="school-portal-flow" aria-label="Fluxo futuro de jogos">
+            <h3>Fluxo futuro</h3>
+            <ol>
+              <li>Escolher jornada ou fase</li>
+              <li>Selecionar participantes autorizados</li>
+              <li>Definir data, hora e local</li>
+              <li>Confirmar jogos antes dos resultados</li>
             </ol>
           </aside>
         </section>
