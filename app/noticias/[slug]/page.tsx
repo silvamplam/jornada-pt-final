@@ -629,6 +629,22 @@ const articlePageStyles = `
     text-transform: uppercase;
   }
 
+  .news-article-ad-link {
+    display: block;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
+    background: #ffffff;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .news-article-ad-link img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
   .news-article-side-panel {
     background: #ffffff;
   }
@@ -1341,9 +1357,15 @@ export default async function NewsArticlePage({ params }: PageProps) {
         </article>
 
         <aside className="news-article-sidebar">
-          <div className="news-article-ad" aria-label="Publicidade">
-            Publicidade
-          </div>
+          <a
+            className="news-article-ad news-article-ad-link"
+            href="https://now.startupmadeira.eu/"
+            target="_blank"
+            rel="noopener noreferrer sponsored"
+            aria-label="Startup Madeira NOW"
+          >
+            <img src="/ads/startup-madeira-now-sidebar.png" alt="Startup Madeira NOW" />
+          </a>
           {moreArticles.length > 0 ? (
             <section className="news-article-side-panel" aria-label="Artigos relacionados">
               <ul className="news-article-side-list">
