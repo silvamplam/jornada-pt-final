@@ -56,9 +56,12 @@ const adminPageStyles = `
 
   .admin-hero-actions {
     display: flex;
-    flex: 0 0 auto;
+    flex: 1 1 620px;
+    flex-wrap: wrap;
     gap: 10px;
     align-items: center;
+    justify-content: flex-end;
+    min-width: 0;
   }
 
   .admin-hero-actions form {
