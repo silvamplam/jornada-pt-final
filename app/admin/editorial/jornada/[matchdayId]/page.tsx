@@ -1037,11 +1037,11 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
   const latestNews = await readMatchdayLatestNews(matchday.id);
   const publishedReferenceComposition = await readPublishedReferenceComposition(matchday.id);
   const publishedEditorialArticles = await readPublishedEditorialArticles();
-  const publishedSources = await getEditorialPublishedSources({
+  const publishedSources = (await getEditorialPublishedSources({
     competitionId: competition.id,
     seasonId: season.id,
     matchdayId: matchday.id
-  }).catch(() => []);
+  }).catch(() => [])).filter((source) => source.matchday_id === matchday.id);
   const sideBlockArticleOptions = publishedEditorialArticles.filter((article) => articlePublicHref(article));
   const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
   const complementaryMode = editorial?.complementary_mode ?? "none";
@@ -1525,7 +1525,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             Artigos / Notícias
           </a>
           <a className="editorial-admin-button secondary" href="/admin/editorial/conteudos">
-            VÍDEO
+            CONTEÚDOS / AUDIOVISUAL
           </a>
           <a className="editorial-admin-button secondary" href={`/admin/editorial/composicao/${encodeURIComponent(matchday.id)}`}>
             Composição Editorial
