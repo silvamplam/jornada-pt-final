@@ -174,6 +174,34 @@ const portalEscolasStyles = `
     line-height: 1.35;
   }
 
+  .school-portal-rounds {
+    display: grid;
+    gap: 12px;
+    margin-top: 4px;
+  }
+
+  .school-portal-round-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    padding: 12px 14px;
+    border: 1px solid #d7e4ed;
+    border-radius: 10px;
+    background: #f8fbfd;
+  }
+
+  .school-portal-round-card strong {
+    display: block;
+    color: #102033;
+    font-size: 15px;
+  }
+
+  .school-portal-round-card span {
+    color: #667789;
+    font-size: 13px;
+  }
+
   .school-portal-card {
     min-width: 0;
     padding: 22px;
@@ -258,11 +286,22 @@ const participantSample = [
   "Escola Jaime Moniz"
 ].join("\n");
 
-const portalCards = [
+const roundSamples = [
   {
-    title: "Jornadas",
-    text: "Criar jornadas da competição de forma guiada."
+    title: "Jornada 01",
+    meta: "12 outubro · por preparar"
   },
+  {
+    title: "Jornada 02",
+    meta: "19 outubro · por preparar"
+  },
+  {
+    title: "Jornada 03",
+    meta: "26 outubro · por preparar"
+  }
+];
+
+const portalCards = [
   {
     title: "Jogos",
     text: "Montar calendário e jogos por jornada."
@@ -334,6 +373,43 @@ export default function PortalEscolasPage() {
               <li>Pré-visualizar</li>
               <li>Confirmar</li>
               <li>Associar à competição/época autorizada</li>
+            </ol>
+          </aside>
+        </section>
+
+        <section className="school-portal-participants" aria-labelledby="portal-rounds-title">
+          <div>
+            <h2 id="portal-rounds-title">2. Jornadas</h2>
+            <p className="school-portal-participants-subtitle">
+              Preparar jornadas da competição, organizando datas, rondas e fases de forma simples antes da
+              criação definitiva dos jogos.
+            </p>
+            <div className="school-portal-rounds" aria-label="Exemplo visual de jornadas">
+              {roundSamples.map((round) => (
+                <article className="school-portal-round-card" key={round.title}>
+                  <div>
+                    <strong>{round.title}</strong>
+                    <span>{round.meta}</span>
+                  </div>
+                  <span className="school-portal-tag">Em breve</span>
+                </article>
+              ))}
+            </div>
+            <p className="school-portal-module-note">
+              Esta área servirá para preparar as jornadas de uma competição escolar ou local, antes da criação
+              dos jogos. Nesta fase é apenas uma pré-visualização visual do fluxo futuro.
+            </p>
+            <p className="school-portal-module-note">
+              Este módulo ainda não grava dados. A criação real de jornadas será implementada numa fase posterior.
+            </p>
+          </div>
+          <aside className="school-portal-flow" aria-label="Fluxo futuro de jornadas">
+            <h3>Fluxo futuro</h3>
+            <ol>
+              <li>Escolher competição autorizada</li>
+              <li>Criar jornadas</li>
+              <li>Definir datas</li>
+              <li>Confirmar calendário antes dos jogos</li>
             </ol>
           </aside>
         </section>
