@@ -1,3 +1,4 @@
+import Script from "next/script";
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -390,7 +391,7 @@ export default async function AdminEditorialComposicaoEntryPage() {
           </a>
         </section>
       </div>
-      <script dangerouslySetInnerHTML={{ __html: entryScript }} />
+      <Script id="editorial-composicao-entry-selector" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: entryScript }} />
     </main>
   );
 }
