@@ -231,52 +231,59 @@ const entryScript = `
   var matchday = root.querySelector("[data-entry-matchday]");
   var action = root.querySelector("[data-entry-action]");
   var destination = root.getAttribute("data-destination-base") || "";
-  var seasonPlaceholder = season && season.options[0] ? season.options[0].cloneNode(true) : null;
-  var matchdayPlaceholder = matchday && matchday.options[0] ? matchday.options[0].cloneNode(true) : null;
-  var allSeasonOptions = season
-    ? Array.prototype.slice.call(season.options).filter(function (option) { return option.value; }).map(function (option) { return option.cloneNode(true); })
-    : [];
-  var allMatchdayOptions = matchday
-    ? Array.prototype.slice.call(matchday.options).filter(function (option) { return option.value; }).map(function (option) { return option.cloneNode(true); })
-    : [];
+  var allSeasons = readJson("[data-entry-seasons-json]");
+  var allMatchdays = readJson("[data-entry-matchdays-json]");
 
-  function replaceOptions(select, placeholder, options, label) {
+  function readJson(selector) {
+    var node = root.querySelector(selector);
+    if (!node) return [];
+    try {
+      return JSON.parse(node.textContent || "[]");
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function replaceOptions(select, options, label) {
     if (!select) return;
     select.innerHTML = "";
-    var emptyOption = placeholder ? placeholder.cloneNode(true) : document.createElement("option");
+    var emptyOption = document.createElement("option");
     emptyOption.value = "";
     emptyOption.textContent = label;
     select.appendChild(emptyOption);
-    options.forEach(function (option) {
-      select.appendChild(option.cloneNode(true));
+    options.forEach(function (item) {
+      var option = document.createElement("option");
+      option.value = item.id;
+      option.textContent = item.label;
+      select.appendChild(option);
     });
   }
 
-  function update() {
+  function update(resetSeason, resetMatchday) {
     var competitionId = competition ? competition.value : "";
-    var previousSeasonId = season ? season.value : "";
-    var previousMatchdayId = matchday ? matchday.value : "";
+    var previousSeasonId = !resetSeason && season ? season.value : "";
+    var previousMatchdayId = !resetMatchday && matchday ? matchday.value : "";
     var seasonOptions = competitionId
-      ? allSeasonOptions.filter(function (option) {
-          return option.getAttribute("data-competition-id") === competitionId;
+      ? allSeasons.filter(function (item) {
+          return item.competition_id === competitionId;
         })
       : [];
 
     if (season) {
-      replaceOptions(season, seasonPlaceholder, seasonOptions, competitionId ? "Escolher epoca" : "Seleciona competicao primeiro");
-      season.value = seasonOptions.some(function (option) { return option.value === previousSeasonId; }) ? previousSeasonId : "";
+      replaceOptions(season, seasonOptions, competitionId ? "Escolher epoca" : "Seleciona competicao primeiro");
+      season.value = seasonOptions.some(function (item) { return item.id === previousSeasonId; }) ? previousSeasonId : "";
     }
 
     var seasonId = season ? season.value : "";
     var matchdayOptions = seasonId
-      ? allMatchdayOptions.filter(function (option) {
-          return option.getAttribute("data-season-id") === seasonId && (!competitionId || option.getAttribute("data-competition-id") === competitionId);
+      ? allMatchdays.filter(function (item) {
+          return item.season_id === seasonId && (!competitionId || item.competition_id === competitionId);
         })
       : [];
 
     if (matchday) {
-      replaceOptions(matchday, matchdayPlaceholder, matchdayOptions, seasonId ? "Escolher jornada" : "Seleciona epoca primeiro");
-      matchday.value = matchdayOptions.some(function (option) { return option.value === previousMatchdayId; }) ? previousMatchdayId : "";
+      replaceOptions(matchday, matchdayOptions, seasonId ? "Escolher jornada" : "Seleciona epoca primeiro");
+      matchday.value = matchdayOptions.some(function (item) { return item.id === previousMatchdayId; }) ? previousMatchdayId : "";
     }
 
     if (!action) return;
@@ -294,16 +301,31 @@ const entryScript = `
     action.textContent = "Escolha uma jornada";
   }
 
-  if (competition) competition.addEventListener("change", update);
-  if (season) season.addEventListener("change", update);
-  if (matchday) matchday.addEventListener("change", update);
-  update();
+  if (competition) competition.addEventListener("change", function () { update(true, true); });
+  if (season) season.addEventListener("change", function () { update(false, true); });
+  if (matchday) matchday.addEventListener("change", function () { update(false, false); });
+  update(false, false);
 })();
 `;
 
 export default async function AdminEditorialComposicaoEntryPage() {
   const { competitions, seasons, matchdays, error } = await loadEntryOptions();
   const competitionBySeasonId = new Map(seasons.map((season) => [season.id, season.competition_id ?? ""]));
+  const entrySeasonsJson = JSON.stringify(
+    seasons.map((season) => ({
+      id: season.id,
+      label: firstText(season.label, season.id),
+      competition_id: season.competition_id ?? ""
+    }))
+  ).replace(/</g, "\\u003c");
+  const entryMatchdaysJson = JSON.stringify(
+    matchdays.map((matchday) => ({
+      id: matchday.id,
+      label: matchdayLabel(matchday),
+      season_id: matchday.season_id ?? "",
+      competition_id: matchday.season_id ? competitionBySeasonId.get(matchday.season_id) ?? "" : ""
+    }))
+  ).replace(/</g, "\\u003c");
 
   return (
     <main className="editorial-entry-shell">
@@ -344,30 +366,25 @@ export default async function AdminEditorialComposicaoEntryPage() {
               <span>Epoca</span>
               <select data-entry-season>
                 <option value="">Todas as epocas</option>
-                {seasons.map((season) => (
-                  <option key={season.id} value={season.id} data-competition-id={season.competition_id ?? ""}>
-                    {firstText(season.label, season.id)}
-                  </option>
-                ))}
               </select>
             </label>
             <label className="editorial-entry-field">
               <span>Jornada</span>
               <select data-entry-matchday>
                 <option value="">Escolher jornada</option>
-                {matchdays.map((matchday) => (
-                  <option
-                    key={matchday.id}
-                    value={matchday.id}
-                    data-season-id={matchday.season_id ?? ""}
-                    data-competition-id={matchday.season_id ? competitionBySeasonId.get(matchday.season_id) ?? "" : ""}
-                  >
-                    {matchdayLabel(matchday)}
-                  </option>
-                ))}
               </select>
             </label>
           </div>
+          <script
+            data-entry-seasons-json
+            type="application/json"
+            dangerouslySetInnerHTML={{ __html: entrySeasonsJson }}
+          />
+          <script
+            data-entry-matchdays-json
+            type="application/json"
+            dangerouslySetInnerHTML={{ __html: entryMatchdaysJson }}
+          />
           <a className="editorial-entry-button is-disabled" data-entry-action aria-disabled="true">
             Escolha uma jornada
           </a>
