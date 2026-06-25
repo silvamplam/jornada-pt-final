@@ -83,6 +83,97 @@ const portalEscolasStyles = `
     margin-top: 22px;
   }
 
+  .school-portal-participants {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.55fr);
+    gap: 18px;
+    margin-top: 22px;
+    padding: 24px;
+    border: 1px solid #cbdce7;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 16px 34px rgba(15, 35, 52, 0.09);
+  }
+
+  .school-portal-participants h2,
+  .school-portal-flow h3 {
+    margin: 0;
+    color: #102033;
+  }
+
+  .school-portal-participants-subtitle {
+    margin: 8px 0 18px;
+    color: #5a6979;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+
+  .school-portal-demo-label {
+    display: block;
+    margin-bottom: 8px;
+    color: #33465b;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .school-portal-demo-list {
+    width: 100%;
+    min-height: 144px;
+    box-sizing: border-box;
+    resize: none;
+    padding: 16px;
+    border: 1px solid #cbd7e2;
+    border-radius: 10px;
+    background: #f8fbfd;
+    color: #26384c;
+    font: 15px/1.6 Arial, Helvetica, sans-serif;
+  }
+
+  .school-portal-demo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-top: 14px;
+  }
+
+  .school-portal-disabled-button {
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 999px;
+    background: #d9e4ec;
+    color: #617184;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    cursor: not-allowed;
+  }
+
+  .school-portal-module-note {
+    margin: 14px 0 0;
+    color: #667789;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .school-portal-flow {
+    padding: 18px;
+    border: 1px solid #d7e4ed;
+    border-radius: 12px;
+    background: #f6fafc;
+  }
+
+  .school-portal-flow ol {
+    display: grid;
+    gap: 10px;
+    margin: 14px 0 0;
+    padding-left: 20px;
+    color: #45586d;
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
   .school-portal-card {
     min-width: 0;
     padding: 22px;
@@ -143,6 +234,10 @@ const portalEscolasStyles = `
     .school-portal-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    .school-portal-participants {
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (max-width: 620px) {
@@ -156,11 +251,14 @@ const portalEscolasStyles = `
   }
 `;
 
+const participantSample = [
+  "Escola Bartolomeu Perestrelo",
+  "Escola Francisco Franco",
+  "Escola Gonçalves Zarco",
+  "Escola Jaime Moniz"
+].join("\n");
+
 const portalCards = [
-  {
-    title: "Participantes",
-    text: "Adicionar equipas ou participantes por lista simples."
-  },
   {
     title: "Jornadas",
     text: "Criar jornadas da competição de forma guiada."
@@ -198,6 +296,46 @@ export default function PortalEscolasPage() {
             </p>
           </div>
           <span className="school-portal-status">Em breve</span>
+        </section>
+
+        <section className="school-portal-participants" aria-labelledby="portal-participants-title">
+          <div>
+            <h2 id="portal-participants-title">1. Participantes</h2>
+            <p className="school-portal-participants-subtitle">Adicionar participantes por lista simples.</p>
+            <label className="school-portal-demo-label" htmlFor="portal-participants-demo">
+              Escreva um participante por linha:
+            </label>
+            <textarea
+              id="portal-participants-demo"
+              className="school-portal-demo-list"
+              readOnly
+              value={participantSample}
+              aria-label="Exemplo visual de lista de participantes"
+            />
+            <div className="school-portal-demo-actions">
+              <button className="school-portal-disabled-button" type="button" disabled>
+                Em breve
+              </button>
+              <span className="school-portal-tag">Maquete visual</span>
+            </div>
+            <p className="school-portal-module-note">
+              Em fase futura, o sistema irá validar nomes repetidos, reutilizar equipas existentes e associar
+              os participantes à competição/época permitida.
+            </p>
+            <p className="school-portal-module-note">
+              Este módulo ainda não grava dados. A validação e associação real serão implementadas numa fase
+              posterior.
+            </p>
+          </div>
+          <aside className="school-portal-flow" aria-label="Fluxo futuro de participantes">
+            <h3>Fluxo futuro</h3>
+            <ol>
+              <li>Colar lista de participantes</li>
+              <li>Pré-visualizar</li>
+              <li>Confirmar</li>
+              <li>Associar à competição/época autorizada</li>
+            </ol>
+          </aside>
         </section>
 
         <section className="school-portal-grid" aria-label="Modulos previstos">
