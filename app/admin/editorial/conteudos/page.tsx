@@ -405,7 +405,7 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
     Promise.resolve(pageMessage(params)),
   ]);
   const isArchivedView = statusView === "archived";
-  const isCreating = params.mode === "novo";
+  const isCreating = params.mode === "novo" || (!params.contentId && !isArchivedView);
   const selectedContent = params.contentId ? contents.find((content) => content.id === params.contentId) ?? null : null;
   const groupedContents = groupEditorialSidebarItems(
     contents.map((content): EditorialSidebarItem<EditorialContent> => ({
@@ -556,19 +556,13 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
 
         <section className="content-admin-detail-panel" aria-label="Editor de conteudo audiovisual">
           {isCreating ? (
-            <>
-              <div className="content-admin-detail-heading">
-                <h2>Novo conteudo audiovisual</h2>
-                <p>Preencha o formulario para criar uma nova peca audiovisual sem sair da biblioteca.</p>
-              </div>
-              <EditorialContentForm
-                mode="create"
-                message={params.error ? message : null}
-                competitions={lookups.competitionOptions}
-                seasons={lookups.seasonOptions}
-                matchdays={lookups.matchdayOptions}
-              />
-            </>
+            <EditorialContentForm
+              mode="create"
+              message={params.error ? message : null}
+              competitions={lookups.competitionOptions}
+              seasons={lookups.seasonOptions}
+              matchdays={lookups.matchdayOptions}
+            />
           ) : selectedContent ? (
             <EditorialContentForm
               mode="edit"
