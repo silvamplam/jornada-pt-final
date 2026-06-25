@@ -69,7 +69,6 @@ const editorialNavigationLinks = [
 
 const contentSidebarStyles = `
   .content-admin-header,
-  .content-admin-view-tabs,
   .content-admin-workspace {
     width: min(100%, 1360px);
     max-width: 1360px;
@@ -87,6 +86,13 @@ const contentSidebarStyles = `
     grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
     gap: 22px;
     align-items: start;
+    margin-top: 18px;
+  }
+
+  .content-admin-sidebar-pane .content-admin-view-tabs {
+    width: 100%;
+    max-width: none;
+    margin: 0 0 14px;
   }
 
   .content-admin-sidebar-pane,
@@ -476,20 +482,20 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
         </Link>
       </section>
 
-      <nav className="content-admin-view-tabs" aria-label="Filtro de conteudos">
-        <Link className={!isArchivedView ? "active" : undefined} href="/admin/editorial/conteudos">
-          Ativos
-        </Link>
-        <Link className={isArchivedView ? "active" : undefined} href="/admin/editorial/conteudos?status=archived">
-          Arquivados
-        </Link>
-      </nav>
-
       {message ? <p className="content-admin-alert">{message}</p> : null}
       {error ? <p className="content-admin-alert">{error}</p> : null}
 
       <section className="content-admin-workspace">
         <aside className="content-admin-sidebar-pane" aria-label="Conteudos editoriais audiovisuais">
+          <nav className="content-admin-view-tabs" aria-label="Filtro de conteudos">
+            <Link className={!isArchivedView ? "active" : undefined} href="/admin/editorial/conteudos">
+              Ativos
+            </Link>
+            <Link className={isArchivedView ? "active" : undefined} href="/admin/editorial/conteudos?status=archived">
+              Arquivados
+            </Link>
+          </nav>
+
           {contents.length === 0 ? (
             <section className="content-admin-empty">
               <h2>
