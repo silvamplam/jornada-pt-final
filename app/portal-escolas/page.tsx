@@ -324,11 +324,22 @@ const matchSamples = [
   },
 ];
 
-const portalCards = [
+const resultSamples = [
   {
-    title: "Resultados",
-    text: "Atualizar resultados em fluxo controlado."
+    title: "Turma 7.º A 2 - 1 Turma 7.º B",
+    meta: "Resultado por confirmar"
   },
+  {
+    title: "Equipa Azul 0 - 0 Equipa Branca",
+    meta: "Por validar"
+  },
+  {
+    title: "Núcleo Desportivo Norte 3 - 2 Associação Convidada",
+    meta: "Validado"
+  },
+];
+
+const portalCards = [
   {
     title: "Notícias e Vídeo",
     text: "Enviar conteúdos para revisão editorial."
@@ -467,6 +478,46 @@ export default function PortalEscolasPage() {
               <li>Selecionar participantes autorizados</li>
               <li>Definir data, hora e local</li>
               <li>Confirmar jogos antes dos resultados</li>
+            </ol>
+          </aside>
+        </section>
+
+        <section className="school-portal-participants" aria-labelledby="portal-results-title">
+          <div>
+            <h2 id="portal-results-title">4. Resultados</h2>
+            <p className="school-portal-participants-subtitle">
+              Inserir, validar e confirmar resultados de jogos entre participantes, equipas, grupos ou entidades
+              autorizadas.
+            </p>
+            <div className="school-portal-rounds" aria-label="Exemplo visual de resultados">
+              {resultSamples.map((result) => (
+                <article className="school-portal-round-card" key={result.title}>
+                  <div>
+                    <strong>{result.title}</strong>
+                    <span>{result.meta}</span>
+                  </div>
+                  <span className="school-portal-tag">Em breve</span>
+                </article>
+              ))}
+            </div>
+            <p className="school-portal-module-note">
+              Esta área servirá para rever resultados antes de ficarem definitivos, mantendo um fluxo controlado
+              para qualquer competição autorizada.
+            </p>
+            <p className="school-portal-module-note">
+              Este módulo ainda não grava dados. A validação real de resultados será implementada numa fase
+              posterior.
+            </p>
+          </div>
+          <aside className="school-portal-flow" aria-label="Fluxo futuro de resultados">
+            <h3>Fluxo futuro</h3>
+            <ol>
+              <li>Escolher competição</li>
+              <li>Escolher jornada/fase</li>
+              <li>Selecionar jogo</li>
+              <li>Inserir resultado</li>
+              <li>Confirmar/validar resultado</li>
+              <li>Atualizar classificação ou histórico</li>
             </ol>
           </aside>
         </section>
