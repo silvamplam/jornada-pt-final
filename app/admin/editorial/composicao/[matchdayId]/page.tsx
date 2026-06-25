@@ -1850,7 +1850,7 @@ export default async function AdminEditorialCompositionPage({ params, searchPara
             Artigos / Notícias
           </a>
           <a className="composition-admin-button" href="/admin/editorial/conteudos">
-            CONTEÚDOS / AUDIOVISUAL
+            VÍDEO
           </a>
           <a className="composition-admin-button" href={`/admin/editorial/jornada/${encodeURIComponent(matchday.id)}`}>
             Editorial da Jornada

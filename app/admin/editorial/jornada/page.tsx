@@ -293,7 +293,7 @@ export default async function AdminEditorialMatchdaySelectorPage() {
         <nav className="matchday-selector-actions" aria-label="Navegacao editorial">
           <a href="/admin/editorial/home">Home Editorial</a>
           <a href="/admin/editorial/artigos">Artigos / Noticias</a>
-          <a href="/admin/editorial/conteudos">CONTEÚDOS / AUDIOVISUAL</a>
+          <a href="/admin/editorial/conteudos">VÍDEO</a>
           <a href="/admin/editorial/composicao">Composicao Editorial</a>
           <a href="/admin/gestor">Centro de Gestao</a>
           <a href="/admin">Backoffice</a>
