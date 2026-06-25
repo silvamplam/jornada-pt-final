@@ -467,21 +467,6 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
         </Link>
       </section>
 
-      <section className="content-admin-notes" aria-label="Notas de arquitetura">
-        <p>
-          <strong>Separacao:</strong> Artigos/Noticias continuam em <code>editorial_articles</code>. Esta pagina gere
-          apenas <code>editorial_contents</code>.
-        </p>
-        <p>
-          <strong>Video da Jornada:</strong> <code>matchday_roundup_items</code>, <code>site_editorial_roundup_items</code>{" "}
-          e <code>matchdays.video_url</code> continuam independentes.
-        </p>
-        <p>
-          <strong>Arquivo:</strong> a lista principal mostra rascunhos e publicados. Conteudos arquivados ficam ocultos,
-          mas nao sao apagados.
-        </p>
-      </section>
-
       <nav className="content-admin-view-tabs" aria-label="Filtro de conteudos">
         <Link className={!isArchivedView ? "active" : undefined} href="/admin/editorial/conteudos">
           Ativos
@@ -571,19 +556,13 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
 
         <section className="content-admin-detail-panel" aria-label="Editor de conteudo audiovisual">
           {isCreating ? (
-            <>
-              <div className="content-admin-detail-heading">
-                <h2>Novo conteudo audiovisual</h2>
-                <p>Preencha o formulario para criar uma nova peca audiovisual sem sair da biblioteca.</p>
-              </div>
-              <EditorialContentForm
-                mode="create"
-                message={params.error ? message : null}
-                competitions={lookups.competitionOptions}
-                seasons={lookups.seasonOptions}
-                matchdays={lookups.matchdayOptions}
-              />
-            </>
+            <EditorialContentForm
+              mode="create"
+              message={params.error ? message : null}
+              competitions={lookups.competitionOptions}
+              seasons={lookups.seasonOptions}
+              matchdays={lookups.matchdayOptions}
+            />
           ) : selectedContent ? (
             <EditorialContentForm
               mode="edit"
