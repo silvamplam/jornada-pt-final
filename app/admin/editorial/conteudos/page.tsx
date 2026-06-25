@@ -405,7 +405,7 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
     Promise.resolve(pageMessage(params)),
   ]);
   const isArchivedView = statusView === "archived";
-  const isCreating = params.mode === "novo";
+  const isCreating = params.mode === "novo" || (!params.contentId && !isArchivedView);
   const selectedContent = params.contentId ? contents.find((content) => content.id === params.contentId) ?? null : null;
   const groupedContents = groupEditorialSidebarItems(
     contents.map((content): EditorialSidebarItem<EditorialContent> => ({
@@ -465,6 +465,21 @@ export default async function AdminEditorialContentsPage({ searchParams }: PageP
         <Link className="content-admin-primary-action" href={contentWorkspaceHref({ mode: "novo", statusView })}>
           Novo conteúdo
         </Link>
+      </section>
+
+      <section className="content-admin-notes" aria-label="Notas de arquitetura">
+        <p>
+          <strong>Separacao:</strong> Artigos/Noticias continuam em <code>editorial_articles</code>. Esta pagina gere
+          apenas <code>editorial_contents</code>.
+        </p>
+        <p>
+          <strong>Video da Jornada:</strong> <code>matchday_roundup_items</code>, <code>site_editorial_roundup_items</code>{" "}
+          e <code>matchdays.video_url</code> continuam independentes.
+        </p>
+        <p>
+          <strong>Arquivo:</strong> a lista principal mostra rascunhos e publicados. Conteudos arquivados ficam ocultos,
+          mas nao sao apagados.
+        </p>
       </section>
 
       <nav className="content-admin-view-tabs" aria-label="Filtro de conteudos">
