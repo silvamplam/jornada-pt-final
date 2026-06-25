@@ -231,50 +231,52 @@ const entryScript = `
   var matchday = root.querySelector("[data-entry-matchday]");
   var action = root.querySelector("[data-entry-action]");
   var destination = root.getAttribute("data-destination-base") || "";
+  var seasonPlaceholder = season && season.options[0] ? season.options[0].cloneNode(true) : null;
+  var matchdayPlaceholder = matchday && matchday.options[0] ? matchday.options[0].cloneNode(true) : null;
+  var allSeasonOptions = season
+    ? Array.prototype.slice.call(season.options).filter(function (option) { return option.value; }).map(function (option) { return option.cloneNode(true); })
+    : [];
+  var allMatchdayOptions = matchday
+    ? Array.prototype.slice.call(matchday.options).filter(function (option) { return option.value; }).map(function (option) { return option.cloneNode(true); })
+    : [];
 
-  function selectedOption(select) {
-    return select && select.options ? select.options[select.selectedIndex] : null;
+  function replaceOptions(select, placeholder, options, label) {
+    if (!select) return;
+    select.innerHTML = "";
+    var emptyOption = placeholder ? placeholder.cloneNode(true) : document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = label;
+    select.appendChild(emptyOption);
+    options.forEach(function (option) {
+      select.appendChild(option.cloneNode(true));
+    });
   }
 
   function update() {
     var competitionId = competition ? competition.value : "";
-    var seasonId = season ? season.value : "";
+    var previousSeasonId = season ? season.value : "";
+    var previousMatchdayId = matchday ? matchday.value : "";
+    var seasonOptions = competitionId
+      ? allSeasonOptions.filter(function (option) {
+          return option.getAttribute("data-competition-id") === competitionId;
+        })
+      : [];
 
     if (season) {
-      Array.prototype.forEach.call(season.options, function (option) {
-        if (!option.value) {
-          option.hidden = false;
-          option.disabled = false;
-          return;
-        }
-        var keep = !competitionId || option.getAttribute("data-competition-id") === competitionId;
-        option.hidden = !keep;
-        option.disabled = !keep;
-      });
-
-      if (selectedOption(season) && selectedOption(season).disabled) {
-        season.value = "";
-        seasonId = "";
-      }
+      replaceOptions(season, seasonPlaceholder, seasonOptions, competitionId ? "Escolher epoca" : "Seleciona competicao primeiro");
+      season.value = seasonOptions.some(function (option) { return option.value === previousSeasonId; }) ? previousSeasonId : "";
     }
 
-    if (matchday) {
-      Array.prototype.forEach.call(matchday.options, function (option) {
-        if (!option.value) {
-          option.hidden = false;
-          option.disabled = false;
-          return;
-        }
-        var keepBySeason = !seasonId || option.getAttribute("data-season-id") === seasonId;
-        var keepByCompetition = !competitionId || option.getAttribute("data-competition-id") === competitionId;
-        var keep = keepBySeason && keepByCompetition;
-        option.hidden = !keep;
-        option.disabled = !keep;
-      });
+    var seasonId = season ? season.value : "";
+    var matchdayOptions = seasonId
+      ? allMatchdayOptions.filter(function (option) {
+          return option.getAttribute("data-season-id") === seasonId && (!competitionId || option.getAttribute("data-competition-id") === competitionId);
+        })
+      : [];
 
-      if (selectedOption(matchday) && selectedOption(matchday).disabled) {
-        matchday.value = "";
-      }
+    if (matchday) {
+      replaceOptions(matchday, matchdayPlaceholder, matchdayOptions, seasonId ? "Escolher jornada" : "Seleciona epoca primeiro");
+      matchday.value = matchdayOptions.some(function (option) { return option.value === previousMatchdayId; }) ? previousMatchdayId : "";
     }
 
     if (!action) return;
