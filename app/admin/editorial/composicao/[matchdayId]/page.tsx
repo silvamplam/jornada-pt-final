@@ -1,3 +1,4 @@
+﻿import type { ReactNode } from "react";
 import {
   fetchSupabaseAdminTable,
   type SupabaseCompetition,
@@ -9,18 +10,26 @@ import {
   type SupabaseMatchdayRoundupItem,
   type SupabaseSeason
 } from "@/lib/supabase";
-import {
-  getEditorialPublishedSources,
-  type EditorialPublishedSource
-} from "@/lib/editorial-published-sources";
 
 export const dynamic = "force-dynamic";
 
-type EditorialPageProps = {
+type CompositionPageProps = {
   params: Promise<{
     matchdayId: string;
   }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  searchParams?: Promise<{
+    bank_archived?: string;
+    bank_assigned?: string;
+    bank_assignment_error?: string;
+    bank_error?: string;
+    bank_existing?: string;
+    bank_repeated?: string;
+    bank_reactivated?: string;
+    bank_saved?: string;
+    bank_skipped?: string;
+    bank_status_error?: string;
+    bank_unassigned?: string;
+  }>;
 };
 
 type MatchdayContext = {
@@ -38,30 +47,457 @@ type ContextSelectorData = {
   error: string;
 };
 
-type EditorialArticleForSideBlock = {
+type SupabaseArticle = {
   id: string;
-  slug: string | null;
-  title: string | null;
-  subtitle: string | null;
-  body: string | null;
-  label: string | null;
-  author: string | null;
+  title: string;
+  summary: string | null;
   image_url: string | null;
+  source_url: string | null;
+  status: string;
+  competition_id: string | null;
+  season_id: string | null;
+  matchday_id: string | null;
+  match_id: string | null;
   published_at: string | null;
-  created_at: string | null;
-  status: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
-const ROUNDUP_EDITOR_SORT_ORDERS = Array.from({ length: 10 }, (_, index) => index + 1);
-const LATEST_NEWS_EDITOR_SORT_ORDERS = Array.from({ length: 8 }, (_, index) => index + 1);
+type ReferenceComposition = {
+  id: string;
+  matchday_id: string;
+  status: string;
+  is_current: boolean;
+  internal_name: string | null;
+  use_roundup_items: boolean;
+  created_at: string;
+  updated_at: string;
+  published_at: string | null;
+};
 
-const editorialPageStyles = `
+type ReferenceCompositionItem = {
+  id: string;
+  composition_id: string;
+  slot_type: string;
+  source_type: string;
+  source_id: string | null;
+  article_id: string | null;
+  sort_order: number;
+  title_snapshot: string | null;
+  subtitle_snapshot: string | null;
+  image_url_snapshot: string | null;
+  link_url_snapshot: string | null;
+  label_snapshot: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type MatchdayEditorialBankItem = {
+  id: string;
+  matchday_id: string;
+  label: string | null;
+  title: string;
+  subtitle: string | null;
+  image_url: string | null;
+  link_url: string | null;
+  source_type: string | null;
+  source_id: string | null;
+  source_slug: string | null;
+  origin_slot_type: string | null;
+  sort_order: number | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type MatchdayEditorialWithHeadlineLink = SupabaseMatchdayEditorial & {
+  headline_link_url?: string | null;
+};
+
+type MatchdayHighlightWithLink = SupabaseMatchdayHighlight & {
+  link_url?: string | null;
+};
+
+const referenceCompositionSections = [
+  { slotType: "headline", title: "Manchete" },
+  { slotType: "complement", title: "Complemento da manchete" },
+  { slotType: "side_block", title: "Bloco lateral" },
+  { slotType: "highlight", title: "Destaques abaixo da manchete" },
+  { slotType: "important_item", title: "Mais notícias da jornada" },
+  { slotType: "editorial_line_item", title: "Zona editorial final" },
+  { slotType: "related_article", title: "Artigos relacionados" },
+  { slotType: "roundup", title: "Resumo / Vídeos" },
+  { slotType: "custom_card", title: "Cartão personalizado" }
+];
+
+const bankAssignableSlotTypes = new Set(["headline", "complement", "side_block", "highlight", "important_item", "editorial_line_item"]);
+const bankAssignableSlotOptions = referenceCompositionSections.filter((section) => bankAssignableSlotTypes.has(section.slotType));
+
+function groupCompositionItemsBySection(items: ReferenceCompositionItem[]) {
+  const orderedItems = [...items].sort((a, b) => a.sort_order - b.sort_order);
+  const knownSlotTypes = new Set(referenceCompositionSections.map((section) => section.slotType));
+  const sections = referenceCompositionSections
+    .map((section) => ({
+      ...section,
+      items: orderedItems.filter((item) => item.slot_type === section.slotType)
+    }))
+    .filter((section) => section.items.length > 0 || section.slotType === "important_item");
+  const otherItems = orderedItems.filter((item) => !knownSlotTypes.has(item.slot_type));
+
+  if (otherItems.length > 0) {
+    sections.push({
+      slotType: "other",
+      title: "Outros itens",
+      items: otherItems
+    });
+  }
+
+  return sections;
+}
+
+function compositionSectionTitle(slotType?: string | null) {
+  return referenceCompositionSections.find((section) => section.slotType === slotType)?.title ?? "Outros itens";
+}
+
+function normalizeCandidateLink(value?: string | null) {
+  return textOrEmpty(value).toLowerCase();
+}
+
+function normalizeCandidateValue(value?: string | null) {
+  return textOrEmpty(value).toLowerCase();
+}
+
+function normalizeSourceType(sourceType?: string | null) {
+  const normalized = normalizeCandidateValue(sourceType);
+
+  if (normalized === "matchday_editorials") return "matchday_editorial";
+  if (normalized === "matchday_highlights") return "matchday_highlight";
+  if (normalized === "matchday_roundup_items") return "matchday_roundup_item";
+  if (normalized === "articles") return "article";
+
+  return normalized;
+}
+
+function isMatchdayEditorialSource(sourceType?: string | null) {
+  return normalizeSourceType(sourceType) === "matchday_editorial";
+}
+
+function isFreeNewsSlot(slotType?: string | null) {
+  return slotType === "important_item" || slotType === "editorial_line_item";
+}
+
+function isBankCompositionSource(sourceType?: string | null, sourceId?: string | null) {
+  const normalizedSourceType = normalizeSourceType(sourceType);
+  return Boolean(sourceId) && (normalizedSourceType === "manual_link" || normalizedSourceType === "matchday_editorial_bank_item");
+}
+
+function bankItemPlacementLabel(items: ReferenceCompositionItem[], bankItem: MatchdayEditorialBankItem) {
+  const slotTitles = items
+    .filter((item) => isBankCompositionSource(item.source_type, item.source_id) && item.source_id === bankItem.id)
+    .map((item) => compositionSectionTitle(item.slot_type));
+  const uniqueSlotTitles = Array.from(new Set(slotTitles));
+
+  return uniqueSlotTitles.length > 0 ? uniqueSlotTitles.join(", ") : null;
+}
+
+function isArtificialFreeZoneLabel(label?: string | null, sourceType?: string | null) {
+  const normalizedLabel = normalizeCandidateValue(label);
+  const normalizedSourceType = normalizeSourceType(sourceType);
+
+  if (!normalizedLabel) return false;
+  if (normalizedLabel === "zona editorial final" || normalizedLabel === "mais noticias da jornada" || normalizedLabel === "mais notícias da jornada") return true;
+  if (normalizedSourceType === "matchday_editorial") {
+    return normalizedLabel === "manchete" || normalizedLabel === "complemento" || normalizedLabel === "complemento da manchete" || normalizedLabel === "bloco lateral";
+  }
+  if (normalizedSourceType === "article") {
+    return normalizedLabel === "artigo / noticia" || normalizedLabel === "artigo / notícia";
+  }
+
+  return false;
+}
+
+function compositionItemDisplayLabel(item: ReferenceCompositionItem) {
+  if (isFreeNewsSlot(item.slot_type) && isArtificialFreeZoneLabel(item.label_snapshot, item.source_type)) {
+    return null;
+  }
+
+  return item.label_snapshot || item.slot_type;
+}
+
+function matchdayEditorialOriginSlot(item: ReferenceCompositionItem) {
+  if (!isMatchdayEditorialSource(item.source_type)) {
+    return null;
+  }
+
+  if (item.slot_type === "headline" || item.slot_type === "complement" || item.slot_type === "side_block") {
+    return item.slot_type;
+  }
+
+  const label = normalizeCandidateValue(item.label_snapshot);
+
+  if (label === "manchete") {
+    return "headline";
+  }
+
+  if (label === "complemento da manchete" || label === "complemento") {
+    return "complement";
+  }
+
+  if (label === "bloco lateral") {
+    return "side_block";
+  }
+
+  return null;
+}
+
+function concreteContentMatches(
+  item: ReferenceCompositionItem,
+  {
+    articleId,
+    linkUrl,
+    title,
+    subtitle,
+    imageUrl
+  }: {
+    articleId?: string | null;
+    linkUrl?: string | null;
+    title?: string | null;
+    subtitle?: string | null;
+    imageUrl?: string | null;
+  }
+) {
+  const itemTitle = normalizeCandidateValue(item.title_snapshot);
+  const candidateTitle = normalizeCandidateValue(title);
+
+  if (!itemTitle || !candidateTitle || itemTitle !== candidateTitle) {
+    return false;
+  }
+
+  if (articleId && item.article_id && item.article_id === articleId) {
+    return true;
+  }
+
+  const itemLinkUrl = normalizeCandidateLink(item.link_url_snapshot);
+  const candidateLinkUrl = normalizeCandidateLink(linkUrl);
+
+  if (itemLinkUrl && candidateLinkUrl && itemLinkUrl === candidateLinkUrl) {
+    return true;
+  }
+
+  const itemImageUrl = normalizeCandidateLink(item.image_url_snapshot);
+  const candidateImageUrl = normalizeCandidateLink(imageUrl);
+  const itemSubtitle = normalizeCandidateValue(item.subtitle_snapshot);
+  const candidateSubtitle = normalizeCandidateValue(subtitle);
+  const canCompareImage = Boolean(itemImageUrl && candidateImageUrl);
+  const canCompareSubtitle = Boolean(itemSubtitle && candidateSubtitle);
+
+  return (canCompareImage && itemImageUrl === candidateImageUrl) || (canCompareSubtitle && itemSubtitle === candidateSubtitle);
+}
+
+function compositionItemMatchesCandidate(
+  item: ReferenceCompositionItem,
+  {
+    sourceType,
+    sourceId,
+    articleId,
+    linkUrl,
+    originSlotType,
+    title,
+    subtitle,
+    imageUrl
+  }: {
+    sourceType: string;
+    sourceId?: string | null;
+    articleId?: string | null;
+    linkUrl?: string | null;
+    originSlotType?: string | null;
+    title?: string | null;
+    subtitle?: string | null;
+    imageUrl?: string | null;
+  }
+) {
+  if (isMatchdayEditorialSource(sourceType)) {
+    if (!sourceId || !isMatchdayEditorialSource(item.source_type) || !item.source_id || item.source_id !== sourceId) {
+      return false;
+    }
+
+    const originMatches = Boolean(originSlotType && matchdayEditorialOriginSlot(item) === originSlotType);
+
+    if (!originMatches && isFreeNewsSlot(item.slot_type)) {
+      return concreteContentMatches(item, { articleId, linkUrl, title, subtitle, imageUrl });
+    }
+
+    if (!originMatches) {
+      return false;
+    }
+
+    const itemTitle = normalizeCandidateValue(item.title_snapshot);
+    const candidateTitle = normalizeCandidateValue(title);
+
+    if (itemTitle && candidateTitle && itemTitle !== candidateTitle) {
+      return false;
+    }
+
+    if (articleId && item.article_id && item.article_id === articleId) {
+      return true;
+    }
+
+    const itemLinkUrl = normalizeCandidateLink(item.link_url_snapshot);
+    const candidateLinkUrl = normalizeCandidateLink(linkUrl);
+
+    if (itemLinkUrl && candidateLinkUrl && itemLinkUrl === candidateLinkUrl) {
+      return true;
+    }
+
+    if (!itemTitle || !candidateTitle || itemTitle !== candidateTitle) {
+      return false;
+    }
+
+    const itemImageUrl = normalizeCandidateLink(item.image_url_snapshot);
+    const candidateImageUrl = normalizeCandidateLink(imageUrl);
+    const itemSubtitle = normalizeCandidateValue(item.subtitle_snapshot);
+    const candidateSubtitle = normalizeCandidateValue(subtitle);
+    const canCompareImage = Boolean(itemImageUrl && candidateImageUrl);
+    const canCompareSubtitle = Boolean(itemSubtitle && candidateSubtitle);
+
+    if (canCompareImage || canCompareSubtitle) {
+      return (canCompareImage && itemImageUrl === candidateImageUrl) || (canCompareSubtitle && itemSubtitle === candidateSubtitle);
+    }
+
+    return true;
+  }
+
+  const itemTitle = normalizeCandidateValue(item.title_snapshot);
+  const candidateTitle = normalizeCandidateValue(title);
+
+  if (itemTitle && candidateTitle && itemTitle !== candidateTitle) {
+    return false;
+  }
+
+  if (articleId && item.article_id && item.article_id === articleId) {
+    return true;
+  }
+
+  const itemLinkUrl = normalizeCandidateLink(item.link_url_snapshot);
+  const candidateLinkUrl = normalizeCandidateLink(linkUrl);
+
+  if (itemLinkUrl && candidateLinkUrl && itemLinkUrl === candidateLinkUrl) {
+    return true;
+  }
+
+  if (sourceType && sourceId && item.source_type && item.source_id) {
+    if (isMatchdayEditorialSource(item.source_type)) {
+      return false;
+    }
+
+    if (normalizeSourceType(item.source_type) === normalizeSourceType(sourceType) && item.source_id === sourceId) {
+      return true;
+    }
+  }
+
+  if (itemTitle && candidateTitle && itemTitle === candidateTitle) {
+    const itemImageUrl = normalizeCandidateLink(item.image_url_snapshot);
+    const candidateImageUrl = normalizeCandidateLink(imageUrl);
+    const itemSubtitle = normalizeCandidateValue(item.subtitle_snapshot);
+    const candidateSubtitle = normalizeCandidateValue(subtitle);
+    const canCompareImage = Boolean(itemImageUrl && candidateImageUrl);
+    const canCompareSubtitle = Boolean(itemSubtitle && candidateSubtitle);
+
+    return (canCompareImage && itemImageUrl === candidateImageUrl) || (canCompareSubtitle && itemSubtitle === candidateSubtitle);
+  }
+
+  return false;
+}
+
+function candidatePlacementLabel(
+  items: ReferenceCompositionItem[],
+  candidate: {
+    sourceType: string;
+    sourceId?: string | null;
+    articleId?: string | null;
+    linkUrl?: string | null;
+    originSlotType?: string | null;
+    title?: string | null;
+    subtitle?: string | null;
+    imageUrl?: string | null;
+  }
+) {
+  const slotTitles = items
+    .filter((item) => compositionItemMatchesCandidate(item, candidate))
+    .map((item) => compositionSectionTitle(item.slot_type));
+  const uniqueSlotTitles = Array.from(new Set(slotTitles));
+
+  return uniqueSlotTitles.length > 0 ? uniqueSlotTitles.join(", ") : null;
+}
+
+function countCompositionSlots(items: ReferenceCompositionItem[]) {
+  return items.reduce<Record<string, number>>((counts, item) => {
+    const slotType = item.slot_type ?? "";
+    counts[slotType] = (counts[slotType] ?? 0) + 1;
+    return counts;
+  }, {});
+}
+
+function getCompositionPublicationValidation(items: ReferenceCompositionItem[]) {
+  const counts = countCompositionSlots(items);
+  const headlineCount = counts.headline ?? 0;
+  const complementCount = counts.complement ?? 0;
+  const sideBlockCount = counts.side_block ?? 0;
+  const warnings: string[] = [];
+
+  if (headlineCount === 0) {
+    warnings.push("A composição ainda não tem manchete.");
+  } else if (headlineCount > 1) {
+    warnings.push(`A composição tem ${headlineCount} manchetes. Remove ${headlineCount === 2 ? "uma" : "as manchetes extra"} antes de publicar.`);
+  }
+
+  if (complementCount > 1) {
+    warnings.push("A composição só pode ter um complemento da manchete.");
+  }
+
+  if (sideBlockCount > 1) {
+    warnings.push("A composição só pode ter um bloco lateral.");
+  }
+
+  return {
+    canPublish: items.length > 0 && warnings.length === 0,
+    warnings,
+  };
+}
+
+function getPublishedCompositionProblemMessage(items: ReferenceCompositionItem[]) {
+  const counts = countCompositionSlots(items);
+  const headlineCount = counts.headline ?? 0;
+  const complementCount = counts.complement ?? 0;
+  const sideBlockCount = counts.side_block ?? 0;
+
+  if (headlineCount === 0) {
+    return "Esta composição publicada tem um problema estrutural: a zona Manchete não tem itens. Reabre como rascunho, adiciona uma manchete e publica novamente.";
+  }
+
+  if (headlineCount > 1) {
+    return `Esta composição publicada tem um problema estrutural: a zona Manchete tem ${headlineCount} itens. Reabre como rascunho, remove uma manchete e publica novamente.`;
+  }
+
+  if (complementCount > 1) {
+    return "Esta composição publicada tem um problema estrutural: a zona Complemento da manchete tem mais de um item. Reabre como rascunho, remove o complemento extra e publica novamente.";
+  }
+
+  if (sideBlockCount > 1) {
+    return "Esta composição publicada tem um problema estrutural: a zona Bloco lateral tem mais de um item. Reabre como rascunho, remove o bloco lateral extra e publica novamente.";
+  }
+
+  return null;
+}
+
+const compositionPageStyles = `
   body {
     margin: 0;
     background: #eef2f6;
   }
 
-  .editorial-admin-shell {
+  .composition-admin-shell {
     min-height: 100vh;
     padding: 28px;
     background: #eef2f6;
@@ -69,92 +505,74 @@ const editorialPageStyles = `
     font-family: Arial, Helvetica, sans-serif;
   }
 
-  .editorial-admin-hero,
-  .editorial-admin-panel {
-    overflow: hidden;
+  .composition-admin-hero,
+  .composition-admin-panel,
+  .composition-admin-card {
     border: 1px solid #dce3eb;
     border-radius: 8px;
     background: #ffffff;
     box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
   }
 
-  .editorial-admin-hero {
+  .composition-admin-hero {
     display: flex;
     justify-content: space-between;
-    gap: 18px;
+    gap: 20px;
+    align-items: flex-end;
     padding: 24px;
-    background: linear-gradient(135deg, #10151b, #25303c);
+    background: #10151b;
     color: #ffffff;
   }
 
-  .editorial-admin-hero h1,
-  .editorial-admin-hero p,
-  .editorial-admin-hero small {
+  .composition-admin-hero p,
+  .composition-admin-hero h1,
+  .composition-admin-hero span {
     margin: 0;
   }
 
-  .editorial-admin-hero h1 {
-    margin-top: 8px;
-    font-size: 34px;
-    line-height: 1.05;
-  }
-
-  .editorial-admin-hero p {
+  .composition-admin-hero p {
     color: #e5252a;
     font-size: 13px;
     font-weight: 900;
     text-transform: uppercase;
   }
 
-  .editorial-admin-hero small {
+  .composition-admin-hero h1 {
+    margin-top: 8px;
+    font-size: 38px;
+    line-height: 1;
+  }
+
+  .composition-admin-hero span {
     display: block;
     margin-top: 10px;
     color: #cdd5df;
     font-size: 15px;
   }
 
-  .editorial-admin-button {
-    display: inline-block;
-    width: fit-content;
-    padding: 12px 16px;
-    border: 0;
-    border-radius: 6px;
-    background: #e5252a;
-    color: #ffffff;
-    font: inherit;
-    font-size: 13px;
-    font-weight: 900;
-    line-height: 1;
-    text-decoration: none;
-    text-transform: uppercase;
-    cursor: pointer;
-  }
-
-  .editorial-admin-button.secondary {
-    border: 1px solid #dce3eb;
-    background: #ffffff;
-    color: #10151b;
-  }
-
-  .editorial-admin-hero .editorial-admin-button.secondary {
-    border-color: rgba(255, 255, 255, 0.28);
-    background: transparent;
-    color: #ffffff;
-  }
-
-  .editorial-admin-actions {
+  .composition-admin-actions {
     display: flex;
     flex-wrap: wrap;
-    justify-content: flex-end;
     gap: 10px;
-    align-content: flex-start;
+    justify-content: flex-end;
   }
 
-  .editorial-admin-actions .editorial-admin-button {
-    white-space: nowrap;
+  .composition-admin-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    border-radius: 6px;
+    color: inherit;
+    font-size: 12px;
+    font-weight: 900;
+    text-decoration: none;
+    text-transform: uppercase;
   }
 
-  .editorial-context-selector {
+  .composition-context-selector {
     display: grid;
     grid-template-columns: minmax(220px, 0.8fr) minmax(0, 2.2fr);
     gap: 14px;
@@ -167,13 +585,13 @@ const editorialPageStyles = `
     box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
   }
 
-  .editorial-context-selector p,
-  .editorial-context-selector strong,
-  .editorial-context-selector label {
+  .composition-context-selector p,
+  .composition-context-selector strong,
+  .composition-context-selector label {
     margin: 0;
   }
 
-  .editorial-context-selector p {
+  .composition-context-selector p {
     color: #e5252a;
     font-size: 11px;
     font-weight: 900;
@@ -181,7 +599,7 @@ const editorialPageStyles = `
     text-transform: uppercase;
   }
 
-  .editorial-context-selector strong {
+  .composition-context-selector strong {
     display: block;
     margin-top: 4px;
     color: #10151b;
@@ -189,26 +607,26 @@ const editorialPageStyles = `
     line-height: 1.35;
   }
 
-  .editorial-context-selector-form {
+  .composition-context-selector-form {
     display: grid;
     grid-template-columns: repeat(3, minmax(120px, 1fr)) auto;
     gap: 10px;
     align-items: end;
   }
 
-  .editorial-context-selector-field {
+  .composition-context-selector-field {
     display: grid;
     gap: 5px;
   }
 
-  .editorial-context-selector-field label {
+  .composition-context-selector-field label {
     color: #607086;
     font-size: 10px;
     font-weight: 900;
     text-transform: uppercase;
   }
 
-  .editorial-context-selector-field select {
+  .composition-context-selector-field select {
     min-height: 38px;
     width: 100%;
     border: 1px solid #cdd6e1;
@@ -219,527 +637,357 @@ const editorialPageStyles = `
     font-size: 13px;
   }
 
-  .editorial-context-selector-empty {
+  .composition-context-selector-empty {
     color: #607086;
     font-size: 13px;
     line-height: 1.35;
   }
 
-  .editorial-admin-block-nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 12px;
-    border: 1px solid #f2c7ca;
-    border-radius: 8px;
-    background: #ffffff;
-    padding: 10px;
-    box-shadow: 0 10px 24px rgba(8, 15, 24, 0.08);
-  }
-
-  .editorial-admin-block-nav a {
-    display: inline-flex;
-    min-height: 32px;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    background: #e5252a;
-    color: #ffffff;
-    font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 0.03em;
-    padding: 0 10px;
-    text-decoration: none;
-    text-transform: uppercase;
-  }
-
-  .editorial-admin-block-nav a:hover {
-    background: #b91c1c;
-  }
-
-  .editorial-admin-grid {
+  .composition-admin-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
-    gap: 18px;
-    margin-top: 18px;
-  }
-
-  .editorial-admin-composition {
-    margin-top: 18px;
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  .editorial-admin-composition-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 16px;
+    grid-template-columns: minmax(360px, 1.05fr) minmax(420px, 0.95fr);
+    gap: 14px;
+    margin-top: 14px;
     align-items: start;
-    min-width: 0;
-    max-width: 100%;
   }
 
-  .editorial-admin-composition-card {
-    display: grid;
-    gap: 14px;
-    align-content: start;
-    min-width: 0;
-    max-width: 100%;
-    box-sizing: border-box;
-    padding: 16px;
-    border: 1px solid #dce3eb;
-    border-radius: 8px;
+  .composition-admin-panel {
+    overflow: hidden;
+  }
+
+  .composition-admin-panel > header {
+    padding: 14px 16px;
+    border-bottom: 1px solid #e6ebf1;
     background: #f8fafc;
-    overflow-wrap: anywhere;
   }
 
-  .editorial-admin-composition-card h3 {
-    margin: 0;
-    font-size: 17px;
-  }
-
-  .editorial-admin-composition-card > p {
-    margin: -6px 0 0;
-    color: #687380;
-    font-size: 14px;
-    line-height: 1.45;
-  }
-
-  .editorial-admin-composition-side-stack {
-    display: grid;
-    gap: 16px;
-    align-content: start;
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  .editorial-admin-composition .editorial-admin-form,
-  .editorial-admin-composition .editorial-admin-stack,
-  .editorial-admin-composition .editorial-admin-compact-stack,
-  .editorial-admin-composition .editorial-admin-field,
-  .editorial-admin-composition .editorial-admin-fieldset,
-  .editorial-admin-composition .editorial-admin-item-form,
-  .editorial-admin-composition .editorial-admin-item-details,
-  .editorial-admin-composition .editorial-admin-item-details-body {
-    min-width: 0;
-    max-width: 100%;
-    box-sizing: border-box;
-  }
-
-  .editorial-admin-composition .editorial-admin-field input,
-  .editorial-admin-composition .editorial-admin-field textarea,
-  .editorial-admin-composition .editorial-admin-field select {
-    min-width: 0;
-    max-width: 100%;
-    overflow-wrap: anywhere;
-  }
-
-  .editorial-admin-composition .editorial-admin-muted,
-  .editorial-admin-composition .editorial-admin-field label,
-  .editorial-admin-composition .editorial-admin-fieldset legend,
-  .editorial-admin-composition .editorial-admin-item-details > summary {
-    min-width: 0;
-    max-width: 100%;
-    overflow-wrap: anywhere;
-  }
-
-  .editorial-admin-composition .editorial-admin-item-details > summary::after,
-  .editorial-admin-composition .editorial-admin-item-status,
-  .editorial-admin-composition .editorial-admin-button {
-    flex: 0 0 auto;
-  }
-
-  .editorial-admin-panel {
-    padding: 20px;
-  }
-
-  .editorial-admin-panel h2,
-  .editorial-admin-panel h3,
-  .editorial-admin-panel h4,
-  .editorial-admin-panel p {
+  .composition-admin-panel h2,
+  .composition-admin-panel h3,
+  .composition-admin-panel p,
+  .composition-admin-card p {
     margin: 0;
   }
 
-  .editorial-admin-panel > header {
-    margin-bottom: 16px;
+  .composition-admin-panel h2 {
+    font-size: 22px;
+    text-transform: uppercase;
   }
 
-  .editorial-admin-panel > header p,
-  .editorial-admin-muted {
+  .composition-admin-panel header p {
     margin-top: 6px;
-    color: #687380;
-    font-size: 14px;
-    line-height: 1.45;
-  }
-
-  .editorial-admin-form,
-  .editorial-admin-stack {
-    display: grid;
-    gap: 14px;
-  }
-
-  .editorial-admin-compact-stack {
-    display: grid;
-    gap: 10px;
-  }
-
-  .editorial-admin-field {
-    display: grid;
-    gap: 6px;
-  }
-
-  .editorial-admin-field label,
-  .editorial-admin-fieldset legend {
-    color: #425061;
-    font-size: 12px;
-    font-weight: 900;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-
-  .editorial-admin-field input,
-  .editorial-admin-field textarea,
-  .editorial-admin-field select {
-    width: 100%;
-    box-sizing: border-box;
-    border: 1px solid #c8d2dd;
-    border-radius: 6px;
-    padding: 11px 12px;
-    background: #ffffff;
-    color: #10151b;
-    font: inherit;
-  }
-
-  .editorial-admin-compact-stack .editorial-admin-field {
-    gap: 4px;
-  }
-
-  .editorial-admin-compact-stack .editorial-admin-field input,
-  .editorial-admin-compact-stack .editorial-admin-field select {
-    padding: 9px 10px;
-  }
-
-  .editorial-admin-field textarea {
-    min-height: 110px;
-    resize: vertical;
-  }
-
-  .editorial-admin-preview {
-    overflow: hidden;
-    border: 1px solid #dce3eb;
-    border-radius: 8px;
-    background: #f8fafc;
-  }
-
-  .editorial-admin-preview img {
-    display: block;
-    width: 100%;
-    max-height: 220px;
-    object-fit: cover;
-  }
-
-  .editorial-admin-fieldset {
-    display: grid;
-    gap: 12px;
-    margin: 0;
-    padding: 16px;
-    border: 1px solid #dce3eb;
-    border-radius: 8px;
-  }
-
-  .editorial-admin-compact-card {
-    gap: 10px;
-    padding: 12px;
-  }
-
-  .editorial-admin-compact-card legend {
-    padding: 0 4px;
-  }
-
-  .editorial-admin-compact-card .editorial-admin-preview img {
-    max-height: 120px;
-  }
-
-  .editorial-admin-technical-details {
-    padding: 10px 12px;
-    border: 1px dashed #c8d2dd;
-    border-radius: 8px;
-    background: #fbfcfe;
-  }
-
-  .editorial-admin-technical-details summary {
-    cursor: pointer;
-    color: #425061;
-    font-size: 12px;
-    font-weight: 900;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-
-  .editorial-admin-technical-details .editorial-admin-field {
-    margin-top: 10px;
-  }
-
-  .editorial-admin-item-form {
-    display: block;
-  }
-
-  .editorial-admin-item-details {
-    overflow: hidden;
-    border: 1px solid #dce3eb;
-    border-radius: 8px;
-    background: #ffffff;
-    scroll-margin-top: 18px;
-  }
-
-  .editorial-admin-item-details > summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px 14px;
-    cursor: pointer;
-    color: #10151b;
-    font-size: 14px;
-    font-weight: 900;
-    list-style: none;
-  }
-
-  .editorial-admin-item-details > summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .editorial-admin-item-details > summary::after {
-    color: #687380;
-    content: "Abrir";
-    font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-
-  .editorial-admin-item-details[open] > summary {
-    border-bottom: 1px solid #dce3eb;
-  }
-
-  .editorial-admin-item-details[open] > summary::after {
-    content: "Fechar";
-  }
-
-  .editorial-admin-item-details-body {
-    display: grid;
-    gap: 12px;
-    padding: 14px;
-    background: #fbfcfe;
-  }
-
-  .editorial-admin-item-summary-title {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .editorial-admin-item-status {
-    flex: 0 0 auto;
-    padding: 4px 8px;
-    border-radius: 999px;
-    background: #eef2f6;
-    color: #425061;
-    font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-
-  .editorial-admin-item-label {
-    flex: 0 0 auto;
-    color: #687380;
-    font-size: 12px;
-    font-weight: 900;
-    text-transform: uppercase;
-  }
-
-  .editorial-admin-upload-inline {
-    display: grid;
-    gap: 8px;
-    padding-top: 8px;
-    border-top: 1px solid #dce3eb;
-  }
-
-  .editorial-admin-upload-inline .editorial-admin-button {
-    padding: 10px 12px;
-  }
-
-  .editorial-admin-hidden-form {
-    display: none;
-  }
-
-  .editorial-admin-highlight-1 {
-    background: #f9fafb;
-  }
-
-  .editorial-admin-highlight-2 {
-    background: #f4f6f8;
-  }
-
-  .editorial-admin-highlight-3 {
-    background: #eef2f6;
-  }
-
-  .editorial-admin-message {
-    margin-top: 18px;
-    padding: 12px 14px;
-    border: 1px solid #b7e1c0;
-    border-radius: 8px;
-    background: #effaf1;
-    color: #1f6d31;
-    font-size: 14px;
-    font-weight: 800;
-  }
-
-  .editorial-admin-message.warning {
-    border-color: #ffd0d0;
-    background: #fff3f3;
-    color: #9d1c1f;
-  }
-
-  .editorial-admin-live-note {
-    display: grid;
-    gap: 4px;
-    margin-top: 10px;
-    padding: 10px 12px;
-    border: 1px solid #dce3eb;
-    border-radius: 8px;
-    background: #f8fafc;
-    color: #425061;
+    color: #607086;
     font-size: 13px;
     line-height: 1.45;
   }
 
-  .editorial-admin-live-note strong {
-    color: #10151b;
+  .composition-admin-stack {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
   }
 
-  .editorial-admin-live-note.warning {
-    border-color: #f2c36b;
-    background: #fff8e8;
-    color: #674a12;
+  #matchday-editorial-bank {
+    order: -1;
   }
 
-  #manchete,
-  #composicao,
-  #destaques,
-  #resumo-jornada,
-  #bloco-complementar,
-  #ultimas-noticias {
-    scroll-margin-top: 18px;
+  .composition-admin-card {
+    overflow: hidden;
+    box-shadow: none;
   }
 
-  .editorial-admin-note-list {
+  .composition-admin-card header {
+    padding: 10px 12px;
+    border-bottom: 1px solid #edf1f5;
+    background: #ffffff;
+  }
+
+  .composition-admin-card h3 {
+    font-size: 13px;
+    text-transform: uppercase;
+  }
+
+  .composition-admin-card-body {
     display: grid;
     gap: 8px;
-    margin: 0;
-    padding-left: 18px;
-    color: #5d6875;
-    line-height: 1.45;
+    padding: 10px;
   }
 
-  .editorial-complement-mode-section[hidden],
-  .editorial-below-mode-section[hidden] {
+  .composition-admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 8px;
+  }
+
+  .composition-admin-section-list {
+    display: grid;
+    gap: 10px;
+  }
+
+  .composition-admin-section {
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid #e3e9f0;
+    border-radius: 6px;
+    background: #f8fafc;
+  }
+
+  .composition-admin-section-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .composition-admin-section-heading h4 {
+    margin: 0;
+    color: #10151b;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .composition-admin-section-heading span {
+    color: #607086;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .composition-admin-candidates {
+    overflow: hidden;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #ffffff;
+  }
+
+  .composition-admin-candidates summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid #edf1f5;
+    cursor: pointer;
+    color: #10151b;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .composition-admin-candidates summary::-webkit-details-marker {
     display: none;
   }
 
-  @media (max-width: 980px) {
-    .editorial-admin-shell {
-      padding: 16px;
-    }
+  .composition-admin-candidates summary::after {
+    content: "Abrir";
+    color: #607086;
+    font-size: 11px;
+    font-weight: 900;
+  }
 
-    .editorial-admin-hero,
-    .editorial-admin-grid,
-    .editorial-admin-composition-grid {
+  .composition-admin-candidates[open] summary::after {
+    content: "Fechar";
+  }
+
+  .composition-admin-candidates-body {
+    display: grid;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .composition-admin-item {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid #e3e9f0;
+    border-radius: 6px;
+    background: #ffffff;
+  }
+
+  .composition-admin-item:has(.composition-admin-image) {
+    grid-template-columns: 72px minmax(0, 1fr);
+    align-items: start;
+    column-gap: 10px;
+  }
+
+  .composition-admin-item:has(.composition-admin-image) > :not(.composition-admin-image) {
+    grid-column: 2;
+  }
+
+  .composition-admin-video-item {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid #d9e1ea;
+    border-radius: 6px;
+    background: #fbfcfe;
+  }
+
+  .composition-admin-image {
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 6px;
+    background: #eef2f6;
+  }
+
+  .composition-admin-image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .composition-admin-label {
+    color: #c40012;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .composition-admin-added-badge {
+    width: fit-content;
+    border-radius: 999px;
+    background: #e8f1ec;
+    color: #1f6d43;
+    padding: 4px 7px;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .composition-admin-title {
+    color: #10151b;
+    font-size: 14px;
+    font-weight: 900;
+    line-height: 1.18;
+  }
+
+  .composition-admin-copy {
+    color: #526174;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .composition-admin-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    color: #607086;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .composition-admin-link {
+    color: #10151b;
+    overflow: hidden;
+    font-size: 11px;
+    font-weight: 900;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .composition-admin-form {
+    display: grid;
+    gap: 7px;
+  }
+
+  .composition-admin-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .composition-admin-field {
+    display: grid;
+    gap: 4px;
+  }
+
+  .composition-admin-field label,
+  .composition-admin-check {
+    color: #526174;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .composition-admin-input {
+    width: 100%;
+    min-height: 34px;
+    box-sizing: border-box;
+    border: 1px solid #cdd6e0;
+    border-radius: 6px;
+    padding: 7px 9px;
+    color: #10151b;
+    font: inherit;
+    font-size: 12px;
+  }
+
+  .composition-admin-small-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    width: fit-content;
+    border: 0;
+    border-radius: 6px;
+    padding: 0 10px;
+    background: #10151b;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .composition-admin-small-button.secondary {
+    background: #e6ebf1;
+    color: #10151b;
+  }
+
+  .composition-admin-note {
+    color: #6d7b8c;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .composition-admin-empty {
+    padding: 12px;
+    border: 1px dashed #cdd6e0;
+    border-radius: 6px;
+    color: #6d7b8c;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 980px) {
+    .composition-admin-layout,
+    .composition-admin-grid {
       grid-template-columns: 1fr;
     }
 
-    .editorial-admin-hero {
-      display: grid;
+    .composition-admin-hero {
+      align-items: flex-start;
+      flex-direction: column;
     }
 
-    .editorial-admin-actions {
-      justify-content: stretch;
+    .composition-admin-actions {
+      justify-content: flex-start;
     }
 
-    .editorial-admin-actions .editorial-admin-button {
-      width: 100%;
-      text-align: center;
-    }
-
-    .editorial-context-selector,
-    .editorial-context-selector-form {
+    .composition-context-selector,
+    .composition-context-selector-form {
       grid-template-columns: 1fr;
     }
   }
 `;
-
-function oneParam(params: Record<string, string | string[] | undefined>, key: string) {
-  const value = params[key];
-  return Array.isArray(value) ? value[0] : value;
-}
-
-function cleanText(value: string | null | undefined) {
-  return value?.trim() ?? "";
-}
-
-function paddedOrder(value: number) {
-  return String(value).padStart(2, "0");
-}
-
-function itemSummaryTitle(order: number, title: string | null | undefined, emptyLabel: string) {
-  return `#${paddedOrder(order)} - ${cleanText(title) || emptyLabel}`;
-}
-
-function articlePublicHref(article: EditorialArticleForSideBlock) {
-  const slug = cleanText(article.slug);
-  return slug ? `/noticias/${encodeURIComponent(slug)}` : "";
-}
-
-function excerptFromBody(value: string | null | undefined) {
-  const text = cleanText(value)
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (text.length <= 180) {
-    return text;
-  }
-
-  return `${text.slice(0, 177).trim()}...`;
-}
-
-function sideBlockTextFromArticle(article: EditorialArticleForSideBlock) {
-  return cleanText(article.subtitle) || excerptFromBody(article.body);
-}
-
-function publishedSourceComplementLabel(source: EditorialPublishedSource) {
-  if (source.source_type === "article") {
-    return cleanText(source.label) || "Artigo";
-  }
-
-  return cleanText(source.label) || cleanText(source.content_type) || "Conteudo";
-}
-
-function publishedSourceComplementText(source: EditorialPublishedSource) {
-  return cleanText(source.subtitle) || cleanText(source.summary);
-}
-
-function publishedSourceComplementImageUrl(source: EditorialPublishedSource) {
-  return cleanText(source.thumbnail_url) || cleanText(source.image_url);
-}
-
-function publishedSourceOptionLabel(source: EditorialPublishedSource) {
-  const sourceKind = source.source_type === "article" ? "Artigo" : publishedSourceComplementLabel(source);
-  return `${cleanText(source.title) || cleanText(source.source_slug) || source.source_id} - ${sourceKind}`;
-}
 
 async function readFirst<T>(path: string): Promise<T | null> {
   const rows = await fetchSupabaseAdminTable<T>(`${path}&limit=1`);
@@ -785,12 +1033,16 @@ async function readMatchdayContext(matchdayId: string): Promise<MatchdayContext 
 async function readContextSelectorData(): Promise<ContextSelectorData> {
   try {
     const [countries, competitions, seasons, matchdays] = await Promise.all([
-      fetchSupabaseAdminTable<SupabaseCountry>("countries?select=id,name&order=name.asc"),
-      fetchSupabaseAdminTable<SupabaseCompetition>("competitions?select=id,country_id,name,slug,is_active&order=name.asc"),
+      fetchSupabaseAdminTable<SupabaseCountry>("countries?select=id,name,slug,iso2,flag_emoji,is_active&order=name.asc"),
+      fetchSupabaseAdminTable<SupabaseCompetition>(
+        "competitions?select=id,country_id,name,slug,is_active&order=name.asc"
+      ),
       fetchSupabaseAdminTable<SupabaseSeason>(
         "seasons?select=id,competition_id,label,is_current,starts_on,ends_on&order=label.desc"
       ),
-      fetchSupabaseAdminTable<SupabaseMatchday>("matchdays?select=id,season_id,number,label,starts_on,ends_on,status&order=number.asc")
+      fetchSupabaseAdminTable<SupabaseMatchday>(
+        "matchdays?select=id,season_id,number,label,starts_on,ends_on,status&order=number.asc"
+      )
     ]);
 
     return { countries, competitions, seasons, matchdays, error: "" };
@@ -800,51 +1052,34 @@ async function readContextSelectorData(): Promise<ContextSelectorData> {
       competitions: [],
       seasons: [],
       matchdays: [],
-      error: error instanceof Error ? error.message : "Nao foi possivel ler jornadas."
+      error: error instanceof Error ? error.message : "Nao foi possivel carregar o seletor de jornadas."
     };
   }
 }
 
 function formatContextSelectorMatchdayLabel(
-  matchday: SupabaseMatchday,
+  item: SupabaseMatchday,
   seasonById: Map<string, SupabaseSeason>,
   competitionById: Map<string, SupabaseCompetition>,
   countryById: Map<string, SupabaseCountry>
 ) {
-  const optionSeason = matchday.season_id ? seasonById.get(matchday.season_id) : null;
-  const optionCompetition = optionSeason?.competition_id ? competitionById.get(optionSeason.competition_id) : null;
-  const optionCountry = optionCompetition?.country_id ? countryById.get(optionCompetition.country_id) : null;
-
-  return [
-    optionCountry?.name,
-    optionCompetition?.name,
-    optionSeason?.label,
-    matchday.label ?? (matchday.number ? `Jornada ${matchday.number}` : "Jornada")
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const itemSeason = seasonById.get(item.season_id);
+  const itemCompetition = itemSeason ? competitionById.get(itemSeason.competition_id) : null;
+  const itemCountry = itemCompetition?.country_id ? countryById.get(itemCompetition.country_id) : null;
+  return `${itemCountry?.name ?? "Pais"} / ${itemCompetition?.name ?? "Competicao"} / ${
+    itemSeason?.label ?? "Epoca"
+  } / ${item.label}`;
 }
 
-type MatchdayEditorialForAdmin = SupabaseMatchdayEditorial & {
-  headline_link_url?: string | null;
-  below_headline_subtitle?: string | null;
-  latest_zone_title_color?: string | null;
-};
-
-type MatchdayHighlightForAdmin = SupabaseMatchdayHighlight & {
-  link_url?: string | null;
-  subtitle?: string | null;
-};
-
-async function readMatchdayEditorial(matchdayId: string): Promise<MatchdayEditorialForAdmin | null> {
+async function readMatchdayEditorial(matchdayId: string): Promise<MatchdayEditorialWithHeadlineLink | null> {
   try {
-    return await readFirst<MatchdayEditorialForAdmin>(
-      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,headline_link_url,below_headline_mode,below_headline_heading,below_headline_subtitle,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,latest_zone_mode,latest_zone_title,latest_zone_title_color,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+    return await readFirst<MatchdayEditorialWithHeadlineLink>(
+      `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,headline_link_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,latest_zone_mode,latest_zone_title,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}`
     );
   } catch {
-    return readFirst<MatchdayEditorialForAdmin>(
+    return readFirst<MatchdayEditorialWithHeadlineLink>(
       `matchday_editorials?select=id,matchday_id,title,summary,title_color,image_url,headline_link_url,below_headline_mode,below_headline_heading,below_headline_heading_color,complementary_mode,complementary_roundup_item_id,complementary_label,complementary_title,complementary_text,complementary_image_url,complementary_link_url,complementary_status,roundup_video_heading,roundup_video_heading_color,side_block_status,side_block_type,side_block_label,side_block_title,side_block_title_color,side_block_author,side_block_text,side_block_image_url,side_block_link_url,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
       )}`
@@ -852,27 +1087,19 @@ async function readMatchdayEditorial(matchdayId: string): Promise<MatchdayEditor
   }
 }
 
-async function readMatchdayHighlights(matchdayId: string): Promise<MatchdayHighlightForAdmin[]> {
-  try {
-    return await fetchSupabaseAdminTable<MatchdayHighlightForAdmin>(
-      `matchday_highlights?select=id,matchday_id,label,title,subtitle,image_url,link_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
-        matchdayId
-      )}&order=sort_order.asc&limit=3`
-    );
-  } catch {
-    return fetchSupabaseAdminTable<MatchdayHighlightForAdmin>(
-      `matchday_highlights?select=id,matchday_id,label,title,image_url,link_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
-        matchdayId
-      )}&order=sort_order.asc&limit=3`
-    ).catch(() => []);
-  }
+function readMatchdayHighlights(matchdayId: string): Promise<MatchdayHighlightWithLink[]> {
+  return fetchSupabaseAdminTable<MatchdayHighlightWithLink>(
+    `matchday_highlights?select=id,matchday_id,label,title,image_url,link_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&order=sort_order.asc&limit=20`
+  ).catch(() => []);
 }
 
-async function readMatchdayRoundupItems(matchdayId: string): Promise<SupabaseMatchdayRoundupItem[]> {
+function readMatchdayRoundupItems(matchdayId: string): Promise<SupabaseMatchdayRoundupItem[]> {
   return fetchSupabaseAdminTable<SupabaseMatchdayRoundupItem>(
     `matchday_roundup_items?select=id,matchday_id,label,title,subtitle,image_url,video_url,duration,type,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
       matchdayId
-    )}&order=sort_order.asc&limit=10`
+    )}&order=sort_order.asc&limit=50`
   ).catch(() => []);
 }
 
@@ -881,1368 +1108,1641 @@ async function readMatchdayLatestNews(matchdayId: string): Promise<SupabaseMatch
     return await fetchSupabaseAdminTable<SupabaseMatchdayLatestNews>(
       `matchday_latest_news?select=id,matchday_id,time_label,title,subtitle,image_url,link_url,article_id,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
-      )}&order=sort_order.asc&limit=8`
+      )}&order=sort_order.asc&limit=50`
     );
   } catch {
     return fetchSupabaseAdminTable<SupabaseMatchdayLatestNews>(
       `matchday_latest_news?select=id,matchday_id,time_label,title,image_url,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
         matchdayId
-      )}&order=sort_order.asc&limit=8`
+      )}&order=sort_order.asc&limit=50`
     ).catch(() => []);
   }
 }
 
-type PublishedReferenceCompositionSummary = {
-  id: string;
-  internal_name: string | null;
-  published_at: string | null;
-};
-
-async function readPublishedReferenceComposition(matchdayId: string): Promise<PublishedReferenceCompositionSummary | null> {
-  return fetchSupabaseAdminTable<PublishedReferenceCompositionSummary>(
-    `matchday_reference_compositions?select=id,internal_name,published_at&matchday_id=eq.${encodeURIComponent(
+function readMatchdayArticles(matchdayId: string): Promise<SupabaseArticle[]> {
+  return fetchSupabaseAdminTable<SupabaseArticle>(
+    `articles?select=id,title,summary,image_url,source_url,status,competition_id,season_id,matchday_id,match_id,published_at,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
       matchdayId
-    )}&status=eq.published&is_current=is.true&order=published_at.desc.nullslast&limit=1`
-  )
-    .then((rows) => rows[0] ?? null)
-    .catch(() => null);
-}
-
-async function readPublishedEditorialArticles(): Promise<EditorialArticleForSideBlock[]> {
-  return fetchSupabaseAdminTable<EditorialArticleForSideBlock>(
-    "editorial_articles?select=id,slug,title,subtitle,body,label,author,image_url,published_at,created_at,status&status=eq.published&order=published_at.desc.nullslast,created_at.desc.nullslast&limit=50"
+    )}&order=published_at.desc.nullslast&limit=50`
   ).catch(() => []);
 }
 
-type FeedbackScope = "manchete" | "bloco-lateral" | "composicao" | "destaques" | "resumo-jornada" | "bloco-complementar" | "ultimas-noticias";
+function readDraftReferenceComposition(matchdayId: string): Promise<ReferenceComposition | null> {
+  return readFirst<ReferenceComposition>(
+    `matchday_reference_compositions?select=id,matchday_id,status,is_current,internal_name,use_roundup_items,created_at,updated_at,published_at&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&status=eq.draft&order=created_at.desc`
+  ).catch(() => null);
+}
 
-function messageFor(created?: string, error?: string, scope?: FeedbackScope, detail?: string) {
-  const createdLabels: Record<string, string> = {
-    save_matchday_headline: "Manchete guardada.",
-    save_matchday_side_block: "Bloco lateral guardado.",
-    save_matchday_complement: "Bloco complementar guardado.",
-    save_matchday_below_headline: "Zona abaixo da manchete guardada.",
-    save_matchday_editorial: "Linha editorial da jornada guardada.",
-    save_matchday_highlights: "Destaques guardados e definidos como zona ativa abaixo da manchete.",
-    save_matchday_highlight_item: "Destaque guardado.",
-    save_matchday_roundup_items: "Resumo da Jornada guardado e definido como zona ativa abaixo da manchete.",
-    save_matchday_roundup_item: "Item do Resumo da Jornada guardado.",
-    save_matchday_latest_news: "Zona final da capa guardada.",
-    save_matchday_latest_news_item: "Item da zona final guardado.",
-    upload_matchday_editorial_image: "Imagem da manchete carregada.",
-    upload_matchday_highlight_image: "Imagem do destaque carregada."
-  };
-  const scopedCreatedLabels: Partial<Record<FeedbackScope, Record<string, string>>> = {
-    manchete: {
-      save_matchday_headline: "Manchete guardada.",
-      save_matchday_editorial: "Manchete guardada.",
-      upload_matchday_editorial_image: "Imagem da manchete carregada."
-    },
-    composicao: {
-      save_matchday_below_headline: "Zona abaixo da manchete guardada.",
-      save_matchday_editorial: "Composicao guardada."
-    },
-    "bloco-lateral": {
-      save_matchday_side_block: "Bloco lateral da jornada guardado.",
-      save_matchday_editorial: "Bloco lateral da jornada guardado."
-    },
-    destaques: {
-      save_matchday_highlights: "Destaques guardados.",
-      save_matchday_highlight_item: "Destaque guardado.",
-      upload_matchday_highlight_image: "Imagem do destaque carregada."
-    },
-    "resumo-jornada": {
-      save_matchday_roundup_items: "Resumo da Jornada guardado.",
-      save_matchday_roundup_item: "Item do Resumo da Jornada guardado."
-    },
-    "bloco-complementar": {
-      save_matchday_complement: "Bloco complementar guardado.",
-      save_matchday_editorial: "Bloco complementar guardado."
-    },
-    "ultimas-noticias": {
-      save_matchday_latest_news: "Zona final da capa guardada.",
-      save_matchday_latest_news_item: "Item da zona final guardado."
-    }
-  };
-  const errorLabels: Record<string, string> = {
-    "missing-service": "Liga primeiro a Supabase na Vercel.",
-    "missing-fields": "Preenche os campos obrigatorios antes de guardar.",
-    "matchday-invalid": "A jornada escolhida ja nao existe.",
-    "roundup-item-invalid": "O item escolhido do Resumo da Jornada nao pertence a esta jornada.",
-    "editorial-title-required": "Para publicar, indica uma manchete da jornada.",
-    "highlight-title-required": "Para publicar um destaque, indica o titulo.",
-    "latest-news-title-required": "Para publicar uma noticia, indica o titulo.",
-    "editorial-image-type": "O ficheiro tem de ser uma imagem JPG, PNG ou WebP.",
-    "editorial-image-size": "A imagem nao pode ter mais de 5MB.",
-    "editorial-image-upload": "Nao foi possivel carregar a imagem. Confirma o bucket de Storage.",
-    "latest-news-save-failed": "Nao foi possivel guardar a Zona Editorial Final.",
-    save: "Nao foi possivel guardar. Confirma se a base de dados esta atualizada."
-  };
+async function readReferenceCompositionForBackoffice(matchdayId: string): Promise<ReferenceComposition | null> {
+  const draftComposition = await readDraftReferenceComposition(matchdayId);
 
-  if (created && createdLabels[created]) {
-    return <div className="editorial-admin-message">{(scope ? scopedCreatedLabels[scope]?.[created] : undefined) ?? createdLabels[created]}</div>;
+  if (draftComposition) {
+    return draftComposition;
   }
 
-  if (error) {
+  return readFirst<ReferenceComposition>(
+    `matchday_reference_compositions?select=id,matchday_id,status,is_current,internal_name,use_roundup_items,created_at,updated_at,published_at&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&status=eq.published&is_current=is.true&order=published_at.desc.nullslast`
+  ).catch(() => null);
+}
+
+function readReferenceCompositionItems(compositionId?: string | null): Promise<ReferenceCompositionItem[]> {
+  if (!compositionId) {
+    return Promise.resolve([]);
+  }
+
+  return fetchSupabaseAdminTable<ReferenceCompositionItem>(
+    `matchday_reference_composition_items?select=id,composition_id,slot_type,source_type,source_id,article_id,sort_order,title_snapshot,subtitle_snapshot,image_url_snapshot,link_url_snapshot,label_snapshot,status,created_at,updated_at&composition_id=eq.${encodeURIComponent(
+      compositionId
+    )}&order=sort_order.asc&limit=200`
+  ).catch(() => []);
+}
+
+function readMatchdayEditorialBankItems(matchdayId: string): Promise<MatchdayEditorialBankItem[]> {
+  return fetchSupabaseAdminTable<MatchdayEditorialBankItem>(
+    `matchday_editorial_bank_items?select=id,matchday_id,label,title,subtitle,image_url,link_url,source_type,source_id,source_slug,origin_slot_type,sort_order,status,created_at,updated_at&matchday_id=eq.${encodeURIComponent(
+      matchdayId
+    )}&order=sort_order.asc.nullslast,created_at.desc&limit=200`
+  ).catch(() => []);
+}
+
+function statusLabel(status?: string | null) {
+  if (status === "published") return "Publicado";
+  if (status === "draft") return "Rascunho";
+  if (status === "active") return "Ativo";
+  if (status === "archived") return "Arquivado";
+  return status || "Sem estado";
+}
+
+function compositionStatusLabel(status?: string | null) {
+  if (status === "published") return "publicada";
+  if (status === "draft") return "rascunho";
+  return status || "sem estado";
+}
+
+function formatPublishedAt(value?: string | null) {
+  if (!value) return null;
+  return new Date(value).toLocaleString("pt-PT", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Europe/Lisbon"
+  });
+}
+
+function textOrEmpty(value?: string | null) {
+  return value?.trim() || "";
+}
+
+function FieldLink({ href }: { href?: string | null }) {
+  const url = textOrEmpty(href);
+
+  if (!url) {
+    return null;
+  }
+
+  return (
+    <a className="composition-admin-link" href={url}>
+      Abrir link
+    </a>
+  );
+}
+
+function ImagePreview({ src }: { src?: string | null }) {
+  const imageUrl = textOrEmpty(src);
+
+  if (!imageUrl) {
+    return null;
+  }
+
+  return (
+    <div className="composition-admin-image">
+      <img alt="" src={imageUrl} />
+    </div>
+  );
+}
+
+function EmptyState({ children }: { children: ReactNode }) {
+  return <div className="composition-admin-empty">{children}</div>;
+}
+
+function ItemCard({
+  label,
+  title,
+  subtitle,
+  imageUrl,
+  linkUrl,
+  addedInLabel,
+  meta,
+  children
+}: {
+  label?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  imageUrl?: string | null;
+  linkUrl?: string | null;
+  addedInLabel?: string | null;
+  meta?: Array<string | null | undefined>;
+  children?: ReactNode;
+}) {
+  const visibleMeta = meta?.filter((item): item is string => Boolean(item)) ?? [];
+
+  return (
+    <article className="composition-admin-item">
+      <ImagePreview src={imageUrl} />
+      {textOrEmpty(label) ? <span className="composition-admin-label">{label}</span> : null}
+      {addedInLabel ? (
+        <span className="composition-admin-added-badge">Já adicionada em: {addedInLabel}</span>
+      ) : null}
+      {textOrEmpty(title) ? <strong className="composition-admin-title">{title}</strong> : null}
+      {textOrEmpty(subtitle) ? <p className="composition-admin-copy">{subtitle}</p> : null}
+      {visibleMeta.length > 0 ? (
+        <div className="composition-admin-meta">
+          {visibleMeta.map((item) => (
+            <span key={item}>{item}</span>
+          ))}
+        </div>
+      ) : null}
+      <FieldLink href={linkUrl} />
+      {children}
+    </article>
+  );
+}
+
+function RoundupItemCard({
+  label,
+  title,
+  subtitle,
+  linkUrl,
+  addedInLabel,
+  meta,
+  children
+}: {
+  label?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  linkUrl?: string | null;
+  addedInLabel?: string | null;
+  meta?: Array<string | null | undefined>;
+  children?: ReactNode;
+}) {
+  const visibleMeta = meta?.filter((item): item is string => Boolean(item)) ?? [];
+
+  return (
+    <article className="composition-admin-video-item">
+      {textOrEmpty(label) ? <span className="composition-admin-label">{label}</span> : null}
+      {addedInLabel ? (
+        <span className="composition-admin-added-badge">Já adicionada em: {addedInLabel}</span>
+      ) : null}
+      {textOrEmpty(title) ? <strong className="composition-admin-title">{title}</strong> : null}
+      {textOrEmpty(subtitle) ? <p className="composition-admin-copy">{subtitle}</p> : null}
+      {visibleMeta.length > 0 ? (
+        <div className="composition-admin-meta">
+          {visibleMeta.map((item) => (
+            <span key={item}>{item}</span>
+          ))}
+        </div>
+      ) : null}
+      <FieldLink href={linkUrl} />
+      {children}
+    </article>
+  );
+}
+
+function Card({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="composition-admin-card">
+      <header>
+        <h3>{title}</h3>
+      </header>
+      <div className="composition-admin-card-body">{children}</div>
+    </section>
+  );
+}
+
+function CollapsibleCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <details className="composition-admin-candidates">
+      <summary>{title}</summary>
+      <div className="composition-admin-candidates-body">{children}</div>
+    </details>
+  );
+}
+
+function ItemsGrid<T>({
+  items,
+  empty,
+  render
+}: {
+  items: T[];
+  empty: string;
+  render: (item: T) => ReactNode;
+}) {
+  if (items.length === 0) {
+    return <EmptyState>{empty}</EmptyState>;
+  }
+
+  return <div className="composition-admin-grid">{items.map(render)}</div>;
+}
+
+function HiddenField({ name, value }: { name: string; value?: string | number | null }) {
+  return <input type="hidden" name={name} value={value == null ? "" : String(value)} />;
+}
+
+function BankItemStatusForm({
+  actionType,
+  item,
+  label,
+  matchdayId,
+  returnTo
+}: {
+  actionType: "archive_bank_item" | "reactivate_bank_item";
+  item: MatchdayEditorialBankItem;
+  label: string;
+  matchdayId: string;
+  returnTo: string;
+}) {
+  return (
+    <form className="composition-admin-form" action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value={actionType} />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="bank_item_id" value={item.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <button className="composition-admin-small-button secondary" type="submit">
+        {label}
+      </button>
+    </form>
+  );
+}
+
+function AssignBankItemForm({
+  composition,
+  item,
+  matchdayId,
+  returnTo
+}: {
+  composition: ReferenceComposition | null;
+  item: MatchdayEditorialBankItem;
+  matchdayId: string;
+  returnTo: string;
+}) {
+  if (!composition || composition.status !== "draft" || item.status !== "active") {
+    return null;
+  }
+
+  return (
+    <form className="composition-admin-form" action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="assign_bank_item_to_composition_slot" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="composition_id" value={composition.id} />
+      <HiddenField name="bank_item_id" value={item.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <HiddenField name="return_anchor" value="matchday-editorial-bank" />
+      <div className="composition-admin-field">
+        <label htmlFor={`bank-zone-${item.id}`}>Zona de destino</label>
+        <select className="composition-admin-input" id={`bank-zone-${item.id}`} name="slot_type" defaultValue="highlight">
+          {bankAssignableSlotOptions.map((option) => (
+            <option key={option.slotType} value={option.slotType}>
+              {option.title}
+            </option>
+          ))}
+        </select>
+      </div>
+      <button className="composition-admin-small-button" type="submit">
+        Associar a zona
+      </button>
+    </form>
+  );
+}
+
+function CreateDraftForm({ matchdayId, returnTo }: { matchdayId: string; returnTo: string }) {
+  return (
+    <form className="composition-admin-form" action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="create_draft" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="return_to" value={returnTo} />
+      <div className="composition-admin-field">
+        <label htmlFor="reference-composition-internal-name">Nome interno</label>
+        <input
+          className="composition-admin-input"
+          id="reference-composition-internal-name"
+          name="internal_name"
+          placeholder="Rascunho de composição histórica"
+        />
+      </div>
+      <button className="composition-admin-small-button" type="submit">
+        Criar rascunho
+      </button>
+      <p className="composition-admin-note">
+        O rascunho é criado apenas na nova estrutura de composição histórica. A página pública continua sem alterações.
+      </p>
+    </form>
+  );
+}
+
+function UpdateDraftForm({
+  composition,
+  matchdayId,
+  returnTo
+}: {
+  composition: ReferenceComposition;
+  matchdayId: string;
+  returnTo: string;
+}) {
+  return (
+    <form className="composition-admin-form" action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="update_draft" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="composition_id" value={composition.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <div className="composition-admin-field">
+        <label htmlFor="reference-composition-current-name">Nome interno</label>
+        <input
+          className="composition-admin-input"
+          id="reference-composition-current-name"
+          name="internal_name"
+          defaultValue={composition.internal_name ?? ""}
+        />
+      </div>
+      <label className="composition-admin-check">
+        <input type="checkbox" name="use_roundup_items" value="1" defaultChecked={composition.use_roundup_items} /> Usar
+        resumo/vídeos
+      </label>
+      <button className="composition-admin-small-button" type="submit">
+        Guardar nome interno e opção
+      </button>
+    </form>
+  );
+}
+
+function SaveCurrentPageStateForm({
+  composition,
+  matchdayId,
+  returnTo
+}: {
+  composition: ReferenceComposition;
+  matchdayId: string;
+  returnTo: string;
+}) {
+  return (
+    <form className="composition-admin-form" action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="save_current_page_state" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="composition_id" value={composition.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <p className="composition-admin-note">
+        Adiciona à composição os blocos atualmente publicados, sem publicar nem alterar a página pública.
+      </p>
+      <label className="composition-admin-check">
+        <input type="checkbox" required /> Isto vai adicionar à composição os blocos atualmente publicados. Não altera a página pública.
+      </label>
+      <button className="composition-admin-small-button" type="submit">
+        GUARDAR ESTADO ATUAL DA PÁGINA
+      </button>
+    </form>
+  );
+}
+
+function PublishCompositionForm({
+  composition,
+  matchdayId,
+  returnTo
+}: {
+  composition: ReferenceComposition;
+  matchdayId: string;
+  returnTo: string;
+}) {
+  return (
+    <form className="composition-admin-form" action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="publish_reference_composition" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="composition_id" value={composition.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <p className="composition-admin-note">
+        Publica internamente esta composição como versão ativa da jornada. Não altera a página pública.
+      </p>
+      <button className="composition-admin-small-button" type="submit">
+        Publicar composição
+      </button>
+    </form>
+  );
+}
+
+function ReopenCompositionForm({
+  composition,
+  matchdayId,
+  returnTo
+}: {
+  composition: ReferenceComposition;
+  matchdayId: string;
+  returnTo: string;
+}) {
+  return (
+    <form className="composition-admin-form" action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="reopen_reference_composition" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="composition_id" value={composition.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <p className="composition-admin-note">
+        Esta composição está publicada. Para alterar itens, reabre como rascunho, corrige e publica novamente.
+      </p>
+      <button className="composition-admin-small-button secondary" type="submit">
+        Reabrir para edição
+      </button>
+    </form>
+  );
+}
+
+function AddCandidateForm({
+  composition,
+  matchdayId,
+  returnTo,
+  sortOrder,
+  slotType,
+  sourceType,
+  sourceId,
+  articleId,
+  title,
+  subtitle,
+  imageUrl,
+  linkUrl,
+  label,
+  alreadyAdded,
+  buttonLabel = "Adicionar à composição"
+}: {
+  composition: ReferenceComposition | null;
+  matchdayId: string;
+  returnTo: string;
+  sortOrder: number;
+  slotType: string;
+  sourceType: string;
+  sourceId?: string | null;
+  articleId?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  imageUrl?: string | null;
+  linkUrl?: string | null;
+  label?: string | null;
+  alreadyAdded?: boolean;
+  buttonLabel?: string;
+}) {
+  if (!composition || composition.status !== "draft" || alreadyAdded) {
+    return null;
+  }
+
+  return (
+    <form action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="add_item" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="composition_id" value={composition.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <HiddenField name="slot_type" value={slotType} />
+      <HiddenField name="source_type" value={sourceType} />
+      <HiddenField name="source_id" value={sourceId} />
+      <HiddenField name="article_id" value={articleId} />
+      <HiddenField name="sort_order" value={sortOrder} />
+      <HiddenField name="title_snapshot" value={title} />
+      <HiddenField name="subtitle_snapshot" value={subtitle} />
+      <HiddenField name="image_url_snapshot" value={imageUrl} />
+      <HiddenField name="link_url_snapshot" value={linkUrl} />
+      <HiddenField name="label_snapshot" value={label} />
+      <button className="composition-admin-small-button" type="submit">
+        {buttonLabel}
+      </button>
+    </form>
+  );
+}
+
+function AddImportantItemForm({
+  composition,
+  matchdayId,
+  returnTo,
+  sortOrder,
+  sourceType,
+  sourceId,
+  articleId,
+  title,
+  subtitle,
+  imageUrl,
+  linkUrl,
+  label,
+  alreadyAdded
+}: {
+  composition: ReferenceComposition | null;
+  matchdayId: string;
+  returnTo: string;
+  sortOrder: number;
+  sourceType: string;
+  sourceId?: string | null;
+  articleId?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  imageUrl?: string | null;
+  linkUrl?: string | null;
+  label?: string | null;
+  alreadyAdded?: boolean;
+}) {
+  if (!composition || composition.status !== "draft" || alreadyAdded) {
+    return null;
+  }
+
+  return (
+    <form action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="add_item" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="composition_id" value={composition.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <HiddenField name="slot_type" value="important_item" />
+      <HiddenField name="source_type" value={sourceType} />
+      <HiddenField name="source_id" value={sourceId} />
+      <HiddenField name="article_id" value={articleId} />
+      <HiddenField name="sort_order" value={sortOrder} />
+      <HiddenField name="title_snapshot" value={title} />
+      <HiddenField name="subtitle_snapshot" value={subtitle} />
+      <HiddenField name="image_url_snapshot" value={imageUrl} />
+      <HiddenField name="link_url_snapshot" value={linkUrl} />
+      <HiddenField name="label_snapshot" value={label} />
+      <button className="composition-admin-small-button secondary" type="submit">
+        Adicionar a Mais notícias da jornada
+      </button>
+    </form>
+  );
+}
+
+function RemoveItemForm({
+  composition,
+  item,
+  matchdayId,
+  returnTo
+}: {
+  composition: ReferenceComposition;
+  item: ReferenceCompositionItem;
+  matchdayId: string;
+  returnTo: string;
+}) {
+  return (
+    <form action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="remove_item" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="composition_id" value={composition.id} />
+      <HiddenField name="item_id" value={item.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <button className="composition-admin-small-button secondary" type="submit">
+        Retirar da zona
+      </button>
+    </form>
+  );
+}
+
+function UnassignBankItemForm({
+  composition,
+  item,
+  matchdayId,
+  returnTo
+}: {
+  composition: ReferenceComposition;
+  item: ReferenceCompositionItem;
+  matchdayId: string;
+  returnTo: string;
+}) {
+  return (
+    <form action="/api/admin/editorial/composicao" method="post">
+      <HiddenField name="action_type" value="unassign_bank_item_from_composition_slot" />
+      <HiddenField name="matchday_id" value={matchdayId} />
+      <HiddenField name="composition_id" value={composition.id} />
+      <HiddenField name="composition_item_id" value={item.id} />
+      <HiddenField name="return_to" value={returnTo} />
+      <HiddenField name="return_anchor" value="matchday-editorial-bank" />
+      <button className="composition-admin-small-button secondary" type="submit">
+        Retirar da zona
+      </button>
+    </form>
+  );
+}
+
+function CompositionItemActions({
+  composition,
+  item,
+  matchdayId,
+  returnTo
+}: {
+  composition: ReferenceComposition;
+  item: ReferenceCompositionItem;
+  matchdayId: string;
+  returnTo: string;
+}) {
+  if (isBankCompositionSource(item.source_type, item.source_id)) {
     return (
-      <div className="editorial-admin-message warning">
-        <span>{errorLabels[error] ?? errorLabels.save}</span>
-        {detail ? <small>{detail}</small> : null}
+      <div className="composition-admin-form">
+        <p className="composition-admin-note">Retirar da zona remove apenas a associaÃ§Ã£o. A notÃ­cia continua ativa no banco.</p>
+        <UnassignBankItemForm composition={composition} item={item} matchdayId={matchdayId} returnTo={returnTo} />
       </div>
     );
   }
 
-  return null;
+  return (
+    <div className="composition-admin-form">
+      <p className="composition-admin-note">Para mudar de zona, retira este item e volta a associar a partir do banco.</p>
+      <RemoveItemForm composition={composition} item={item} matchdayId={matchdayId} returnTo={returnTo} />
+    </div>
+  );
 }
 
-function scopedMessageFor(created: string | undefined, error: string | undefined, currentScope: string | undefined, scope: FeedbackScope, detail?: string) {
-  if (currentScope !== scope) {
-    return null;
-  }
-
-  return messageFor(created, error, scope, detail);
-}
-
-export default async function AdminMatchdayEditorialPage({ params, searchParams }: EditorialPageProps) {
+export default async function AdminEditorialCompositionPage({ params, searchParams }: CompositionPageProps) {
   const { matchdayId } = await params;
-  const query = (await searchParams) ?? {};
-  const created = oneParam(query, "created");
-  const error = oneParam(query, "error");
-  const feedbackScope = oneParam(query, "feedback_scope");
-  const feedbackItem = oneParam(query, "feedback_item");
-  const latestNewsErrorDetail = oneParam(query, "latest_news_error_detail");
+  const query = searchParams ? await searchParams : {};
   const context = await readMatchdayContext(matchdayId);
 
   if (!context) {
     return (
-      <main className="editorial-admin-shell">
-        <style>{editorialPageStyles}</style>
-        <section className="editorial-admin-panel" id="manchete">
+      <main className="composition-admin-shell">
+        <style>{compositionPageStyles}</style>
+        <section className="composition-admin-panel">
           <header>
-            <h1>Jornada nao encontrada</h1>
-            <p className="editorial-admin-muted">A pagina editorial so pode abrir a partir de uma jornada existente.</p>
+            <h2>Jornada não encontrada</h2>
+            <p>A composição editorial só pode ser visualizada a partir de uma jornada existente.</p>
           </header>
-          <a className="editorial-admin-button secondary" href="/admin/gestor">
-            Voltar ao gestor
-          </a>
         </section>
       </main>
     );
   }
 
   const { matchday, season, competition, country } = context;
-  const editorial = await readMatchdayEditorial(matchday.id);
-  const highlights = await readMatchdayHighlights(matchday.id);
-  const roundupItems = await readMatchdayRoundupItems(matchday.id);
-  const latestNews = await readMatchdayLatestNews(matchday.id);
-  const publishedReferenceComposition = await readPublishedReferenceComposition(matchday.id);
-  const publishedEditorialArticles = await readPublishedEditorialArticles();
-  const publishedSources = await getEditorialPublishedSources({
-    competitionId: competition.id,
-    seasonId: season.id,
-    matchdayId: matchday.id
-  }).catch(() => []);
-  const sideBlockArticleOptions = publishedEditorialArticles.filter((article) => articlePublicHref(article));
-  const belowHeadlineMode = editorial?.below_headline_mode === "roundup" ? "roundup" : "highlights";
-  const complementaryMode = editorial?.complementary_mode ?? "none";
-  const latestZoneMode = editorial?.latest_zone_mode === "editorial_line" ? "editorial_line" : "latest_news";
-  const belowHeadlineHeadingFallback = `Jornada ${String(matchday.number).padStart(2, "0")}`;
-  const roundupVideoHeadingFallback = `Jornada ${String(matchday.number).padStart(2, "0")} · Jogos Vídeo Resumo`;
-  const returnTo = `/admin/editorial/jornada/${matchday.id}`;
-  const scopedReturnTo = (scope: FeedbackScope, anchor = scope) => `${returnTo}?feedback_scope=${scope}#${anchor}`;
-  const returnToManchete = scopedReturnTo("manchete");
-  const returnToBlocoLateral = scopedReturnTo("bloco-lateral");
-  const returnToComposicao = scopedReturnTo("composicao");
-  const returnToDestaques = scopedReturnTo("destaques");
-  const returnToResumo = scopedReturnTo("resumo-jornada");
-  const returnToComplementar = scopedReturnTo("bloco-complementar");
-  const returnToUltimasNoticias = scopedReturnTo("ultimas-noticias");
-  const returnToHighlightItem = (order: number) =>
-    `${returnTo}?feedback_scope=destaques&feedback_item=highlight-${paddedOrder(order)}#highlight-item-${paddedOrder(order)}`;
-  const returnToResumoItem = (order: number) =>
-    `${returnTo}?feedback_scope=resumo-jornada&feedback_item=roundup-${paddedOrder(order)}#roundup-item-${paddedOrder(order)}`;
-  const returnToLatestNewsItem = (order: number) =>
-    `${returnTo}?feedback_scope=ultimas-noticias&feedback_item=latest-news-${paddedOrder(order)}#latest-news-item-${paddedOrder(order)}`;
-  const itemMessageFor = (scope: FeedbackScope, itemKey: string, detail?: string) =>
-    feedbackScope === scope && feedbackItem === itemKey ? messageFor(created, error, scope, detail) : null;
-  const contextLabel = `${country?.name ?? "Pais"} · ${competition.name} · ${season.label} · ${matchday.label}`;
+  const [editorial, highlights, roundupItems, latestNews, articles, bankItems] = await Promise.all([
+    readMatchdayEditorial(matchday.id),
+    readMatchdayHighlights(matchday.id),
+    readMatchdayRoundupItems(matchday.id),
+    readMatchdayLatestNews(matchday.id),
+    readMatchdayArticles(matchday.id),
+    readMatchdayEditorialBankItems(matchday.id)
+  ]);
+  const publishedHighlights = highlights.filter((item) => item.status === "published");
+  const publishedRoundupItems = roundupItems.filter((item) => item.status === "published");
+  const publishedLatestNews = latestNews.filter((item) => item.status === "published");
+  const publishedArticles = articles.filter((item) => item.status === "published");
+  const draftComposition = await readReferenceCompositionForBackoffice(matchday.id);
+  const compositionItems = await readReferenceCompositionItems(draftComposition?.id);
+  const returnTo = `/admin/editorial/composicao/${matchday.id}`;
+  const nextSortOrder = compositionItems.length + 1;
+  const groupedCompositionItems = groupCompositionItemsBySection(compositionItems);
+  const publicationValidation = getCompositionPublicationValidation(compositionItems);
+  const getCandidateAddedInLabel = (
+    sourceType: string,
+    sourceId?: string | null,
+    articleId?: string | null,
+    linkUrl?: string | null,
+    originSlotType?: string | null,
+    title?: string | null,
+    subtitle?: string | null,
+    imageUrl?: string | null
+  ) => candidatePlacementLabel(compositionItems, { sourceType, sourceId, articleId, linkUrl, originSlotType, title, subtitle, imageUrl });
+  const isDraftComposition = draftComposition?.status === "draft";
+  const isPublishedComposition = draftComposition?.status === "published";
+  const publishedCompositionProblemMessage = isPublishedComposition ? getPublishedCompositionProblemMessage(compositionItems) : null;
+  const publishedAtLabel = formatPublishedAt(draftComposition?.published_at);
+  const latestZoneMode = editorial?.latest_zone_mode === "editorial_line" ? "Linha editorial" : "Últimas notícias";
+  const contextLabel = `${country?.name ?? "Pais"} / ${competition.name} / ${season.label} / ${matchday.label}`;
   const contextSelector = await readContextSelectorData();
   const selectorCountryById = new Map(contextSelector.countries.map((item) => [item.id, item]));
   const selectorCompetitionById = new Map(contextSelector.competitions.map((item) => [item.id, item]));
   const selectorSeasonById = new Map(contextSelector.seasons.map((item) => [item.id, item]));
-  const belowHeadlineSettingsFormId = "below-headline-settings-form";
-
-  const highlightsEditor = (
-    <>
-      <div className="editorial-admin-compact-stack">
-        {[1, 2, 3].map((order) => {
-          const highlight = highlights.find((item) => item.sort_order === order);
-          const highlightFormId = `matchday-highlight-${order}-form`;
-          const itemKey = `highlight-${paddedOrder(order)}`;
-          const itemAnchor = `highlight-item-${paddedOrder(order)}`;
-          return (
-            <details className="editorial-admin-item-details" data-highlight-card={order} id={itemAnchor} key={order}>
-              <summary>
-                <span className="editorial-admin-item-summary-title">{itemSummaryTitle(order, highlight?.title, "Rascunho vazio")}</span>
-                {highlight?.label ? <span className="editorial-admin-item-label">{highlight.label}</span> : null}
-                <span className="editorial-admin-item-status">{highlight?.status === "published" ? "Publicado" : "Rascunho"}</span>
-              </summary>
-              <form className="editorial-admin-hidden-form" action="/api/admin/gestor" id={highlightFormId} method="post">
-                <input type="hidden" name="action_type" value="save_matchday_highlight_item" />
-                <input type="hidden" name="return_to" value={returnToHighlightItem(order)} />
-                <input type="hidden" name="matchday_id" value={matchday.id} />
-                <input type="hidden" name="highlight_id" value={highlight?.id ?? ""} />
-                <input type="hidden" name="highlight_sort_order" value={order} />
-              </form>
-              <div className="editorial-admin-item-details-body">
-                {itemMessageFor("destaques", itemKey)}
-                <div className="editorial-admin-field">
-                  <label htmlFor={`highlight-${order}-label`}>Etiqueta</label>
-                  <input form={highlightFormId} id={`highlight-${order}-label`} name="highlight_label" defaultValue={highlight?.label ?? ""} placeholder={order === 1 ? "ANTEVISAO" : order === 2 ? "AMBIENTE" : "CONTEXTO"} />
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor={`highlight-${order}-title`}>Titulo</label>
-                  <input
-                    form={highlightFormId}
-                    id={`highlight-${order}-title`}
-                    name="highlight_title"
-                    defaultValue={highlight?.title ?? ""}
-                    placeholder={order === 1 ? "Os pontos de atencao antes da bola rolar" : order === 2 ? "A jornada vista pelas bancadas e pelos protagonistas" : "O que pode mudar na tabela depois dos resultados"}
-                  />
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor={`highlight-${order}-subtitle`}>Subtitulo / texto curto</label>
-                  <input form={highlightFormId} id={`highlight-${order}-subtitle`} name="highlight_subtitle" defaultValue={highlight?.subtitle ?? ""} placeholder="Resumo curto opcional do destaque" />
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor={`highlight-${order}-image-url`}>Imagem URL</label>
-                  <input form={highlightFormId} id={`highlight-${order}-image-url`} name="highlight_image_url" defaultValue={highlight?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor={`highlight-${order}-link-url`}>Link do destaque</label>
-                  <input form={highlightFormId} id={`highlight-${order}-link-url`} name="highlight_link_url" defaultValue={highlight?.link_url ?? ""} placeholder="/noticias/slug-do-artigo" />
-                </div>
-                <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
-                  <legend>Ligar fonte publicada ao destaque</legend>
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`highlight-${order}-article-source`}>Preencher destaque com fonte publicada</label>
-                    <select id={`highlight-${order}-article-source`} data-highlight-article-select defaultValue="">
-                      <option value="">Escolher fonte publicada</option>
-                      {publishedSources.map((source) => (
-                        <option
-                          key={`${source.source_type}-${source.source_id}`}
-                          value={`${source.source_type}:${source.source_id}`}
-                          data-highlight-label={publishedSourceComplementLabel(source)}
-                          data-highlight-title={cleanText(source.title)}
-                          data-highlight-subtitle={publishedSourceComplementText(source)}
-                          data-highlight-image-url={publishedSourceComplementImageUrl(source)}
-                          data-highlight-link-url={cleanText(source.link_url)}
-                        >
-                          {publishedSourceOptionLabel(source)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <p className="editorial-admin-muted">
-                    Ao escolher uma fonte, o destaque recebe etiqueta, titulo, imagem e link interno. Pode ajustar manualmente antes de guardar.
-                  </p>
-                </fieldset>
-                {highlight?.image_url ? (
-                  <div className="editorial-admin-preview">
-                    <img alt="" src={highlight.image_url} />
-                  </div>
-                ) : null}
-                <div className="editorial-admin-field">
-                  <label htmlFor={`highlight-${order}-status`}>Estado</label>
-                  <select form={highlightFormId} id={`highlight-${order}-status`} name="highlight_status" defaultValue={highlight?.status ?? "draft"}>
-                    <option value="draft">Rascunho</option>
-                    <option value="published">Publicado</option>
-                  </select>
-                </div>
-                <button className="editorial-admin-button" form={highlightFormId} type="submit">
-                  Guardar destaque #{paddedOrder(order)}
-                </button>
-                <form action="/api/admin/gestor/editorial-image" className="editorial-admin-upload-inline" encType="multipart/form-data" method="post">
-                  <input type="hidden" name="return_to" value={returnToHighlightItem(order)} />
-                  <input type="hidden" name="matchday_id" value={matchday.id} />
-                  <input type="hidden" name="target" value="highlight" />
-                  <input type="hidden" name="sort_order" value={order} />
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`highlight-${order}-image-upload`}>Carregar imagem do destaque {order}</label>
-                    <input accept="image/jpeg,image/png,image/webp" id={`highlight-${order}-image-upload`} name="image" type="file" />
-                  </div>
-                  <button className="editorial-admin-button secondary" type="submit">
-                    Carregar imagem
-                  </button>
-                </form>
-              </div>
-            </details>
-          );
-        })}
-      </div>
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            (function () {
-              var cards = Array.prototype.slice.call(document.querySelectorAll('[data-highlight-card]'));
-              cards.forEach(function (card) {
-                var order = card.getAttribute('data-highlight-card');
-                var select = card.querySelector('[data-highlight-article-select]');
-                if (!order || !select) return;
-                function setFieldValue(field, value) {
-                  if (!field) return;
-                  field.value = value || '';
-                  field.dispatchEvent(new Event('input', { bubbles: true }));
-                  field.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-                function finishPublishedSource() {
-                  var message = select.parentElement.querySelector('[data-source-applied-message]');
-                  if (!message) {
-                    message = document.createElement('span');
-                    message.setAttribute('data-source-applied-message', 'true');
-                    message.style.display = 'block';
-                    message.style.marginTop = '6px';
-                    message.style.color = '#475569';
-                    message.style.fontSize = '12px';
-                    message.style.fontWeight = '700';
-                    select.insertAdjacentElement('afterend', message);
-                  }
-                  message.textContent = 'Fonte aplicada. Reve e guarda a zona.';
-                  window.clearTimeout(select._sourceAppliedTimer);
-                  select._sourceAppliedTimer = window.setTimeout(function () {
-                    message.textContent = '';
-                  }, 3500);
-                  select.value = '';
-                }
-                function setHighlightField(name, value) {
-                  var field = card.querySelector('[name="highlight_' + name + '"]');
-                  setFieldValue(field, value);
-                }
-                function applyHighlightArticle() {
-                  var option = select.options[select.selectedIndex];
-                  if (!option || !option.value) return;
-                  setHighlightField('label', option.dataset.highlightLabel);
-                  setHighlightField('title', option.dataset.highlightTitle);
-                  setHighlightField('subtitle', option.dataset.highlightSubtitle);
-                  setHighlightField('image_url', option.dataset.highlightImageUrl);
-                  setHighlightField('link_url', option.dataset.highlightLinkUrl);
-                  finishPublishedSource();
-                }
-                select.addEventListener('change', applyHighlightArticle);
-              });
-            })();
-          `
-        }}
-      />
-    </>
-  );
-
-  const roundupEditor = (
-    <div className="editorial-admin-compact-stack">
-      {ROUNDUP_EDITOR_SORT_ORDERS.map((order) => {
-        const item = roundupItems.find((roundupItem) => roundupItem.sort_order === order);
-        const itemKey = `roundup-${paddedOrder(order)}`;
-        const itemAnchor = `roundup-item-${paddedOrder(order)}`;
-        return (
-          <form action="/api/admin/gestor" className="editorial-admin-form editorial-admin-item-form" key={order} method="post">
-            <input type="hidden" name="action_type" value="save_matchday_roundup_item" />
-            <input type="hidden" name="return_to" value={returnToResumoItem(order)} />
-            <input type="hidden" name="matchday_id" value={matchday.id} />
-            <details className="editorial-admin-item-details" id={itemAnchor}>
-              <summary>
-                <span className="editorial-admin-item-summary-title">{itemSummaryTitle(order, item?.title, "Item sem titulo")}</span>
-                <span className="editorial-admin-item-status">{item?.status === "published" ? "Publicado" : "Rascunho"}</span>
-              </summary>
-              <div className="editorial-admin-item-details-body">
-                {itemMessageFor("resumo-jornada", itemKey)}
-                <input type="hidden" name="roundup_id" value={item?.id ?? ""} />
-                <input type="hidden" name="roundup_sort_order" value={order} />
-                <div className="editorial-admin-field">
-                  <label htmlFor={`roundup-${order}-sort-order`}>Ordem</label>
-                  <input id={`roundup-${order}-sort-order`} readOnly value={order} />
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor={`roundup-${order}-label`}>Etiqueta</label>
-                  <input id={`roundup-${order}-label`} name="roundup_label" defaultValue={item?.label ?? ""} placeholder={order === 1 ? "VIDEO" : order === 2 ? "GOLOS" : order === 3 ? "NOTICIA" : "RESUMO"} />
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor={`roundup-${order}-title`}>Titulo</label>
-                  <input
-                    id={`roundup-${order}-title`}
-                    name="roundup_title"
-                    defaultValue={item?.title ?? ""}
-                    placeholder={order === 1 ? "Girona 0 - 1 Rayo Vallecano" : order === 2 ? "Villarreal 2 - 3 Real Oviedo" : order === 3 ? "Mallorca 0 - 1 FC Barcelona" : "Titulo do item da jornada"}
-                  />
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor={`roundup-${order}-subtitle`}>Descricao</label>
-                  <input id={`roundup-${order}-subtitle`} name="roundup_subtitle" defaultValue={item?.subtitle ?? ""} placeholder={order === 1 ? "Resumo completo" : order === 2 ? "Golos e melhores momentos" : order === 3 ? "Noticia de contexto" : "Descricao curta"} />
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor={`roundup-${order}-video-url`}>Video URL</label>
-                  <input id={`roundup-${order}-video-url`} name="roundup_video_url" defaultValue={item?.video_url ?? ""} placeholder="https://exemplo.com/video" />
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor={`roundup-${order}-duration`}>Duracao</label>
-                  <input id={`roundup-${order}-duration`} name="roundup_duration" defaultValue={item?.duration ?? ""} placeholder="5:42" />
-                </div>
-                <details className="editorial-admin-technical-details">
-                  <summary>Thumbnail / imagem avancado</summary>
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`roundup-${order}-image-url`}>Imagem URL</label>
-                    <input id={`roundup-${order}-image-url`} name="roundup_image_url" defaultValue={item?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
-                  </div>
-                </details>
-                <div className="editorial-admin-field">
-                  <label htmlFor={`roundup-${order}-type`}>Tipo</label>
-                  <select id={`roundup-${order}-type`} name="roundup_type" defaultValue={item?.type ?? "resumo"}>
-                    <option value="video">Video</option>
-                    <option value="golos">Golos</option>
-                    <option value="resumo">Resumo</option>
-                    <option value="noticia">Noticia</option>
-                  </select>
-                </div>
-                <div className="editorial-admin-field">
-                  <label htmlFor={`roundup-${order}-status`}>Estado</label>
-                  <select id={`roundup-${order}-status`} name="roundup_status" defaultValue={item?.status ?? "draft"}>
-                    <option value="draft">Rascunho</option>
-                    <option value="published">Publicado</option>
-                  </select>
-                </div>
-                <button className="editorial-admin-button" type="submit">
-                  Guardar video #{paddedOrder(order)}
-                </button>
-              </div>
-            </details>
-          </form>
-        );
-      })}
-    </div>
-  );
-
-  const latestNewsEditor = (
-    <div className="editorial-admin-form">
-      <form className="editorial-admin-form" action="/api/admin/gestor" method="post">
-        <input type="hidden" name="action_type" value="save_matchday_latest_news" />
-        <input type="hidden" name="return_to" value={returnToUltimasNoticias} />
-        <input type="hidden" name="matchday_id" value={matchday.id} />
-        <fieldset className="editorial-admin-fieldset">
-          <legend>Modo da zona</legend>
-          <div className="editorial-admin-grid two">
-            <div className="editorial-admin-field">
-              <label htmlFor="latest-zone-mode">Modo da zona</label>
-              <select id="latest-zone-mode" name="latest_zone_mode" defaultValue={latestZoneMode}>
-                <option value="latest_news">Ultimas noticias</option>
-                <option value="editorial_line">Linha editorial</option>
-              </select>
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor="latest-zone-title">Titulo publico da zona</label>
-              <input
-                id="latest-zone-title"
-                name="latest_zone_title"
-                defaultValue={editorial?.latest_zone_title ?? ""}
-                placeholder={latestZoneMode === "latest_news" ? "Principais acontecimentos" : "Pode ficar vazio"}
-              />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor="latest-zone-title-color">Cor do titulo publico da zona</label>
-              <input
-                id="latest-zone-title-color"
-                name="latest_zone_title_color"
-                defaultValue={editorial?.latest_zone_title_color ?? ""}
-                placeholder="#0b1f3a"
-                pattern="^#[0-9A-Fa-f]{6}$"
-              />
-            </div>
-          </div>
-          <button className="editorial-admin-button secondary" type="submit">
-            Guardar modo da zona
-          </button>
-        </fieldset>
-      </form>
-      <div className="editorial-admin-compact-stack">
-        {LATEST_NEWS_EDITOR_SORT_ORDERS.map((order) => {
-          const item = latestNews.find((newsItem) => newsItem.sort_order === order);
-          const itemKey = `latest-news-${paddedOrder(order)}`;
-          const itemAnchor = `latest-news-item-${paddedOrder(order)}`;
-          return (
-            <form action="/api/admin/gestor" className="editorial-admin-form editorial-admin-item-form" data-latest-news-card={order} key={order} method="post">
-              <input type="hidden" name="action_type" value="save_matchday_latest_news_item" />
-              <input type="hidden" name="return_to" value={returnToLatestNewsItem(order)} />
-              <input type="hidden" name="matchday_id" value={matchday.id} />
-              <details className="editorial-admin-item-details" id={itemAnchor}>
-                <summary>
-                  <span className="editorial-admin-item-summary-title">{itemSummaryTitle(order, item?.title, "Rascunho vazio")}</span>
-                  <span className="editorial-admin-item-status">{item?.status === "published" ? "Publicado" : "Rascunho"}</span>
-                </summary>
-                <div className="editorial-admin-item-details-body">
-                  {itemMessageFor("ultimas-noticias", itemKey, latestNewsErrorDetail)}
-                  <input type="hidden" name="latest_news_id" value={item?.id ?? ""} />
-                  <input type="hidden" name="latest_news_sort_order" value={order} />
-                  <input type="hidden" name="latest_news_article_id" value={item?.article_id ?? ""} />
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`latest-news-${order}-sort-order`}>Ordem</label>
-                    <input id={`latest-news-${order}-sort-order`} readOnly value={order} />
-                  </div>
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`latest-news-${order}-time-label`}>Hora</label>
-                    <input id={`latest-news-${order}-time-label`} name="latest_news_time_label" defaultValue={item?.time_label ?? ""} placeholder="12:30" />
-                  </div>
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`latest-news-${order}-title`}>Titulo</label>
-                    <input id={`latest-news-${order}-title`} name="latest_news_title" defaultValue={item?.title ?? ""} placeholder="Titulo curto da noticia" />
-                  </div>
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`latest-news-${order}-subtitle`}>Subtitulo / resumo</label>
-                    <input id={`latest-news-${order}-subtitle`} name="latest_news_subtitle" defaultValue={item?.subtitle ?? ""} placeholder="Resumo curto opcional" />
-                  </div>
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`latest-news-${order}-image-url`}>Imagem URL opcional</label>
-                    <input id={`latest-news-${order}-image-url`} name="latest_news_image_url" defaultValue={item?.image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
-                  </div>
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`latest-news-${order}-link-url`}>Link para leitura completa</label>
-                    <input id={`latest-news-${order}-link-url`} name="latest_news_link_url" defaultValue={item?.link_url ?? ""} placeholder="/noticias/slug-do-artigo" />
-                  </div>
-                  <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
-                    <legend>Ligar fonte publicada</legend>
-                    <div className="editorial-admin-field">
-                      <label htmlFor={`latest-news-${order}-article-source`}>Preencher com fonte publicada</label>
-                      <select id={`latest-news-${order}-article-source`} data-latest-news-article-select defaultValue="">
-                        <option value="">Escolher fonte publicada</option>
-                        {publishedSources.map((source) => (
-                          <option
-                            key={`${source.source_type}-${source.source_id}`}
-                            value={`${source.source_type}:${source.source_id}`}
-                            data-latest-news-title={cleanText(source.title)}
-                            data-latest-news-subtitle={publishedSourceComplementText(source)}
-                            data-latest-news-image-url={publishedSourceComplementImageUrl(source)}
-                            data-latest-news-link-url={cleanText(source.link_url)}
-                          >
-                            {publishedSourceOptionLabel(source)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <p className="editorial-admin-muted">
-                      Ao escolher uma fonte, este item recebe titulo, subtitulo, imagem e link interno. Pode ajustar manualmente antes de guardar.
-                    </p>
-                  </fieldset>
-                  {item?.image_url ? (
-                    <div className="editorial-admin-preview">
-                      <img alt="" src={item.image_url} />
-                    </div>
-                  ) : null}
-                  <div className="editorial-admin-field">
-                    <label htmlFor={`latest-news-${order}-status`}>Estado</label>
-                    <select id={`latest-news-${order}-status`} name="latest_news_status" defaultValue={item?.status ?? "draft"}>
-                      <option value="draft">Rascunho</option>
-                      <option value="published">Publicado</option>
-                    </select>
-                  </div>
-                  <button className="editorial-admin-button" type="submit">
-                    Guardar item #{paddedOrder(order)}
-                  </button>
-                </div>
-              </details>
-            </form>
-          );
-        })}
-      </div>
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            (function () {
-              var cards = Array.prototype.slice.call(document.querySelectorAll('[data-latest-news-card]'));
-              cards.forEach(function (card) {
-                var order = card.getAttribute('data-latest-news-card');
-                var select = card.querySelector('[data-latest-news-article-select]');
-                if (!order || !select) return;
-                function setFieldValue(field, value) {
-                  if (!field) return;
-                  field.value = value || '';
-                  field.dispatchEvent(new Event('input', { bubbles: true }));
-                  field.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-                function finishPublishedSource() {
-                  var message = select.parentElement.querySelector('[data-source-applied-message]');
-                  if (!message) {
-                    message = document.createElement('span');
-                    message.setAttribute('data-source-applied-message', 'true');
-                    message.style.display = 'block';
-                    message.style.marginTop = '6px';
-                    message.style.color = '#475569';
-                    message.style.fontSize = '12px';
-                    message.style.fontWeight = '700';
-                    select.insertAdjacentElement('afterend', message);
-                  }
-                  message.textContent = 'Fonte aplicada. Reve e guarda a zona.';
-                  window.clearTimeout(select._sourceAppliedTimer);
-                  select._sourceAppliedTimer = window.setTimeout(function () {
-                    message.textContent = '';
-                  }, 3500);
-                  select.value = '';
-                }
-                function setLatestNewsField(name, value) {
-                  var field = card.querySelector('[name="latest_news_' + name + '"]');
-                  setFieldValue(field, value);
-                }
-                function applyLatestNewsArticle() {
-                  var option = select.options[select.selectedIndex];
-                  if (!option || !option.value) return;
-                  setLatestNewsField('article_id', '');
-                  setLatestNewsField('title', option.dataset.latestNewsTitle);
-                  setLatestNewsField('subtitle', option.dataset.latestNewsSubtitle);
-                  setLatestNewsField('image_url', option.dataset.latestNewsImageUrl);
-                  setLatestNewsField('link_url', option.dataset.latestNewsLinkUrl);
-                  finishPublishedSource();
-                }
-                select.addEventListener('change', applyLatestNewsArticle);
-              });
-            })();
-          `
-        }}
-      />
-    </div>
-  );
+  const activeBankItems = bankItems.filter((item) => item.status !== "archived");
+  const archivedBankItems = bankItems.filter((item) => item.status === "archived");
+  const bankSavedCount = Math.max(0, Number.parseInt(query.bank_saved ?? "0", 10) || 0);
+  const bankSkippedCount = Math.max(0, Number.parseInt(query.bank_skipped ?? "0", 10) || 0);
+  const bankExistingCount = Math.max(0, Number.parseInt(query.bank_existing ?? String(bankSkippedCount), 10) || 0);
+  const bankRepeatedCount = Math.max(0, Number.parseInt(query.bank_repeated ?? "0", 10) || 0);
+  const bankFeedback = (() => {
+    if (query.bank_status_error) {
+      return query.bank_status_error === "1" ? "Nao foi possivel atualizar o estado do item do banco." : query.bank_status_error;
+    }
+    if (query.bank_assignment_error) {
+      return query.bank_assignment_error === "1" ? "Nao foi possivel associar ou retirar o item do banco." : query.bank_assignment_error;
+    }
+    if (query.bank_assigned) return "Item do banco associado a composicao.";
+    if (query.bank_unassigned) return "Item retirado da zona. A noticia continua ativa no banco.";
+    if (query.bank_archived) return "Item arquivado. Continua guardado no banco, mas fora da lista ativa.";
+    if (query.bank_reactivated) return "Item reativado e devolvido a lista ativa do banco.";
+    if (query.bank_error) return "Nao foi possivel guardar a atualidade desta jornada. Confirma os dados e tenta novamente.";
+    if (query.bank_saved || query.bank_skipped || query.bank_existing || query.bank_repeated) {
+      return `Atualidade guardada: ${bankSavedCount} novas noticias adicionadas. ${bankExistingCount} ja existiam no banco. ${bankRepeatedCount} eram repetidas na atualidade e nao foram duplicadas.`;
+    }
+    return null;
+  })();
 
   return (
-    <main className="editorial-admin-shell">
-      <style>{editorialPageStyles}</style>
+    <main className="composition-admin-shell">
+      <style>{compositionPageStyles}</style>
 
-      <section className="editorial-admin-hero">
+      <section className="composition-admin-hero">
         <div>
-          <p>1.ª página da jornada</p>
-          <h1>Editar editorial</h1>
-          <small>{contextLabel}</small>
+          <p>Composição editorial da jornada</p>
+          <h1>Jornada {String(matchday.number).padStart(2, "0")}</h1>
+          <span>{contextLabel}</span>
         </div>
-        <nav className="editorial-admin-actions" aria-label="Navegação do Editorial da Jornada">
-          <a className="editorial-admin-button secondary" href="/admin/editorial/home">
-            Home Editorial
+        <nav className="composition-admin-actions" aria-label="Acoes de navegacao">
+          <a className="composition-admin-button" href="/admin/editorial/home">
+            Home editorial
           </a>
-          <a className="editorial-admin-button secondary" href="/admin/editorial/artigos">
+          <a className="composition-admin-button" href="/admin/editorial/artigos">
             Artigos / Notícias
           </a>
-          <a className="editorial-admin-button secondary" href="/admin/editorial/conteudos">
+          <a className="composition-admin-button" href="/admin/editorial/conteudos">
             VÍDEO
           </a>
-          <a className="editorial-admin-button secondary" href={`/admin/editorial/composicao/${encodeURIComponent(matchday.id)}`}>
-            Composição Editorial
+          <a className="composition-admin-button" href={`/admin/editorial/jornada/${encodeURIComponent(matchday.id)}`}>
+            Editorial da Jornada
           </a>
-          <a className="editorial-admin-button secondary" href="/admin/gestor">
-            Gestor
+          <a className="composition-admin-button" href="/admin/gestor">
+            Centro de Gestão
           </a>
-          <a className="editorial-admin-button secondary" href="/admin">
-            Voltar ao Backoffice
+          <a className="composition-admin-button" href="/admin">
+            Backoffice
           </a>
         </nav>
       </section>
 
-      <section className="editorial-context-selector" aria-label="Alterar jornada editorial">
+      <section className="composition-context-selector" aria-label="Alterar jornada da composicao">
         <div>
           <p>Alterar jornada</p>
           <strong>{contextLabel}</strong>
         </div>
         {contextSelector.error ? (
-          <span className="editorial-context-selector-empty">Nao foi possivel carregar o seletor: {contextSelector.error}</span>
+          <span className="composition-context-selector-empty">Nao foi possivel carregar o seletor: {contextSelector.error}</span>
         ) : (
-          <form className="editorial-context-selector-form" data-context-switcher data-target-base="/admin/editorial/jornada">
-            <div className="editorial-context-selector-field">
-              <label htmlFor="editorial-context-competition">Competicao</label>
-              <select id="editorial-context-competition" name="competition_id" defaultValue={competition.id}>
-                <option value="">Escolher competicao</option>
+          <form className="composition-context-selector-form" data-context-switcher data-target-base="/admin/editorial/composicao">
+            <div className="composition-context-selector-field">
+              <label htmlFor="composition-context-competition">Competição</label>
+              <select id="composition-context-competition" name="competition_id" defaultValue={competition.id}>
                 {contextSelector.competitions.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {[selectorCountryById.get(item.country_id ?? "")?.name, item.name].filter(Boolean).join(" / ")}
+                  <option key={item.id} value={item.id} data-country={item.country_id ?? ""}>
+                    {selectorCountryById.get(item.country_id ?? "")?.name
+                      ? `${selectorCountryById.get(item.country_id ?? "")?.name} / ${item.name}`
+                      : item.name}
                   </option>
                 ))}
               </select>
             </div>
-            <div className="editorial-context-selector-field">
-              <label htmlFor="editorial-context-season">Epoca</label>
-              <select id="editorial-context-season" name="season_id" defaultValue={season.id}>
-                <option value="">Escolher epoca</option>
+            <div className="composition-context-selector-field">
+              <label htmlFor="composition-context-season">Época</label>
+              <select id="composition-context-season" name="season_id" defaultValue={season.id}>
                 {contextSelector.seasons.map((item) => (
                   <option key={item.id} value={item.id} data-competition={item.competition_id ?? ""}>
-                    {item.label ?? "Epoca sem nome"}
+                    {item.label}
                   </option>
                 ))}
               </select>
             </div>
-            <div className="editorial-context-selector-field">
-              <label htmlFor="editorial-context-matchday">Jornada</label>
-              <select id="editorial-context-matchday" name="matchday_id" defaultValue={matchday.id}>
-                <option value="">Escolher jornada</option>
-                {contextSelector.matchdays.map((item) => {
-                  const optionSeason = item.season_id ? selectorSeasonById.get(item.season_id) : null;
-
-                  return (
-                    <option
-                      key={item.id}
-                      value={item.id}
-                      data-season={item.season_id ?? ""}
-                      data-competition={optionSeason?.competition_id ?? ""}
-                    >
-                      {formatContextSelectorMatchdayLabel(item, selectorSeasonById, selectorCompetitionById, selectorCountryById)}
-                    </option>
-                  );
-                })}
+            <div className="composition-context-selector-field">
+              <label htmlFor="composition-context-matchday">Jornada</label>
+              <select id="composition-context-matchday" name="matchday_id" defaultValue={matchday.id}>
+                {contextSelector.matchdays.map((item) => (
+                  <option key={item.id} value={item.id} data-season={item.season_id ?? ""}>
+                    {formatContextSelectorMatchdayLabel(item, selectorSeasonById, selectorCompetitionById, selectorCountryById)}
+                  </option>
+                ))}
               </select>
             </div>
-            <button className="editorial-admin-button" type="submit">
-              Abrir Editorial da Jornada
+            <button className="composition-admin-button" type="submit">
+              Abrir Composição Editorial
             </button>
           </form>
         )}
       </section>
 
-      <nav className="editorial-admin-block-nav" aria-label="Navegacao interna da Editorial da Jornada">
-        <a href="#composicao">Abaixo da manchete</a>
-        <a href="#ultimas-noticias">Zona Final</a>
-      </nav>
-
       <script
         dangerouslySetInnerHTML={{
           __html: `
-            document.addEventListener("DOMContentLoaded", function () {
+            (function () {
               Array.prototype.forEach.call(document.querySelectorAll("[data-context-switcher]"), function (form) {
-                var competition = form.querySelector('select[name="competition_id"]');
-                var season = form.querySelector('select[name="season_id"]');
-                var matchday = form.querySelector('select[name="matchday_id"]');
-                var button = form.querySelector('button[type="submit"]');
-                if (!competition || !season || !matchday || !button) return;
+                var competition = form.querySelector("select[name='competition_id']");
+                var season = form.querySelector("select[name='season_id']");
+                var matchday = form.querySelector("select[name='matchday_id']");
+                if (!competition || !season || !matchday) return;
 
                 function syncOptions() {
-                  var competitionId = competition.value;
-                  var seasonId = season.value;
-
                   Array.prototype.forEach.call(season.options, function (option) {
-                    if (!option.value) return;
-                    var visible = !competitionId || option.getAttribute("data-competition") === competitionId;
-                    option.hidden = !visible;
-                    option.disabled = !visible;
+                    option.hidden = option.getAttribute("data-competition") !== competition.value;
                   });
-
-                  if (season.selectedOptions[0] && season.selectedOptions[0].disabled) {
-                    season.value = "";
-                    seasonId = "";
+                  if (season.selectedOptions[0] && season.selectedOptions[0].hidden) {
+                    var firstSeason = Array.prototype.find.call(season.options, function (option) { return !option.hidden; });
+                    if (firstSeason) season.value = firstSeason.value;
                   }
 
                   Array.prototype.forEach.call(matchday.options, function (option) {
-                    if (!option.value) return;
-                    var matchesCompetition = !competitionId || option.getAttribute("data-competition") === competitionId;
-                    var matchesSeason = !seasonId || option.getAttribute("data-season") === seasonId;
-                    var visible = matchesCompetition && matchesSeason;
-                    option.hidden = !visible;
-                    option.disabled = !visible;
+                    option.hidden = option.getAttribute("data-season") !== season.value;
                   });
-
-                  if (matchday.selectedOptions[0] && matchday.selectedOptions[0].disabled) {
-                    matchday.value = "";
+                  if (matchday.selectedOptions[0] && matchday.selectedOptions[0].hidden) {
+                    var firstMatchday = Array.prototype.find.call(matchday.options, function (option) { return !option.hidden; });
+                    if (firstMatchday) matchday.value = firstMatchday.value;
                   }
-
-                  button.disabled = !matchday.value;
                 }
 
                 competition.addEventListener("change", syncOptions);
                 season.addEventListener("change", syncOptions);
-                matchday.addEventListener("change", syncOptions);
-
                 form.addEventListener("submit", function (event) {
                   event.preventDefault();
-                  if (!matchday.value) {
-                    syncOptions();
-                    return;
-                  }
-
+                  if (!matchday.value) return;
                   window.location.href = form.getAttribute("data-target-base") + "/" + encodeURIComponent(matchday.value);
                 });
-
                 syncOptions();
               });
-            });
+            })();
           `
         }}
       />
 
-      {feedbackScope ? null : messageFor(created, error)}
-
-      <div className="editorial-admin-grid">
-        <section className="editorial-admin-panel" id="manchete">
+      <div className="composition-admin-layout">
+        <section className="composition-admin-panel">
           <header>
-            <h2>Manchete viva da jornada</h2>
-            <p>Fonte viva da atualidade desta jornada. Estes campos gravam em matchday_editorials.</p>
-            {publishedReferenceComposition ? (
-              <div className="editorial-admin-live-note warning">
-                <strong>Composicao publicada/current detetada.</strong>
-                <span>A pagina publica pode estar a usar a composicao publicada em vez destes campos vivos.</span>
-              </div>
-            ) : (
-              <div className="editorial-admin-live-note">
-                <strong>Sem composicao publicada/current ativa.</strong>
-                <span>A pagina publica usa esta manchete viva quando estiver publicada.</span>
-              </div>
-            )}
+            <h2>Banco de noticias</h2>
+            <p>Area principal para guardar atualidade, associar noticias as zonas e gerir itens livres da jornada.</p>
           </header>
-          {scopedMessageFor(created, error, feedbackScope, "manchete")}
-          <form className="editorial-admin-form" action="/api/admin/gestor" data-headline-form method="post">
-            <input type="hidden" name="action_type" value="save_matchday_headline" />
-            <input type="hidden" name="return_to" value={returnToManchete} />
-            <input type="hidden" name="matchday_id" value={matchday.id} />
-            <div className="editorial-admin-field">
-              <label htmlFor="matchday-editorial-title">Manchete</label>
-              <input
-                id="matchday-editorial-title"
-                name="title"
-                defaultValue={editorial?.title ?? ""}
-                placeholder="Ex: Girona abre a jornada com autoridade"
-              />
+          <div className="composition-admin-stack">
+            <CollapsibleCard title="Atualidade original / diagnostico - manchete">
+              {editorial ? (
+                <ItemCard
+                  imageUrl={editorial.image_url}
+                  title={editorial.title}
+                  subtitle={editorial.summary}
+                  meta={[statusLabel(editorial.status)]}
+                />
+              ) : (
+                <EmptyState>Não existe manchete editorial guardada para esta jornada.</EmptyState>
+              )}
+            </CollapsibleCard>
+
+            <div id="matchday-editorial-bank">
+              <Card title="Banco de noticias da jornada">
+                <div className="composition-admin-meta">
+                  <span>{competition.name}</span>
+                  <span>{season.label}</span>
+                  <span>{matchday.label ?? `Jornada ${String(matchday.number).padStart(2, "0")}`}</span>
+                </div>
+                {bankFeedback ? <p className="composition-admin-note">{bankFeedback}</p> : null}
+                <form className="composition-admin-form" action="/api/admin/editorial/composicao" method="post">
+                  <HiddenField name="action_type" value="save_matchday_editorial_bank_current" />
+                  <HiddenField name="matchday_id" value={matchday.id} />
+                  <HiddenField name="return_to" value={returnTo} />
+                  <button className="composition-admin-small-button" type="submit">
+                    Guardar atualidade desta jornada
+                  </button>
+                  <p className="composition-admin-note">
+                    Guarda no banco as noticias elegiveis da atualidade desta jornada e ignora as que ja existirem.
+                  </p>
+                </form>
+                <ItemsGrid
+                  items={activeBankItems}
+                  empty="Ainda nao ha noticias ativas guardadas no banco desta jornada."
+                  render={(item) => {
+                    const associatedLabel = bankItemPlacementLabel(compositionItems, item);
+
+                    return (
+                      <ItemCard
+                        key={item.id}
+                        imageUrl={item.image_url}
+                        label={item.label}
+                        title={item.title}
+                        subtitle={item.subtitle}
+                        linkUrl={item.link_url}
+                        meta={[
+                          associatedLabel ? `Ja associado a: ${associatedLabel}` : "Livre no banco",
+                          item.sort_order ? `Posicao ${item.sort_order}` : null,
+                          statusLabel(item.status),
+                          item.origin_slot_type ? `Origem: ${item.origin_slot_type}` : null
+                        ]}
+                      >
+                        {associatedLabel ? (
+                          <p className="composition-admin-note">Retira este item da zona atual antes de o associar a outra zona.</p>
+                        ) : (
+                          <AssignBankItemForm composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
+                        )}
+                        <BankItemStatusForm actionType="archive_bank_item" item={item} label="Arquivar" matchdayId={matchday.id} returnTo={returnTo} />
+                      </ItemCard>
+                    );
+                  }}
+                />
+                <details className="composition-admin-candidates">
+                  <summary>Itens arquivados ({archivedBankItems.length})</summary>
+                  <ItemsGrid
+                    items={archivedBankItems}
+                    empty="Nao ha itens arquivados neste banco."
+                    render={(item) => (
+                      <ItemCard
+                        key={item.id}
+                        imageUrl={item.image_url}
+                        label={item.label}
+                        title={item.title}
+                        subtitle={item.subtitle}
+                        linkUrl={item.link_url}
+                        meta={[
+                          item.sort_order ? `Posicao ${item.sort_order}` : null,
+                          statusLabel(item.status),
+                          item.origin_slot_type ? `Origem: ${item.origin_slot_type}` : null
+                        ]}
+                      >
+                        <BankItemStatusForm actionType="reactivate_bank_item" item={item} label="Reativar" matchdayId={matchday.id} returnTo={returnTo} />
+                      </ItemCard>
+                    )}
+                  />
+                </details>
+              </Card>
             </div>
-            <div className="editorial-admin-field">
-              <label htmlFor="matchday-editorial-summary">Resumo curto</label>
-              <textarea
-                id="matchday-editorial-summary"
-                name="summary"
-                defaultValue={editorial?.summary ?? ""}
-                placeholder="Resumo editorial curto da jornada."
+
+            <CollapsibleCard title="Atualidade original - destaques">
+              <ItemsGrid
+                items={highlights}
+                empty="Não existem destaques guardados."
+                render={(item) => (
+                  <ItemCard
+                    key={item.id}
+                    imageUrl={item.image_url}
+                    label={item.label}
+                    title={item.title}
+                    meta={[`Posicao ${item.sort_order}`, statusLabel(item.status)]}
+                  />
+                )}
               />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor="matchday-editorial-title-color">Cor do titulo</label>
-              <input
-                id="matchday-editorial-title-color"
-                name="title_color"
-                defaultValue={editorial?.title_color ?? ""}
-                placeholder="#e5252a"
+            </CollapsibleCard>
+
+            <CollapsibleCard title="Atualidade original - complemento">
+              {editorial?.complementary_mode !== "none" ? (
+                <ItemCard
+                  imageUrl={editorial?.complementary_image_url}
+                  label={editorial?.complementary_label}
+                  title={editorial?.complementary_title}
+                  subtitle={editorial?.complementary_text}
+                  linkUrl={editorial?.complementary_link_url}
+                  meta={[editorial?.complementary_mode, statusLabel(editorial?.complementary_status)]}
+                />
+              ) : (
+                <EmptyState>O complemento da manchete está sem modo ativo.</EmptyState>
+              )}
+            </CollapsibleCard>
+
+            <CollapsibleCard title="Atualidade original - bloco lateral">
+              {editorial?.side_block_status ? (
+                <ItemCard
+                  imageUrl={editorial?.side_block_image_url}
+                  label={editorial?.side_block_label || editorial?.side_block_type}
+                  title={editorial?.side_block_title}
+                  subtitle={editorial?.side_block_text}
+                  linkUrl={editorial?.side_block_link_url}
+                  meta={[editorial?.side_block_author ? `Autor: ${editorial.side_block_author}` : null, statusLabel(editorial?.side_block_status)]}
+                />
+              ) : (
+                <EmptyState>O bloco lateral ainda não tem conteúdo guardado.</EmptyState>
+              )}
+            </CollapsibleCard>
+
+            <Card title="Resumo / videos automaticos">
+              <ItemsGrid
+                items={roundupItems}
+                empty="Não existem itens de resumo ou vídeo."
+                render={(item) => (
+                  <RoundupItemCard
+                    key={item.id}
+                    label={item.label || item.type}
+                    title={item.title}
+                    subtitle={item.subtitle}
+                    linkUrl={item.video_url}
+                    meta={[`Posicao ${item.sort_order}`, item.duration, statusLabel(item.status)]}
+                  />
+                )}
               />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor="matchday-editorial-image-url">Imagem da manchete URL</label>
-              <input
-                id="matchday-editorial-image-url"
-                name="image_url"
-                defaultValue={editorial?.image_url ?? ""}
-                placeholder="https://exemplo.com/imagem.jpg"
-              />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor="matchday-editorial-headline-link-url">Link da manchete</label>
-              <input
-                id="matchday-editorial-headline-link-url"
-                name="headline_link_url"
-                defaultValue={editorial?.headline_link_url ?? ""}
-                placeholder="/noticias/slug-do-artigo"
-              />
-            </div>
-            <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
-              <legend>Ligar fonte publicada à manchete</legend>
-              <div className="editorial-admin-field">
-                <label htmlFor="headline-article-source">Preencher manchete com fonte publicada</label>
-                <select id="headline-article-source" data-headline-article-select defaultValue="">
-                  <option value="">Escolher fonte publicada</option>
-                  {publishedSources.map((source) => (
-                    <option
-                      key={`${source.source_type}-${source.source_id}`}
-                      value={`${source.source_type}:${source.source_id}`}
-                      data-headline-title={cleanText(source.title)}
-                      data-headline-summary={publishedSourceComplementText(source)}
-                      data-headline-image-url={publishedSourceComplementImageUrl(source)}
-                      data-headline-link-url={cleanText(source.link_url)}
-                    >
-                      {publishedSourceOptionLabel(source)}
-                    </option>
-                  ))}
-                </select>
+            </Card>
+
+            <CollapsibleCard title="Atualidade original - zona editorial final">
+              <div className="composition-admin-meta">
+                <span>Modo atual: {latestZoneMode}</span>
+                {editorial?.latest_zone_title ? <span>Titulo: {editorial.latest_zone_title}</span> : null}
               </div>
-              <p className="editorial-admin-muted">
-                Preenche titulo, resumo, imagem e link interno. Pode ajustar antes de guardar.
-              </p>
-            </fieldset>
-            {editorial?.image_url ? (
-              <div className="editorial-admin-preview">
-                <img alt="" src={editorial.image_url} />
-              </div>
-            ) : null}
-            <div className="editorial-admin-field">
-              <label htmlFor="matchday-editorial-status">Estado</label>
-              <select id="matchday-editorial-status" name="status" defaultValue={editorial?.status ?? "draft"}>
-                <option value="draft">Rascunho</option>
-                <option value="published">Publicado</option>
-              </select>
-            </div>
-            <button className="editorial-admin-button" type="submit">
-              Guardar manchete
-            </button>
-          </form>
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                (function () {
-                  var form = document.querySelector('[data-headline-form]');
-                  if (!form) return;
-                  var select = form.querySelector('[data-headline-article-select]');
-                  if (!select) return;
-                  function setFieldValue(field, value) {
-                    if (!field) return;
-                    field.value = value || '';
-                    field.dispatchEvent(new Event('input', { bubbles: true }));
-                    field.dispatchEvent(new Event('change', { bubbles: true }));
-                  }
-                  function finishPublishedSource() {
-                    var message = select.parentElement.querySelector('[data-source-applied-message]');
-                    if (!message) {
-                      message = document.createElement('span');
-                      message.setAttribute('data-source-applied-message', 'true');
-                      message.style.display = 'block';
-                      message.style.marginTop = '6px';
-                      message.style.color = '#475569';
-                      message.style.fontSize = '12px';
-                      message.style.fontWeight = '700';
-                      select.insertAdjacentElement('afterend', message);
-                    }
-                    message.textContent = 'Fonte aplicada. Reve e guarda a zona.';
-                    window.clearTimeout(select._sourceAppliedTimer);
-                    select._sourceAppliedTimer = window.setTimeout(function () {
-                      message.textContent = '';
-                    }, 3500);
-                    select.value = '';
-                  }
-                  function setField(name, value) {
-                    var field = form.querySelector('[name="' + name + '"]');
-                    setFieldValue(field, value);
-                  }
-                  function applySelectedArticle() {
-                    var option = select.options[select.selectedIndex];
-                    if (!option || !option.value) return;
-                    setField('title', option.dataset.headlineTitle);
-                    setField('summary', option.dataset.headlineSummary);
-                    setField('image_url', option.dataset.headlineImageUrl);
-                    setField('headline_link_url', option.dataset.headlineLinkUrl);
-                    finishPublishedSource();
-                  }
-                  select.addEventListener('change', applySelectedArticle);
-                })();
-              `
-            }}
-          />
-          <form
-            className="editorial-admin-form"
-            action="/api/admin/gestor/editorial-image"
-            encType="multipart/form-data"
-            method="post"
-            style={{ marginTop: 16 }}
-          >
-            <input type="hidden" name="return_to" value={returnToManchete} />
-            <input type="hidden" name="matchday_id" value={matchday.id} />
-            <div className="editorial-admin-field">
-              <label htmlFor="matchday-editorial-image-upload">Carregar imagem da manchete</label>
-              <input accept="image/jpeg,image/png,image/webp" id="matchday-editorial-image-upload" name="image" type="file" />
-            </div>
-            <button className="editorial-admin-button secondary" type="submit">
-              Carregar imagem da manchete
-            </button>
-          </form>
+              <ItemsGrid
+                items={latestNews}
+                empty="Não existem itens na zona editorial final."
+                render={(item) => (
+                  <ItemCard
+                    key={item.id}
+                    imageUrl={item.image_url}
+                    label={item.time_label}
+                    title={item.title}
+                    subtitle={item.subtitle}
+                    linkUrl={item.link_url}
+                    meta={[`Posicao ${item.sort_order}`, statusLabel(item.status)]}
+                  />
+                )}
+              />
+            </CollapsibleCard>
+          </div>
         </section>
 
-        <aside className="editorial-admin-panel" id="bloco-lateral">
+        <section className="composition-admin-panel">
           <header>
-            <h2>Bloco lateral / fonte viva</h2>
-            <p>Chamada editorial independente da manchete viva.</p>
+            <h2>Zonas da composicao</h2>
+            <p>Montagem atual por zonas. Para mudar um item, retira-o da zona e associa novamente a partir do banco.</p>
           </header>
-          {scopedMessageFor(created, error, feedbackScope, "bloco-lateral")}
-          <form className="editorial-admin-form" action="/api/admin/gestor" data-side-block-form method="post">
-            <input type="hidden" name="action_type" value="save_matchday_side_block" />
-            <input type="hidden" name="return_to" value={returnToBlocoLateral} />
-            <input type="hidden" name="matchday_id" value={matchday.id} />
-            <div className="editorial-admin-field">
-              <label htmlFor="side-block-status">Estado</label>
-              <select id="side-block-status" name="side_block_status" defaultValue={editorial?.side_block_status ?? "draft"}>
-                <option value="draft">Rascunho</option>
-                <option value="published">Publicado</option>
-              </select>
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor="side-block-type">Tipo</label>
-              <select id="side-block-type" name="side_block_type" defaultValue={editorial?.side_block_type ?? "opiniao"}>
-                <option value="opiniao">Opiniao</option>
-                <option value="arbitragem">Arbitragem</option>
-                <option value="balanco">Balanco</option>
-                <option value="analise">Analise</option>
-                <option value="cronica">Cronica</option>
-                <option value="figura-da-jornada">Figura da jornada</option>
-                <option value="outro">Outro</option>
-              </select>
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor="side-block-label">Etiqueta</label>
-              <input id="side-block-label" name="side_block_label" defaultValue={editorial?.side_block_label ?? ""} placeholder="OPINIAO" />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor="side-block-title">Titulo</label>
-              <input id="side-block-title" name="side_block_title" defaultValue={editorial?.side_block_title ?? ""} placeholder="A jornada que muda expectativas" />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor="side-block-title-color">Cor do titulo</label>
-              <input id="side-block-title-color" name="side_block_title_color" defaultValue={editorial?.side_block_title_color ?? ""} placeholder="#0b1f3a" />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor="side-block-author">Autor, opcional</label>
-              <input id="side-block-author" name="side_block_author" defaultValue={editorial?.side_block_author ?? ""} placeholder="Silvestre Chicharo" />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor="side-block-text">Texto / excerto</label>
-              <textarea id="side-block-text" name="side_block_text" defaultValue={editorial?.side_block_text ?? ""} placeholder="Texto curto para a chamada editorial lateral." />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor="side-block-image-url">Imagem opcional</label>
-              <input id="side-block-image-url" name="side_block_image_url" defaultValue={editorial?.side_block_image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
-            </div>
-            <div className="editorial-admin-field">
-              <label htmlFor="side-block-link-url">Link opcional</label>
-              <input id="side-block-link-url" name="side_block_link_url" defaultValue={editorial?.side_block_link_url ?? ""} placeholder="/noticias/slug-do-artigo" />
-            </div>
-            <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
-              <legend>Ligar fonte publicada ao bloco lateral</legend>
-              <div className="editorial-admin-field">
-                <label htmlFor="side-block-article-source">Preencher bloco lateral com fonte publicada</label>
-                <select id="side-block-article-source" data-side-block-article-select defaultValue="">
-                  <option value="">Escolher fonte publicada</option>
-                  {publishedSources.map((source) => (
-                    <option
-                      key={`${source.source_type}-${source.source_id}`}
-                      value={`${source.source_type}:${source.source_id}`}
-                      data-side-title={cleanText(source.title)}
-                      data-side-text={publishedSourceComplementText(source)}
-                      data-side-label={publishedSourceComplementLabel(source)}
-                      data-side-author={cleanText(source.author)}
-                      data-side-image-url={publishedSourceComplementImageUrl(source)}
-                      data-side-link-url={cleanText(source.link_url)}
-                    >
-                      {publishedSourceOptionLabel(source)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <p className="editorial-admin-muted">
-                Preenche os campos do bloco lateral. Podes ajustar antes de guardar.
-              </p>
-            </fieldset>
-            <button className="editorial-admin-button" type="submit">
-              Guardar bloco lateral
-            </button>
-          </form>
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                (function () {
-                  var form = document.querySelector('[data-side-block-form]');
-                  if (!form) return;
-                  var select = form.querySelector('[data-side-block-article-select]');
-                  if (!select) return;
-                  function setFieldValue(field, value) {
-                    if (!field) return;
-                    field.value = value || '';
-                    field.dispatchEvent(new Event('input', { bubbles: true }));
-                    field.dispatchEvent(new Event('change', { bubbles: true }));
-                  }
-                  function finishPublishedSource() {
-                    var message = select.parentElement.querySelector('[data-source-applied-message]');
-                    if (!message) {
-                      message = document.createElement('span');
-                      message.setAttribute('data-source-applied-message', 'true');
-                      message.style.display = 'block';
-                      message.style.marginTop = '6px';
-                      message.style.color = '#475569';
-                      message.style.fontSize = '12px';
-                      message.style.fontWeight = '700';
-                      select.insertAdjacentElement('afterend', message);
-                    }
-                    message.textContent = 'Fonte aplicada. Reve e guarda a zona.';
-                    window.clearTimeout(select._sourceAppliedTimer);
-                    select._sourceAppliedTimer = window.setTimeout(function () {
-                      message.textContent = '';
-                    }, 3500);
-                    select.value = '';
-                  }
-                  function setField(name, value) {
-                    var field = form.querySelector('[name="' + name + '"]');
-                    setFieldValue(field, value);
-                  }
-                  function applySelectedArticle() {
-                    var option = select.options[select.selectedIndex];
-                    if (!option || !option.value) return;
-                    setField('side_block_title', option.getAttribute('data-side-title') || '');
-                    setField('side_block_text', option.getAttribute('data-side-text') || '');
-                    setField('side_block_label', option.getAttribute('data-side-label') || '');
-                    setField('side_block_author', option.getAttribute('data-side-author') || '');
-                    setField('side_block_image_url', option.getAttribute('data-side-image-url') || '');
-                    setField('side_block_link_url', option.getAttribute('data-side-link-url') || '');
-                    finishPublishedSource();
-                  }
-                  select.addEventListener('change', applySelectedArticle);
-                })();
-              `
-            }}
-          />
-        </aside>
-      </div>
-
-      <section className="editorial-admin-panel editorial-admin-composition" id="composicao">
-        <header>
-          <h2>Composicao abaixo da manchete</h2>
-          <p>Controla os dois espacos editoriais que aparecem por baixo da manchete na primeira pagina.</p>
-        </header>
-        {scopedMessageFor(created, error, feedbackScope, "composicao")}
-        <div data-composition-form>
-          <div className="editorial-admin-composition-grid">
-              <div className="editorial-admin-composition-card">
-                <h3>Zona abaixo da manchete</h3>
-                <p>Escolhe que conjunto ocupa a area inferior esquerda da composicao.</p>
-                <form className="editorial-admin-form" action="/api/admin/gestor" data-below-mode-form id={belowHeadlineSettingsFormId} method="post">
-                <input type="hidden" name="action_type" value="save_matchday_below_headline" />
-                <input type="hidden" name="return_to" value={returnToComposicao} />
-                <input type="hidden" name="matchday_id" value={matchday.id} />
-                <div className="editorial-admin-field">
-                  <label htmlFor="composition-below-headline-mode">Tipo de conteudo abaixo da manchete</label>
-                  <select id="composition-below-headline-mode" name="below_headline_mode" defaultValue={belowHeadlineMode}>
-                    <option value="highlights">Destaques abaixo da manchete</option>
-                    <option value="roundup">Resumo da Jornada</option>
-                  </select>
-                </div>
-                <button className="editorial-admin-button" type="submit">
-                  Guardar escolha
-                </button>
-              </form>
-              <div className="editorial-below-mode-section" data-below-section="highlights" hidden={belowHeadlineMode !== "highlights"} id="destaques">
-                <h4>Destaques abaixo da manchete</h4>
-                <p className="editorial-admin-muted">Edita os tres destaques editoriais desta zona e o texto superior que aparece no publico.</p>
-                <div className="editorial-admin-compact-stack">
-                  <div className="editorial-admin-field">
-                    <label htmlFor="below-headline-heading">Texto do topo</label>
-                    <input form={belowHeadlineSettingsFormId} id="below-headline-heading" name="below_headline_heading" defaultValue={editorial?.below_headline_heading ?? ""} placeholder={belowHeadlineHeadingFallback} />
+          <div className="composition-admin-stack">
+            <Card title={isPublishedComposition ? "Composição publicada" : "Composição em rascunho"}>
+              {draftComposition ? (
+                <>
+                  <div className="composition-admin-meta">
+                    <span>Estado: {compositionStatusLabel(draftComposition.status)}</span>
+                    {isPublishedComposition ? (
+                      <span>Versão ativa: {draftComposition.is_current ? "sim" : "não"}</span>
+                    ) : (
+                      <span>Não publicado no site</span>
+                    )}
+                    <span>{draftComposition.use_roundup_items ? "Inclui resumo/vídeos" : "Não inclui resumo/vídeos"}</span>
+                    {publishedAtLabel ? <span>Publicado em: {publishedAtLabel}</span> : null}
                   </div>
-                  <div className="editorial-admin-field">
-                    <label htmlFor="below-headline-subtitle">Subtitulo da zona abaixo da manchete</label>
-                    <input form={belowHeadlineSettingsFormId} id="below-headline-subtitle" name="below_headline_subtitle" defaultValue={editorial?.below_headline_subtitle ?? ""} placeholder="Linha de apoio opcional para os destaques" />
-                  </div>
-                  <div className="editorial-admin-field">
-                    <label htmlFor="below-headline-heading-color">Cor do texto do topo</label>
-                    <input form={belowHeadlineSettingsFormId} id="below-headline-heading-color" name="below_headline_heading_color" defaultValue={editorial?.below_headline_heading_color ?? ""} placeholder="#0b1f3a" />
-                  </div>
-                  <button className="editorial-admin-button secondary" form={belowHeadlineSettingsFormId} type="submit">
-                    Guardar texto do topo
-                  </button>
-                  <p className="editorial-admin-muted">Se ficarem vazios, a pagina publica usa {belowHeadlineHeadingFallback} e a cor atual.</p>
-                </div>
-                {scopedMessageFor(created, error, feedbackScope, "destaques")}
-                {highlightsEditor}
-              </div>
-              <div className="editorial-below-mode-section" data-below-section="roundup" hidden={belowHeadlineMode !== "roundup"} id="resumo-jornada">
-                <h4>Resumo da Jornada</h4>
-                <p className="editorial-admin-muted">Edita ate dez entradas para videos, golos, resumos ou noticias da jornada.</p>
-                {scopedMessageFor(created, error, feedbackScope, "resumo-jornada")}
-                {roundupEditor}
-              </div>
-            </div>
-
-            <div className="editorial-admin-composition-side-stack">
-              <div className="editorial-admin-composition-card">
-                <h3>Complemento da Manchete</h3>
-                <p>Bloco complementar da fonte viva, separado da manchete principal.</p>
-                <form className="editorial-admin-form" action="/api/admin/gestor" data-complementary-form method="post" id="bloco-complementar">
-                  {scopedMessageFor(created, error, feedbackScope, "bloco-complementar")}
-                  <input type="hidden" name="action_type" value="save_matchday_complement" />
-                  <input type="hidden" name="return_to" value={returnToComplementar} />
-                  <input type="hidden" name="matchday_id" value={matchday.id} />
-                  <div className="editorial-admin-field">
-                    <label htmlFor="complementary-mode">Tipo de bloco complementar</label>
-                    <select id="complementary-mode" name="complementary_mode" defaultValue={complementaryMode}>
-                      <option value="none">Nenhum</option>
-                      <option value="complementary_story">Complemento da manchete</option>
-                      <option value="roundup_video">Video do Resumo da Jornada</option>
-                    </select>
-                  </div>
-                  <div className="editorial-complement-mode-section" data-complementary-section="none" hidden={complementaryMode !== "none"}>
-                    <p className="editorial-admin-muted">O Bloco complementar fica desativado na pagina publica.</p>
-                  </div>
-                  <div className="editorial-complement-mode-section" data-complementary-section="roundup_video" hidden={complementaryMode !== "roundup_video"}>
-                    <div className="editorial-admin-field">
-                      <label htmlFor="complementary-roundup-item">Video inicial opcional</label>
-                      <select id="complementary-roundup-item" name="complementary_roundup_item_id" defaultValue={editorial?.complementary_roundup_item_id ?? ""}>
-                        <option value="">Usar primeiro item publicado</option>
-                        {roundupItems.map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {item.sort_order}. {item.title || item.label || "Item sem titulo"}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="editorial-admin-muted">Este modo usa a lista publicada do Resumo da Jornada. O visitante escolhe o video na pagina publica; este campo apenas define o primeiro item, se precisares.</p>
-                    </div>
-                    <div className="editorial-admin-field">
-                      <label htmlFor="roundup-video-heading">Titulo da lista / Cabecalho do resumo</label>
-                      <input id="roundup-video-heading" name="roundup_video_heading" defaultValue={editorial?.roundup_video_heading ?? ""} placeholder={roundupVideoHeadingFallback} />
-                      <p className="editorial-admin-muted">Se ficar vazio, a pagina publica usa automaticamente: {roundupVideoHeadingFallback}</p>
-                    </div>
-                    <div className="editorial-admin-field">
-                      <label htmlFor="roundup-video-heading-color">Cor do cabecalho</label>
-                      <input id="roundup-video-heading-color" name="roundup_video_heading_color" defaultValue={editorial?.roundup_video_heading_color ?? ""} placeholder="#003f8f" />
-                      <p className="editorial-admin-muted">Se ficar vazio, mantém a cor atual da pagina publica.</p>
-                    </div>
-                  </div>
-                  <div className="editorial-complement-mode-section" data-complementary-section="complementary_story" hidden={complementaryMode !== "complementary_story"}>
-                    <input type="hidden" name="complementary_roundup_item_id" value={editorial?.complementary_roundup_item_id ?? ""} />
-                    <div className="editorial-admin-field">
-                      <label htmlFor="complementary-label">Antetitulo / etiqueta</label>
-                      <input id="complementary-label" name="complementary_label" defaultValue={editorial?.complementary_label ?? ""} placeholder="DESTAQUE" />
-                    </div>
-                    <div className="editorial-admin-field">
-                      <label htmlFor="complementary-title">Titulo</label>
-                      <input id="complementary-title" name="complementary_title" defaultValue={editorial?.complementary_title ?? ""} placeholder="Um detalhe editorial para acompanhar a manchete" />
-                    </div>
-                    <div className="editorial-admin-field">
-                      <label htmlFor="complementary-text">Texto curto / conteudo breve</label>
-                      <textarea id="complementary-text" name="complementary_text" defaultValue={editorial?.complementary_text ?? ""} placeholder="Texto curto do complemento da manchete." />
-                    </div>
-                    <div className="editorial-admin-field">
-                      <label htmlFor="complementary-image-url">Imagem URL</label>
-                      <input id="complementary-image-url" name="complementary_image_url" defaultValue={editorial?.complementary_image_url ?? ""} placeholder="https://exemplo.com/imagem.jpg" />
-                    </div>
-                    <div className="editorial-admin-field">
-                      <label htmlFor="complementary-link-url">Link da noticia completa</label>
-                      <input id="complementary-link-url" name="complementary_link_url" defaultValue={editorial?.complementary_link_url ?? ""} placeholder="/noticias/slug-do-artigo" />
-                    </div>
-                    <fieldset className="editorial-admin-fieldset editorial-admin-compact-card">
-                      <legend>Ligar fonte publicada ao complemento</legend>
-                      <div className="editorial-admin-field">
-                        <label htmlFor="complementary-article-source">Preencher complemento com fonte publicada</label>
-                        <select id="complementary-article-source" data-complementary-article-select defaultValue="">
-                          <option value="">Escolher fonte publicada</option>
-                          {publishedSources.map((source) => (
-                            <option
-                              key={`${source.source_type}-${source.source_id}`}
-                              value={`${source.source_type}:${source.source_id}`}
-                              data-complementary-label={publishedSourceComplementLabel(source)}
-                              data-complementary-title={cleanText(source.title)}
-                              data-complementary-text={publishedSourceComplementText(source)}
-                              data-complementary-image-url={publishedSourceComplementImageUrl(source)}
-                              data-complementary-link-url={cleanText(source.link_url)}
-                            >
-                              {publishedSourceOptionLabel(source)}
-                            </option>
+                  {isDraftComposition ? (
+                    <>
+                      <UpdateDraftForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
+                      <SaveCurrentPageStateForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
+                      {publicationValidation.warnings.length > 0 ? (
+                        <div className="composition-admin-note">
+                          {publicationValidation.warnings.map((warning) => (
+                            <p key={warning}>{warning}</p>
                           ))}
-                        </select>
-                      </div>
-                      <p className="editorial-admin-muted">
-                        Preenche etiqueta, titulo, texto, imagem e link publico. Pode ajustar antes de guardar.
-                      </p>
-                    </fieldset>
-                    <div className="editorial-admin-field">
-                      <label htmlFor="complementary-status">Estado</label>
-                      <select id="complementary-status" name="complementary_status" defaultValue={editorial?.complementary_status ?? "draft"}>
-                        <option value="draft">Rascunho</option>
-                        <option value="published">Publicado</option>
-                      </select>
-                    </div>
-                  </div>
-                  <button className="editorial-admin-button" type="submit">
-                    Guardar bloco complementar
-                  </button>
-                </form>
-              </div>
+                        </div>
+                      ) : null}
+                      {publicationValidation.canPublish ? (
+                        <PublishCompositionForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
+                      ) : null}
+                    </>
+                  ) : null}
+                  {isPublishedComposition && draftComposition.is_current ? (
+                    <>
+                      {publishedCompositionProblemMessage ? (
+                        <p className="composition-admin-note">{publishedCompositionProblemMessage}</p>
+                      ) : null}
+                      <p className="composition-admin-note">Esta é a composição ativa desta jornada.</p>
+                      <ReopenCompositionForm composition={draftComposition} matchdayId={matchday.id} returnTo={returnTo} />
+                    </>
+                  ) : null}
+                </>
+              ) : (
+                <CreateDraftForm matchdayId={matchday.id} returnTo={returnTo} />
+              )}
+            </Card>
 
-              <section className="editorial-admin-composition-card" id="ultimas-noticias">
-                <h3>Zona editorial final</h3>
-                <p>Escolhe entre atualidade e Linha editorial. Em Linha editorial, podes publicar cartoes com imagem, titulo, subtitulo e link.</p>
-                {scopedMessageFor(created, error, feedbackScope, "ultimas-noticias", latestNewsErrorDetail)}
-                {latestNewsEditor}
-              </section>
-            </div>
+            <Card title="Zonas da composicao">
+              {draftComposition && compositionItems.length > 0 ? (
+                <div className="composition-admin-section-list">
+                  {groupedCompositionItems.map((section) => (
+                    <section className="composition-admin-section" key={section.slotType}>
+                      <div className="composition-admin-section-heading">
+                        <h4>{section.title}</h4>
+                        <span>
+                          {section.items.length} {section.items.length === 1 ? "item" : "itens"}
+                        </span>
+                      </div>
+                      <div className="composition-admin-grid">
+                        {section.items.length === 0 && section.slotType === "important_item" ? (
+                          <EmptyState>Sem notícias adicionadas nesta zona.</EmptyState>
+                        ) : null}
+                        {section.items.map((item) => {
+                          const itemMeta = [
+                            `Ordem ${item.sort_order}`,
+                            statusLabel(item.status)
+                          ];
+
+                          if (item.slot_type === "roundup") {
+                            return (
+                              <RoundupItemCard
+                                key={item.id}
+                                label={compositionItemDisplayLabel(item)}
+                                title={item.title_snapshot}
+                                subtitle={item.subtitle_snapshot}
+                                linkUrl={item.link_url_snapshot}
+                              meta={itemMeta}
+                            >
+                              {isDraftComposition ? (
+                                  <CompositionItemActions composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
+                                ) : null}
+                              </RoundupItemCard>
+                            );
+                          }
+
+                          return (
+                            <ItemCard
+                              key={item.id}
+                              imageUrl={item.image_url_snapshot}
+                              label={compositionItemDisplayLabel(item)}
+                              title={item.title_snapshot}
+                              subtitle={item.subtitle_snapshot}
+                              linkUrl={item.link_url_snapshot}
+                              meta={itemMeta}
+                            >
+                              {isDraftComposition ? (
+                                <CompositionItemActions composition={draftComposition} item={item} matchdayId={matchday.id} returnTo={returnTo} />
+                              ) : null}
+                            </ItemCard>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState>
+                  {draftComposition
+                    ? "Ainda não há itens adicionados à composição histórica em rascunho."
+                    : "Cria primeiro um rascunho para começar a adicionar candidatos."}
+                </EmptyState>
+              )}
+            </Card>
+
+            <details className="composition-admin-candidates">
+              <summary>Candidatos antigos / diagnostico</summary>
+              <div className="composition-admin-candidates-body">
+                <Card title="Manchete candidata">
+                  {editorial ? (
+                    <ItemCard
+                      imageUrl={editorial.image_url}
+                      title={editorial.title}
+                      subtitle={editorial.summary}
+                      linkUrl={editorial.headline_link_url}
+                      addedInLabel={getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.headline_link_url, "headline", editorial.title, editorial.summary, editorial.image_url)}
+                      meta={["Fonte: matchday_editorials", statusLabel(editorial.status)]}
+                    >
+                      <AddCandidateForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        slotType="headline"
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.title}
+                        subtitle={editorial.summary}
+                        imageUrl={editorial.image_url}
+                        linkUrl={editorial.headline_link_url}
+                        label={null}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.headline_link_url, "headline", editorial.title, editorial.summary, editorial.image_url))}
+                        buttonLabel="Adicionar como Manchete"
+                      />
+                      <AddImportantItemForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.title}
+                        subtitle={editorial.summary}
+                        imageUrl={editorial.image_url}
+                        linkUrl={editorial.headline_link_url}
+                        label={null}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.headline_link_url, "headline", editorial.title, editorial.summary, editorial.image_url))}
+                      />
+                      <AddCandidateForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        slotType="editorial_line_item"
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.title}
+                        subtitle={editorial.summary}
+                        imageUrl={editorial.image_url}
+                        linkUrl={editorial.headline_link_url}
+                        label={null}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.headline_link_url, "headline", editorial.title, editorial.summary, editorial.image_url))}
+                        buttonLabel="Adicionar à Zona editorial final"
+                      />
+                    </ItemCard>
+                  ) : (
+                    <EmptyState>Não há manchete candidata guardada.</EmptyState>
+                  )}
+                </Card>
+
+                <Card title="Bloco lateral candidato">
+                  {editorial?.side_block_title || editorial?.side_block_text || editorial?.side_block_image_url ? (
+                    <ItemCard
+                      imageUrl={editorial?.side_block_image_url}
+                      label={editorial?.side_block_label || editorial?.side_block_type}
+                      title={editorial?.side_block_title}
+                      subtitle={editorial?.side_block_text}
+                      linkUrl={editorial?.side_block_link_url}
+                      addedInLabel={getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.side_block_link_url, "side_block", editorial.side_block_title, editorial.side_block_text, editorial.side_block_image_url)}
+                      meta={["Fonte: matchday_editorials", statusLabel(editorial?.side_block_status)]}
+                    >
+                      <AddCandidateForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        slotType="side_block"
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.side_block_title}
+                        subtitle={editorial.side_block_text}
+                        imageUrl={editorial.side_block_image_url}
+                        linkUrl={editorial.side_block_link_url}
+                        label={editorial.side_block_label || editorial.side_block_type}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.side_block_link_url, "side_block", editorial.side_block_title, editorial.side_block_text, editorial.side_block_image_url))}
+                      />
+                      <AddCandidateForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        slotType="headline"
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.side_block_title}
+                        subtitle={editorial.side_block_text}
+                        imageUrl={editorial.side_block_image_url}
+                        linkUrl={editorial.side_block_link_url}
+                        label={editorial.side_block_label || editorial.side_block_type}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.side_block_link_url, "side_block", editorial.side_block_title, editorial.side_block_text, editorial.side_block_image_url))}
+                        buttonLabel="Adicionar como Manchete"
+                      />
+                      <AddImportantItemForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.side_block_title}
+                        subtitle={editorial.side_block_text}
+                        imageUrl={editorial.side_block_image_url}
+                        linkUrl={editorial.side_block_link_url}
+                        label={editorial.side_block_label || editorial.side_block_type}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.side_block_link_url, "side_block", editorial.side_block_title, editorial.side_block_text, editorial.side_block_image_url))}
+                      />
+                      <AddCandidateForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        slotType="editorial_line_item"
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.side_block_title}
+                        subtitle={editorial.side_block_text}
+                        imageUrl={editorial.side_block_image_url}
+                        linkUrl={editorial.side_block_link_url}
+                        label={editorial.side_block_label || editorial.side_block_type}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.side_block_link_url, "side_block", editorial.side_block_title, editorial.side_block_text, editorial.side_block_image_url))}
+                        buttonLabel="Adicionar à Zona editorial final"
+                      />
+                    </ItemCard>
+                  ) : (
+                    <EmptyState>Não há bloco lateral candidato guardado.</EmptyState>
+                  )}
+                </Card>
+
+                <Card title="Complemento candidato">
+                  {editorial?.complementary_title || editorial?.complementary_text || editorial?.complementary_image_url ? (
+                    <ItemCard
+                      imageUrl={editorial?.complementary_image_url}
+                      label={editorial?.complementary_label}
+                      title={editorial?.complementary_title}
+                      subtitle={editorial?.complementary_text}
+                      linkUrl={editorial?.complementary_link_url}
+                      addedInLabel={getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.complementary_link_url, "complement", editorial.complementary_title, editorial.complementary_text, editorial.complementary_image_url)}
+                      meta={["Fonte: matchday_editorials", statusLabel(editorial?.complementary_status)]}
+                    >
+                      <AddCandidateForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        slotType="complement"
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.complementary_title}
+                        subtitle={editorial.complementary_text}
+                        imageUrl={editorial.complementary_image_url}
+                        linkUrl={editorial.complementary_link_url}
+                        label={editorial.complementary_label}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.complementary_link_url, "complement", editorial.complementary_title, editorial.complementary_text, editorial.complementary_image_url))}
+                      />
+                      <AddCandidateForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        slotType="headline"
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.complementary_title}
+                        subtitle={editorial.complementary_text}
+                        imageUrl={editorial.complementary_image_url}
+                        linkUrl={editorial.complementary_link_url}
+                        label={editorial.complementary_label}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.complementary_link_url, "complement", editorial.complementary_title, editorial.complementary_text, editorial.complementary_image_url))}
+                        buttonLabel="Adicionar como Manchete"
+                      />
+                      <AddImportantItemForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.complementary_title}
+                        subtitle={editorial.complementary_text}
+                        imageUrl={editorial.complementary_image_url}
+                        linkUrl={editorial.complementary_link_url}
+                        label={editorial.complementary_label}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.complementary_link_url, "complement", editorial.complementary_title, editorial.complementary_text, editorial.complementary_image_url))}
+                      />
+                      <AddCandidateForm
+                        composition={draftComposition}
+                        matchdayId={matchday.id}
+                        returnTo={returnTo}
+                        sortOrder={nextSortOrder}
+                        slotType="editorial_line_item"
+                        sourceType="matchday_editorial"
+                        sourceId={editorial.id}
+                        title={editorial.complementary_title}
+                        subtitle={editorial.complementary_text}
+                        imageUrl={editorial.complementary_image_url}
+                        linkUrl={editorial.complementary_link_url}
+                        label={editorial.complementary_label}
+                        alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_editorial", editorial.id, null, editorial.complementary_link_url, "complement", editorial.complementary_title, editorial.complementary_text, editorial.complementary_image_url))}
+                        buttonLabel="Adicionar à Zona editorial final"
+                      />
+                    </ItemCard>
+                  ) : (
+                    <EmptyState>Não há complemento candidato guardado.</EmptyState>
+                  )}
+                </Card>
+
+                <Card title="Destaques candidatos">
+                  <ItemsGrid
+                    items={publishedHighlights.length > 0 ? publishedHighlights : highlights}
+                    empty="Não há destaques candidatos."
+                    render={(item) => (
+                      <ItemCard
+                        key={item.id}
+                        imageUrl={item.image_url}
+                        label={item.label}
+                        title={item.title}
+                        linkUrl={item.link_url}
+                        addedInLabel={getCandidateAddedInLabel("matchday_highlight", item.id, null, item.link_url, null, item.title, null, item.image_url)}
+                        meta={["Fonte: matchday_highlights", `Posicao ${item.sort_order}`, statusLabel(item.status)]}
+                      >
+                        <AddCandidateForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          slotType="highlight"
+                          sourceType="matchday_highlight"
+                          sourceId={item.id}
+                          title={item.title}
+                          imageUrl={item.image_url}
+                          linkUrl={item.link_url}
+                          label={item.label}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_highlight", item.id, null, item.link_url, null, item.title, null, item.image_url))}
+                        />
+                        <AddCandidateForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          slotType="headline"
+                          sourceType="matchday_highlight"
+                          sourceId={item.id}
+                          title={item.title}
+                          imageUrl={item.image_url}
+                          linkUrl={item.link_url}
+                          label={item.label}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_highlight", item.id, null, item.link_url, null, item.title, null, item.image_url))}
+                          buttonLabel="Adicionar como Manchete"
+                        />
+                        <AddImportantItemForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          sourceType="matchday_highlight"
+                          sourceId={item.id}
+                          title={item.title}
+                          imageUrl={item.image_url}
+                          linkUrl={item.link_url}
+                          label={item.label}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_highlight", item.id, null, item.link_url, null, item.title, null, item.image_url))}
+                        />
+                        <AddCandidateForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          slotType="editorial_line_item"
+                          sourceType="matchday_highlight"
+                          sourceId={item.id}
+                          title={item.title}
+                          imageUrl={item.image_url}
+                          linkUrl={item.link_url}
+                          label={item.label}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_highlight", item.id, null, item.link_url, null, item.title, null, item.image_url))}
+                          buttonLabel="Adicionar à Zona editorial final"
+                        />
+                      </ItemCard>
+                    )}
+                  />
+                </Card>
+
+                <Card title="Cartões disponíveis da Zona editorial final">
+                  <ItemsGrid
+                    items={publishedLatestNews.length > 0 ? publishedLatestNews : latestNews}
+                    empty="Não há cartões disponíveis na zona editorial final."
+                    render={(item) => (
+                      <ItemCard
+                        key={item.id}
+                        imageUrl={item.image_url}
+                        label={item.time_label}
+                        title={item.title}
+                        subtitle={item.subtitle}
+                        linkUrl={item.link_url}
+                        addedInLabel={getCandidateAddedInLabel("matchday_latest_news", item.id, item.article_id, item.link_url, null, item.title, item.subtitle, item.image_url)}
+                        meta={["Fonte: matchday_latest_news", `Posicao ${item.sort_order}`, item.article_id ? `Artigo: ${item.article_id}` : null, statusLabel(item.status)]}
+                      >
+                        <AddCandidateForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          slotType="editorial_line_item"
+                          sourceType="matchday_latest_news"
+                          sourceId={item.id}
+                          articleId={item.article_id}
+                          title={item.title}
+                          subtitle={item.subtitle}
+                          imageUrl={item.image_url}
+                          linkUrl={item.link_url}
+                          label={item.time_label}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_latest_news", item.id, item.article_id, item.link_url, null, item.title, item.subtitle, item.image_url))}
+                          buttonLabel="Adicionar à Zona editorial final"
+                        />
+                        <AddCandidateForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          slotType="headline"
+                          sourceType="matchday_latest_news"
+                          sourceId={item.id}
+                          articleId={item.article_id}
+                          title={item.title}
+                          subtitle={item.subtitle}
+                          imageUrl={item.image_url}
+                          linkUrl={item.link_url}
+                          label={item.time_label}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_latest_news", item.id, item.article_id, item.link_url, null, item.title, item.subtitle, item.image_url))}
+                          buttonLabel="Adicionar como Manchete"
+                        />
+                        <AddImportantItemForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          sourceType="matchday_latest_news"
+                          sourceId={item.id}
+                          articleId={item.article_id}
+                          title={item.title}
+                          subtitle={item.subtitle}
+                          imageUrl={item.image_url}
+                          linkUrl={item.link_url}
+                          label={item.time_label}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_latest_news", item.id, item.article_id, item.link_url, null, item.title, item.subtitle, item.image_url))}
+                        />
+                      </ItemCard>
+                    )}
+                  />
+                </Card>
+
+                <Card title="Vídeos / resumo disponíveis">
+                  <ItemsGrid
+                    items={publishedRoundupItems.length > 0 ? publishedRoundupItems : roundupItems}
+                    empty="Não há vídeos ou resumos disponíveis."
+                    render={(item) => (
+                      <RoundupItemCard
+                        key={item.id}
+                        label={item.label || item.type}
+                        title={item.title}
+                        subtitle={item.subtitle}
+                        linkUrl={item.video_url}
+                        addedInLabel={getCandidateAddedInLabel("matchday_roundup_item", item.id, null, item.video_url, null, item.title, item.subtitle, item.image_url)}
+                        meta={["Fonte: matchday_roundup_items", `Posicao ${item.sort_order}`, item.duration, statusLabel(item.status)]}
+                      >
+                        <AddCandidateForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          slotType="roundup"
+                          sourceType="matchday_roundup_item"
+                          sourceId={item.id}
+                          title={item.title}
+                          subtitle={item.subtitle}
+                          imageUrl={item.image_url}
+                          linkUrl={item.video_url}
+                          label={item.label || item.type}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("matchday_roundup_item", item.id, null, item.video_url, null, item.title, item.subtitle, item.image_url))}
+                        />
+                      </RoundupItemCard>
+                    )}
+                  />
+                </Card>
+
+                <Card title="Artigos / notícias relacionados">
+                  <ItemsGrid
+                    items={publishedArticles.length > 0 ? publishedArticles : articles}
+                    empty="Não há artigos relacionados de forma direta com esta jornada."
+                    render={(item) => (
+                      <ItemCard
+                        key={item.id}
+                        imageUrl={item.image_url}
+                        title={item.title}
+                        subtitle={item.summary}
+                        linkUrl={item.source_url}
+                        addedInLabel={getCandidateAddedInLabel("article", item.id, item.id, item.source_url, null, item.title, item.summary, item.image_url)}
+                        meta={["Fonte: articles", statusLabel(item.status), item.published_at ? `Publicado: ${new Date(item.published_at).toLocaleDateString("pt-PT")}` : null]}
+                      >
+                        <AddCandidateForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          slotType="related_article"
+                          sourceType="article"
+                          sourceId={item.id}
+                          articleId={item.id}
+                          title={item.title}
+                          subtitle={item.summary}
+                          imageUrl={item.image_url}
+                          linkUrl={item.source_url}
+                          label="Artigo / notícia"
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("article", item.id, item.id, item.source_url, null, item.title, item.summary, item.image_url))}
+                        />
+                        <AddCandidateForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          slotType="headline"
+                          sourceType="article"
+                          sourceId={item.id}
+                          articleId={item.id}
+                          title={item.title}
+                          subtitle={item.summary}
+                          imageUrl={item.image_url}
+                          linkUrl={item.source_url}
+                          label={null}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("article", item.id, item.id, item.source_url, null, item.title, item.summary, item.image_url))}
+                          buttonLabel="Adicionar como Manchete"
+                        />
+                        <AddCandidateForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          slotType="editorial_line_item"
+                          sourceType="article"
+                          sourceId={item.id}
+                          articleId={item.id}
+                          title={item.title}
+                          subtitle={item.summary}
+                          imageUrl={item.image_url}
+                          linkUrl={item.source_url}
+                          label={null}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("article", item.id, item.id, item.source_url, null, item.title, item.summary, item.image_url))}
+                          buttonLabel="Adicionar à Zona editorial final"
+                        />
+                        <AddImportantItemForm
+                          composition={draftComposition}
+                          matchdayId={matchday.id}
+                          returnTo={returnTo}
+                          sortOrder={nextSortOrder}
+                          sourceType="article"
+                          sourceId={item.id}
+                          articleId={item.id}
+                          title={item.title}
+                          subtitle={item.summary}
+                          imageUrl={item.image_url}
+                          linkUrl={item.source_url}
+                          label={null}
+                          alreadyAdded={Boolean(getCandidateAddedInLabel("article", item.id, item.id, item.source_url, null, item.title, item.summary, item.image_url))}
+                        />
+                      </ItemCard>
+                    )}
+                  />
+                </Card>
+              </div>
+            </details>
           </div>
-        </div>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function () {
-                var form = document.querySelector('[data-composition-form]');
-                if (!form) return;
-                var belowSelect = form.querySelector('[name="below_headline_mode"]');
-                var complementSelect = form.querySelector('[data-complementary-form] [name="complementary_mode"]');
-                var complementArticleSelect = form.querySelector('[data-complementary-article-select]');
-                var belowSections = Array.prototype.slice.call(form.querySelectorAll('[data-below-section]'));
-                var sections = Array.prototype.slice.call(form.querySelectorAll('[data-complementary-section]'));
-                function setFieldValue(field, value) {
-                  if (!field) return;
-                  field.value = value || '';
-                  field.dispatchEvent(new Event('input', { bubbles: true }));
-                  field.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-                function finishPublishedSource() {
-                  if (!complementArticleSelect) return;
-                  var message = complementArticleSelect.parentElement.querySelector('[data-source-applied-message]');
-                  if (!message) {
-                    message = document.createElement('span');
-                    message.setAttribute('data-source-applied-message', 'true');
-                    message.style.display = 'block';
-                    message.style.marginTop = '6px';
-                    message.style.color = '#475569';
-                    message.style.fontSize = '12px';
-                    message.style.fontWeight = '700';
-                    complementArticleSelect.insertAdjacentElement('afterend', message);
-                  }
-                  message.textContent = 'Fonte aplicada. Reve e guarda a zona.';
-                  window.clearTimeout(complementArticleSelect._sourceAppliedTimer);
-                  complementArticleSelect._sourceAppliedTimer = window.setTimeout(function () {
-                    message.textContent = '';
-                  }, 3500);
-                  complementArticleSelect.value = '';
-                }
-                function setComplementField(name, value) {
-                  var field = form.querySelector('[data-complementary-form] [name="' + name + '"]');
-                  setFieldValue(field, value);
-                }
-                function applyComplementArticle() {
-                  if (!complementArticleSelect) return;
-                  var option = complementArticleSelect.options[complementArticleSelect.selectedIndex];
-                  if (!option || !option.value) return;
-                  setComplementField('complementary_label', option.dataset.complementaryLabel);
-                  setComplementField('complementary_title', option.dataset.complementaryTitle);
-                  setComplementField('complementary_text', option.dataset.complementaryText);
-                  setComplementField('complementary_image_url', option.dataset.complementaryImageUrl);
-                  setComplementField('complementary_link_url', option.dataset.complementaryLinkUrl);
-                  finishPublishedSource();
-                }
-                function syncBelowSections() {
-                  var mode = belowSelect ? belowSelect.value : 'highlights';
-                  belowSections.forEach(function (section) {
-                    section.hidden = section.getAttribute('data-below-section') !== mode;
-                  });
-                }
-                function syncComplementSections() {
-                  var mode = complementSelect ? complementSelect.value : 'none';
-                  sections.forEach(function (section) {
-                    section.hidden = section.getAttribute('data-complementary-section') !== mode;
-                  });
-                }
-                function syncComplementWithBelowMode() {
-                  if (!belowSelect || !complementSelect) {
-                    syncBelowSections();
-                    return;
-                  }
-                  complementSelect.value = belowSelect.value === 'roundup' ? 'roundup_video' : 'complementary_story';
-                  syncBelowSections();
-                  syncComplementSections();
-                }
-                if (belowSelect) belowSelect.addEventListener('change', syncComplementWithBelowMode);
-                if (complementSelect) complementSelect.addEventListener('change', syncComplementSections);
-                if (complementArticleSelect) complementArticleSelect.addEventListener('change', applyComplementArticle);
-                syncBelowSections();
-                syncComplementSections();
-              })();
-            `
-          }}
-        />
-      </section>
+        </section>
+      </div>
     </main>
   );
 }

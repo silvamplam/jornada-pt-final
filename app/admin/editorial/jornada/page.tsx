@@ -1,397 +1,505 @@
 import Script from "next/script";
+
 import { fetchSupabaseAdminTable } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
-type CompetitionOption = {
+type CountryRow = {
   id: string;
   name: string | null;
-  slug: string | null;
-  is_active?: boolean | null;
 };
 
-type SeasonOption = {
+type CompetitionRow = {
+  id: string;
+  country_id: string | null;
+  name: string | null;
+  slug: string | null;
+  is_active: boolean | null;
+};
+
+type SeasonRow = {
   id: string;
   competition_id: string | null;
   label: string | null;
-  starts_on?: string | null;
-  ends_on?: string | null;
-  is_current?: boolean | null;
+  is_current: boolean | null;
+  starts_on: string | null;
+  ends_on: string | null;
 };
 
-type MatchdayOption = {
+type MatchdayRow = {
   id: string;
   season_id: string | null;
   number: number | null;
   label: string | null;
-  starts_on?: string | null;
-  ends_on?: string | null;
-  status?: string | null;
+  starts_on: string | null;
+  ends_on: string | null;
+  status: string | null;
 };
 
-async function loadEntryOptions() {
+const selectorStyles = `
+  body {
+    margin: 0;
+    background: #eef2f6;
+  }
+
+  .matchday-selector-shell {
+    min-height: 100vh;
+    padding: 28px;
+    background: #eef2f6;
+    color: #10151b;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .matchday-selector-hero,
+  .matchday-selector-panel {
+    overflow: hidden;
+    border: 1px solid #dce3eb;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(12, 22, 34, 0.07);
+  }
+
+  .matchday-selector-hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 24px;
+    background: linear-gradient(135deg, #10151b, #25303c);
+    color: #ffffff;
+  }
+
+  .matchday-selector-hero h1,
+  .matchday-selector-hero p,
+  .matchday-selector-hero small {
+    margin: 0;
+  }
+
+  .matchday-selector-hero h1 {
+    margin-top: 8px;
+    font-size: 34px;
+    line-height: 1.05;
+  }
+
+  .matchday-selector-hero p {
+    color: #e5252a;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .matchday-selector-hero small {
+    display: block;
+    margin-top: 10px;
+    color: #cdd5df;
+    font-size: 15px;
+  }
+
+  .matchday-selector-actions {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .matchday-selector-button,
+  .matchday-selector-actions a {
+    display: inline-block;
+    width: fit-content;
+    padding: 12px 16px;
+    border: 0;
+    border-radius: 6px;
+    background: #e5252a;
+    color: #ffffff;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1;
+    text-decoration: none;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .matchday-selector-actions a {
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: transparent;
+  }
+
+  .matchday-selector-panel {
+    margin-top: 18px;
+    padding: 22px;
+  }
+
+  .matchday-selector-panel h2,
+  .matchday-selector-panel p {
+    margin: 0;
+  }
+
+  .matchday-selector-panel p {
+    margin-top: 6px;
+    color: #526170;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .matchday-selector-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 20px;
+  }
+
+  .matchday-selector-field {
+    display: grid;
+    gap: 7px;
+  }
+
+  .matchday-selector-field label {
+    color: #526170;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .matchday-selector-field select {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid #cfd8e3;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #10151b;
+    font: inherit;
+    font-size: 14px;
+  }
+
+  .matchday-selector-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .matchday-selector-note {
+    max-width: 660px;
+    color: #526170;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .matchday-selector-button:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+  }
+
+  .matchday-selector-empty {
+    margin-top: 18px;
+    padding: 16px;
+    border: 1px dashed #cfd8e3;
+    border-radius: 8px;
+    color: #526170;
+    font-size: 14px;
+  }
+
+  @media (max-width: 780px) {
+    .matchday-selector-shell {
+      padding: 18px;
+    }
+
+    .matchday-selector-hero,
+    .matchday-selector-grid {
+      display: block;
+    }
+
+    .matchday-selector-actions,
+    .matchday-selector-field {
+      margin-top: 14px;
+    }
+  }
+`;
+
+async function readSelectorData() {
   try {
-    const [competitions, seasons, matchdays] = await Promise.all([
-      fetchSupabaseAdminTable<CompetitionOption>("competitions?select=id,name,slug,is_active&order=name.asc"),
-      fetchSupabaseAdminTable<SeasonOption>("seasons?select=id,competition_id,label,starts_on,ends_on,is_current&order=label.desc"),
-      fetchSupabaseAdminTable<MatchdayOption>("matchdays?select=id,season_id,number,label,starts_on,ends_on,status&order=number.asc")
+    const [countries, competitions, seasons, matchdays] = await Promise.all([
+      fetchSupabaseAdminTable<CountryRow>("countries?select=id,name&order=name.asc"),
+      fetchSupabaseAdminTable<CompetitionRow>("competitions?select=id,country_id,name,slug,is_active&order=name.asc"),
+      fetchSupabaseAdminTable<SeasonRow>(
+        "seasons?select=id,competition_id,label,is_current,starts_on,ends_on&order=label.desc"
+      ),
+      fetchSupabaseAdminTable<MatchdayRow>("matchdays?select=id,season_id,number,label,starts_on,ends_on,status&order=number.asc")
     ]);
 
-    return { competitions, seasons, matchdays, error: null as string | null };
+    return { countries, competitions, seasons, matchdays, error: "" };
   } catch (error) {
     return {
-      competitions: [] as CompetitionOption[],
-      seasons: [] as SeasonOption[],
-      matchdays: [] as MatchdayOption[],
-      error: error instanceof Error ? error.message : "Nao foi possivel carregar jornadas."
+      countries: [] as CountryRow[],
+      competitions: [] as CompetitionRow[],
+      seasons: [] as SeasonRow[],
+      matchdays: [] as MatchdayRow[],
+      error: error instanceof Error ? error.message : "Nao foi possivel ler jornadas."
     };
   }
 }
 
-function firstText(...values: Array<string | null | undefined>) {
-  for (const value of values) {
-    const cleanValue = value?.trim();
-    if (cleanValue) {
-      return cleanValue;
-    }
-  }
+function formatMatchdayLabel(
+  matchday: MatchdayRow,
+  seasonById: Map<string, SeasonRow>,
+  competitionById: Map<string, CompetitionRow>,
+  countryById: Map<string, CountryRow>
+) {
+  const season = matchday.season_id ? seasonById.get(matchday.season_id) : null;
+  const competition = season?.competition_id ? competitionById.get(season.competition_id) : null;
+  const country = competition?.country_id ? countryById.get(competition.country_id) : null;
+  const parts = [
+    country?.name,
+    competition?.name,
+    season?.label,
+    matchday.label ?? (matchday.number ? `Jornada ${matchday.number}` : "Jornada")
+  ].filter(Boolean);
 
-  return "";
+  return parts.join(" / ");
 }
 
-function matchdayLabel(matchday: MatchdayOption) {
-  const baseLabel = firstText(matchday.label, matchday.number ? `J${String(matchday.number).padStart(2, "0")}` : null, matchday.id);
-  return matchday.number ? `${baseLabel} - J${String(matchday.number).padStart(2, "0")}` : baseLabel;
+function scriptJson(value: unknown) {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
-const entryStyles = `
-  .editorial-entry-shell {
-    min-height: 100vh;
-    background: #f4f6f8;
-    color: #111827;
-    padding: 32px;
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  }
-
-  .editorial-entry-container {
-    max-width: 1180px;
-    margin: 0 auto;
-  }
-
-  .editorial-entry-hero,
-  .editorial-entry-panel {
-    border-radius: 10px;
-    box-shadow: 0 18px 40px rgba(8, 15, 24, 0.12);
-  }
-
-  .editorial-entry-hero {
-    display: flex;
-    justify-content: space-between;
-    gap: 20px;
-    align-items: flex-start;
-    margin-bottom: 24px;
-    padding: 26px;
-    background: #10151b;
-    color: #fff;
-  }
-
-  .editorial-entry-hero h1 {
-    margin: 0;
-    font-size: 32px;
-    line-height: 1.08;
-  }
-
-  .editorial-entry-hero p {
-    max-width: 720px;
-    margin: 8px 0 0;
-    color: #cbd5e1;
-    line-height: 1.55;
-  }
-
-  .editorial-entry-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: flex-end;
-    align-items: center;
-  }
-
-  .editorial-entry-actions a,
-  .editorial-entry-button {
-    display: inline-flex;
-    min-height: 38px;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    padding: 0 14px;
-    background: transparent;
-    color: #fff;
-    font-size: 13px;
-    font-weight: 800;
-    text-decoration: none;
-  }
-
-  .editorial-entry-button {
-    border-color: #111827;
-    background: #111827;
-    color: #fff;
-  }
-
-  .editorial-entry-button.is-disabled {
-    border-color: #d1d5db;
-    background: #f3f4f6;
-    color: #6b7280;
-    pointer-events: none;
-  }
-
-  .editorial-entry-panel {
-    border: 1px solid #e5e7eb;
-    background: #fff;
-    padding: 24px;
-  }
-
-  .editorial-entry-panel h2 {
-    margin: 0;
-    font-size: 22px;
-  }
-
-  .editorial-entry-panel p {
-    margin: 8px 0 0;
-    color: #6b7280;
-    line-height: 1.55;
-  }
-
-  .editorial-entry-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
-    margin: 22px 0;
-  }
-
-  .editorial-entry-field {
-    display: grid;
-    gap: 6px;
-    font-size: 13px;
-    font-weight: 800;
-  }
-
-  .editorial-entry-field span {
-    color: #475569;
-    font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .editorial-entry-field select {
-    width: 100%;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    padding: 10px 11px;
-    background: #fff;
-    color: #111827;
-    font: inherit;
-    font-weight: 600;
-  }
-
-  .editorial-entry-alert {
-    margin: 18px 0 0;
-    border-radius: 8px;
-    border: 1px solid #bfdbfe;
-    background: #eff6ff;
-    padding: 12px 14px;
-    color: #1e3a8a;
-    font-size: 13px;
-    font-weight: 700;
-  }
-
-  @media (max-width: 820px) {
-    .editorial-entry-shell {
-      padding: 18px;
-    }
-
-    .editorial-entry-hero,
-    .editorial-entry-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-    }
-
-    .editorial-entry-actions {
-      justify-content: flex-start;
-    }
-  }
-`;
-
-const entryScript = `
-(function () {
-  var root = document.querySelector("[data-editorial-entry]");
-  if (!root) return;
-  var competition = root.querySelector("[data-entry-competition]");
-  var season = root.querySelector("[data-entry-season]");
-  var matchday = root.querySelector("[data-entry-matchday]");
-  var action = root.querySelector("[data-entry-action]");
-  var destination = root.getAttribute("data-destination-base") || "";
-  var allSeasons = readJson("[data-entry-seasons-json]");
-  var allMatchdays = readJson("[data-entry-matchdays-json]");
-
-  function readJson(selector) {
-    var node = root.querySelector(selector);
-    if (!node) return [];
-    try {
-      return JSON.parse(node.textContent || "[]");
-    } catch (error) {
-      return [];
-    }
-  }
-
-  function replaceOptions(select, options, label) {
-    if (!select) return;
-    select.innerHTML = "";
-    var emptyOption = document.createElement("option");
-    emptyOption.value = "";
-    emptyOption.textContent = label;
-    select.appendChild(emptyOption);
-    options.forEach(function (item) {
-      var option = document.createElement("option");
-      option.value = item.id;
-      option.textContent = item.label;
-      select.appendChild(option);
-    });
-  }
-
-  function update(resetSeason, resetMatchday) {
-    var competitionId = competition ? competition.value : "";
-    var previousSeasonId = !resetSeason && season ? season.value : "";
-    var previousMatchdayId = !resetMatchday && matchday ? matchday.value : "";
-    var seasonOptions = competitionId
-      ? allSeasons.filter(function (item) {
-          return item.competition_id === competitionId;
-        })
-      : [];
-
-    if (season) {
-      replaceOptions(season, seasonOptions, competitionId ? "Escolher epoca" : "Seleciona competicao primeiro");
-      season.value = seasonOptions.some(function (item) { return item.id === previousSeasonId; }) ? previousSeasonId : "";
-    }
-
-    var seasonId = season ? season.value : "";
-    var matchdayOptions = seasonId
-      ? allMatchdays.filter(function (item) {
-          return item.season_id === seasonId && (!competitionId || item.competition_id === competitionId);
-        })
-      : [];
-
-    if (matchday) {
-      replaceOptions(matchday, matchdayOptions, seasonId ? "Escolher jornada" : "Seleciona epoca primeiro");
-      matchday.value = matchdayOptions.some(function (item) { return item.id === previousMatchdayId; }) ? previousMatchdayId : "";
-    }
-
-    if (!action) return;
-    if (matchday && matchday.value) {
-      action.setAttribute("href", destination + "/" + encodeURIComponent(matchday.value));
-      action.classList.remove("is-disabled");
-      action.removeAttribute("aria-disabled");
-      action.textContent = "Abrir jornada escolhida";
-      return;
-    }
-
-    action.removeAttribute("href");
-    action.classList.add("is-disabled");
-    action.setAttribute("aria-disabled", "true");
-    action.textContent = "Escolha uma jornada";
-  }
-
-  if (competition) competition.addEventListener("change", function () { update(true, true); });
-  if (season) season.addEventListener("change", function () { update(false, true); });
-  if (matchday) matchday.addEventListener("change", function () { update(false, false); });
-  update(false, false);
-})();
-`;
-
-export default async function AdminEditorialComposicaoEntryPage() {
-  const { competitions, seasons, matchdays, error } = await loadEntryOptions();
-  const competitionBySeasonId = new Map(seasons.map((season) => [season.id, season.competition_id ?? ""]));
-  const entrySeasonsJson = JSON.stringify(
-    seasons.map((season) => ({
-      id: season.id,
-      label: firstText(season.label, season.id),
-      competition_id: season.competition_id ?? ""
-    }))
-  ).replace(/</g, "\\u003c");
-  const entryMatchdaysJson = JSON.stringify(
-    matchdays.map((matchday) => ({
-      id: matchday.id,
-      label: matchdayLabel(matchday),
-      season_id: matchday.season_id ?? "",
-      competition_id: matchday.season_id ? competitionBySeasonId.get(matchday.season_id) ?? "" : ""
-    }))
-  ).replace(/</g, "\\u003c");
+export default async function AdminEditorialMatchdaySelectorPage() {
+  const { countries, competitions, seasons, matchdays, error } = await readSelectorData();
+  const countryById = new Map(countries.map((country) => [country.id, country]));
+  const competitionById = new Map(competitions.map((competition) => [competition.id, competition]));
+  const seasonById = new Map(seasons.map((season) => [season.id, season]));
+  const seasonOptions = seasons.map((season) => ({
+    id: season.id,
+    competitionId: season.competition_id ?? "",
+    label: season.label ?? "Epoca sem nome"
+  }));
+  const matchdayOptions = matchdays.map((matchday) => ({
+    id: matchday.id,
+    seasonId: matchday.season_id ?? "",
+    label: formatMatchdayLabel(matchday, seasonById, competitionById, countryById)
+  }));
 
   return (
-    <main className="editorial-entry-shell">
-      <style>{entryStyles}</style>
-      <div className="editorial-entry-container">
-        <header className="editorial-entry-hero">
-          <div>
-            <h1>Composicao Editorial</h1>
-            <p>Escolha competicao, epoca e jornada para abrir a composicao historica da jornada certa.</p>
-          </div>
-          <nav className="editorial-entry-actions" aria-label="Navegacao editorial">
-            <a href="/admin/editorial/home">Home Editorial</a>
-            <a href="/admin/editorial/artigos">Artigos / Noticias</a>
-            <a href="/admin/editorial/conteudos">VÍDEO</a>
-            <a href="/admin/editorial/jornada">Editorial da Jornada</a>
-            <a href="/admin/gestor">Centro de Gestao</a>
-            <a href="/admin">Backoffice</a>
-          </nav>
-        </header>
+    <main className="matchday-selector-shell">
+      <style>{selectorStyles}</style>
+      <section className="matchday-selector-hero">
+        <div>
+          <p>Jornada.pt</p>
+          <h1>Editorial da Jornada</h1>
+          <small>Escolhe explicitamente a competicao, epoca e jornada antes de abrir a edicao editorial.</small>
+        </div>
+        <nav className="matchday-selector-actions" aria-label="Navegacao editorial">
+          <a href="/admin/editorial/home">Home Editorial</a>
+          <a href="/admin/editorial/artigos">Artigos / Noticias</a>
+          <a href="/admin/editorial/conteudos">VÍDEO</a>
+          <a href="/admin/editorial/composicao">Composicao Editorial</a>
+          <a href="/admin/gestor">Centro de Gestao</a>
+          <a href="/admin">Backoffice</a>
+        </nav>
+      </section>
 
-        <section className="editorial-entry-panel" data-destination-base="/admin/editorial/composicao" data-editorial-entry>
-          <h2>Escolher jornada</h2>
-          <p>As opcoes abaixo usam competicoes, epocas e jornadas reais ja existentes no projeto.</p>
-          {error ? <p className="editorial-entry-alert">{error}</p> : null}
-          <div className="editorial-entry-grid">
-            <label className="editorial-entry-field">
-              <span>Competicao</span>
-              <select data-entry-competition>
-                <option value="">Todas as competicoes</option>
-                {competitions.map((competition) => (
-                  <option key={competition.id} value={competition.id}>
-                    {firstText(competition.name, competition.slug, competition.id)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="editorial-entry-field">
-              <span>Epoca</span>
-              <select data-entry-season>
-                <option value="">Todas as epocas</option>
-              </select>
-            </label>
-            <label className="editorial-entry-field">
-              <span>Jornada</span>
-              <select data-entry-matchday>
-                <option value="">Escolher jornada</option>
-              </select>
-            </label>
-          </div>
-          <script
-            data-entry-seasons-json
-            type="application/json"
-            dangerouslySetInnerHTML={{ __html: entrySeasonsJson }}
-          />
-          <script
-            data-entry-matchdays-json
-            type="application/json"
-            dangerouslySetInnerHTML={{ __html: entryMatchdaysJson }}
-          />
-          <a className="editorial-entry-button is-disabled" data-entry-action aria-disabled="true">
-            Escolha uma jornada
-          </a>
-        </section>
-      </div>
-      <Script id="editorial-composicao-entry-selector" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: entryScript }} />
+      <section className="matchday-selector-panel" aria-label="Selecionar jornada editorial">
+        <h2>Selecionar jornada</h2>
+        <p>Esta entrada nao escolhe uma liga por defeito nem reabre contexto guardado no browser.</p>
+
+        {error ? <div className="matchday-selector-empty">Erro ao ler dados: {error}</div> : null}
+        {!error && matchdays.length === 0 ? (
+          <div className="matchday-selector-empty">Nao existem jornadas disponiveis para selecionar.</div>
+        ) : (
+          <form
+            data-matchday-selector="jornada"
+            data-target-base="/admin/editorial/jornada"
+            data-season-options={scriptJson(seasonOptions)}
+            data-matchday-options={scriptJson(matchdayOptions)}
+          >
+            <div className="matchday-selector-grid">
+              <div className="matchday-selector-field">
+                <label htmlFor="editorial-competition">Competicao</label>
+                <select id="editorial-competition" name="competition_id" defaultValue="">
+                  <option value="">Escolher competicao</option>
+                  {competitions.map((competition) => (
+                    <option key={competition.id} value={competition.id}>
+                      {[countryById.get(competition.country_id ?? "")?.name, competition.name].filter(Boolean).join(" / ")}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="matchday-selector-field">
+                <label htmlFor="editorial-season">Epoca</label>
+                <select id="editorial-season" name="season_id" defaultValue="">
+                  <option value="">Seleciona competicao primeiro</option>
+                </select>
+              </div>
+
+              <div className="matchday-selector-field">
+                <label htmlFor="editorial-matchday">Jornada</label>
+                <select id="editorial-matchday" name="matchday_id" defaultValue="">
+                  <option value="">Seleciona epoca primeiro</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="matchday-selector-footer">
+              <span className="matchday-selector-note">
+                So depois de escolher uma jornada e que a pagina abre /admin/editorial/jornada/[matchdayId].
+              </span>
+              <button className="matchday-selector-button" type="submit" disabled>
+                Abrir Editorial da Jornada
+              </button>
+            </div>
+          </form>
+        )}
+      </section>
+
+      <Script
+        id="admin-editorial-jornada-selector"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function () {
+              if (window.__adminEditorialJornadaSelectorBound) return;
+              window.__adminEditorialJornadaSelectorBound = true;
+
+              function parseOptions(form, name) {
+                try {
+                  return JSON.parse(form.getAttribute(name) || "[]");
+                } catch (error) {
+                  return [];
+                }
+              }
+
+              function formParts(form) {
+                if (!form) return null;
+                return {
+                  competition: form.querySelector('select[name="competition_id"]'),
+                  season: form.querySelector('select[name="season_id"]'),
+                  matchday: form.querySelector('select[name="matchday_id"]'),
+                  button: form.querySelector('button[type="submit"]')
+                };
+              }
+
+              function initForm(form) {
+                var parts = formParts(form);
+                if (!parts || !parts.competition || !parts.season || !parts.matchday || !parts.button) return;
+                renderSeasons(form);
+              }
+
+              function resetSelect(select, label) {
+                select.innerHTML = "";
+                var option = document.createElement("option");
+                option.value = "";
+                option.textContent = label;
+                select.appendChild(option);
+              }
+
+              function appendOption(select, value, label) {
+                var option = document.createElement("option");
+                option.value = value;
+                option.textContent = label;
+                select.appendChild(option);
+              }
+
+              function renderMatchdays(form) {
+                var parts = formParts(form);
+                if (!parts || !parts.season || !parts.matchday || !parts.button) return;
+                var matchdayOptions = parseOptions(form, "data-matchday-options");
+                var seasonId = parts.season.value;
+                var selectedMatchdayId = parts.matchday.value;
+                var filteredMatchdays = seasonId
+                  ? matchdayOptions.filter(function (option) {
+                      return option.seasonId === seasonId;
+                    })
+                  : [];
+
+                resetSelect(parts.matchday, seasonId ? "Escolher jornada" : "Seleciona epoca primeiro");
+                filteredMatchdays.forEach(function (option) {
+                  appendOption(parts.matchday, option.id, option.label);
+                });
+
+                if (filteredMatchdays.some(function (option) { return option.id === selectedMatchdayId; })) {
+                  parts.matchday.value = selectedMatchdayId;
+                }
+
+                parts.button.disabled = !parts.matchday.value;
+              }
+
+              function renderSeasons(form) {
+                var parts = formParts(form);
+                if (!parts || !parts.competition || !parts.season || !parts.matchday) return;
+                var seasonOptions = parseOptions(form, "data-season-options");
+                var competitionId = parts.competition.value;
+                var seasonId = parts.season.value;
+                var filteredSeasons = competitionId
+                  ? seasonOptions.filter(function (option) {
+                      return option.competitionId === competitionId;
+                    })
+                  : [];
+
+                resetSelect(parts.season, competitionId ? "Escolher epoca" : "Seleciona competicao primeiro");
+                filteredSeasons.forEach(function (option) {
+                  appendOption(parts.season, option.id, option.label);
+                });
+
+                if (filteredSeasons.some(function (option) { return option.id === seasonId; })) {
+                  parts.season.value = seasonId;
+                } else {
+                  parts.season.value = "";
+                }
+
+                renderMatchdays(form);
+              }
+
+              document.addEventListener("change", function (event) {
+                var control = event.target && event.target.closest
+                  ? event.target.closest('[name="competition_id"], [name="season_id"], [name="matchday_id"]')
+                  : null;
+                if (!control) return;
+                var form = control.closest("[data-matchday-selector]");
+                var parts = formParts(form);
+                if (!parts) return;
+                if (control.name === "competition_id") {
+                  parts.season.value = "";
+                  parts.matchday.value = "";
+                  renderSeasons(form);
+                  return;
+                }
+                if (control.name === "season_id") {
+                  parts.matchday.value = "";
+                  renderMatchdays(form);
+                  return;
+                }
+                renderMatchdays(form);
+              });
+
+              document.addEventListener("submit", function (event) {
+                var form = event.target && event.target.closest ? event.target.closest("[data-matchday-selector]") : null;
+                if (!form) return;
+                event.preventDefault();
+                var parts = formParts(form);
+                if (!parts || !parts.matchday.value) {
+                  renderMatchdays(form);
+                  return;
+                }
+
+                window.location.href = form.getAttribute("data-target-base") + "/" + encodeURIComponent(parts.matchday.value);
+              });
+
+              function initAll() {
+                Array.prototype.forEach.call(document.querySelectorAll("[data-matchday-selector]"), initForm);
+              }
+
+              if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", initAll, { once: true });
+              } else {
+                initAll();
+              }
+            })();
+          `
+        }}
+      />
     </main>
   );
 }
