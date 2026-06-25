@@ -256,7 +256,168 @@ const articleFormEnhancer = `
     filterOptions();
   }
 
-  document.querySelectorAll("[data-article-admin-form]").forEach(init);
+document.querySelectorAll("[data-article-admin-form]").forEach(init);
+})();
+`;
+
+const articleImageUploadScript = `
+(function () {
+  if (window.__editorialArticleImageUploadBound) return;
+  window.__editorialArticleImageUploadBound = true;
+  var allowedExtensions = /\\.(jpe?g|png|webp|avif)$/i;
+  var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/avif'];
+
+  function uploadParts(uploadRoot) {
+    var fileInput = uploadRoot ? uploadRoot.querySelector('[data-article-image-file]') : null;
+    var uploadButton = uploadRoot ? uploadRoot.querySelector('[data-article-image-upload-button]') : null;
+    var status = uploadRoot ? uploadRoot.querySelector('[data-article-image-upload-status]') : null;
+    var form = uploadRoot ? uploadRoot.closest('form') : null;
+    var targetInput = form ? form.querySelector('[name="image_url"]') : null;
+    return { fileInput: fileInput, uploadButton: uploadButton, status: status, targetInput: targetInput };
+  }
+
+  function setStatus(parts, message, state) {
+    var status = parts.status;
+    if (!status) return;
+    status.textContent = message;
+    status.setAttribute('data-upload-state', state || 'idle');
+  }
+
+  function selectedFile(parts) {
+    var fileInput = parts.fileInput;
+    return fileInput && fileInput.files ? fileInput.files[0] : null;
+  }
+
+  function validateFile(file) {
+    if (!file) return 'Escolhe uma imagem.';
+    if (!allowedExtensions.test(file.name || '') || allowedTypes.indexOf(file.type) === -1) {
+      return 'Formato de imagem nao suportado.';
+    }
+    if (file.size <= 0) return 'A imagem escolhida esta vazia.';
+    return '';
+  }
+
+  function uploadLimitMessage(maxUploadMb) {
+    return 'Imagem demasiado grande. Limite atual: ' + (maxUploadMb || 8) + ' MB.';
+  }
+
+  function detailMessage(detail) {
+    return detail ? ' Detalhe: ' + String(detail).slice(0, 180) : '';
+  }
+
+  function setLoading(parts, isLoading) {
+    if (parts.uploadButton) parts.uploadButton.disabled = isLoading;
+    if (parts.fileInput) parts.fileInput.disabled = isLoading;
+  }
+
+  async function uploadImage(uploadRoot) {
+    var parts = uploadParts(uploadRoot);
+    var file = selectedFile(parts);
+    var validationError = validateFile(file);
+    if (validationError) {
+      setStatus(parts, validationError, 'error');
+      return;
+    }
+
+    setLoading(parts, true);
+    setStatus(parts, 'A preparar upload...', 'loading');
+
+    try {
+      var signResponse = await fetch('/api/admin/editorial/artigos/upload-image/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type,
+          size: file.size
+        })
+      });
+      var signPayload = await signResponse.json().catch(function () { return null; });
+      if (!signResponse.ok) {
+        if (signPayload && signPayload.error === 'image-too-large') {
+          throw new Error('image-too-large:' + (signPayload.maxUploadMb || 8));
+        }
+        var apiError = signPayload && signPayload.error ? signPayload.error : 'sign-failed';
+        var apiDetail = signPayload && signPayload.detail ? ':' + signPayload.detail : '';
+        throw new Error(apiError + apiDetail);
+      }
+      if (!signPayload || !signPayload.signedUrl || !signPayload.publicUrl) {
+        throw new Error('sign-failed');
+      }
+
+      setStatus(parts, 'A carregar imagem...', 'loading');
+      var uploadResponse = await fetch(signPayload.signedUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type,
+          'x-upsert': 'false'
+        },
+        body: file
+      });
+      if (!uploadResponse.ok) {
+        var uploadDetail = await uploadResponse.text().catch(function () { return ''; });
+        throw new Error('upload-failed:' + (uploadDetail || uploadResponse.status));
+      }
+
+      if (parts.targetInput) {
+        parts.targetInput.value = signPayload.publicUrl;
+        parts.targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+        parts.targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      setStatus(parts, 'Imagem carregada. O URL foi preenchido automaticamente.', 'success');
+    } catch (error) {
+      var message = 'Nao foi possivel carregar a imagem.';
+      if (error && /^missing-editorial-images-bucket/.test(error.message || '')) {
+        message = 'Bucket editorial-images nao encontrado ou indisponivel.' + detailMessage(error.message.split(':').slice(1).join(':'));
+      }
+      if (error && /^signed-upload-failed/.test(error.message || '')) {
+        message = 'Nao foi possivel assinar o upload da imagem.' + detailMessage(error.message.split(':').slice(1).join(':'));
+      }
+      if (error && /^sign-failed/.test(error.message || '')) {
+        message = 'Nao foi possivel assinar o upload da imagem.';
+      }
+      if (error && error.message === 'missing-signed-upload-url') {
+        message = 'Nao foi possivel assinar o upload da imagem.';
+      }
+      if (error && error.message === 'missing-supabase-service-config') {
+        message = 'Nao foi possivel preparar o upload. Falta configuracao da Supabase.';
+      }
+      if (error && error.message === 'invalid-image-format') {
+        message = 'Formato de imagem nao suportado.';
+      }
+      if (error && /^image-too-large:/.test(error.message || '')) {
+        message = uploadLimitMessage(error.message.split(':')[1]);
+      }
+      if (error && /^upload-failed:/.test(error.message || '')) {
+        message = 'Nao foi possivel enviar a imagem para o Storage.' + detailMessage(error.message.split(':').slice(1).join(':'));
+      }
+      setStatus(parts, message, 'error');
+    } finally {
+      setLoading(parts, false);
+    }
+  }
+
+  document.addEventListener('click', function (event) {
+    var uploadButton = event.target && event.target.closest
+      ? event.target.closest('[data-article-image-upload-button]')
+      : null;
+    if (!uploadButton) return;
+    var uploadRoot = uploadButton.closest('[data-article-image-upload]');
+    if (!uploadRoot) return;
+    event.preventDefault();
+    uploadImage(uploadRoot);
+  });
+
+  document.addEventListener('change', function (event) {
+    var fileInput = event.target && event.target.closest
+      ? event.target.closest('[data-article-image-file]')
+      : null;
+    if (!fileInput) return;
+    var uploadRoot = fileInput.closest('[data-article-image-upload]');
+    var parts = uploadParts(uploadRoot);
+    var error = validateFile(selectedFile(parts));
+    setStatus(parts, error || 'Pronto para carregar imagem.', error ? 'error' : 'idle');
+  });
 })();
 `;
 
@@ -346,6 +507,19 @@ export function ArticleEditorForm({
             <input name="image_url" defaultValue={article?.image_url ?? ""} placeholder="https://..." />
           </label>
 
+          <div className="article-admin-upload article-admin-full" data-article-image-upload>
+            <label>
+              <span>Carregar imagem do computador</span>
+              <input data-article-image-file type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif" />
+            </label>
+            <button type="button" data-article-image-upload-button>
+              Carregar imagem
+            </button>
+            <span className="article-admin-upload-help" data-article-image-upload-status>
+              Pronto para carregar .jpg, .png, .webp ou .avif.
+            </span>
+          </div>
+
           <label className="article-admin-full">
             <span>Legenda da imagem</span>
             <input name="image_caption" defaultValue={article?.image_caption ?? ""} />
@@ -425,6 +599,7 @@ export function ArticleEditorForm({
       </div>
 
       <script dangerouslySetInnerHTML={{ __html: articleFormEnhancer }} />
+      <script dangerouslySetInnerHTML={{ __html: articleImageUploadScript }} />
     </form>
   );
 }
@@ -745,6 +920,47 @@ export const editorialArticleAdminStyles = `
 
   .article-admin-grid textarea {
     resize: vertical;
+  }
+
+  .article-admin-upload {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    background: #f8fafc;
+  }
+
+  .article-admin-upload button {
+    justify-self: start;
+    min-height: 36px;
+    border: 0;
+    border-radius: 8px;
+    padding: 0 12px;
+    background: #111827;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .article-admin-upload button:disabled {
+    background: #9ca3af;
+    cursor: wait;
+  }
+
+  .article-admin-upload-help {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  [data-upload-state="success"] {
+    color: #047857;
+  }
+
+  [data-upload-state="error"] {
+    color: #b91c1c;
   }
 
   .article-list {
