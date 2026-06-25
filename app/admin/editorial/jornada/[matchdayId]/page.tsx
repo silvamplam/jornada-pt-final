@@ -1525,7 +1525,7 @@ export default async function AdminMatchdayEditorialPage({ params, searchParams 
             Artigos / Notícias
           </a>
           <a className="editorial-admin-button secondary" href="/admin/editorial/conteudos">
-            VÍDEO
+            CONTEÚDOS / AUDIOVISUAL
           </a>
           <a className="editorial-admin-button secondary" href={`/admin/editorial/composicao/${encodeURIComponent(matchday.id)}`}>
             Composição Editorial
