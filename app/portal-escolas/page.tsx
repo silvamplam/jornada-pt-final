@@ -339,11 +339,30 @@ const resultSamples = [
   },
 ];
 
-const portalCards = [
+const contentSamples = [
   {
-    title: "Notícias e Vídeo",
-    text: "Enviar conteúdos para revisão editorial."
+    title: "Crónica da Jornada 01",
+    meta: "Tipo: notícia / texto · Contexto: jornada",
+    status: "Por rever"
   },
+  {
+    title: "Vídeo-resumo da competição",
+    meta: "Tipo: vídeo · Contexto: competição",
+    status: "Em breve"
+  },
+  {
+    title: "Galeria de fotografias",
+    meta: "Tipo: imagens · Contexto: jogo ou participante",
+    status: "Por organizar"
+  },
+  {
+    title: "Destaque de participante",
+    meta: "Tipo: sugestão editorial · Contexto: participante",
+    status: "Por validar"
+  },
+];
+
+const portalCards = [
   {
     title: "Acesso futuro",
     text: "Esta área será ligada a permissões por escola, modalidade, competição e época."
@@ -518,6 +537,47 @@ export default function PortalEscolasPage() {
               <li>Inserir resultado</li>
               <li>Confirmar/validar resultado</li>
               <li>Atualizar classificação ou histórico</li>
+            </ol>
+          </aside>
+        </section>
+
+        <section className="school-portal-participants" aria-labelledby="portal-content-title">
+          <div>
+            <h2 id="portal-content-title">5. Conteúdos</h2>
+            <p className="school-portal-participants-subtitle">
+              Preparar notícias, vídeos, fotografias, crónicas, destaques ou resumos ligados ao contexto
+              autorizado da competição.
+            </p>
+            <div className="school-portal-rounds" aria-label="Exemplo visual de conteúdos">
+              {contentSamples.map((content) => (
+                <article className="school-portal-round-card" key={content.title}>
+                  <div>
+                    <strong>{content.title}</strong>
+                    <span>{content.meta}</span>
+                  </div>
+                  <span className="school-portal-tag">{content.status}</span>
+                </article>
+              ))}
+            </div>
+            <p className="school-portal-module-note">
+              Os conteúdos poderão ficar associados à entidade organizadora, competição, jornada/fase, jogo,
+              participante ou contexto geral da competição.
+            </p>
+            <p className="school-portal-module-note">
+              Este módulo ainda não grava dados, não envia ficheiros e não publica conteúdos. A submissão,
+              revisão e validação real serão implementadas numa fase posterior.
+            </p>
+          </div>
+          <aside className="school-portal-flow" aria-label="Fluxo futuro de conteúdos">
+            <h3>Fluxo futuro</h3>
+            <ol>
+              <li>Escolher entidade/contexto</li>
+              <li>Escolher competição</li>
+              <li>Associar a jornada, jogo ou participante</li>
+              <li>Escolher tipo de conteúdo</li>
+              <li>Preparar texto, imagem ou vídeo</li>
+              <li>Submeter para revisão</li>
+              <li>Validar/publicar no local adequado</li>
             </ol>
           </aside>
         </section>
