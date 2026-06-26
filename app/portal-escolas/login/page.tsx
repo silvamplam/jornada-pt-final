@@ -224,23 +224,46 @@ function getStatusMessage(status: string | undefined, email: string | undefined,
 }
 
 async function getRequestOrigin() {
+  const normalizeOrigin = (value: string | undefined, defaultProtocol = "https") => {
+    const trimmed = value?.trim().replace(/\/+$/, "");
+
+    if (!trimmed) {
+      return null;
+    }
+
+    return /^https?:\/\//i.test(trimmed) ? trimmed : `${defaultProtocol}://${trimmed}`;
+  };
+  const configuredOrigin =
+    normalizeOrigin(process.env.NEXT_PUBLIC_SITE_URL) ?? normalizeOrigin(process.env.SITE_URL);
+
+  if (configuredOrigin) {
+    return configuredOrigin;
+  }
+
+  const vercelOrigin = normalizeOrigin(process.env.VERCEL_URL);
+
+  if (vercelOrigin) {
+    return vercelOrigin;
+  }
+
   const headersList = await headers();
   const explicitOrigin = headersList.get("origin");
 
   if (explicitOrigin) {
-    return explicitOrigin;
+    return normalizeOrigin(explicitOrigin);
   }
 
-  const host = headersList.get("x-forwarded-host") ?? headersList.get("host");
+  const host = (headersList.get("x-forwarded-host") ?? headersList.get("host"))?.split(",")[0]?.trim();
 
-  if (!host) {
-    return "http://localhost:3000";
+  if (host) {
+    const forwardedProto = headersList.get("x-forwarded-proto")?.split(",")[0]?.trim();
+    const isLocalHost = host.startsWith("localhost") || host.startsWith("127.") || host.startsWith("[::1]");
+    const protocol = forwardedProto ?? (process.env.VERCEL ? "https" : isLocalHost ? "http" : "https");
+
+    return `${protocol}://${host}`;
   }
 
-  const protocol =
-    headersList.get("x-forwarded-proto") ?? (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
-
-  return `${protocol}://${host}`;
+  return "http://localhost:3000";
 }
 
 async function sendPortalAccessLink(formData: FormData) {
