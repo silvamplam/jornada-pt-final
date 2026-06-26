@@ -362,10 +362,26 @@ const contentSamples = [
   },
 ];
 
-const portalCards = [
+const accessSamples = [
   {
-    title: "Acesso futuro",
-    text: "Esta área será ligada a permissões por escola, modalidade, competição e época."
+    title: "Entidade organizadora",
+    meta: "Pode preparar participantes, jornadas e jogos da sua competição.",
+    status: "Em breve"
+  },
+  {
+    title: "Responsável de competição",
+    meta: "Pode inserir jogos, resultados e conteúdos para revisão.",
+    status: "Maquete visual"
+  },
+  {
+    title: "Colaborador editorial",
+    meta: "Pode preparar notícias, vídeos ou fotografias para validação.",
+    status: "Por configurar"
+  },
+  {
+    title: "Consulta limitada",
+    meta: "Pode acompanhar calendário, jogos e resultados autorizados.",
+    status: "Planeado"
   }
 ];
 
@@ -582,14 +598,44 @@ export default function PortalEscolasPage() {
           </aside>
         </section>
 
-        <section className="school-portal-grid" aria-label="Modulos previstos">
-          {portalCards.map((card) => (
-            <article className="school-portal-card" key={card.title}>
-              <h2>{card.title}</h2>
-              <p>{card.text}</p>
-              <span className="school-portal-tag">Planeado</span>
-            </article>
-          ))}
+        <section className="school-portal-participants" aria-labelledby="portal-access-title">
+          <div>
+            <h2 id="portal-access-title">6. Acessos</h2>
+            <p className="school-portal-participants-subtitle">
+              Preparar, no futuro, acessos próprios para cada entidade organizadora, escola, associação,
+              clube ou núcleo gerir apenas o seu contexto autorizado.
+            </p>
+            <div className="school-portal-rounds" aria-label="Exemplo visual de acessos">
+              {accessSamples.map((access) => (
+                <article className="school-portal-round-card" key={access.title}>
+                  <div>
+                    <strong>{access.title}</strong>
+                    <span>{access.meta}</span>
+                  </div>
+                  <span className="school-portal-tag">{access.status}</span>
+                </article>
+              ))}
+            </div>
+            <p className="school-portal-module-note">
+              Os acessos futuros deverão ser limitados por entidade, competição, modalidade, época/ano letivo,
+              jornada ou outro contexto autorizado.
+            </p>
+            <p className="school-portal-module-note">
+              Este módulo ainda não cria utilizadores, não autentica ninguém, não grava permissões e não liga
+              ao Backoffice atual da Jornada.pt.
+            </p>
+          </div>
+          <aside className="school-portal-flow" aria-label="Fluxo futuro de acessos">
+            <h3>Fluxo futuro</h3>
+            <ol>
+              <li>Identificar entidade autorizada</li>
+              <li>Definir competição/contexto</li>
+              <li>Atribuir perfis de acesso</li>
+              <li>Limitar permissões por competição, modalidade, época ou jornada</li>
+              <li>Submeter conteúdos para revisão</li>
+              <li>Validar acessos antes da ativação</li>
+            </ol>
+          </aside>
         </section>
 
         <aside className="school-portal-note">
