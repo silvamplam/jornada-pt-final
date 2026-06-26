@@ -532,6 +532,27 @@ export default function PortalEscolasPage() {
           </div>
         </section>
 
+        <section className="school-portal-context" aria-labelledby="portal-isolation-title">
+          <div className="school-portal-context-header">
+            <div>
+              <p className="school-portal-eyebrow">Isolamento da maqueta</p>
+              <h2 id="portal-isolation-title">Área independente</h2>
+            </div>
+            <span className="school-portal-tag">Sem ligação real</span>
+          </div>
+          <p className="school-portal-module-note">
+            Esta maqueta representa uma futura área separada do Backoffice atual. Nesta fase não há gravação,
+            autenticação, permissões reais, publicação ou ligação a dados.
+          </p>
+          <div className="school-portal-demo-actions" aria-label="Garantias visuais de isolamento">
+            <span className="school-portal-tag">Sem ligação ao Backoffice atual</span>
+            <span className="school-portal-tag">Sem gravação de dados</span>
+            <span className="school-portal-tag">Sem autenticação real</span>
+            <span className="school-portal-tag">Sem publicação automática</span>
+            <span className="school-portal-tag">Permissões futuras por contexto autorizado</span>
+          </div>
+        </section>
+
         <section className="school-portal-participants" aria-labelledby="portal-participants-title">
           <div>
             <h2 id="portal-participants-title">1. Participantes</h2>
