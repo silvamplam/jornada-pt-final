@@ -48,9 +48,10 @@ const portalEscolasStyles = `
 
   .school-portal-hero h1 {
     margin: 0;
-    font-size: clamp(34px, 5vw, 58px);
+    font-size: clamp(30px, 5vw, 58px);
     line-height: 0.98;
     letter-spacing: 0;
+    overflow-wrap: anywhere;
   }
 
   .school-portal-hero p:last-child {
@@ -87,6 +88,7 @@ const portalEscolasStyles = `
 
   .school-portal-context-header {
     display: flex;
+    flex-wrap: wrap;
     gap: 14px;
     align-items: flex-start;
     justify-content: space-between;
@@ -97,6 +99,7 @@ const portalEscolasStyles = `
     margin: 0;
     color: #102033;
     font-size: 22px;
+    overflow-wrap: anywhere;
   }
 
   .school-portal-context-grid {
@@ -248,11 +251,13 @@ const portalEscolasStyles = `
     display: block;
     color: #102033;
     font-size: 15px;
+    overflow-wrap: anywhere;
   }
 
   .school-portal-round-card span {
     color: #667789;
     font-size: 13px;
+    overflow-wrap: anywhere;
   }
 
   .school-portal-card {
@@ -279,6 +284,7 @@ const portalEscolasStyles = `
 
   .school-portal-tag {
     display: inline-flex;
+    max-width: 100%;
     padding: 7px 10px;
     border: 1px solid #d2dde7;
     border-radius: 999px;
@@ -286,7 +292,11 @@ const portalEscolasStyles = `
     color: #6a7684;
     font-size: 11px;
     font-weight: 900;
+    line-height: 1.2;
+    text-align: left;
     text-transform: uppercase;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .school-portal-note {
@@ -310,6 +320,10 @@ const portalEscolasStyles = `
     .school-portal-hero {
       grid-template-columns: 1fr;
       padding: 26px;
+    }
+
+    .school-portal-status {
+      justify-self: flex-start;
     }
 
     .school-portal-grid {
@@ -336,6 +350,17 @@ const portalEscolasStyles = `
 
     .school-portal-context-grid {
       grid-template-columns: 1fr;
+    }
+
+    .school-portal-hero,
+    .school-portal-context,
+    .school-portal-participants {
+      padding: 20px;
+    }
+
+    .school-portal-round-card {
+      grid-template-columns: 1fr;
+      align-items: flex-start;
     }
   }
 `;
