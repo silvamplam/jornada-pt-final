@@ -1,8 +1,12 @@
+import { readPortalEscolasDemoData } from "@/lib/portal-escolas/readDemoData";
+
 export const metadata = {
   title: "Portal das Escolas | Jornada.pt",
   description:
     "Área futura para escolas, clubes, associações, núcleos e entidades parceiras prepararem competições."
 };
+
+export const dynamic = "force-dynamic";
 
 const portalEscolasStyles = `
   body {
@@ -260,6 +264,44 @@ const portalEscolasStyles = `
     overflow-wrap: anywhere;
   }
 
+  .school-portal-data-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .school-portal-data-stat {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #d7e4ed;
+    border-radius: 10px;
+    background: #f8fbfd;
+  }
+
+  .school-portal-data-stat strong {
+    display: block;
+    color: #0f6f8d;
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .school-portal-data-stat span {
+    display: block;
+    margin-top: 6px;
+    color: #667789;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .school-portal-data-columns {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+  }
+
   .school-portal-card {
     min-width: 0;
     padding: 22px;
@@ -332,6 +374,11 @@ const portalEscolasStyles = `
 
     .school-portal-context-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .school-portal-data-grid,
+    .school-portal-data-columns {
+      grid-template-columns: 1fr;
     }
 
     .school-portal-participants {
@@ -495,7 +542,9 @@ const accessSamples = [
   }
 ];
 
-export default function PortalEscolasPage() {
+export default async function PortalEscolasPage() {
+  const demoData = await readPortalEscolasDemoData();
+
   return (
     <main className="school-portal-shell">
       <style>{portalEscolasStyles}</style>
@@ -576,6 +625,113 @@ export default function PortalEscolasPage() {
             <span className="school-portal-tag">Sem publicação automática</span>
             <span className="school-portal-tag">Permissões futuras por contexto autorizado</span>
           </div>
+        </section>
+
+        <section className="school-portal-context" aria-labelledby="portal-demo-data-title">
+          <div className="school-portal-context-header">
+            <div>
+              <p className="school-portal-eyebrow">Leitura server-side</p>
+              <h2 id="portal-demo-data-title">Dados demo carregados</h2>
+            </div>
+            <span className="school-portal-tag">Read-only</span>
+          </div>
+          {demoData.errorMessage ? (
+            <p className="school-portal-module-note">{demoData.errorMessage}</p>
+          ) : (
+            <>
+              <div className="school-portal-context-grid" aria-label="Resumo dos dados demo">
+                <div className="school-portal-context-item">
+                  <span>Entidade</span>
+                  <strong>{demoData.entity?.name || "Entidade demo"}</strong>
+                </div>
+                <div className="school-portal-context-item">
+                  <span>Contexto</span>
+                  <strong>{demoData.context?.label || "Contexto demo"}</strong>
+                </div>
+                <div className="school-portal-context-item">
+                  <span>Competição</span>
+                  <strong>{demoData.competition?.name || "Competição demo"}</strong>
+                </div>
+                <div className="school-portal-context-item">
+                  <span>Modalidade</span>
+                  <strong>{demoData.competition?.modality || "Demo"}</strong>
+                </div>
+                <div className="school-portal-context-item">
+                  <span>Estado</span>
+                  <strong>{demoData.competition?.status || "demo"}</strong>
+                </div>
+              </div>
+              <div className="school-portal-data-grid" aria-label="Contagens dos dados demo">
+                <div className="school-portal-data-stat">
+                  <strong>{demoData.counts.participants}</strong>
+                  <span>Participantes</span>
+                </div>
+                <div className="school-portal-data-stat">
+                  <strong>{demoData.counts.stages}</strong>
+                  <span>Jornadas</span>
+                </div>
+                <div className="school-portal-data-stat">
+                  <strong>{demoData.counts.games}</strong>
+                  <span>Jogos</span>
+                </div>
+                <div className="school-portal-data-stat">
+                  <strong>{demoData.counts.results}</strong>
+                  <span>Resultados</span>
+                </div>
+                <div className="school-portal-data-stat">
+                  <strong>{demoData.counts.contentSubmissions}</strong>
+                  <span>Conteúdos</span>
+                </div>
+              </div>
+              <div className="school-portal-data-columns">
+                <div>
+                  <span className="school-portal-demo-label">Participantes</span>
+                  <div className="school-portal-rounds">
+                    {demoData.participants.slice(0, 6).map((participant) => (
+                      <article className="school-portal-round-card" key={participant.id}>
+                        <div>
+                          <strong>{participant.name}</strong>
+                          <span>{participant.groupLabel || participant.type}</span>
+                        </div>
+                        <span className="school-portal-tag">{participant.registrationStatus}</span>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="school-portal-demo-label">Jogos</span>
+                  <div className="school-portal-rounds">
+                    {demoData.games.slice(0, 3).map((game) => (
+                      <article className="school-portal-round-card" key={game.id}>
+                        <div>
+                          <strong>{game.homeName} vs {game.awayName}</strong>
+                          <span>{game.stageName} · {game.venue || "Local demo"}</span>
+                        </div>
+                        <span className="school-portal-tag">{game.resultLabel}</span>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="school-portal-demo-label">Conteúdos</span>
+                  <div className="school-portal-rounds">
+                    {demoData.contentSubmissions.slice(0, 2).map((content) => (
+                      <article className="school-portal-round-card" key={content.id}>
+                        <div>
+                          <strong>{content.title}</strong>
+                          <span>{content.type}</span>
+                        </div>
+                        <span className="school-portal-tag">{content.submission_status}</span>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <p className="school-portal-module-note">
+                Esta secção lê apenas dados fictícios demo no servidor. Não cria, edita, submete ou publica dados.
+              </p>
+            </>
+          )}
         </section>
 
         <section className="school-portal-participants" aria-labelledby="portal-participants-title">
