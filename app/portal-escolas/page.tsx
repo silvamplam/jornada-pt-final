@@ -1,7 +1,7 @@
 export const metadata = {
   title: "Portal das Escolas | Jornada.pt",
   description:
-    "Área futura para escolas, clubes e entidades parceiras prepararem participantes, jornadas, jogos e conteúdos."
+    "Área futura para escolas, clubes, associações, núcleos e entidades parceiras prepararem competições."
 };
 
 const portalEscolasStyles = `
@@ -281,9 +281,10 @@ const portalEscolasStyles = `
 
 const participantSample = [
   "Escola Bartolomeu Perestrelo",
-  "Escola Francisco Franco",
-  "Escola Gonçalves Zarco",
-  "Escola Jaime Moniz"
+  "Turma 7.º A",
+  "Equipa Azul",
+  "Núcleo Desportivo Norte",
+  "Associação Convidada"
 ].join("\n");
 
 const roundSamples = [
@@ -395,8 +396,8 @@ export default function PortalEscolasPage() {
             <p className="school-portal-eyebrow">Jornada.pt</p>
             <h1 id="portal-escolas-title">Portal das Escolas</h1>
             <p>
-              Área futura para escolas, clubes e entidades parceiras prepararem participantes, jornadas,
-              jogos e conteúdos de forma simples e controlada.
+              Área futura para escolas, clubes, associações, núcleos e entidades parceiras prepararem
+              participantes, jornadas, jogos e conteúdos de forma simples e controlada.
             </p>
           </div>
           <span className="school-portal-status">Em breve</span>
@@ -424,7 +425,7 @@ export default function PortalEscolasPage() {
             </div>
             <p className="school-portal-module-note">
               Em fase futura, o sistema irá validar nomes repetidos, reutilizar equipas existentes e associar
-              os participantes à competição/época permitida.
+              os participantes à competição, época ou contexto autorizado.
             </p>
             <p className="school-portal-module-note">
               Este módulo ainda não grava dados. A validação e associação real serão implementadas numa fase
@@ -437,7 +438,7 @@ export default function PortalEscolasPage() {
               <li>Colar lista de participantes</li>
               <li>Pré-visualizar</li>
               <li>Confirmar</li>
-              <li>Associar à competição/época autorizada</li>
+              <li>Associar à competição, época ou contexto autorizado</li>
             </ol>
           </aside>
         </section>
@@ -461,8 +462,8 @@ export default function PortalEscolasPage() {
               ))}
             </div>
             <p className="school-portal-module-note">
-              Esta área servirá para preparar as jornadas de uma competição escolar ou local, antes da criação
-              dos jogos. Nesta fase é apenas uma pré-visualização visual do fluxo futuro.
+              Esta área servirá para preparar as jornadas de uma competição escolar, local ou associativa,
+              antes da criação dos jogos. Nesta fase é apenas uma pré-visualização visual do fluxo futuro.
             </p>
             <p className="school-portal-module-note">
               Este módulo ainda não grava dados. A criação real de jornadas será implementada numa fase posterior.
@@ -502,8 +503,8 @@ export default function PortalEscolasPage() {
               clubes escolares, com associações convidadas ou com grupos mistos.
             </p>
             <p className="school-portal-module-note">
-              Estrutura prevista: escola ou entidade organizadora, ano letivo ou contexto, competição,
-              jornada/fase, jogos, resultados e conteúdos.
+              Estrutura prevista: entidade organizadora, ano letivo ou contexto, competição, jornada/fase,
+              jogos, resultados e conteúdos.
             </p>
           </div>
           <aside className="school-portal-flow" aria-label="Fluxo futuro de jogos">
@@ -603,7 +604,7 @@ export default function PortalEscolasPage() {
             <h2 id="portal-access-title">6. Acessos</h2>
             <p className="school-portal-participants-subtitle">
               Preparar, no futuro, acessos próprios para cada entidade organizadora, escola, associação,
-              clube ou núcleo gerir apenas o seu contexto autorizado.
+              clube ou núcleo poder gerir apenas o seu contexto autorizado.
             </p>
             <div className="school-portal-rounds" aria-label="Exemplo visual de acessos">
               {accessSamples.map((access) => (
