@@ -76,6 +76,59 @@ const portalEscolasStyles = `
     text-transform: uppercase;
   }
 
+  .school-portal-context {
+    margin-top: 22px;
+    padding: 20px;
+    border: 1px solid #cbdce7;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 12px 28px rgba(15, 35, 52, 0.08);
+  }
+
+  .school-portal-context-header {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .school-portal-context-header h2 {
+    margin: 0;
+    color: #102033;
+    font-size: 22px;
+  }
+
+  .school-portal-context-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .school-portal-context-item {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #d7e4ed;
+    border-radius: 10px;
+    background: #f8fbfd;
+  }
+
+  .school-portal-context-item span {
+    display: block;
+    color: #667789;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .school-portal-context-item strong {
+    display: block;
+    margin-top: 6px;
+    color: #102033;
+    font-size: 14px;
+    line-height: 1.25;
+  }
+
   .school-portal-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -263,6 +316,10 @@ const portalEscolasStyles = `
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .school-portal-context-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .school-portal-participants {
       grid-template-columns: 1fr;
     }
@@ -276,6 +333,10 @@ const portalEscolasStyles = `
     .school-portal-grid {
       grid-template-columns: 1fr;
     }
+
+    .school-portal-context-grid {
+      grid-template-columns: 1fr;
+    }
   }
 `;
 
@@ -286,6 +347,29 @@ const participantSample = [
   "Núcleo Desportivo Norte",
   "Associação Convidada"
 ].join("\n");
+
+const contextSamples = [
+  {
+    label: "Entidade organizadora",
+    value: "Agrupamento / Associação / Clube / Núcleo autorizado"
+  },
+  {
+    label: "Ano letivo ou contexto",
+    value: "2026/27"
+  },
+  {
+    label: "Competição",
+    value: "Torneio Escolar / Liga Interna / Encontro Local"
+  },
+  {
+    label: "Modalidade / âmbito",
+    value: "Futebol / Multimodalidade / Atividade local"
+  },
+  {
+    label: "Estado",
+    value: "Maquete visual / Em breve"
+  }
+];
 
 const roundSamples = [
   {
@@ -401,6 +485,28 @@ export default function PortalEscolasPage() {
             </p>
           </div>
           <span className="school-portal-status">Em breve</span>
+        </section>
+
+        <section className="school-portal-context" aria-labelledby="portal-context-title">
+          <div className="school-portal-context-header">
+            <div>
+              <p className="school-portal-eyebrow">Contexto futuro</p>
+              <h2 id="portal-context-title">Contexto autorizado</h2>
+            </div>
+            <span className="school-portal-tag">Maquete visual</span>
+          </div>
+          <div className="school-portal-context-grid" aria-label="Exemplo visual de contexto autorizado">
+            {contextSamples.map((item) => (
+              <div className="school-portal-context-item" key={item.label}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
+          </div>
+          <p className="school-portal-module-note">
+            Todos os módulos abaixo funcionarão, numa fase futura, dentro do contexto autorizado da entidade:
+            competição, época/contexto, jornadas, jogos, resultados, conteúdos e acessos.
+          </p>
         </section>
 
         <section className="school-portal-participants" aria-labelledby="portal-participants-title">
