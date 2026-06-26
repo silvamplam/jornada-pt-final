@@ -814,6 +814,33 @@ export default function PortalEscolasPage() {
           </aside>
         </section>
 
+        <section className="school-portal-context" aria-labelledby="portal-activation-title">
+          <div className="school-portal-context-header">
+            <div>
+              <p className="school-portal-eyebrow">Camadas futuras</p>
+              <h2 id="portal-activation-title">Ativação futura</h2>
+            </div>
+            <span className="school-portal-tag">Fase controlada</span>
+          </div>
+          <p className="school-portal-module-note">
+            Depois da maqueta visual, a ativação real deverá avançar por fases separadas: modelo de dados
+            isolado, permissões por contexto, gravação controlada, validação/revisão e publicação apenas
+            quando autorizada.
+          </p>
+          <div className="school-portal-demo-actions" aria-label="Camadas futuras de ativação">
+            <span className="school-portal-tag">Modelo de dados isolado</span>
+            <span className="school-portal-tag">Permissões por contexto</span>
+            <span className="school-portal-tag">Gravação controlada</span>
+            <span className="school-portal-tag">Validação e revisão</span>
+            <span className="school-portal-tag">Publicação autorizada</span>
+            <span className="school-portal-tag">Testes antes de ativar</span>
+          </div>
+          <p className="school-portal-module-note">
+            Qualquer fase funcional futura terá diagnóstico próprio, branch própria, ficheiros autorizados e
+            testes próprios.
+          </p>
+        </section>
+
         <aside className="school-portal-note">
           Esta página é uma base visual inicial. As ações de gravação, permissões e autenticação serão
           implementadas em fases futuras.
