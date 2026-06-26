@@ -509,6 +509,29 @@ export default function PortalEscolasPage() {
           </p>
         </section>
 
+        <section className="school-portal-context" aria-labelledby="portal-flow-title">
+          <div className="school-portal-context-header">
+            <div>
+              <p className="school-portal-eyebrow">Sequência futura</p>
+              <h2 id="portal-flow-title">Fluxo geral</h2>
+            </div>
+            <span className="school-portal-tag">Maquete visual</span>
+          </div>
+          <p className="school-portal-module-note">
+            A sequência abaixo representa o percurso futuro de trabalho dentro de uma entidade, competição e
+            contexto autorizado.
+          </p>
+          <div className="school-portal-demo-actions" aria-label="Sequência futura do portal">
+            <span className="school-portal-tag">Contexto autorizado</span>
+            <span className="school-portal-tag">Participantes</span>
+            <span className="school-portal-tag">Jornadas / fases</span>
+            <span className="school-portal-tag">Jogos</span>
+            <span className="school-portal-tag">Resultados</span>
+            <span className="school-portal-tag">Conteúdos</span>
+            <span className="school-portal-tag">Acessos</span>
+          </div>
+        </section>
+
         <section className="school-portal-participants" aria-labelledby="portal-participants-title">
           <div>
             <h2 id="portal-participants-title">1. Participantes</h2>
