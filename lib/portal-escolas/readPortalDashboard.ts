@@ -236,6 +236,7 @@ async function readScopedRows<T extends RowWithId>(
     orderColumn?: string;
     ascending?: boolean;
     includeCompetitionScope?: boolean;
+    contextScopeColumn?: "portal_context_id" | "id";
     competitionScopeColumn?: "portal_competition_id" | "id";
   }
 ) {
@@ -248,10 +249,11 @@ async function readScopedRows<T extends RowWithId>(
         sectionLabel: options.sectionLabel,
         apply(query) {
           let scopedQuery = query.eq("portal_entity_id", permission.portal_entity_id);
+          const contextScopeColumn = options.contextScopeColumn ?? "portal_context_id";
           const competitionScopeColumn = options.competitionScopeColumn ?? "portal_competition_id";
 
           if (permission.portal_context_id) {
-            scopedQuery = scopedQuery.eq("portal_context_id", permission.portal_context_id);
+            scopedQuery = scopedQuery.eq(contextScopeColumn, permission.portal_context_id);
           }
 
           if (options.includeCompetitionScope !== false && permission.portal_competition_id) {
@@ -436,7 +438,13 @@ export async function readPortalDashboard(
         "portal_contexts",
         "id,portal_entity_id,label,type,start_date,end_date,status",
         permissions,
-        { sectionLabel: "contextos", orderColumn: "start_date", ascending: false, includeCompetitionScope: false }
+        {
+          sectionLabel: "contextos",
+          orderColumn: "start_date",
+          ascending: false,
+          includeCompetitionScope: false,
+          contextScopeColumn: "id"
+        }
       ),
       readScopedRows<PortalDashboardCompetitionRow>(
         supabase,
