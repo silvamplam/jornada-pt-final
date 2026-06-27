@@ -754,6 +754,9 @@ export default async function PortalEscolasPainelPage() {
           ) : (
             <EmptyState message="Ainda não há resultados disponíveis." />
           )}
+          <nav className="portal-panel-actions" aria-label="Navegação de resultados">
+            <a href="/portal-escolas/resultados">Ver todos os resultados</a>
+          </nav>
         </section>
 
         <section id="portal-panel-content" className="portal-panel-section" aria-labelledby="portal-panel-content-title">
