@@ -210,14 +210,16 @@ const resultsStyles = `
 
   .portal-results-table {
     width: 100%;
-    min-width: 1080px;
+    min-width: 0;
     border-collapse: collapse;
+    table-layout: fixed;
   }
 
   .portal-results-table th,
   .portal-results-table td {
-    padding: 12px;
+    padding: 10px 8px;
     border-bottom: 1px solid #d7e4ed;
+    overflow-wrap: anywhere;
     text-align: left;
     vertical-align: top;
   }
@@ -233,6 +235,14 @@ const resultsStyles = `
     color: #102033;
     font-size: 14px;
     line-height: 1.35;
+  }
+
+  .portal-results-table .portal-results-tag {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    text-align: center;
+    white-space: normal;
   }
 
   .portal-results-match strong,
@@ -283,6 +293,12 @@ const resultsStyles = `
   .portal-results-notice {
     border-color: #d9c69a;
     background: #fffaf0;
+  }
+
+  @media (max-width: 1140px) {
+    .portal-results-table {
+      min-width: 1040px;
+    }
   }
 
   @media (max-width: 1020px) {

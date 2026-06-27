@@ -210,14 +210,16 @@ const gamesStyles = `
 
   .portal-games-table {
     width: 100%;
-    min-width: 1060px;
+    min-width: 0;
     border-collapse: collapse;
+    table-layout: fixed;
   }
 
   .portal-games-table th,
   .portal-games-table td {
-    padding: 12px;
+    padding: 10px 8px;
     border-bottom: 1px solid #d7e4ed;
+    overflow-wrap: anywhere;
     text-align: left;
     vertical-align: top;
   }
@@ -233,6 +235,14 @@ const gamesStyles = `
     color: #102033;
     font-size: 14px;
     line-height: 1.35;
+  }
+
+  .portal-games-table .portal-games-tag {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    text-align: center;
+    white-space: normal;
   }
 
   .portal-games-match strong,
@@ -288,6 +298,10 @@ const gamesStyles = `
   @media (max-width: 1140px) {
     .portal-games-filters {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .portal-games-table {
+      min-width: 1040px;
     }
   }
 
