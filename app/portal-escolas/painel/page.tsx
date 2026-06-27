@@ -722,6 +722,9 @@ export default async function PortalEscolasPainelPage() {
           ) : (
             <EmptyState message="Ainda não há jogos disponíveis." />
           )}
+          <nav className="portal-panel-actions" aria-label="Navegação de jogos">
+            <a href="/portal-escolas/jogos">Ver todos os jogos</a>
+          </nav>
         </section>
 
         <section id="portal-panel-results" className="portal-panel-section" aria-labelledby="portal-panel-results-title">
