@@ -210,14 +210,16 @@ const contentStyles = `
 
   .portal-content-table {
     width: 100%;
-    min-width: 1080px;
+    min-width: 0;
     border-collapse: collapse;
+    table-layout: fixed;
   }
 
   .portal-content-table th,
   .portal-content-table td {
-    padding: 12px;
+    padding: 10px 8px;
     border-bottom: 1px solid #d7e4ed;
+    overflow-wrap: anywhere;
     text-align: left;
     vertical-align: top;
   }
@@ -233,6 +235,14 @@ const contentStyles = `
     color: #102033;
     font-size: 14px;
     line-height: 1.35;
+  }
+
+  .portal-content-table .portal-content-tag {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    text-align: center;
+    white-space: normal;
   }
 
   .portal-content-title strong,
@@ -290,6 +300,10 @@ const contentStyles = `
   @media (max-width: 1140px) {
     .portal-content-filters {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .portal-content-table {
+      min-width: 1040px;
     }
   }
 
