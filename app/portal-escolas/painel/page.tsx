@@ -52,6 +52,25 @@ const panelStyles = `
     padding: 28px;
   }
 
+  .portal-panel-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .portal-panel-nav a {
+    padding: 8px 10px;
+    border: 1px solid #cbdce7;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #0f6f8d;
+    font-size: 12px;
+    font-weight: 900;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
   .portal-panel-eyebrow {
     margin: 0 0 10px;
     color: #0f6f8d;
@@ -141,8 +160,31 @@ const panelStyles = `
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .portal-panel-grid.is-compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .portal-panel-scope-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 0;
+  }
+
   .portal-panel-metrics {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .portal-panel-metric-group {
+    margin-top: 18px;
+  }
+
+  .portal-panel-metric-group h3 {
+    margin: 0;
+    color: #526274;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
   }
 
   .portal-panel-item,
@@ -255,6 +297,7 @@ const panelStyles = `
 
   @media (max-width: 900px) {
     .portal-panel-grid,
+    .portal-panel-scope-grid,
     .portal-panel-metrics,
     .portal-panel-columns {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -268,6 +311,7 @@ const panelStyles = `
 
     .portal-panel-hero,
     .portal-panel-grid,
+    .portal-panel-scope-grid,
     .portal-panel-metrics,
     .portal-panel-columns,
     .portal-panel-list li {
@@ -328,6 +372,76 @@ function formatUnavailableSection(section: string) {
   return labels[section] ?? section;
 }
 
+const panelLabelMap: Record<string, string> = {
+  active: "Ativo",
+  inactive: "Inativo",
+  can_view: "Leitura autorizada",
+  validated: "Validado",
+  pending_validation: "Pendente de validação",
+  draft: "Rascunho",
+  scheduled: "Agendado",
+  under_review: "Em revisão",
+  submitted: "Submetido",
+  demo_matchday: "Jornada",
+  matchday: "Jornada",
+  demo_gallery: "Galeria",
+  gallery: "Galeria",
+  demo_article: "Artigo",
+  article: "Artigo",
+  pending: "Pendente",
+  approved: "Aprovado",
+  rejected: "Rejeitado",
+  published: "Publicado",
+  archived: "Arquivado",
+  cancelled: "Cancelado",
+  canceled: "Cancelado",
+  completed: "Concluído",
+  finished: "Concluído",
+  in_progress: "Em curso",
+  live: "Em curso",
+  open: "Aberto",
+  closed: "Fechado",
+  confirmed: "Confirmado",
+  team: "Equipa",
+  player: "Jogador",
+  student: "Aluno",
+  school: "Escola"
+};
+
+function formatPanelLabel(value: string | null | undefined) {
+  if (!value) {
+    return "Por definir";
+  }
+
+  const trimmed = value.trim();
+  const normalized = trimmed.toLowerCase().replace(/[\s-]+/g, "_");
+  const mappedLabel = panelLabelMap[normalized];
+
+  if (mappedLabel) {
+    return mappedLabel;
+  }
+
+  if (!trimmed.includes("_") && trimmed !== trimmed.toUpperCase()) {
+    return trimmed;
+  }
+
+  return normalized
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatResultLabel(value: string) {
+  const [score, ...statusParts] = value.split(" | ");
+
+  if (statusParts.length === 0) {
+    return formatPanelLabel(value);
+  }
+
+  return `${score} | ${formatPanelLabel(statusParts.join(" | "))}`;
+}
+
 function EmptyState({ message }: { message: string }) {
   return <p className="portal-panel-empty">{message}</p>;
 }
@@ -360,10 +474,10 @@ export default async function PortalEscolasPainelPage() {
             <h1 id="portal-panel-warning-title">Acesso sem autorização ativa</h1>
             <p>{authorization.message}</p>
             <p>
-              A sessão existe, mas o utilizador precisa de `portal_users.status = active` e de uma permissão
-              `portal_permissions.status = active` com `can_view = true`.
+              A sessão existe, mas o utilizador precisa de estado ativo no Portal e de uma permissão de leitura
+              autorizada.
             </p>
-            <nav className="portal-panel-actions" aria-label="Navegacao do Portal das Escolas">
+            <nav className="portal-panel-actions" aria-label="Navegação do Portal das Escolas">
               <a href={PORTAL_ESCOLAS_LOGIN_PATH}>Voltar ao login</a>
               <a href="/portal-escolas">Voltar ao portal</a>
             </nav>
@@ -375,6 +489,7 @@ export default async function PortalEscolasPainelPage() {
 
   const dashboard = await readPortalDashboard(supabase, authorization);
   const portalUserLabel = authorization.portalUser.display_name ?? authorization.portalUser.invite_email ?? authorization.portalUser.id;
+  const gamesById = new Map(dashboard.games.map((game) => [game.id, game]));
 
   return (
     <main className="portal-panel-shell">
@@ -388,8 +503,18 @@ export default async function PortalEscolasPainelPage() {
               Dashboard autenticada e validada no servidor. Esta versão é apenas de leitura.
             </p>
           </div>
-          <span className="portal-panel-tag">Read-only</span>
+          <span className="portal-panel-tag">Apenas leitura</span>
         </section>
+
+        <nav className="portal-panel-nav" aria-label="Navegação interna do painel">
+          <a href="#portal-panel-scope">Âmbito</a>
+          <a href="#portal-panel-summary">Resumo</a>
+          <a href="#portal-panel-participants">Participantes</a>
+          <a href="#portal-panel-stages">Jornadas</a>
+          <a href="#portal-panel-games">Jogos</a>
+          <a href="#portal-panel-results">Resultados</a>
+          <a href="#portal-panel-content">Conteúdos</a>
+        </nav>
 
         {dashboard.unavailableSections.length > 0 ? (
           <section className="portal-panel-notice" aria-labelledby="portal-panel-data-notice-title">
@@ -402,15 +527,50 @@ export default async function PortalEscolasPainelPage() {
           </section>
         ) : null}
 
-        <section className="portal-panel-section" aria-labelledby="portal-panel-session-title">
+        <section id="portal-panel-scope" className="portal-panel-section" aria-labelledby="portal-panel-scope-title">
           <div className="portal-panel-section-header">
             <div>
-              <p className="portal-panel-eyebrow">Acesso autorizado</p>
-              <h2 id="portal-panel-session-title">Utilizador</h2>
+              <p className="portal-panel-eyebrow">Âmbito ativo</p>
+              <h2 id="portal-panel-scope-title">Entidade, contexto, competição e perfil</h2>
             </div>
-            <span className="portal-panel-tag">can_view</span>
+            <span className="portal-panel-tag">{dashboard.scopes.length} âmbito(s)</span>
           </div>
-          <div className="portal-panel-grid">
+          <ul className="portal-panel-list">
+            {dashboard.scopes.map((scope) => (
+              <li key={scope.id}>
+                <div className="portal-panel-scope-grid">
+                  <div className="portal-panel-item">
+                    <span>Entidade</span>
+                    <strong>{scope.entityLabel}</strong>
+                  </div>
+                  <div className="portal-panel-item">
+                    <span>Contexto</span>
+                    <strong>{scope.contextLabel}</strong>
+                  </div>
+                  <div className="portal-panel-item">
+                    <span>Competição</span>
+                    <strong>{scope.competitionLabel}</strong>
+                  </div>
+                  <div className="portal-panel-item">
+                    <span>Perfil</span>
+                    <strong>Leitura autorizada</strong>
+                  </div>
+                </div>
+                <span className="portal-panel-tag">Leitura</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section id="portal-panel-session" className="portal-panel-section" aria-labelledby="portal-panel-session-title">
+          <div className="portal-panel-section-header">
+            <div>
+              <p className="portal-panel-eyebrow">Sessão</p>
+              <h2 id="portal-panel-session-title">Utilizador autorizado</h2>
+            </div>
+            <span className="portal-panel-tag">{formatPanelLabel("can_view")}</span>
+          </div>
+          <div className="portal-panel-grid is-compact">
             <div className="portal-panel-item">
               <span>Email</span>
               <strong>{user.email ?? "Sem email"}</strong>
@@ -421,82 +581,64 @@ export default async function PortalEscolasPainelPage() {
             </div>
             <div className="portal-panel-item">
               <span>Estado</span>
-              <strong>{authorization.portalUser.status}</strong>
-            </div>
-            <div className="portal-panel-item">
-              <span>Perfil de acesso</span>
-              <strong>Leitura autorizada</strong>
+              <strong>{formatPanelLabel(authorization.portalUser.status)}</strong>
             </div>
           </div>
         </section>
 
-        <section className="portal-panel-section" aria-labelledby="portal-panel-scope-title">
+        <section id="portal-panel-summary" className="portal-panel-section" aria-labelledby="portal-panel-summary-title">
           <div className="portal-panel-section-header">
             <div>
-              <p className="portal-panel-eyebrow">Escopo autorizado</p>
-              <h2 id="portal-panel-scope-title">Entidade, contexto e competição</h2>
-            </div>
-            <span className="portal-panel-tag">{dashboard.scopes.length} escopo(s)</span>
-          </div>
-          <ul className="portal-panel-list">
-            {dashboard.scopes.map((scope) => (
-              <li key={scope.id}>
-                <div>
-                  <strong>{scope.entityLabel}</strong>
-                  <span>Contexto: {scope.contextLabel}</span>
-                  <span>Competicao: {scope.competitionLabel}</span>
-                </div>
-                <span className="portal-panel-tag">Leitura</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="portal-panel-section" aria-labelledby="portal-panel-summary-title">
-          <div className="portal-panel-section-header">
-            <div>
-              <p className="portal-panel-eyebrow">Resumo real</p>
-              <h2 id="portal-panel-summary-title">Contagens carregadas</h2>
+              <p className="portal-panel-eyebrow">Resumo operacional</p>
+              <h2 id="portal-panel-summary-title">Dados carregados</h2>
             </div>
             <span className="portal-panel-tag">Servidor</span>
           </div>
-          <div className="portal-panel-metrics" aria-label="Resumo de dados reais carregados">
-            <div className="portal-panel-metric">
-              <strong>{dashboard.counts.competitions}</strong>
-              <span>Competições</span>
+          <div className="portal-panel-metric-group">
+            <h3>Âmbito</h3>
+            <div className="portal-panel-metrics" aria-label="Dados estruturais carregados">
+              <div className="portal-panel-metric">
+                <strong>{dashboard.counts.entities}</strong>
+                <span>Entidades</span>
+              </div>
+              <div className="portal-panel-metric">
+                <strong>{dashboard.counts.contexts}</strong>
+                <span>Contextos</span>
+              </div>
+              <div className="portal-panel-metric">
+                <strong>{dashboard.counts.competitions}</strong>
+                <span>Competições</span>
+              </div>
             </div>
-            <div className="portal-panel-metric">
-              <strong>{dashboard.counts.participants}</strong>
-              <span>Participantes</span>
-            </div>
-            <div className="portal-panel-metric">
-              <strong>{dashboard.counts.stages}</strong>
-              <span>Jornadas/fases</span>
-            </div>
-            <div className="portal-panel-metric">
-              <strong>{dashboard.counts.games}</strong>
-              <span>Jogos</span>
-            </div>
-            <div className="portal-panel-metric">
-              <strong>{dashboard.counts.results}</strong>
-              <span>Resultados</span>
-            </div>
-            <div className="portal-panel-metric">
-              <strong>{dashboard.counts.contentSubmissions}</strong>
-              <span>Conteúdos</span>
-            </div>
-            <div className="portal-panel-metric">
-              <strong>{dashboard.counts.contexts}</strong>
-              <span>Contextos</span>
-            </div>
-            <div className="portal-panel-metric">
-              <strong>{dashboard.counts.entities}</strong>
-              <span>Entidades</span>
+          </div>
+          <div className="portal-panel-metric-group">
+            <h3>Atividade carregada</h3>
+            <div className="portal-panel-metrics" aria-label="Dados operacionais carregados">
+              <div className="portal-panel-metric">
+                <strong>{dashboard.counts.participants}</strong>
+                <span>Participantes</span>
+              </div>
+              <div className="portal-panel-metric">
+                <strong>{dashboard.counts.stages}</strong>
+                <span>Jornadas/fases</span>
+              </div>
+              <div className="portal-panel-metric">
+                <strong>{dashboard.counts.games}</strong>
+                <span>Jogos</span>
+              </div>
+              <div className="portal-panel-metric">
+                <strong>{dashboard.counts.results}</strong>
+                <span>Resultados</span>
+              </div>
+              <div className="portal-panel-metric">
+                <strong>{dashboard.counts.contentSubmissions}</strong>
+                <span>Conteúdos</span>
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="portal-panel-section" aria-labelledby="portal-panel-participants-title">
+        <section id="portal-panel-participants" className="portal-panel-section" aria-labelledby="portal-panel-participants-title">
           <div className="portal-panel-section-header">
             <div>
               <p className="portal-panel-eyebrow">Inscrições</p>
@@ -510,126 +652,134 @@ export default async function PortalEscolasPainelPage() {
                 <li key={participant.key}>
                   <div>
                     <strong>{participant.name}</strong>
-                    <span>{participant.groupLabel ?? participant.type}</span>
+                    <span>{participant.groupLabel ?? formatPanelLabel(participant.type)}</span>
                     <span>Competição: {participant.competitionLabel}</span>
                   </div>
-                  <span className="portal-panel-tag">{participant.registrationStatus}</span>
+                  <span className="portal-panel-tag">{formatPanelLabel(participant.registrationStatus)}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <EmptyState message="Sem participantes disponíveis para os escopos autorizados." />
+            <EmptyState message="Ainda não há participantes disponíveis para os âmbitos autorizados." />
           )}
         </section>
 
-        <section className="portal-panel-section" aria-labelledby="portal-panel-calendar-title">
+        <section id="portal-panel-stages" className="portal-panel-section" aria-labelledby="portal-panel-stages-title">
           <div className="portal-panel-section-header">
             <div>
-              <p className="portal-panel-eyebrow">Calendario</p>
-              <h2 id="portal-panel-calendar-title">Jornadas/fases e jogos</h2>
+              <p className="portal-panel-eyebrow">Calendário</p>
+              <h2 id="portal-panel-stages-title">Jornadas/fases</h2>
             </div>
-            <span className="portal-panel-tag">Read-only</span>
+            <span className="portal-panel-tag">{dashboard.counts.stages}</span>
           </div>
-          <div className="portal-panel-columns">
-            <div className="portal-panel-subsection">
-              <h3>Jornadas/fases</h3>
-              {dashboard.stages.length > 0 ? (
-                <ul className="portal-panel-list">
-                  {dashboard.stages.slice(0, 6).map((stage) => (
-                    <li key={stage.id}>
-                      <div>
-                        <strong>{stage.name}</strong>
-                        <span>{stage.type}</span>
-                        <span>Data: {formatDate(stage.scheduled_date)}</span>
-                      </div>
-                      <span className="portal-panel-tag">{stage.status}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <EmptyState message="Sem jornadas ou fases disponíveis." />
-              )}
-            </div>
-            <div className="portal-panel-subsection">
-              <h3>Jogos</h3>
-              {dashboard.games.length > 0 ? (
-                <ul className="portal-panel-list">
-                  {dashboard.games.slice(0, 6).map((game) => (
-                    <li key={game.id}>
-                      <div>
-                        <strong>
-                          {game.homeName} vs {game.awayName}
-                        </strong>
-                        <span>{game.stageName}</span>
-                        <span>
-                          {formatDateTime(game.scheduledAt)} | {game.venue ?? "Local por definir"}
-                        </span>
-                        <span>Resultado: {game.resultLabel}</span>
-                      </div>
-                      <span className="portal-panel-tag">{game.status}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <EmptyState message="Sem jogos disponíveis." />
-              )}
-            </div>
-          </div>
+          {dashboard.stages.length > 0 ? (
+            <ul className="portal-panel-list">
+              {dashboard.stages.slice(0, 6).map((stage) => (
+                <li key={stage.id}>
+                  <div>
+                    <strong>{stage.name}</strong>
+                    <span>{formatPanelLabel(stage.type)}</span>
+                    <span>Data: {formatDate(stage.scheduled_date)}</span>
+                  </div>
+                  <span className="portal-panel-tag">{formatPanelLabel(stage.status)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState message="Ainda não há jornadas ou fases disponíveis." />
+          )}
         </section>
 
-        <section className="portal-panel-section" aria-labelledby="portal-panel-results-content-title">
+        <section id="portal-panel-games" className="portal-panel-section" aria-labelledby="portal-panel-games-title">
           <div className="portal-panel-section-header">
             <div>
-              <p className="portal-panel-eyebrow">Validação e conteúdos</p>
-              <h2 id="portal-panel-results-content-title">Resultados e conteúdos</h2>
+              <p className="portal-panel-eyebrow">Calendário</p>
+              <h2 id="portal-panel-games-title">Jogos</h2>
             </div>
-            <span className="portal-panel-tag">Consulta</span>
+            <span className="portal-panel-tag">{dashboard.counts.games}</span>
           </div>
-          <div className="portal-panel-columns">
-            <div className="portal-panel-subsection">
-              <h3>Resultados</h3>
-              {dashboard.results.length > 0 ? (
-                <ul className="portal-panel-list">
-                  {dashboard.results.slice(0, 6).map((result) => (
-                    <li key={result.id}>
-                      <div>
-                        <strong>
-                          {result.home_score ?? "-"} - {result.away_score ?? "-"}
-                        </strong>
-                        <span>Jogo: {result.portal_game_id}</span>
-                        <span>Submetido: {formatDateTime(result.submitted_at)}</span>
-                      </div>
-                      <span className="portal-panel-tag">{result.result_status}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <EmptyState message="Sem resultados disponíveis." />
-              )}
-            </div>
-            <div className="portal-panel-subsection">
-              <h3>Conteudos</h3>
-              {dashboard.contentSubmissions.length > 0 ? (
-                <ul className="portal-panel-list">
-                  {dashboard.contentSubmissions.slice(0, 6).map((content) => (
-                    <li key={content.id}>
-                      <div>
-                        <strong>{content.title}</strong>
-                        <span>{content.type}</span>
-                        <span>Submetido: {formatDateTime(content.submitted_at)}</span>
-                      </div>
-                      <span className="portal-panel-tag">{content.submission_status}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <EmptyState message="Sem conteúdos disponíveis." />
-              )}
-            </div>
-          </div>
+          {dashboard.games.length > 0 ? (
+            <ul className="portal-panel-list">
+              {dashboard.games.slice(0, 6).map((game) => (
+                <li key={game.id}>
+                  <div>
+                    <strong>
+                      {game.homeName} vs {game.awayName}
+                    </strong>
+                    <span>{game.stageName}</span>
+                    <span>
+                      {formatDateTime(game.scheduledAt)} | {game.venue ?? "Local por definir"}
+                    </span>
+                    <span>Resultado: {formatResultLabel(game.resultLabel)}</span>
+                  </div>
+                  <span className="portal-panel-tag">{formatPanelLabel(game.status)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState message="Ainda não há jogos disponíveis." />
+          )}
         </section>
 
-        <nav className="portal-panel-actions" aria-label="Navegacao do Portal das Escolas">
+        <section id="portal-panel-results" className="portal-panel-section" aria-labelledby="portal-panel-results-title">
+          <div className="portal-panel-section-header">
+            <div>
+              <p className="portal-panel-eyebrow">Validação</p>
+              <h2 id="portal-panel-results-title">Resultados</h2>
+            </div>
+            <span className="portal-panel-tag">{dashboard.counts.results}</span>
+          </div>
+          {dashboard.results.length > 0 ? (
+            <ul className="portal-panel-list">
+              {dashboard.results.slice(0, 6).map((result) => {
+                const game = gamesById.get(result.portal_game_id);
+
+                return (
+                  <li key={result.id}>
+                    <div>
+                      <strong>
+                        {result.home_score ?? "-"} - {result.away_score ?? "-"}
+                      </strong>
+                      <span>Jogo: {game ? `${game.homeName} vs ${game.awayName}` : result.portal_game_id}</span>
+                      <span>Submetido: {formatDateTime(result.submitted_at)}</span>
+                    </div>
+                    <span className="portal-panel-tag">{formatPanelLabel(result.result_status)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <EmptyState message="Ainda não há resultados disponíveis." />
+          )}
+        </section>
+
+        <section id="portal-panel-content" className="portal-panel-section" aria-labelledby="portal-panel-content-title">
+          <div className="portal-panel-section-header">
+            <div>
+              <p className="portal-panel-eyebrow">Conteúdos</p>
+              <h2 id="portal-panel-content-title">Conteúdos</h2>
+            </div>
+            <span className="portal-panel-tag">{dashboard.counts.contentSubmissions}</span>
+          </div>
+          {dashboard.contentSubmissions.length > 0 ? (
+            <ul className="portal-panel-list">
+              {dashboard.contentSubmissions.slice(0, 6).map((content) => (
+                <li key={content.id}>
+                  <div>
+                    <strong>{content.title}</strong>
+                    <span>{formatPanelLabel(content.type)}</span>
+                    <span>Submetido: {formatDateTime(content.submitted_at)}</span>
+                  </div>
+                  <span className="portal-panel-tag">{formatPanelLabel(content.submission_status)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState message="Ainda não há conteúdos disponíveis." />
+          )}
+        </section>
+
+        <nav className="portal-panel-actions" aria-label="Navegação do Portal das Escolas">
           <a href="/portal-escolas">Voltar ao portal</a>
           <a href={PORTAL_ESCOLAS_LOGIN_PATH}>Login</a>
         </nav>
