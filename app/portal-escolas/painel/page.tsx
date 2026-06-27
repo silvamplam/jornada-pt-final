@@ -662,6 +662,9 @@ export default async function PortalEscolasPainelPage() {
           ) : (
             <EmptyState message="Ainda não há participantes disponíveis para os âmbitos autorizados." />
           )}
+          <nav className="portal-panel-actions" aria-label="Navegação de participantes">
+            <a href="/portal-escolas/participantes">Ver todos os participantes</a>
+          </nav>
         </section>
 
         <section id="portal-panel-stages" className="portal-panel-section" aria-labelledby="portal-panel-stages-title">
