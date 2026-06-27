@@ -372,6 +372,10 @@ function formatUnavailableSection(section: string) {
   return labels[section] ?? section;
 }
 
+function formatCountLabel(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 const panelLabelMap: Record<string, string> = {
   active: "Ativo",
   inactive: "Inativo",
@@ -533,7 +537,7 @@ export default async function PortalEscolasPainelPage() {
               <p className="portal-panel-eyebrow">Âmbito ativo</p>
               <h2 id="portal-panel-scope-title">Entidade, contexto, competição e perfil</h2>
             </div>
-            <span className="portal-panel-tag">{dashboard.scopes.length} âmbito(s)</span>
+            <span className="portal-panel-tag">{formatCountLabel(dashboard.scopes.length, "âmbito", "âmbitos")}</span>
           </div>
           <ul className="portal-panel-list">
             {dashboard.scopes.map((scope) => (
@@ -793,7 +797,6 @@ export default async function PortalEscolasPainelPage() {
 
         <nav className="portal-panel-actions" aria-label="Navegação do Portal das Escolas">
           <a href="/portal-escolas">Voltar ao portal</a>
-          <a href={PORTAL_ESCOLAS_LOGIN_PATH}>Login</a>
         </nav>
       </div>
     </main>

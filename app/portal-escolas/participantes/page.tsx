@@ -365,6 +365,10 @@ function uniqueLabels(values: string[]) {
   return Array.from(new Set(values.filter(Boolean))).sort((first, second) => first.localeCompare(second, "pt"));
 }
 
+function formatCountLabel(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 function formatUnavailableSection(section: string) {
   const labels: Record<string, string> = {
     competicoes: "competições",
@@ -462,7 +466,9 @@ export default async function PortalEscolasParticipantesPage({ searchParams }: P
               Listagem read-only dos participantes disponíveis para os âmbitos autorizados.
             </p>
           </div>
-          <span className="portal-participants-tag">{data.participants.length} participante(s)</span>
+          <span className="portal-participants-tag">
+            {formatCountLabel(data.participants.length, "participante", "participantes")}
+          </span>
         </section>
 
         <nav className="portal-participants-actions" aria-label="Navegação do Portal das Escolas">
@@ -486,7 +492,7 @@ export default async function PortalEscolasParticipantesPage({ searchParams }: P
               <p className="portal-participants-eyebrow">Âmbito ativo</p>
               <h2 id="portal-participants-scope-title">Entidade, contexto e competição</h2>
             </div>
-            <span className="portal-participants-tag">{data.scopes.length} âmbito(s)</span>
+            <span className="portal-participants-tag">{formatCountLabel(data.scopes.length, "âmbito", "âmbitos")}</span>
           </div>
           <ul className="portal-participants-scope-list">
             {data.scopes.map((scope) => (

@@ -210,7 +210,7 @@ const gamesStyles = `
 
   .portal-games-table {
     width: 100%;
-    min-width: 1120px;
+    min-width: 1060px;
     border-collapse: collapse;
   }
 
@@ -386,6 +386,10 @@ function uniqueLabels(values: string[]) {
   return Array.from(new Set(values.filter(Boolean))).sort((first, second) => first.localeCompare(second, "pt"));
 }
 
+function formatCountLabel(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 function formatUnavailableSection(section: string) {
   const labels: Record<string, string> = {
     competicoes: "competições",
@@ -487,7 +491,7 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
             <h1 id="portal-games-title">Jogos</h1>
             <p className="portal-games-text">Listagem read-only de jogos e calendário disponível para os âmbitos autorizados.</p>
           </div>
-          <span className="portal-games-tag">{data.games.length} jogo(s)</span>
+          <span className="portal-games-tag">{formatCountLabel(data.games.length, "jogo", "jogos")}</span>
         </section>
 
         <nav className="portal-games-actions" aria-label="Navegação do Portal das Escolas">
@@ -511,7 +515,7 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
               <p className="portal-games-eyebrow">Âmbito ativo</p>
               <h2 id="portal-games-scope-title">Entidade, contexto e competição</h2>
             </div>
-            <span className="portal-games-tag">{data.scopes.length} âmbito(s)</span>
+            <span className="portal-games-tag">{formatCountLabel(data.scopes.length, "âmbito", "âmbitos")}</span>
           </div>
           <ul className="portal-games-scope-list">
             {data.scopes.map((scope) => (

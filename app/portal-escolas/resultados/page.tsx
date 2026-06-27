@@ -387,6 +387,10 @@ function uniqueLabels(values: string[]) {
   return Array.from(new Set(values.filter(Boolean))).sort((first, second) => first.localeCompare(second, "pt"));
 }
 
+function formatCountLabel(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 function formatUnavailableSection(section: string) {
   const labels: Record<string, string> = {
     competicoes: "competições",
@@ -484,7 +488,7 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
             <h1 id="portal-results-title">Resultados</h1>
             <p className="portal-results-text">Listagem read-only dos jogos e resultados disponíveis para os âmbitos autorizados.</p>
           </div>
-          <span className="portal-results-tag">{data.results.length} registo(s)</span>
+          <span className="portal-results-tag">{formatCountLabel(data.results.length, "registo", "registos")}</span>
         </section>
 
         <nav className="portal-results-actions" aria-label="Navegação do Portal das Escolas">
@@ -508,7 +512,7 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
               <p className="portal-results-eyebrow">Âmbito ativo</p>
               <h2 id="portal-results-scope-title">Entidade, contexto e competição</h2>
             </div>
-            <span className="portal-results-tag">{data.scopes.length} âmbito(s)</span>
+            <span className="portal-results-tag">{formatCountLabel(data.scopes.length, "âmbito", "âmbitos")}</span>
           </div>
           <ul className="portal-results-scope-list">
             {data.scopes.map((scope) => (
