@@ -786,6 +786,9 @@ export default async function PortalEscolasPainelPage() {
           ) : (
             <EmptyState message="Ainda não há conteúdos disponíveis." />
           )}
+          <nav className="portal-panel-actions" aria-label="Navegação de conteúdos">
+            <a href="/portal-escolas/conteudos">Ver todos os conteúdos</a>
+          </nav>
         </section>
 
         <nav className="portal-panel-actions" aria-label="Navegação do Portal das Escolas">
