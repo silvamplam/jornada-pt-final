@@ -210,7 +210,7 @@ const contentStyles = `
 
   .portal-content-table {
     width: 100%;
-    min-width: 1180px;
+    min-width: 1080px;
     border-collapse: collapse;
   }
 
@@ -399,6 +399,10 @@ function uniqueLabels(values: string[]) {
   return Array.from(new Set(values.filter(Boolean))).sort((first, second) => first.localeCompare(second, "pt"));
 }
 
+function formatCountLabel(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 function formatUnavailableSection(section: string) {
   const labels: Record<string, string> = {
     competicoes: "competições",
@@ -499,7 +503,7 @@ export default async function PortalEscolasConteudosPage({ searchParams }: Conte
             <h1 id="portal-content-title">Conteúdos</h1>
             <p className="portal-content-text">Listagem read-only de conteúdos submetidos para os âmbitos autorizados.</p>
           </div>
-          <span className="portal-content-tag">{data.submissions.length} conteúdo(s)</span>
+          <span className="portal-content-tag">{formatCountLabel(data.submissions.length, "conteúdo", "conteúdos")}</span>
         </section>
 
         <nav className="portal-content-actions" aria-label="Navegação do Portal das Escolas">
@@ -523,7 +527,7 @@ export default async function PortalEscolasConteudosPage({ searchParams }: Conte
               <p className="portal-content-eyebrow">Âmbito ativo</p>
               <h2 id="portal-content-scope-title">Entidade, contexto e competição</h2>
             </div>
-            <span className="portal-content-tag">{data.scopes.length} âmbito(s)</span>
+            <span className="portal-content-tag">{formatCountLabel(data.scopes.length, "âmbito", "âmbitos")}</span>
           </div>
           <ul className="portal-content-scope-list">
             {data.scopes.map((scope) => (
