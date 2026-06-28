@@ -695,6 +695,9 @@ export default async function PortalEscolasPainelPage() {
           ) : (
             <EmptyState message="Ainda não há jornadas ou fases disponíveis." />
           )}
+          <nav className="portal-panel-actions" aria-label="Navegação de jornadas/fases">
+            <a href="/portal-escolas/jornadas">Ver todas as jornadas/fases</a>
+          </nav>
         </section>
 
         <section id="portal-panel-games" className="portal-panel-section" aria-labelledby="portal-panel-games-title">
