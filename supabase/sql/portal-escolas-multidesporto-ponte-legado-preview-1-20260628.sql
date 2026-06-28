@@ -1,6 +1,7 @@
 -- Portal das Escolas - MULTIDESPORTO-PONTE-LEGADO-PREVIEW-1.
 -- Preview read-only de como o modelo legado pode mapear para o modelo multidesporto.
 -- Nao altera dados, schema, policies ou grants.
+-- Versao segura: usa apenas a cadeia competicao -> fase -> jogo -> resultado e evita colunas nao confirmadas em jogos/resultados.
 
 with competition_format_candidates as (
   select
@@ -15,6 +16,7 @@ with competition_format_candidates as (
     count(distinct s.id) as stage_count,
     count(distinct g.id) as game_count,
     count(distinct r.id) as result_count,
+    count(distinct case when r.home_score is not null and r.away_score is not null then r.id end) as complete_result_count,
     case
       when count(distinct g.id) > 0 and count(distinct s.id) > 0 then 'matchdays_table'
       when c.format ilike '%jornada%' then 'matchdays_table'
@@ -30,9 +32,9 @@ with competition_format_candidates as (
   left join public.portal_stages s
     on s.portal_competition_id = c.id
   left join public.portal_games g
-    on g.portal_competition_id = c.id
+    on g.portal_stage_id = s.id
   left join public.portal_results r
-    on r.portal_competition_id = c.id
+    on r.portal_game_id = g.id
   group by
     c.id,
     c.portal_entity_id,
@@ -46,29 +48,19 @@ with competition_format_candidates as (
 game_event_candidates as (
   select
     g.id as legacy_portal_game_id,
-    g.portal_entity_id,
-    g.portal_context_id,
-    g.portal_competition_id,
+    c.portal_entity_id,
+    c.portal_context_id,
+    c.id as portal_competition_id,
     c.name as competition_name,
     s.id as portal_stage_id,
-    s.name as stage_name,
     g.home_participant_id,
-    home.name as home_name,
     g.away_participant_id,
-    away.name as away_name,
-    g.scheduled_at,
-    g.venue,
-    g.status,
-    coalesce(home.name, 'Participante casa') || ' vs ' || coalesce(away.name, 'Participante fora') as proposed_event_name
+    coalesce(g.home_participant_id::text, 'sem-participante-casa') || ' vs ' || coalesce(g.away_participant_id::text, 'sem-participante-fora') as proposed_event_name
   from public.portal_games g
-  join public.portal_competitions c
-    on c.id = g.portal_competition_id
   join public.portal_stages s
     on s.id = g.portal_stage_id
-  left join public.portal_participants home
-    on home.id = g.home_participant_id
-  left join public.portal_participants away
-    on away.id = g.away_participant_id
+  join public.portal_competitions c
+    on c.id = s.portal_competition_id
 ),
 event_participant_candidates as (
   select
@@ -78,7 +70,6 @@ event_participant_candidates as (
     portal_competition_id,
     portal_stage_id,
     home_participant_id as portal_participant_id,
-    home_name as participant_name,
     'home' as proposed_role,
     1 as proposed_seed_order
   from game_event_candidates
@@ -93,7 +84,6 @@ event_participant_candidates as (
     portal_competition_id,
     portal_stage_id,
     away_participant_id as portal_participant_id,
-    away_name as participant_name,
     'away' as proposed_role,
     2 as proposed_seed_order
   from game_event_candidates
@@ -103,26 +93,21 @@ legacy_results as (
   select
     r.id as legacy_portal_result_id,
     r.portal_game_id as legacy_portal_game_id,
-    r.portal_entity_id,
-    r.portal_context_id,
-    r.portal_competition_id,
-    r.portal_stage_id,
+    c.portal_entity_id,
+    c.portal_context_id,
+    c.id as portal_competition_id,
+    s.id as portal_stage_id,
     r.home_score,
     r.away_score,
-    r.result_status,
-    r.submitted_at,
-    r.validated_at,
     g.home_participant_id,
-    g.away_participant_id,
-    home.name as home_name,
-    away.name as away_name
+    g.away_participant_id
   from public.portal_results r
   join public.portal_games g
     on g.id = r.portal_game_id
-  left join public.portal_participants home
-    on home.id = g.home_participant_id
-  left join public.portal_participants away
-    on away.id = g.away_participant_id
+  join public.portal_stages s
+    on s.id = g.portal_stage_id
+  join public.portal_competitions c
+    on c.id = s.portal_competition_id
 ),
 result_entry_candidates as (
   select
@@ -133,9 +118,9 @@ result_entry_candidates as (
     portal_competition_id,
     portal_stage_id,
     home_participant_id as portal_participant_id,
-    home_name as participant_name,
     'home' as proposed_role,
-    home_score as score_numeric,
+    home_score as score_for,
+    away_score as score_against,
     case
       when home_score is null or away_score is null then null
       when home_score > away_score then 'win'
@@ -151,10 +136,7 @@ result_entry_candidates as (
     case
       when home_score is null or away_score is null then null
       else home_score - away_score
-    end as score_difference,
-    result_status,
-    submitted_at,
-    validated_at
+    end as score_difference
   from legacy_results
   where home_participant_id is not null
 
@@ -168,9 +150,9 @@ result_entry_candidates as (
     portal_competition_id,
     portal_stage_id,
     away_participant_id as portal_participant_id,
-    away_name as participant_name,
     'away' as proposed_role,
-    away_score as score_numeric,
+    away_score as score_for,
+    home_score as score_against,
     case
       when home_score is null or away_score is null then null
       when away_score > home_score then 'win'
@@ -186,10 +168,7 @@ result_entry_candidates as (
     case
       when home_score is null or away_score is null then null
       else away_score - home_score
-    end as score_difference,
-    result_status,
-    submitted_at,
-    validated_at
+    end as score_difference
   from legacy_results
   where away_participant_id is not null
 ),
@@ -199,29 +178,27 @@ ranking_base as (
     portal_context_id,
     portal_competition_id,
     portal_participant_id,
-    participant_name,
-    count(*) filter (where score_numeric is not null) as played,
+    count(*) filter (where score_for is not null and score_against is not null) as played,
     count(*) filter (where proposed_outcome = 'win') as wins,
     count(*) filter (where proposed_outcome = 'draw') as draws,
     count(*) filter (where proposed_outcome = 'loss') as losses,
     coalesce(sum(proposed_points), 0) as points,
-    coalesce(sum(score_numeric), 0) as score_for,
-    coalesce(sum(score_numeric - score_difference), 0) as score_against,
+    coalesce(sum(score_for), 0) as score_for,
+    coalesce(sum(score_against), 0) as score_against,
     coalesce(sum(score_difference), 0) as score_difference
   from result_entry_candidates
-  where score_numeric is not null
+  where score_for is not null and score_against is not null
   group by
     portal_entity_id,
     portal_context_id,
     portal_competition_id,
-    portal_participant_id,
-    participant_name
+    portal_participant_id
 ),
 ranking_preview as (
   select
     rank() over (
       partition by portal_competition_id
-      order by points desc, score_difference desc, score_for desc, participant_name asc
+      order by points desc, score_difference desc, score_for desc, portal_participant_id asc
     ) as proposed_rank,
     *
   from ranking_base
@@ -238,9 +215,11 @@ preview as (
       'stage_count', cfc.stage_count,
       'game_count', cfc.game_count,
       'result_count', cfc.result_count,
+      'complete_result_count', cfc.complete_result_count,
       'suggested_format_code', cfc.suggested_format_code,
       'suggested_format_name', f.name,
-      'future_table', 'portal_competition_formats'
+      'future_table', 'portal_competition_formats',
+      'note', 'preview read-only; nao insere dados'
     )::text as details
   from competition_format_candidates cfc
   left join public.portal_competition_format_catalog f
@@ -255,13 +234,13 @@ preview as (
     'candidate_ok' as status,
     jsonb_build_object(
       'competition', gec.competition_name,
-      'stage', gec.stage_name,
+      'portal_entity_id', gec.portal_entity_id,
+      'portal_context_id', gec.portal_context_id,
+      'portal_competition_id', gec.portal_competition_id,
+      'portal_stage_id', gec.portal_stage_id,
       'future_table', 'portal_events',
       'proposed_type', 'match',
       'proposed_name', gec.proposed_event_name,
-      'scheduled_at', gec.scheduled_at,
-      'venue', gec.venue,
-      'legacy_status', gec.status,
       'metadata', jsonb_build_object('legacy_portal_game_id', gec.legacy_portal_game_id)
     )::text as details
   from game_event_candidates gec
@@ -271,14 +250,15 @@ preview as (
   select
     '03_event_participant_candidate' as preview_group,
     epc.legacy_portal_game_id::text || ':' || epc.proposed_role as legacy_id,
-    epc.participant_name as label,
+    epc.portal_participant_id::text as label,
     'candidate_ok' as status,
     jsonb_build_object(
       'future_table', 'portal_event_participants',
+      'portal_event_source', 'legacy portal_game_id',
+      'legacy_portal_game_id', epc.legacy_portal_game_id,
       'portal_participant_id', epc.portal_participant_id,
       'proposed_role', epc.proposed_role,
-      'proposed_seed_order', epc.proposed_seed_order,
-      'metadata', jsonb_build_object('legacy_portal_game_id', epc.legacy_portal_game_id)
+      'proposed_seed_order', epc.proposed_seed_order
     )::text as details
   from event_participant_candidates epc
 
@@ -287,19 +267,18 @@ preview as (
   select
     '04_result_entry_candidate' as preview_group,
     rec.legacy_portal_result_id::text || ':' || rec.proposed_role as legacy_id,
-    rec.participant_name as label,
-    case when rec.score_numeric is null then 'score_missing' else 'candidate_ok' end as status,
+    rec.portal_participant_id::text as label,
+    case when rec.score_for is null or rec.score_against is null then 'score_missing' else 'candidate_ok' end as status,
     jsonb_build_object(
       'future_table', 'portal_result_entries',
       'legacy_portal_game_id', rec.legacy_portal_game_id,
       'portal_participant_id', rec.portal_participant_id,
       'proposed_role', rec.proposed_role,
-      'score_numeric', rec.score_numeric,
+      'score_for', rec.score_for,
+      'score_against', rec.score_against,
+      'score_difference', rec.score_difference,
       'proposed_outcome', rec.proposed_outcome,
-      'proposed_points', rec.proposed_points,
-      'result_status', rec.result_status,
-      'submitted_at', rec.submitted_at,
-      'validated_at', rec.validated_at
+      'proposed_points', rec.proposed_points
     )::text as details
   from result_entry_candidates rec
 
@@ -308,10 +287,14 @@ preview as (
   select
     '05_ranking_entry_preview' as preview_group,
     rp.portal_competition_id::text || ':' || rp.portal_participant_id::text as legacy_id,
-    rp.participant_name as label,
+    rp.portal_participant_id::text as label,
     'computed_preview_only' as status,
     jsonb_build_object(
       'future_table', 'portal_ranking_entries',
+      'portal_entity_id', rp.portal_entity_id,
+      'portal_context_id', rp.portal_context_id,
+      'portal_competition_id', rp.portal_competition_id,
+      'portal_participant_id', rp.portal_participant_id,
       'proposed_rank', rp.proposed_rank,
       'played', rp.played,
       'wins', rp.wins,
@@ -320,7 +303,8 @@ preview as (
       'points', rp.points,
       'score_for', rp.score_for,
       'score_against', rp.score_against,
-      'score_difference', rp.score_difference
+      'score_difference', rp.score_difference,
+      'note', 'ranking calculado apenas como preview read-only'
     )::text as details
   from ranking_preview rp
 )

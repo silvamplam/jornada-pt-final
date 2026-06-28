@@ -1,6 +1,7 @@
 -- Portal das Escolas - MULTIDESPORTO-PONTE-LEGADO-DIAGNOSTICO-1.
 -- Diagnostico read-only da ponte entre modelo legado e modelo multidesporto.
 -- Nao altera dados, schema, policies ou grants.
+-- Versao corrigida: evita referencias ambiguas e usa a cadeia competicao -> fase -> jogo -> resultado.
 
 with required_tables as (
   select *
@@ -12,6 +13,7 @@ with required_tables as (
       ('portal_results'),
       ('portal_participants'),
       ('portal_competition_participants'),
+      ('portal_content_submissions'),
       ('portal_modalities'),
       ('portal_modality_catalog'),
       ('portal_competition_format_catalog'),
@@ -27,28 +29,59 @@ required_columns as (
   select *
   from (
     values
+      ('portal_competitions', 'id'),
+      ('portal_competitions', 'portal_entity_id'),
+      ('portal_competitions', 'portal_context_id'),
+      ('portal_competitions', 'name'),
+      ('portal_competitions', 'slug'),
       ('portal_competitions', 'modality'),
       ('portal_competitions', 'format'),
       ('portal_competitions', 'portal_modality_id'),
+
+      ('portal_stages', 'id'),
       ('portal_stages', 'portal_competition_id'),
+
+      ('portal_games', 'id'),
       ('portal_games', 'portal_stage_id'),
       ('portal_games', 'home_participant_id'),
       ('portal_games', 'away_participant_id'),
+
+      ('portal_results', 'id'),
       ('portal_results', 'portal_game_id'),
       ('portal_results', 'home_score'),
       ('portal_results', 'away_score'),
+
       ('portal_content_submissions', 'portal_modality_id'),
       ('portal_content_submissions', 'portal_event_id'),
+
+      ('portal_competition_formats', 'id'),
+      ('portal_competition_formats', 'portal_entity_id'),
+      ('portal_competition_formats', 'portal_context_id'),
       ('portal_competition_formats', 'catalog_format_id'),
       ('portal_competition_formats', 'portal_competition_id'),
+
+      ('portal_events', 'id'),
+      ('portal_events', 'portal_entity_id'),
+      ('portal_events', 'portal_context_id'),
+      ('portal_events', 'portal_competition_id'),
       ('portal_events', 'portal_stage_id'),
       ('portal_events', 'metadata'),
+
+      ('portal_event_participants', 'id'),
       ('portal_event_participants', 'portal_event_id'),
       ('portal_event_participants', 'portal_participant_id'),
       ('portal_event_participants', 'role'),
+
+      ('portal_result_entries', 'id'),
       ('portal_result_entries', 'portal_event_id'),
       ('portal_result_entries', 'portal_participant_id'),
+
+      ('portal_rankings', 'id'),
+      ('portal_rankings', 'portal_entity_id'),
+      ('portal_rankings', 'portal_context_id'),
       ('portal_rankings', 'portal_competition_id'),
+
+      ('portal_ranking_entries', 'id'),
       ('portal_ranking_entries', 'portal_ranking_id'),
       ('portal_ranking_entries', 'portal_participant_id')
   ) as expected(table_name, column_name)
@@ -56,6 +89,8 @@ required_columns as (
 competition_summary as (
   select
     c.id,
+    c.portal_entity_id,
+    c.portal_context_id,
     c.name,
     c.slug,
     c.modality,
@@ -81,17 +116,25 @@ competition_summary as (
   left join public.portal_stages s
     on s.portal_competition_id = c.id
   left join public.portal_games g
-    on g.portal_competition_id = c.id
+    on g.portal_stage_id = s.id
   left join public.portal_results r
-    on r.portal_competition_id = c.id
+    on r.portal_game_id = g.id
   left join public.portal_competition_formats cpf
     on cpf.portal_competition_id = c.id
-  group by c.id, c.name, c.slug, c.modality, c.format, c.portal_modality_id
+  group by
+    c.id,
+    c.portal_entity_id,
+    c.portal_context_id,
+    c.name,
+    c.slug,
+    c.modality,
+    c.format,
+    c.portal_modality_id
 ),
 checks as (
   select
     '01_required_tables' as check_group,
-    table_name as object_name,
+    rt.table_name as object_name,
     'table' as object_type,
     case when t.table_name is null then 'missing' else 'ok' end as status,
     null::text as details
@@ -116,12 +159,7 @@ checks as (
 
   union all
 
-  select
-    '03_row_counts' as check_group,
-    'portal_competitions' as object_name,
-    'count' as object_type,
-    'ok' as status,
-    count(*)::text as details
+  select '03_row_counts', 'portal_competitions', 'count', 'ok', count(*)::text
   from public.portal_competitions
 
   union all
@@ -200,6 +238,7 @@ checks as (
     cs.name as object_name,
     'competition' as object_type,
     case
+      when cs.portal_entity_id is null or cs.portal_context_id is null then 'missing_required_scope_ids'
       when cs.suggested_format_code is null then 'needs_decision'
       when f.code is null then 'missing_format_catalog'
       when cs.configured_format_count > 0 then 'already_has_configured_format'
@@ -207,6 +246,8 @@ checks as (
     end as status,
     jsonb_build_object(
       'competition_id', cs.id,
+      'portal_entity_id', cs.portal_entity_id,
+      'portal_context_id', cs.portal_context_id,
       'slug', cs.slug,
       'legacy_modality', cs.modality,
       'legacy_format', cs.format,
