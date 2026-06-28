@@ -1,59 +1,74 @@
-# PORTAL-ESCOLAS-MULTIDESPORTO-MODALIDADES-READONLY-1
+# PORTAL-ESCOLAS-MULTIDESPORTO-FORMALIZAR-MODALIDADE-DEMO-1
 
-Fase: `PORTAL-ESCOLAS-MULTIDESPORTO-MODALIDADES-READONLY-1`
+Fase: `PORTAL-ESCOLAS-MULTIDESPORTO-FORMALIZAR-MODALIDADE-DEMO-1`
 
 Branch esperada:
 
-`portal-escolas-multidesporto-modalidades-readonly-1-20260628`
+`portal-escolas-multidesporto-formalizar-modalidade-demo-1-20260628`
 
 ## Objetivo
 
-Criar a primeira entrada read-only por modalidade no Portal das Escolas.
+Formalizar a modalidade demo no modelo multidesporto novo.
 
-Página nova:
+Até esta fase, a competição demo ainda podia aparecer apenas por compatibilidade legacy através de:
 
-`/portal-escolas/modalidades`
+`portal_competitions.modality = 'Multidesporto'`
 
-Esta página organiza o Portal por modalidade, sem substituir as páginas atuais de competições, jogos ou resultados.
+Esta fase cria uma modalidade formal em:
+
+`portal_modalities`
+
+ligada ao catálogo canónico:
+
+`portal_modality_catalog.code = 'multi_sport'`
+
+E liga formalmente a competição demo através de:
+
+`portal_competitions.portal_modality_id`
 
 ## Ficheiros incluídos
 
 - `README-APLICAR.md`
-- `docs/portal-escolas-multidesporto-modalidades-readonly-1.md`
-- `app/portal-escolas/_components/PortalEscolasInternalNav.tsx`
-- `app/portal-escolas/modalidades/page.tsx`
-- `lib/portal-escolas/readPortalModalities.ts`
-- `supabase/sql/portal-escolas-multidesporto-modalidades-grants-1-20260628.sql`
-- `supabase/sql/portal-escolas-multidesporto-modalidades-smoke-1-20260628.sql`
+- `docs/portal-escolas-multidesporto-formalizar-modalidade-demo-1.md`
+- `supabase/sql/portal-escolas-multidesporto-formalizar-modalidade-demo-preflight-1-20260628.sql`
+- `supabase/sql/portal-escolas-multidesporto-formalizar-modalidade-demo-aplicar-1-20260628.sql`
+- `supabase/sql/portal-escolas-multidesporto-formalizar-modalidade-demo-postflight-1-20260628.sql`
+- `supabase/sql/portal-escolas-multidesporto-formalizar-modalidade-demo-smoke-1-20260628.sql`
+- `supabase/sql/portal-escolas-multidesporto-formalizar-modalidade-demo-rollback-1-20260628.sql`
 
-## Alterações
+## O que altera
 
-1. Adiciona a entrada `Modalidades` à navegação interna do Portal.
-2. Cria a página `/portal-escolas/modalidades`.
-3. Cria leitura server-only de modalidades formais em `portal_modalities`.
-4. Mantém fallback read-only por `portal_competitions.modality`, para a fase atual em que a competição demo ainda pode estar apenas com modalidade textual.
-5. Mostra modalidade -> competições -> formato.
-6. Mostra catálogo canónico de modalidades quando disponível.
-7. Inclui grants mínimos para leitura autenticada de `portal_modality_catalog` e `portal_modalities`.
-8. Inclui smoke test read-only.
+Altera apenas dados demo multidesporto:
 
-## Fora do escopo
+1. Garante uma linha formal em `portal_modalities` para `Multidesporto` no âmbito demo.
+2. Liga `Torneio Demo Interturmas` a essa modalidade formal.
+3. Propaga `portal_modality_id` para os dados multidesporto demo já materializados:
+   - `portal_competition_formats`
+   - `portal_competition_categories`, se existirem
+   - `portal_events`
+   - `portal_event_participants`
+   - `portal_result_entries`
+   - `portal_rankings`
+   - `portal_ranking_entries`
+
+## O que não altera
 
 Não altera:
 
-- dados;
+- UI;
+- app/lib;
 - schema estrutural;
-- RLS/policies;
+- RLS/policies/grants;
 - backoffice/admin;
-- `/portal-escolas/competicoes`;
-- `/portal-escolas/jogos`;
-- `/portal-escolas/resultados`;
-- `/portal-escolas/multidesporto-demo`;
-- modelo legado `portal_games` / `portal_results`.
+- páginas públicas;
+- páginas atuais de jogos/resultados/competições;
+- `portal_competitions.modality` legacy.
+
+O campo textual legacy é mantido intacto para compatibilidade.
 
 ## Ordem de aplicação
 
-Antes de qualquer commit/merge, confirmar no PowerShell:
+Antes de aplicar qualquer ficheiro/commit, confirmar no PowerShell:
 
 ```powershell
 git branch --show-current
@@ -63,43 +78,41 @@ git status -sb
 A branch tem de ser:
 
 ```txt
-portal-escolas-multidesporto-modalidades-readonly-1-20260628
+portal-escolas-multidesporto-formalizar-modalidade-demo-1-20260628
 ```
-
-Depois de aplicar os ficheiros, confirmar que só os ficheiros desta fase mudaram.
 
 ## SQL
 
-No Supabase SQL Editor, correr primeiro:
+No Supabase SQL Editor, correr por esta ordem:
 
-`supabase/sql/portal-escolas-multidesporto-modalidades-grants-1-20260628.sql`
+1. `supabase/sql/portal-escolas-multidesporto-formalizar-modalidade-demo-preflight-1-20260628.sql`
+2. `supabase/sql/portal-escolas-multidesporto-formalizar-modalidade-demo-aplicar-1-20260628.sql`
+3. `supabase/sql/portal-escolas-multidesporto-formalizar-modalidade-demo-postflight-1-20260628.sql`
+4. `supabase/sql/portal-escolas-multidesporto-formalizar-modalidade-demo-smoke-1-20260628.sql`
 
-Depois correr:
+Só correr o `aplicar` se o preflight indicar readiness OK.
 
-`supabase/sql/portal-escolas-multidesporto-modalidades-smoke-1-20260628.sql`
+O rollback fica disponível apenas se for preciso reverter esta formalização demo:
 
-O script de grants não altera dados nem schema estrutural. Apenas garante SELECT autenticado nas tabelas formais de modalidade.
+`supabase/sql/portal-escolas-multidesporto-formalizar-modalidade-demo-rollback-1-20260628.sql`
 
-## Validação em Preview/produção
+## Validação esperada
+
+Depois do SQL:
+
+- `/portal-escolas/modalidades` deve deixar de depender apenas de fallback por competição;
+- deve existir 1 modalidade formal demo;
+- a competição demo deve ficar associada à modalidade formal;
+- o catálogo continua com 12 modalidades ativas;
+- `/portal-escolas/multidesporto-demo` continua a mostrar 1 formato, 3 eventos, participantes, resultados e ranking.
+
+## Regressão obrigatória
 
 Validar:
 
 - `/portal-escolas/modalidades`
-- `/portal-escolas/painel`
 - `/portal-escolas/competicoes`
+- `/portal-escolas/multidesporto-demo`
+- `/portal-escolas/painel`
 - `/portal-escolas/jogos`
 - `/portal-escolas/resultados`
-- `/portal-escolas/multidesporto-demo`
-
-## Resultado esperado
-
-A navegação interna passa a incluir `Modalidades`.
-
-A página `/portal-escolas/modalidades` deve mostrar:
-
-- âmbito ativo;
-- modalidades visíveis;
-- origem formal ou compatibilidade por competição;
-- competições associadas;
-- formato legacy e formato formal, quando existir;
-- catálogo canónico de modalidades.
