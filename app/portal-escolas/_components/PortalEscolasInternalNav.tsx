@@ -4,6 +4,7 @@ type PortalEscolasNavKey =
   | "perfil"
   | "contextos"
   | "competicoes"
+  | "multidesporto"
   | "participantes"
   | "jornadas"
   | "jogos"
@@ -54,6 +55,7 @@ const portalEscolasNavItems: Array<{ key: PortalEscolasNavKey; label: string; hr
   { key: "perfil", label: "Perfil", href: "/portal-escolas/perfil" },
   { key: "contextos", label: "Contextos", href: "/portal-escolas/contextos" },
   { key: "competicoes", label: "Competições", href: "/portal-escolas/competicoes" },
+  { key: "multidesporto", label: "Multidesporto", href: "/portal-escolas/multidesporto-demo" },
   { key: "participantes", label: "Participantes", href: "/portal-escolas/participantes" },
   { key: "jornadas", label: "Jornadas/fases", href: "/portal-escolas/jornadas" },
   { key: "jogos", label: "Jogos", href: "/portal-escolas/jogos" },

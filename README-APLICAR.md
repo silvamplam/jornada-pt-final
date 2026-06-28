@@ -1,96 +1,79 @@
-# PORTAL-ESCOLAS-MULTIDESPORTO-LEITURA-DEMO-READONLY-1
+# PORTAL-ESCOLAS-MULTIDESPORTO-LIGACAO-PORTAL-READONLY-1
 
-Fase: `PORTAL-ESCOLAS-MULTIDESPORTO-LEITURA-DEMO-READONLY-1`
+Fase: `PORTAL-ESCOLAS-MULTIDESPORTO-LIGACAO-PORTAL-READONLY-1`
 
-Branch: `portal-escolas-multidesporto-leitura-demo-readonly-1-20260628`
+Branch esperada:
+
+`portal-escolas-multidesporto-ligacao-portal-readonly-1-20260628`
 
 ## Objetivo
 
-Criar a primeira leitura controlada dos dados demo multidesporto já materializados, sem substituir as páginas atuais do Portal das Escolas.
+Ligar a leitura multidesporto demo ao Portal das Escolas de forma discreta e controlada, sem substituir as páginas atuais de jogos/resultados.
 
-Esta fase adiciona uma página isolada e read-only para confirmar que a aplicação consegue ler:
+A fase expõe a página já validada:
 
-- `portal_competition_formats`
-- `portal_events`
-- `portal_event_participants`
-- `portal_result_entries`
-- `portal_rankings`
-- `portal_ranking_entries`
+`/portal-escolas/multidesporto-demo`
 
-## O que esta fase faz
+através da navegação interna comum do Portal das Escolas.
 
-- Cria um helper server-only de leitura multidesporto demo.
-- Cria uma página isolada em `/portal-escolas/multidesporto-demo`.
-- Mantém autenticação e autorização do Portal das Escolas.
-- Usa apenas leitura através de Supabase/RLS.
-- Mostra formato, eventos, participantes, resultados por participante e ranking demo.
-- Adiciona um SQL read-only de smoke test para validar os dados antes/depois do deploy.
+## Ficheiros incluídos
 
-## O que esta fase não faz
+- `README-APLICAR.md`
+- `docs/portal-escolas-multidesporto-ligacao-portal-readonly-1.md`
+- `app/portal-escolas/_components/PortalEscolasInternalNav.tsx`
+- `app/portal-escolas/multidesporto-demo/page.tsx`
+- `supabase/sql/portal-escolas-multidesporto-ligacao-portal-smoke-1-20260628.sql`
 
-- Não substitui `/portal-escolas/jogos`.
-- Não substitui `/portal-escolas/resultados`.
-- Não altera a navegação interna existente.
-- Não altera dados.
-- Não altera schema.
-- Não altera RLS/policies/grants.
-- Não mexe no backoffice principal.
-- Não mexe no modelo legado `portal_games` / `portal_results`.
+## Alterações
 
-## Ordem obrigatória
+1. Adiciona a entrada `Multidesporto` à navegação interna do Portal das Escolas.
+2. Liga essa entrada a `/portal-escolas/multidesporto-demo`.
+3. Marca a página `multidesporto-demo` como item ativo quando aberta.
+4. Mantém as páginas atuais de jogos/resultados/competições sem substituição.
+5. Inclui SQL smoke read-only para confirmar que os dados e grants necessários continuam válidos.
 
-1. Confirmar branch local no PowerShell:
+## Fora do escopo
+
+Não altera:
+
+- schema;
+- dados;
+- RLS/policies;
+- backoffice/admin;
+- `/portal-escolas/jogos`;
+- `/portal-escolas/resultados`;
+- `/portal-escolas/competicoes`;
+- modelo legado `portal_games` / `portal_results`.
+
+## Ordem de validação
+
+Antes de qualquer commit/merge, confirmar no PowerShell:
 
 ```powershell
 git branch --show-current
 git status -sb
 ```
 
-Tem de estar em:
+A branch tem de ser:
 
 ```txt
-portal-escolas-multidesporto-leitura-demo-readonly-1-20260628
+portal-escolas-multidesporto-ligacao-portal-readonly-1-20260628
 ```
 
-2. Aplicar apenas os ficheiros desta fase.
+Depois de aplicar os ficheiros, confirmar que só os ficheiros desta fase mudaram.
 
-3. Confirmar no GitHub/PR que só existem os ficheiros esperados em “Files changed”.
+Antes do merge, correr no Supabase:
 
-4. Correr no Supabase SQL Editor:
+`supabase/sql/portal-escolas-multidesporto-ligacao-portal-smoke-1-20260628.sql`
 
-```txt
-supabase/sql/portal-escolas-multidesporto-leitura-demo-smoke-1-20260628.sql
-```
+Depois do merge/Vercel Ready, validar:
 
-5. Validar que o smoke test retorna tudo `ok`.
+- `/portal-escolas/painel`
+- `/portal-escolas/competicoes`
+- `/portal-escolas/jogos`
+- `/portal-escolas/resultados`
+- `/portal-escolas/multidesporto-demo`
 
-6. Só depois fazer merge.
+## Resultado esperado
 
-7. Depois de Vercel Ready, validar diretamente:
-
-```txt
-https://www.jornada.pt/portal-escolas/multidesporto-demo
-```
-
-## Ficheiros desta fase
-
-```txt
-README-APLICAR.md
-docs/portal-escolas-multidesporto-leitura-demo-readonly-1.md
-lib/portal-escolas/readPortalMultisportDemo.ts
-app/portal-escolas/multidesporto-demo/page.tsx
-supabase/sql/portal-escolas-multidesporto-leitura-demo-smoke-1-20260628.sql
-```
-
-## Validação esperada
-
-A página nova deve abrir apenas para utilizadores autorizados do Portal das Escolas e apresentar:
-
-- 1 formato demo;
-- 3 eventos;
-- 6 participantes de evento;
-- 4 entradas de resultado;
-- 1 ranking;
-- 4 linhas de ranking.
-
-As páginas atuais do Portal devem continuar visualmente iguais.
+A navegação interna do Portal passa a incluir um acesso discreto a `Multidesporto`, sem alterar o comportamento das páginas atuais.

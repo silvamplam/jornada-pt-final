@@ -6,6 +6,7 @@ import {
   readPortalAuthorization
 } from "@/lib/portal-escolas/auth";
 import { readPortalMultisportDemo } from "@/lib/portal-escolas/readPortalMultisportDemo";
+import { PortalEscolasInternalNav } from "../_components/PortalEscolasInternalNav";
 
 export const metadata = {
   title: "Multidesporto demo | Portal das Escolas | Jornada.pt",
@@ -348,6 +349,8 @@ export default async function PortalEscolasMultisportDemoPage() {
           </div>
           <span className="portal-multisport-tag">{formatCountLabel(totalRows, "registo lido", "registos lidos")}</span>
         </section>
+
+        <PortalEscolasInternalNav current="multidesporto" />
 
         <nav className="portal-multisport-actions" aria-label="Navegação do Portal das Escolas">
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>
