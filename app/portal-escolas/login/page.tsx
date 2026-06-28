@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import {
   PORTAL_ESCOLAS_CALLBACK_PATH,
   PORTAL_ESCOLAS_LOGIN_PATH,
-  PORTAL_ESCOLAS_PANEL_PATH,
   createPortalEscolasServerClient,
   getSafePortalAuthError,
   getPortalSupabaseConfig,
@@ -376,38 +375,43 @@ export default async function PortalEscolasLoginPage({ searchParams }: LoginPage
   const params = await searchParams;
   const statusMessage = getStatusMessage(params?.status, params?.reason);
   const configured = Boolean(getPortalSupabaseConfig());
+  const isLinkSent = params?.status === "sent";
 
   return (
     <main className="portal-login-shell">
       <style>{loginStyles}</style>
       <section className="portal-login-panel" aria-labelledby="portal-login-title">
-        <p className="portal-login-eyebrow">Jornada.pt</p>
+        {isLinkSent ? null : <p className="portal-login-eyebrow">Jornada.pt</p>}
         <h1 id="portal-login-title">Portal das Escolas</h1>
-        <p className="portal-login-text">Acesso reservado a utilizadores autorizados.</p>
-        <p className="portal-login-text">
-          Introduza o seu email. Se estiver associado a uma permissão ativa, enviaremos um link de acesso para confirmar
-          a sua identidade.
-        </p>
+        {isLinkSent ? null : (
+          <>
+            <p className="portal-login-text">Acesso reservado a utilizadores autorizados.</p>
+            <p className="portal-login-text">
+              Introduza o seu email. Se estiver associado a uma permissão ativa, enviaremos um link de acesso para
+              confirmar a sua identidade.
+            </p>
 
-        <form className="portal-login-form" action={sendPortalAccessLink}>
-          <label htmlFor="portal-email">Email autorizado</label>
-          <input
-            id="portal-email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            placeholder="email@exemplo.pt"
-            defaultValue={params?.email ?? ""}
-            required
-          />
-          <button type="submit" disabled={!configured}>
-            Receber link de acesso
-          </button>
-        </form>
-        <p className="portal-login-secondary">
-          O acesso ao Portal das Escolas é feito por email. Só utilizadores com permissões ativas conseguem entrar nas
-          áreas protegidas.
-        </p>
+            <form className="portal-login-form" action={sendPortalAccessLink}>
+              <label htmlFor="portal-email">Email autorizado</label>
+              <input
+                id="portal-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="email@exemplo.pt"
+                defaultValue={params?.email ?? ""}
+                required
+              />
+              <button type="submit" disabled={!configured}>
+                Receber link de acesso
+              </button>
+            </form>
+            <p className="portal-login-secondary">
+              O acesso ao Portal das Escolas é feito por email. Só utilizadores com permissões ativas conseguem entrar
+              nas áreas protegidas.
+            </p>
+          </>
+        )}
 
         {!configured ? (
           <p className="portal-login-message error">O login ainda não está configurado neste ambiente.</p>
@@ -430,7 +434,6 @@ export default async function PortalEscolasLoginPage({ searchParams }: LoginPage
 
         <nav className="portal-login-actions" aria-label="Navegacao do Portal das Escolas">
           <a href="/portal-escolas">Voltar ao portal</a>
-          {params?.status === "sent" ? null : <a href={PORTAL_ESCOLAS_PANEL_PATH}>Abrir painel</a>}
         </nav>
       </section>
     </main>

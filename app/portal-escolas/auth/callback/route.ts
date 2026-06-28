@@ -11,13 +11,20 @@ function redirectToLogin(request: NextRequest, status: string) {
   const loginUrl = new URL(PORTAL_ESCOLAS_LOGIN_PATH, request.url);
   loginUrl.searchParams.set("status", status);
 
-  return NextResponse.redirect(loginUrl);
+  return NextResponse.redirect(loginUrl, { status: 303 });
+}
+
+function redirectToPanel(request: NextRequest) {
+  return NextResponse.redirect(new URL(PORTAL_ESCOLAS_PANEL_PATH, request.url), { status: 303 });
 }
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const authError = requestUrl.searchParams.get("error") ?? requestUrl.searchParams.get("error_description");
+  const authError =
+    requestUrl.searchParams.get("error") ??
+    requestUrl.searchParams.get("error_code") ??
+    requestUrl.searchParams.get("error_description");
 
   if (authError) {
     return redirectToLogin(request, "callback-error");
@@ -27,8 +34,7 @@ export async function GET(request: NextRequest) {
     return redirectToLogin(request, "missing-code");
   }
 
-  const panelUrl = new URL(PORTAL_ESCOLAS_PANEL_PATH, request.url);
-  const response = NextResponse.redirect(panelUrl);
+  const response = redirectToPanel(request);
   const supabase = createPortalEscolasRouteHandlerClient(request, response);
 
   if (!supabase) {
