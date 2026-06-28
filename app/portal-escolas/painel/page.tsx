@@ -615,6 +615,9 @@ export default async function PortalEscolasPainelPage() {
               </div>
             </div>
           </div>
+          <nav className="portal-panel-actions" aria-label="Navegação de competições">
+            <a href="/portal-escolas/competicoes">Ver todas as competições</a>
+          </nav>
           <div className="portal-panel-metric-group">
             <h3>Atividade carregada</h3>
             <div className="portal-panel-metrics" aria-label="Dados operacionais carregados">
