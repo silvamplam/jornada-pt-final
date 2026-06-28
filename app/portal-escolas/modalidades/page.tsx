@@ -105,7 +105,8 @@ const modalitiesStyles = `
     margin: 16px 0;
   }
 
-  .portal-modalities-actions a {
+  .portal-modalities-actions a,
+  .portal-modalities-card-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -120,6 +121,11 @@ const modalitiesStyles = `
     line-height: 1.2;
     text-decoration: none;
     text-transform: uppercase;
+  }
+
+  .portal-modalities-card-link {
+    margin-top: 12px;
+    border-color: #0f6f8d;
   }
 
   .portal-modalities-tag {
@@ -452,6 +458,12 @@ export default async function PortalModalitiesPage() {
                   ) : (
                     <p className="portal-modalities-empty">Ainda não existem competições associadas a esta modalidade neste âmbito.</p>
                   )}
+
+                  {modality.slug ? (
+                    <a className="portal-modalities-card-link" href={`/portal-escolas/modalidades/${encodeURIComponent(modality.slug)}`}>
+                      Abrir detalhe da modalidade
+                    </a>
+                  ) : null}
                 </article>
               ))}
             </div>
