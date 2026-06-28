@@ -14,23 +14,112 @@ with target_modality as (
   limit 1
 ), counts as (
   select
-    (select count(*) from public.portal_modalities pm join public.portal_modality_catalog mc on mc.id = pm.catalog_modality_id where pm.portal_entity_id = '10000000-0000-0000-0000-000000000001' and pm.portal_context_id = '11000000-0000-0000-0000-000000000001' and mc.code = 'multi_sport')::integer as formal_modalities,
-    (select count(*) from public.portal_competitions c join target_modality tm on tm.portal_modality_id = c.portal_modality_id where c.id = '12000000-0000-0000-0000-000000000001')::integer as linked_competitions,
-    (select count(*) from public.portal_competition_formats f join target_modality tm on tm.portal_modality_id = f.portal_modality_id where f.portal_competition_id = '12000000-0000-0000-0000-000000000001')::integer as linked_formats,
-    (select count(*) from public.portal_competition_formats f where f.portal_competition_id = '12000000-0000-0000-0000-000000000001')::integer as total_formats,
-    (select count(*) from public.portal_competition_categories cat join target_modality tm on tm.portal_modality_id = cat.portal_modality_id where cat.portal_competition_id = '12000000-0000-0000-0000-000000000001')::integer as linked_categories,
-    (select count(*) from public.portal_competition_categories cat where cat.portal_competition_id = '12000000-0000-0000-0000-000000000001')::integer as total_categories,
-    (select count(*) from public.portal_events e join target_modality tm on tm.portal_modality_id = e.portal_modality_id where e.portal_competition_id = '12000000-0000-0000-0000-000000000001')::integer as linked_events,
-    (select count(*) from public.portal_events e where e.portal_competition_id = '12000000-0000-0000-0000-000000000001')::integer as total_events,
-    (select count(*) from public.portal_event_participants ep join target_modality tm on tm.portal_modality_id = ep.portal_modality_id where ep.portal_competition_id = '12000000-0000-0000-0000-000000000001')::integer as linked_event_participants,
-    (select count(*) from public.portal_event_participants ep where ep.portal_competition_id = '12000000-0000-0000-0000-000000000001')::integer as total_event_participants,
-    (select count(*) from public.portal_result_entries re join target_modality tm on tm.portal_modality_id = re.portal_modality_id where re.portal_competition_id = '12000000-0000-0000-0000-000000000001')::integer as linked_result_entries,
-    (select count(*) from public.portal_result_entries re where re.portal_competition_id = '12000000-0000-0000-0000-000000000001')::integer as total_result_entries,
-    (select count(*) from public.portal_rankings r join target_modality tm on tm.portal_modality_id = r.portal_modality_id where r.portal_competition_id = '12000000-0000-0000-0000-000000000001')::integer as linked_rankings,
-    (select count(*) from public.portal_rankings r where r.portal_competition_id = '12000000-0000-0000-0000-000000000001')::integer as total_rankings,
-    (select count(*) from public.portal_ranking_entries re join target_modality tm on tm.portal_modality_id = re.portal_modality_id where re.portal_competition_id = '12000000-0000-0000-0000-000000000001')::integer as linked_ranking_entries,
-    (select count(*) from public.portal_ranking_entries re where re.portal_competition_id = '12000000-0000-0000-0000-000000000001')::integer as total_ranking_entries,
-    (select count(*) from public.portal_competitions c where c.id = '12000000-0000-0000-0000-000000000001' and c.modality = 'Multidesporto')::integer as legacy_text_preserved
+    (
+      select count(*)
+      from public.portal_modalities pm
+      join public.portal_modality_catalog mc
+        on mc.id = pm.catalog_modality_id
+      where pm.portal_entity_id = '10000000-0000-0000-0000-000000000001'
+        and pm.portal_context_id = '11000000-0000-0000-0000-000000000001'
+        and mc.code = 'multi_sport'
+    )::integer as formal_modalities,
+    (
+      select count(*)
+      from public.portal_competitions c
+      join target_modality tm
+        on tm.portal_modality_id = c.portal_modality_id
+      where c.id = '12000000-0000-0000-0000-000000000001'
+    )::integer as linked_competitions,
+    (
+      select count(*)
+      from public.portal_competition_formats f
+      join target_modality tm
+        on tm.portal_modality_id = f.portal_modality_id
+      where f.portal_competition_id = '12000000-0000-0000-0000-000000000001'
+    )::integer as linked_formats,
+    (
+      select count(*)
+      from public.portal_competition_formats f
+      where f.portal_competition_id = '12000000-0000-0000-0000-000000000001'
+    )::integer as total_formats,
+    (
+      select count(*)
+      from public.portal_competition_categories cat
+      join target_modality tm
+        on tm.portal_modality_id = cat.portal_modality_id
+      where cat.portal_competition_id = '12000000-0000-0000-0000-000000000001'
+    )::integer as linked_categories,
+    (
+      select count(*)
+      from public.portal_competition_categories cat
+      where cat.portal_competition_id = '12000000-0000-0000-0000-000000000001'
+    )::integer as total_categories,
+    (
+      select count(*)
+      from public.portal_events e
+      join target_modality tm
+        on tm.portal_modality_id = e.portal_modality_id
+      where e.portal_competition_id = '12000000-0000-0000-0000-000000000001'
+    )::integer as linked_events,
+    (
+      select count(*)
+      from public.portal_events e
+      where e.portal_competition_id = '12000000-0000-0000-0000-000000000001'
+    )::integer as total_events,
+    (
+      select count(*)
+      from public.portal_event_participants ep
+      join target_modality tm
+        on tm.portal_modality_id = ep.portal_modality_id
+      where ep.portal_competition_id = '12000000-0000-0000-0000-000000000001'
+    )::integer as linked_event_participants,
+    (
+      select count(*)
+      from public.portal_event_participants ep
+      where ep.portal_competition_id = '12000000-0000-0000-0000-000000000001'
+    )::integer as total_event_participants,
+    (
+      select count(*)
+      from public.portal_result_entries re
+      join target_modality tm
+        on tm.portal_modality_id = re.portal_modality_id
+      where re.portal_competition_id = '12000000-0000-0000-0000-000000000001'
+    )::integer as linked_result_entries,
+    (
+      select count(*)
+      from public.portal_result_entries re
+      where re.portal_competition_id = '12000000-0000-0000-0000-000000000001'
+    )::integer as total_result_entries,
+    (
+      select count(*)
+      from public.portal_rankings r
+      join target_modality tm
+        on tm.portal_modality_id = r.portal_modality_id
+      where r.portal_competition_id = '12000000-0000-0000-0000-000000000001'
+    )::integer as linked_rankings,
+    (
+      select count(*)
+      from public.portal_rankings r
+      where r.portal_competition_id = '12000000-0000-0000-0000-000000000001'
+    )::integer as total_rankings,
+    (
+      select count(*)
+      from public.portal_ranking_entries re
+      join target_modality tm
+        on tm.portal_modality_id = re.portal_modality_id
+      where re.portal_competition_id = '12000000-0000-0000-0000-000000000001'
+    )::integer as linked_ranking_entries,
+    (
+      select count(*)
+      from public.portal_ranking_entries re
+      where re.portal_competition_id = '12000000-0000-0000-0000-000000000001'
+    )::integer as total_ranking_entries,
+    (
+      select count(*)
+      from public.portal_competitions c
+      where c.id = '12000000-0000-0000-0000-000000000001'
+        and c.modality = 'Multidesporto'
+    )::integer as legacy_text_preserved
 )
 select
   'postflight' as check_group,
