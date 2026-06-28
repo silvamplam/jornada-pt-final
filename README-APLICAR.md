@@ -1,51 +1,57 @@
-# PORTAL-ESCOLAS-MULTIDESPORTO-LIGACAO-PORTAL-READONLY-1
+# PORTAL-ESCOLAS-MULTIDESPORTO-MODALIDADES-READONLY-1
 
-Fase: `PORTAL-ESCOLAS-MULTIDESPORTO-LIGACAO-PORTAL-READONLY-1`
+Fase: `PORTAL-ESCOLAS-MULTIDESPORTO-MODALIDADES-READONLY-1`
 
 Branch esperada:
 
-`portal-escolas-multidesporto-ligacao-portal-readonly-1-20260628`
+`portal-escolas-multidesporto-modalidades-readonly-1-20260628`
 
 ## Objetivo
 
-Ligar a leitura multidesporto demo ao Portal das Escolas de forma discreta e controlada, sem substituir as páginas atuais de jogos/resultados.
+Criar a primeira entrada read-only por modalidade no Portal das Escolas.
 
-A fase expõe a página já validada:
+Página nova:
 
-`/portal-escolas/multidesporto-demo`
+`/portal-escolas/modalidades`
 
-através da navegação interna comum do Portal das Escolas.
+Esta página organiza o Portal por modalidade, sem substituir as páginas atuais de competições, jogos ou resultados.
 
 ## Ficheiros incluídos
 
 - `README-APLICAR.md`
-- `docs/portal-escolas-multidesporto-ligacao-portal-readonly-1.md`
+- `docs/portal-escolas-multidesporto-modalidades-readonly-1.md`
 - `app/portal-escolas/_components/PortalEscolasInternalNav.tsx`
-- `app/portal-escolas/multidesporto-demo/page.tsx`
-- `supabase/sql/portal-escolas-multidesporto-ligacao-portal-smoke-1-20260628.sql`
+- `app/portal-escolas/modalidades/page.tsx`
+- `lib/portal-escolas/readPortalModalities.ts`
+- `supabase/sql/portal-escolas-multidesporto-modalidades-grants-1-20260628.sql`
+- `supabase/sql/portal-escolas-multidesporto-modalidades-smoke-1-20260628.sql`
 
 ## Alterações
 
-1. Adiciona a entrada `Multidesporto` à navegação interna do Portal das Escolas.
-2. Liga essa entrada a `/portal-escolas/multidesporto-demo`.
-3. Marca a página `multidesporto-demo` como item ativo quando aberta.
-4. Mantém as páginas atuais de jogos/resultados/competições sem substituição.
-5. Inclui SQL smoke read-only para confirmar que os dados e grants necessários continuam válidos.
+1. Adiciona a entrada `Modalidades` à navegação interna do Portal.
+2. Cria a página `/portal-escolas/modalidades`.
+3. Cria leitura server-only de modalidades formais em `portal_modalities`.
+4. Mantém fallback read-only por `portal_competitions.modality`, para a fase atual em que a competição demo ainda pode estar apenas com modalidade textual.
+5. Mostra modalidade -> competições -> formato.
+6. Mostra catálogo canónico de modalidades quando disponível.
+7. Inclui grants mínimos para leitura autenticada de `portal_modality_catalog` e `portal_modalities`.
+8. Inclui smoke test read-only.
 
 ## Fora do escopo
 
 Não altera:
 
-- schema;
 - dados;
+- schema estrutural;
 - RLS/policies;
 - backoffice/admin;
+- `/portal-escolas/competicoes`;
 - `/portal-escolas/jogos`;
 - `/portal-escolas/resultados`;
-- `/portal-escolas/competicoes`;
+- `/portal-escolas/multidesporto-demo`;
 - modelo legado `portal_games` / `portal_results`.
 
-## Ordem de validação
+## Ordem de aplicação
 
 Antes de qualquer commit/merge, confirmar no PowerShell:
 
@@ -57,17 +63,28 @@ git status -sb
 A branch tem de ser:
 
 ```txt
-portal-escolas-multidesporto-ligacao-portal-readonly-1-20260628
+portal-escolas-multidesporto-modalidades-readonly-1-20260628
 ```
 
 Depois de aplicar os ficheiros, confirmar que só os ficheiros desta fase mudaram.
 
-Antes do merge, correr no Supabase:
+## SQL
 
-`supabase/sql/portal-escolas-multidesporto-ligacao-portal-smoke-1-20260628.sql`
+No Supabase SQL Editor, correr primeiro:
 
-Depois do merge/Vercel Ready, validar:
+`supabase/sql/portal-escolas-multidesporto-modalidades-grants-1-20260628.sql`
 
+Depois correr:
+
+`supabase/sql/portal-escolas-multidesporto-modalidades-smoke-1-20260628.sql`
+
+O script de grants não altera dados nem schema estrutural. Apenas garante SELECT autenticado nas tabelas formais de modalidade.
+
+## Validação em Preview/produção
+
+Validar:
+
+- `/portal-escolas/modalidades`
 - `/portal-escolas/painel`
 - `/portal-escolas/competicoes`
 - `/portal-escolas/jogos`
@@ -76,4 +93,13 @@ Depois do merge/Vercel Ready, validar:
 
 ## Resultado esperado
 
-A navegação interna do Portal passa a incluir um acesso discreto a `Multidesporto`, sem alterar o comportamento das páginas atuais.
+A navegação interna passa a incluir `Modalidades`.
+
+A página `/portal-escolas/modalidades` deve mostrar:
+
+- âmbito ativo;
+- modalidades visíveis;
+- origem formal ou compatibilidade por competição;
+- competições associadas;
+- formato legacy e formato formal, quando existir;
+- catálogo canónico de modalidades.
