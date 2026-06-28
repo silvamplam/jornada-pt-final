@@ -5,6 +5,7 @@ import {
   createPortalEscolasServerClient,
   readPortalAuthorization
 } from "@/lib/portal-escolas/auth";
+import { PortalEscolasInternalNav } from "../_components/PortalEscolasInternalNav";
 import { readPortalContexts } from "@/lib/portal-escolas/readPortalContexts";
 
 type ContextsPageProps = {
@@ -500,6 +501,8 @@ export default async function PortalEscolasContextosPage({ searchParams }: Conte
           </div>
           <span className="portal-contexts-tag">{formatCountLabel(data.contexts.length, "contexto", "contextos")}</span>
         </section>
+
+        <PortalEscolasInternalNav current="contextos" />
 
         <nav className="portal-contexts-actions" aria-label="Navegação do Portal das Escolas">
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>

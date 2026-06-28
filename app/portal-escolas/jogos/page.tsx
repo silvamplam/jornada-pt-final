@@ -5,6 +5,7 @@ import {
   createPortalEscolasServerClient,
   readPortalAuthorization
 } from "@/lib/portal-escolas/auth";
+import { PortalEscolasInternalNav } from "../_components/PortalEscolasInternalNav";
 import { readPortalGames } from "@/lib/portal-escolas/readPortalGames";
 
 type GamesPageProps = {
@@ -505,6 +506,8 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
           </div>
           <span className="portal-games-tag">{formatCountLabel(data.games.length, "jogo", "jogos")}</span>
         </section>
+
+        <PortalEscolasInternalNav current="jogos" />
 
         <nav className="portal-games-actions" aria-label="Navegação do Portal das Escolas">
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>

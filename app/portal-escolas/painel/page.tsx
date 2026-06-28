@@ -4,6 +4,7 @@ import {
   createPortalEscolasServerClient,
   readPortalAuthorization
 } from "@/lib/portal-escolas/auth";
+import { PortalEscolasInternalNav } from "../_components/PortalEscolasInternalNav";
 import { readPortalDashboard } from "@/lib/portal-escolas/readPortalDashboard";
 
 export const metadata = {
@@ -510,7 +511,9 @@ export default async function PortalEscolasPainelPage() {
           <span className="portal-panel-tag">Apenas leitura</span>
         </section>
 
-        <nav className="portal-panel-nav" aria-label="Navegação interna do painel">
+        <PortalEscolasInternalNav current="painel" />
+
+        <nav className="portal-panel-nav" aria-label="Secções do painel">
           <a href="#portal-panel-scope">Âmbito</a>
           <a href="#portal-panel-summary">Resumo</a>
           <a href="#portal-panel-participants">Participantes</a>

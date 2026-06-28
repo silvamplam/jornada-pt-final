@@ -5,6 +5,7 @@ import {
   createPortalEscolasServerClient,
   readPortalAuthorization
 } from "@/lib/portal-escolas/auth";
+import { PortalEscolasInternalNav } from "../_components/PortalEscolasInternalNav";
 import { readPortalCompetitions } from "@/lib/portal-escolas/readPortalCompetitions";
 
 type CompetitionsPageProps = {
@@ -486,6 +487,8 @@ export default async function PortalEscolasCompeticoesPage({ searchParams }: Com
           </div>
           <span className="portal-competitions-tag">{formatCountLabel(data.competitions.length, "competição", "competições")}</span>
         </section>
+
+        <PortalEscolasInternalNav current="competicoes" />
 
         <nav className="portal-competitions-actions" aria-label="Navegação do Portal das Escolas">
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>

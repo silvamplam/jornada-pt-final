@@ -5,6 +5,7 @@ import {
   createPortalEscolasServerClient,
   readPortalAuthorization
 } from "@/lib/portal-escolas/auth";
+import { PortalEscolasInternalNav } from "../_components/PortalEscolasInternalNav";
 import { readPortalStages } from "@/lib/portal-escolas/readPortalStages";
 
 type StagesPageProps = {
@@ -498,6 +499,8 @@ export default async function PortalEscolasJornadasPage({ searchParams }: Stages
           </div>
           <span className="portal-stages-tag">{formatCountLabel(data.stages.length, "jornada/fase", "jornadas/fases")}</span>
         </section>
+
+        <PortalEscolasInternalNav current="jornadas" />
 
         <nav className="portal-stages-actions" aria-label="Navegação do Portal das Escolas">
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>
