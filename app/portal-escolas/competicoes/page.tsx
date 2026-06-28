@@ -195,6 +195,44 @@ const competitionsStyles = `
     overflow-wrap: anywhere;
   }
 
+  .portal-competitions-modality-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .portal-competitions-modality-card {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid #dbe7ef;
+    border-radius: 8px;
+    background: #f8fbfd;
+  }
+
+  .portal-competitions-modality-card h3 {
+    margin: 0;
+    color: #102033;
+    font-size: 16px;
+    line-height: 1.2;
+  }
+
+  .portal-competitions-modality-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .portal-competitions-modality-link {
+    justify-self: start;
+    color: #0f6f8d;
+    font-size: 12px;
+    font-weight: 900;
+    text-decoration: none;
+  }
+
   .portal-competitions-filters {
     display: grid;
     grid-template-columns: minmax(220px, 2fr) repeat(4, minmax(135px, 1fr)) auto auto;
@@ -304,6 +342,7 @@ const competitionsStyles = `
     }
 
     .portal-competitions-scope-list,
+    .portal-competitions-modality-grid,
     .portal-competitions-filters {
       grid-template-columns: 1fr;
     }
@@ -403,6 +442,49 @@ function EmptyState({ message }: { message: string }) {
   return <p className="portal-competitions-empty">{message}</p>;
 }
 
+type CompetitionDisplayRow = {
+  key: string;
+  modalityLabel: string;
+  modalitySourceLabel: string;
+  modalityDetailHref: string | null;
+  formalModalityCatalogCode: string | null;
+};
+
+function makeModalityGroups(competitions: CompetitionDisplayRow[]) {
+  const groups = new Map<
+    string,
+    {
+      key: string;
+      name: string;
+      sourceLabel: string;
+      detailHref: string | null;
+      catalogCode: string | null;
+      competitionCount: number;
+    }
+  >();
+
+  competitions.forEach((competition) => {
+    const key = competition.modalityDetailHref ?? competition.modalityLabel;
+    const existing = groups.get(key);
+
+    if (existing) {
+      existing.competitionCount += 1;
+      return;
+    }
+
+    groups.set(key, {
+      key,
+      name: competition.modalityLabel,
+      sourceLabel: competition.modalitySourceLabel,
+      detailHref: competition.modalityDetailHref,
+      catalogCode: competition.formalModalityCatalogCode,
+      competitionCount: 1
+    });
+  });
+
+  return Array.from(groups.values()).sort((first, second) => first.name.localeCompare(second.name, "pt"));
+}
+
 export default async function PortalEscolasCompeticoesPage({ searchParams }: CompetitionsPageProps) {
   const params = searchParams ? await searchParams : {};
   const filters = {
@@ -450,16 +532,36 @@ export default async function PortalEscolasCompeticoesPage({ searchParams }: Com
   }
 
   const data = await readPortalCompetitions(supabase, authorization);
-  const competitionRows = data.competitions.map((competition) => ({
-    ...competition,
-    modalityLabel: formatLabel(competition.modality, "Modalidade por definir"),
-    formatLabel: formatLabel(competition.format, "Formato por definir"),
-    scopeLabel: formatLabel(competition.scope, "Âmbito por definir"),
-    statusLabel: formatLabel(competition.status)
-  }));
+  const competitionRows = data.competitions.map((competition) => {
+    const hasFormalModality = Boolean(competition.formalModalityName);
+    const modalityLabel = formatLabel(competition.formalModalityName ?? competition.modality, "Modalidade por definir");
+
+    return {
+      ...competition,
+      modalityLabel,
+      legacyModalityLabel: formatLabel(competition.modality, "Sem modalidade legacy"),
+      modalitySourceLabel: hasFormalModality
+        ? "Modalidade formal"
+        : competition.modality
+          ? "Compatibilidade legacy"
+          : "Por definir",
+      modalityDetailHref: competition.formalModalitySlug ? `/portal-escolas/modalidades/${competition.formalModalitySlug}` : null,
+      modalityMetaLabels: [
+        competition.formalModalityCatalogCode ? `catálogo: ${competition.formalModalityCatalogCode}` : null,
+        competition.formalModalityLocalCode ? `código local: ${competition.formalModalityLocalCode}` : null,
+        !hasFormalModality && competition.modality ? `legacy: ${competition.modality}` : null
+      ].filter((value): value is string => Boolean(value)),
+      formatLabel: formatLabel(competition.format, "Formato por definir"),
+      scopeLabel: formatLabel(competition.scope, "Âmbito por definir"),
+      statusLabel: formatLabel(competition.status),
+      hasModality: Boolean(competition.formalModalityName || competition.modality)
+    };
+  });
   const filteredCompetitions = competitionRows.filter((competition) => {
     const normalizedSearch = normalizeFilterValue(filters.search);
-    const searchableText = normalizeFilterValue(`${competition.name} ${competition.modalityLabel} ${competition.formatLabel}`);
+    const searchableText = normalizeFilterValue(
+      `${competition.name} ${competition.modalityLabel} ${competition.legacyModalityLabel} ${competition.formalModalityCatalogCode ?? ""} ${competition.formatLabel}`
+    );
 
     return (
       (!normalizedSearch || searchableText.includes(normalizedSearch)) &&
@@ -473,6 +575,7 @@ export default async function PortalEscolasCompeticoesPage({ searchParams }: Com
   const statusOptions = uniqueLabels(competitionRows.map((competition) => competition.statusLabel));
   const modalityOptions = uniqueLabels(competitionRows.map((competition) => competition.modalityLabel));
   const formatOptions = uniqueLabels(competitionRows.map((competition) => competition.formatLabel));
+  const modalityGroups = makeModalityGroups(competitionRows);
   const hasFilters = Boolean(filters.search || filters.context || filters.status || filters.modality || filters.format);
 
   return (
@@ -525,6 +628,52 @@ export default async function PortalEscolasCompeticoesPage({ searchParams }: Com
               </li>
             ))}
           </ul>
+        </section>
+
+        <section className="portal-competitions-section" aria-labelledby="portal-competitions-by-modality-title">
+          <div className="portal-competitions-section-header">
+            <div>
+              <p className="portal-competitions-eyebrow">Eixo formal</p>
+              <h2 id="portal-competitions-by-modality-title">Competições por modalidade</h2>
+              <p className="portal-competitions-text">
+                Agrupamento read-only com prioridade à ligação formal da competição à modalidade. O campo legacy mantém-se apenas
+                como compatibilidade.
+              </p>
+            </div>
+            <span className="portal-competitions-tag">
+              {formatCountLabel(
+                data.formalModalityCount > 0 ? data.formalModalityCount : modalityGroups.length,
+                data.formalModalityCount > 0 ? "modalidade formal" : "modalidade",
+                data.formalModalityCount > 0 ? "modalidades formais" : "modalidades"
+              )}
+            </span>
+          </div>
+
+          {modalityGroups.length > 0 ? (
+            <div className="portal-competitions-modality-grid">
+              {modalityGroups.map((group) => (
+                <article className="portal-competitions-modality-card" key={group.key}>
+                  <div>
+                    <p className="portal-competitions-eyebrow">{group.sourceLabel}</p>
+                    <h3>{group.name}</h3>
+                  </div>
+                  <div className="portal-competitions-modality-meta">
+                    <span className="portal-competitions-tag">
+                      {formatCountLabel(group.competitionCount, "competição", "competições")}
+                    </span>
+                    {group.catalogCode ? <span className="portal-competitions-tag">catálogo: {group.catalogCode}</span> : null}
+                  </div>
+                  {group.detailHref ? (
+                    <a className="portal-competitions-modality-link" href={group.detailHref}>
+                      Abrir detalhe da modalidade
+                    </a>
+                  ) : null}
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState message="Ainda não há modalidades associadas às competições visíveis." />
+          )}
         </section>
 
         <section className="portal-competitions-section" aria-labelledby="portal-competitions-list-title">
@@ -620,7 +769,15 @@ export default async function PortalEscolasCompeticoesPage({ searchParams }: Com
                         </div>
                       </td>
                       <td>{competition.contextLabel}</td>
-                      <td className={competition.modality ? undefined : "portal-competitions-muted"}>{competition.modalityLabel}</td>
+                      <td className={competition.hasModality ? undefined : "portal-competitions-muted"}>
+                        <div className="portal-competitions-title">
+                          <strong>{competition.modalityLabel}</strong>
+                          <span>{competition.modalitySourceLabel}</span>
+                          {competition.modalityMetaLabels.length > 0 ? (
+                            <span>{competition.modalityMetaLabels.join(" · ")}</span>
+                          ) : null}
+                        </div>
+                      </td>
                       <td className={competition.format ? undefined : "portal-competitions-muted"}>{competition.formatLabel}</td>
                       <td className={competition.scope ? undefined : "portal-competitions-muted"}>{competition.scopeLabel}</td>
                       <td>

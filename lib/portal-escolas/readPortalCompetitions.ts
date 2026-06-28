@@ -33,11 +33,26 @@ type PortalCompetitionContextRow = RowWithId & {
 type PortalCompetitionRow = RowWithId & {
   portal_entity_id: string;
   portal_context_id: string;
+  portal_modality_id: string | null;
   name: string;
   slug: string | null;
   modality: string | null;
   scope: string | null;
   format: string | null;
+  status: string;
+};
+
+type PortalCompetitionModalityRow = RowWithId & {
+  catalog_modality_id: string | null;
+  name: string;
+  slug: string | null;
+  local_code: string | null;
+  status: string;
+};
+
+type PortalCompetitionModalityCatalogRow = RowWithId & {
+  code: string;
+  name: string;
   status: string;
 };
 
@@ -58,11 +73,18 @@ export type PortalCompetitionRecord = {
   status: string;
   entityLabel: string;
   contextLabel: string;
+  formalModalityName: string | null;
+  formalModalitySlug: string | null;
+  formalModalityLocalCode: string | null;
+  formalModalityCatalogCode: string | null;
+  formalModalityCatalogName: string | null;
+  formalModalityStatus: string | null;
 };
 
 export type PortalCompetitionsData = {
   competitions: PortalCompetitionRecord[];
   scopes: PortalCompetitionScope[];
+  formalModalityCount: number;
   unavailableSections: string[];
 };
 
@@ -226,29 +248,100 @@ function makeScopes(
 function makeCompetitions(
   competitions: PortalCompetitionRow[],
   entities: PortalCompetitionEntityRow[],
-  contexts: PortalCompetitionContextRow[]
+  contexts: PortalCompetitionContextRow[],
+  formalModalities: PortalCompetitionModalityRow[],
+  modalityCatalog: PortalCompetitionModalityCatalogRow[]
 ) {
   const entitiesById = indexById(entities);
   const contextsById = indexById(contexts);
+  const formalModalitiesById = indexById(formalModalities);
+  const catalogById = indexById(modalityCatalog);
 
   return competitions
-    .map((competition) => ({
-      key: competition.id,
-      name: competition.name,
-      slug: competition.slug,
-      modality: competition.modality,
-      scope: competition.scope,
-      format: competition.format,
-      status: competition.status,
-      entityLabel: entitiesById.get(competition.portal_entity_id)?.name ?? "Entidade autorizada",
-      contextLabel: contextsById.get(competition.portal_context_id)?.label ?? "Contexto autorizado"
-    }))
+    .map((competition) => {
+      const formalModality = competition.portal_modality_id
+        ? formalModalitiesById.get(competition.portal_modality_id) ?? null
+        : null;
+      const catalog = formalModality?.catalog_modality_id
+        ? catalogById.get(formalModality.catalog_modality_id) ?? null
+        : null;
+
+      return {
+        key: competition.id,
+        name: competition.name,
+        slug: competition.slug,
+        modality: competition.modality,
+        scope: competition.scope,
+        format: competition.format,
+        status: competition.status,
+        entityLabel: entitiesById.get(competition.portal_entity_id)?.name ?? "Entidade autorizada",
+        contextLabel: contextsById.get(competition.portal_context_id)?.label ?? "Contexto autorizado",
+        formalModalityName: formalModality?.name ?? null,
+        formalModalitySlug: formalModality?.slug ?? null,
+        formalModalityLocalCode: formalModality?.local_code ?? null,
+        formalModalityCatalogCode: catalog?.code ?? null,
+        formalModalityCatalogName: catalog?.name ?? null,
+        formalModalityStatus: formalModality?.status ?? null
+      };
+    })
     .sort(
       (first, second) =>
         first.contextLabel.localeCompare(second.contextLabel, "pt") ||
-        first.name.localeCompare(second.name, "pt") ||
-        (first.modality ?? "").localeCompare(second.modality ?? "", "pt")
+        (first.formalModalityName ?? first.modality ?? "").localeCompare(
+          second.formalModalityName ?? second.modality ?? "",
+          "pt"
+        ) ||
+        first.name.localeCompare(second.name, "pt")
     );
+}
+
+async function readFormalModalities(
+  supabase: SupabaseClient,
+  competitions: PortalCompetitionRow[]
+) {
+  const modalityIds = uniqueValues(competitions.map((competition) => competition.portal_modality_id));
+
+  if (modalityIds.length === 0) {
+    return {
+      rows: [] as PortalCompetitionModalityRow[],
+      unavailableSection: null
+    };
+  }
+
+  return readRows<PortalCompetitionModalityRow>(
+    supabase,
+    "portal_modalities",
+    "id,catalog_modality_id,name,slug,local_code,status",
+    {
+      sectionLabel: "modalidades formais",
+      limit: LOOKUP_LIMIT,
+      apply(query) {
+        return query.in("id", modalityIds).order("name", { ascending: true });
+      }
+    }
+  );
+}
+
+async function readModalityCatalog(
+  supabase: SupabaseClient,
+  formalModalities: PortalCompetitionModalityRow[]
+) {
+  const catalogIds = uniqueValues(formalModalities.map((modality) => modality.catalog_modality_id));
+
+  if (catalogIds.length === 0) {
+    return {
+      rows: [] as PortalCompetitionModalityCatalogRow[],
+      unavailableSection: null
+    };
+  }
+
+  return readRows<PortalCompetitionModalityCatalogRow>(supabase, "portal_modality_catalog", "id,code,name,status", {
+    sectionLabel: "catálogo de modalidades",
+    limit: LOOKUP_LIMIT,
+    apply(query) {
+      return query.in("id", catalogIds).order("name", { ascending: true });
+    }
+  });
 }
 
 export async function readPortalCompetitions(
@@ -275,7 +368,7 @@ export async function readPortalCompetitions(
     readScopedRows<PortalCompetitionRow>(
       supabase,
       "portal_competitions",
-      "id,portal_entity_id,portal_context_id,name,slug,modality,scope,format,status",
+      "id,portal_entity_id,portal_context_id,portal_modality_id,name,slug,modality,scope,format,status",
       permissions,
       { sectionLabel: "competicoes", orderColumn: "name", ascending: true, competitionScopeColumn: "id" }
     )
@@ -288,10 +381,23 @@ export async function readPortalCompetitions(
   const entities = sortByLabel(entitiesResult.rows, (entity) => entity.name);
   const contexts = sortByLabel(contextsResult.rows, (context) => context.label);
   const competitions = sortByLabel(competitionsResult.rows, (competition) => competition.name);
+  const formalModalitiesResult = await readFormalModalities(supabase, competitions);
+
+  if (formalModalitiesResult.unavailableSection) {
+    unavailableSections.add(formalModalitiesResult.unavailableSection);
+  }
+
+  const formalModalities = sortByLabel(formalModalitiesResult.rows, (modality) => modality.name);
+  const modalityCatalogResult = await readModalityCatalog(supabase, formalModalities);
+
+  if (modalityCatalogResult.unavailableSection) {
+    unavailableSections.add(modalityCatalogResult.unavailableSection);
+  }
 
   return {
-    competitions: makeCompetitions(competitions, entities, contexts),
+    competitions: makeCompetitions(competitions, entities, contexts, formalModalities, modalityCatalogResult.rows),
     scopes: makeScopes(permissions, entities, contexts, competitions),
+    formalModalityCount: formalModalities.length,
     unavailableSections: Array.from(unavailableSections).sort((first, second) => first.localeCompare(second, "pt"))
   };
 }
