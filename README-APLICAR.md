@@ -1,108 +1,115 @@
-# PORTAL-ESCOLAS-MULTIDESPORTO-FORMATOS-COMPETICAO-1
+# PORTAL-ESCOLAS-MULTIDESPORTO-PONTE-LEGADO-READONLY-1
 
-Este pacote prepara a camada de **formatos de competição** e **classificações/rankings** do Portal das Escolas.
-
-É uma fase técnica/controlada.
+Este pacote faz uma fase **read-only** para diagnosticar a ponte entre o modelo atual do Portal das Escolas e a camada multidesporto nova.
 
 Não altera páginas.
 Não altera UI.
 Não altera helpers.
 Não mexe no backoffice principal.
-Não remove nem substitui `portal_games` / `portal_results`.
-Não remove nem substitui `portal_competitions.format`.
+Não cria tabelas.
+Não altera schema.
+Não altera policies.
+Não altera dados.
+Não substitui `portal_games` / `portal_results`.
 
 ## Fase
 
-`PORTAL-ESCOLAS-MULTIDESPORTO-FORMATOS-COMPETICAO-1`
+`PORTAL-ESCOLAS-MULTIDESPORTO-PONTE-LEGADO-READONLY-1`
 
 ## Branch
 
-`portal-escolas-multidesporto-formatos-competicao-1-20260628`
+`portal-escolas-multidesporto-ponte-legado-readonly-1-20260628`
 
 ## Ficheiros incluídos
 
-- `docs/portal-escolas-multidesporto-formatos-competicao-1.md`
-- `supabase/sql/portal-escolas-multidesporto-formatos-preflight-1-20260628.sql`
-- `supabase/sql/portal-escolas-multidesporto-formatos-schema-proposta-1-20260628.sql`
-- `supabase/sql/portal-escolas-multidesporto-formatos-postflight-1-20260628.sql`
+- `docs/portal-escolas-multidesporto-ponte-legado-readonly-1.md`
+- `supabase/sql/portal-escolas-multidesporto-ponte-legado-diagnostico-1-20260628.sql`
+- `supabase/sql/portal-escolas-multidesporto-ponte-legado-preview-1-20260628.sql`
 
 ## Ordem/timing recomendado
 
-### 1. Aplicar ficheiros no projeto
+### 1. Confirmar branch local antes de aplicar o ZIP
 
-Copiar estes ficheiros para a raiz do projeto, mantendo os caminhos.
+Na pasta correta:
+
+```powershell
+cd C:\Users\silva\Documents\Codex\jornada-pt-final-auth-login-1-git
+git branch --show-current
+git status -sb
+```
+
+A branch tem de ser:
+
+```text
+portal-escolas-multidesporto-ponte-legado-readonly-1-20260628
+```
+
+O GitHub/browser mostrar a branch certa não chega. A branch local no PowerShell também tem de estar certa.
+
+### 2. Aplicar ficheiros no projeto
+
+Copiar os ficheiros para a raiz do projeto, mantendo os caminhos.
 
 Confirmar antes de qualquer commit:
 
-```bash
+```powershell
 git status --short -uall
 git diff --stat
+git diff --check
 ```
 
-O esperado é aparecerem apenas estes 4 ficheiros novos.
+O esperado é aparecerem apenas estes ficheiros:
 
-### 2. Rever o diagnóstico/desenho
+```text
+README-APLICAR.md
+docs/portal-escolas-multidesporto-ponte-legado-readonly-1.md
+supabase/sql/portal-escolas-multidesporto-ponte-legado-diagnostico-1-20260628.sql
+supabase/sql/portal-escolas-multidesporto-ponte-legado-preview-1-20260628.sql
+```
+
+### 3. Rever o diagnóstico/desenho
 
 Ler primeiro:
 
 ```text
-docs/portal-escolas-multidesporto-formatos-competicao-1.md
+docs/portal-escolas-multidesporto-ponte-legado-readonly-1.md
 ```
 
-Esta fase só faz sentido se a leitura confirmar a decisão conceptual:
+Esta fase só deve confirmar a ponte conceptual/técnica. Não deve criar dados definitivos.
 
-```text
-Modalidade -> Competição -> Formato -> Evento/Resultado -> Classificação/Ranking
-```
-
-### 3. Executar preflight no Supabase
+### 4. Executar diagnóstico read-only no Supabase
 
 No Supabase SQL Editor, correr:
 
 ```text
-supabase/sql/portal-escolas-multidesporto-formatos-preflight-1-20260628.sql
+supabase/sql/portal-escolas-multidesporto-ponte-legado-diagnostico-1-20260628.sql
 ```
 
-Só avançar se o preflight confirmar:
+Este SQL devolve verificações unificadas sobre:
 
-- tabelas base do Portal presentes;
-- tabelas multidesporto anteriores presentes;
-- `portal_can_select_scope` presente;
-- ausência de conflito grave com as novas tabelas.
+- tabelas antigas;
+- tabelas multidesporto novas;
+- colunas necessárias;
+- contagens;
+- estado atual das tabelas novas;
+- sugestão de formato para as competições existentes;
+- prontidão para gerar eventos/resultados/rankings numa fase futura.
 
-### 4. Executar schema apenas se o preflight estiver coerente
+### 5. Executar preview read-only
 
-Se o preflight estiver OK, correr:
+Se o diagnóstico estiver coerente, correr:
 
 ```text
-supabase/sql/portal-escolas-multidesporto-formatos-schema-proposta-1-20260628.sql
+supabase/sql/portal-escolas-multidesporto-ponte-legado-preview-1-20260628.sql
 ```
 
-Este SQL é idempotente e não destrutivo.
+Este SQL não escreve nada. Apenas mostra uma pré-visualização de ponte:
 
-Cria a proposta de camada formal:
-
-- `portal_competition_format_catalog`
-- `portal_competition_formats`
-- `portal_rankings`
-- `portal_ranking_entries`
-
-### 5. Executar postflight
-
-Depois do schema, correr:
-
-```text
-supabase/sql/portal-escolas-multidesporto-formatos-postflight-1-20260628.sql
-```
-
-Validar:
-
-- tabelas criadas;
-- colunas-chave presentes;
-- seeds de formatos presentes;
-- RLS ativo;
-- policies SELECT criadas;
-- grants SELECT para `authenticated`.
+- competição antiga -> formato novo sugerido;
+- `portal_games` -> candidatos a `portal_events`;
+- participantes home/away -> candidatos a `portal_event_participants`;
+- `portal_results` -> candidatos a `portal_result_entries`;
+- resultados A/B -> preview de `portal_ranking_entries`.
 
 ### 6. Teste local/preview/produção
 
@@ -121,7 +128,7 @@ Tudo deve continuar igual.
 
 Confirmar:
 
-```bash
+```powershell
 git status --short -uall
 git diff --stat
 git diff --cached --stat
@@ -134,10 +141,11 @@ Não incluir ZIP no commit.
 
 Parar se acontecer qualquer uma destas situações:
 
-- o preflight falha em tabelas base;
-- `portal_can_select_scope` não existe;
-- o SQL tenta remover/alterar tabelas antigas;
-- aparecem alterações fora destes 4 ficheiros;
+- a branch local não é a branch desta fase;
+- aparecem ZIPs na raiz do repositório;
+- aparecem alterações fora dos ficheiros desta fase;
+- algum SQL tenta executar `insert`, `update`, `delete`, `alter`, `create` ou `drop`;
+- o diagnóstico mostra tabelas base em falta;
 - a app visual muda sem ser esperado;
 - o GitHub “Files changed” mostra ficheiros fora do escopo.
 
@@ -148,5 +156,5 @@ Só depois de PR merged, Vercel Ready e produção validada, criar manualmente o
 Sugestão de nome, apenas se tudo estiver validado:
 
 ```text
-safe-main-portal-multidesporto-formatos-competicao-20260628
+safe-main-portal-ponte-legado-readonly-20260628
 ```
