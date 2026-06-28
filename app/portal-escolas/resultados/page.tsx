@@ -5,6 +5,7 @@ import {
   createPortalEscolasServerClient,
   readPortalAuthorization
 } from "@/lib/portal-escolas/auth";
+import { PortalEscolasInternalNav } from "../_components/PortalEscolasInternalNav";
 import { readPortalResults } from "@/lib/portal-escolas/readPortalResults";
 
 type ResultsPageProps = {
@@ -503,6 +504,8 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
           </div>
           <span className="portal-results-tag">{formatCountLabel(data.results.length, "registo", "registos")}</span>
         </section>
+
+        <PortalEscolasInternalNav current="resultados" />
 
         <nav className="portal-results-actions" aria-label="Navegação do Portal das Escolas">
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>

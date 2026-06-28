@@ -5,6 +5,7 @@ import {
   createPortalEscolasServerClient,
   readPortalAuthorization
 } from "@/lib/portal-escolas/auth";
+import { PortalEscolasInternalNav } from "../_components/PortalEscolasInternalNav";
 import { readPortalParticipants } from "@/lib/portal-escolas/readPortalParticipants";
 
 type ParticipantsPageProps = {
@@ -470,6 +471,8 @@ export default async function PortalEscolasParticipantesPage({ searchParams }: P
             {formatCountLabel(data.participants.length, "participante", "participantes")}
           </span>
         </section>
+
+        <PortalEscolasInternalNav current="participantes" />
 
         <nav className="portal-participants-actions" aria-label="Navegação do Portal das Escolas">
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>

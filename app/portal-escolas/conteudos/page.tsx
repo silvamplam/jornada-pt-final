@@ -5,6 +5,7 @@ import {
   createPortalEscolasServerClient,
   readPortalAuthorization
 } from "@/lib/portal-escolas/auth";
+import { PortalEscolasInternalNav } from "../_components/PortalEscolasInternalNav";
 import { readPortalContentSubmissions } from "@/lib/portal-escolas/readPortalContentSubmissions";
 
 type ContentSubmissionsPageProps = {
@@ -518,6 +519,8 @@ export default async function PortalEscolasConteudosPage({ searchParams }: Conte
           </div>
           <span className="portal-content-tag">{formatCountLabel(data.submissions.length, "conteúdo", "conteúdos")}</span>
         </section>
+
+        <PortalEscolasInternalNav current="conteudos" />
 
         <nav className="portal-content-actions" aria-label="Navegação do Portal das Escolas">
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>
