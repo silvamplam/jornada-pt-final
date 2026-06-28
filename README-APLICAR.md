@@ -1,67 +1,46 @@
-# PORTAL-ESCOLAS-MULTIDESPORTO-ARQUITETURA-1
+# PORTAL-ESCOLAS-MULTIDESPORTO-SCHEMA-VALIDACAO-1
 
-Este pacote é a primeira fase da fundação multidesporto do Portal das Escolas.
+Este pacote é apenas para validação controlada da fundação multidesporto no Supabase.
 
-## Escopo
+Não altera a aplicação visual.
+Não altera páginas do Portal.
+Não altera helpers.
+Não altera backoffice.
+Não altera auth.
 
-Contém apenas documentação técnica e uma proposta SQL isolada para revisão/teste manual.
+## Fase
 
-Inclui:
+`PORTAL-ESCOLAS-MULTIDESPORTO-SCHEMA-VALIDACAO-1`
 
-- `docs/portal-escolas-multidesporto-arquitetura-1.md`
-- `supabase/sql/portal-escolas-multidesporto-schema-proposta-1-20260628.sql`
+## Branch recomendada
 
-## O que este pacote não faz
+`portal-escolas-multidesporto-schema-validacao-1-20260628`
 
-- Não altera páginas da aplicação.
-- Não altera helpers TypeScript.
-- Não altera o backoffice existente.
-- Não altera páginas públicas.
-- Não altera o modelo principal da Jornada.pt.
-- Não cria API.
-- Não cria service role.
-- Não substitui `portal_games` nem `portal_results` atuais.
-- Não remove `portal_competitions.modality`.
+## Ficheiros incluídos
 
-## Como aplicar na branch
+- `docs/portal-escolas-multidesporto-schema-validacao-1.md`
+- `supabase/sql/portal-escolas-multidesporto-preflight-1-20260628.sql`
+- `supabase/sql/portal-escolas-multidesporto-postflight-1-20260628.sql`
 
-Aplicar numa branch própria, por exemplo:
+## Ordem de trabalho
 
-`portal-escolas-multidesporto-arquitetura-1-20260628`
+1. Criar/mudar para a branch indicada, partindo da `main` atualizada.
+2. Copiar este ZIP para a raiz do projeto.
+3. Confirmar que o `git status` mostra apenas estes ficheiros novos.
+4. Ler `docs/portal-escolas-multidesporto-schema-validacao-1.md`.
+5. No Supabase SQL Editor, correr primeiro:
+   - `supabase/sql/portal-escolas-multidesporto-preflight-1-20260628.sql`
+6. Se o preflight estiver coerente, correr o SQL já aprovado na fase anterior:
+   - `supabase/sql/portal-escolas-multidesporto-schema-proposta-1-20260628.sql`
+7. Depois correr:
+   - `supabase/sql/portal-escolas-multidesporto-postflight-1-20260628.sql`
+8. Guardar screenshots/resultados principais.
+9. Não fazer merge se houver erro SQL, tabela inesperadamente ausente, policy ausente ou falha de permissões.
 
-Copiar os ficheiros deste ZIP para a raiz do projeto:
+## Importante
 
-```text
-C:\Users\silva\Documents\Codex\jornada-pt-final-auth-login-1-git
-```
+Este pacote não inclui alterações destrutivas.
+Os ficheiros `preflight` e `postflight` são apenas leitura/validação.
+O SQL de schema a aplicar continua a ser o ficheiro da fase anterior:
 
-Depois confirmar:
-
-```bash
-git status --short -uall
-git diff --stat
-```
-
-O esperado é aparecerem apenas ficheiros novos:
-
-```text
-docs/portal-escolas-multidesporto-arquitetura-1.md
-supabase/sql/portal-escolas-multidesporto-schema-proposta-1-20260628.sql
-README-APLICAR.md
-```
-
-## Teste no Supabase
-
-O SQL é uma proposta idempotente e não destrutiva, mas deve ser testado primeiro num ambiente seguro.
-
-Antes de executar em produção:
-
-1. Ler a documentação.
-2. Confirmar se a função `public.portal_can_select_scope` existe.
-3. Confirmar se as tabelas `portal_` atuais existem.
-4. Executar primeiro em ambiente de teste/staging, se disponível.
-5. Confirmar tabelas, colunas, índices e policies criadas.
-
-## Decisão importante
-
-Esta fase não fecha a implementação multidesporto. Apenas estabelece a arquitetura proposta para validar antes de qualquer UI ou alteração funcional.
+`supabase/sql/portal-escolas-multidesporto-schema-proposta-1-20260628.sql`
