@@ -1,5 +1,6 @@
 type PortalEscolasNavKey =
   | "painel"
+  | "perfil"
   | "contextos"
   | "competicoes"
   | "participantes"
@@ -48,6 +49,7 @@ const portalEscolasInternalNavStyles = `
 
 const portalEscolasNavItems: Array<{ key: PortalEscolasNavKey; label: string; href: string }> = [
   { key: "painel", label: "Painel", href: "/portal-escolas/painel" },
+  { key: "perfil", label: "Perfil", href: "/portal-escolas/perfil" },
   { key: "contextos", label: "Contextos", href: "/portal-escolas/contextos" },
   { key: "competicoes", label: "Competições", href: "/portal-escolas/competicoes" },
   { key: "participantes", label: "Participantes", href: "/portal-escolas/participantes" },
