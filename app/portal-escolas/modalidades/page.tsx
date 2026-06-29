@@ -355,10 +355,8 @@ export default async function PortalModalitiesPage() {
 
         <PortalEscolasInternalNav current="modalidades" />
 
-        <nav className="portal-modalities-actions" aria-label="Navegação do Portal das Escolas">
+        <nav className="portal-modalities-actions" aria-label="Ações da página de modalidades">
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>
-          <a href="/portal-escolas/competicoes">Competições</a>
-          <a href="/portal-escolas/multidesporto-demo">Multidesporto demo</a>
         </nav>
 
         {data.unavailableSections.length > 0 ? (

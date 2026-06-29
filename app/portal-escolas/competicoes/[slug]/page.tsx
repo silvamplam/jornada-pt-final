@@ -420,11 +420,8 @@ export default async function PortalCompetitionDetailPage({ params }: PageProps)
 
         <PortalEscolasInternalNav current="competicoes" />
 
-        <nav className="portal-competition-detail-actions" aria-label="Navegação do detalhe da competição">
+        <nav className="portal-competition-detail-actions" aria-label="Ações do detalhe da competição">
           <a href="/portal-escolas/competicoes">Voltar a competições</a>
-          <a href="/portal-escolas/modalidades">Modalidades</a>
-          <a href="/portal-escolas/jornadas">Estrutura</a>
-          <a href="/portal-escolas/multidesporto-demo">Multidesporto demo</a>
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>
         </nav>
 
