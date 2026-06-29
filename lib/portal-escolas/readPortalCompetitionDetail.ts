@@ -87,7 +87,10 @@ type PortalStageRow = RowWithId & {
   portal_context_id: string;
   portal_competition_id: string;
   name: string;
+  type: string | null;
   stage_order: number | null;
+  scheduled_date: string | null;
+  status: string;
 };
 
 type PortalParticipantRow = RowWithId & {
@@ -193,6 +196,18 @@ export type PortalCompetitionDetailFormat = {
   statusLabel: string;
 };
 
+export type PortalCompetitionDetailStage = {
+  key: string;
+  name: string;
+  typeLabel: string;
+  orderLabel: string;
+  scheduledDate: string | null;
+  statusLabel: string;
+  eventCount: number;
+  participantCount: number;
+  resultEntryCount: number;
+};
+
 export type PortalCompetitionDetailEvent = {
   key: string;
   name: string;
@@ -249,10 +264,12 @@ export type PortalCompetitionDetailRecord = {
   modalityCatalogLabel: string;
   modalityCatalogCode: string | null;
   formats: PortalCompetitionDetailFormat[];
+  stages: PortalCompetitionDetailStage[];
   events: PortalCompetitionDetailEvent[];
   rankings: PortalCompetitionDetailRanking[];
   summary: {
     formatCount: number;
+    stageCount: number;
     eventCount: number;
     eventParticipantCount: number;
     resultEntryCount: number;
@@ -579,20 +596,20 @@ async function readRankings(supabase: SupabaseClient, competitionIds: string[]) 
   );
 }
 
-async function readStagesByIds(supabase: SupabaseClient, stageIds: string[]) {
-  if (stageIds.length === 0) {
+async function readStages(supabase: SupabaseClient, competitionIds: string[]) {
+  if (competitionIds.length === 0) {
     return { rows: [] as PortalStageRow[], unavailableSection: null };
   }
 
   return readRows<PortalStageRow>(
     supabase,
     "portal_stages",
-    "id,portal_entity_id,portal_context_id,portal_competition_id,name,stage_order",
+    "id,portal_entity_id,portal_context_id,portal_competition_id,name,type,stage_order,scheduled_date,status",
     {
-      sectionLabel: "fases/jornadas",
+      sectionLabel: "estrutura competitiva",
       limit: LOOKUP_LIMIT,
       apply(query) {
-        return query.in("id", stageIds).order("stage_order", { ascending: true });
+        return query.in("portal_competition_id", competitionIds).order("stage_order", { ascending: true });
       }
     }
   );
@@ -719,6 +736,44 @@ function makeFormats(
   });
 }
 
+function makeStages(
+  competitionId: string,
+  stages: PortalStageRow[],
+  events: PortalEventRow[],
+  eventParticipants: PortalEventParticipantRow[],
+  resultEntries: PortalResultEntryRow[]
+): PortalCompetitionDetailStage[] {
+  return [...stages]
+    .filter((stage) => stage.portal_competition_id === competitionId)
+    .sort((first, second) => {
+      const firstOrder = first.stage_order ?? 999999;
+      const secondOrder = second.stage_order ?? 999999;
+
+      if (firstOrder !== secondOrder) {
+        return firstOrder - secondOrder;
+      }
+
+      return first.name.localeCompare(second.name, "pt");
+    })
+    .map((stage) => {
+      const stageEvents = events.filter((event) => event.portal_stage_id === stage.id);
+      const stageParticipants = eventParticipants.filter((participant) => participant.portal_stage_id === stage.id);
+      const stageResults = resultEntries.filter((entry) => entry.portal_stage_id === stage.id);
+
+      return {
+        key: stage.id,
+        name: stage.name,
+        typeLabel: formatLabel(stage.type, "Estrutura"),
+        orderLabel: stage.stage_order === null ? "Sem ordem" : `Ordem ${stage.stage_order}`,
+        scheduledDate: stage.scheduled_date,
+        statusLabel: formatLabel(stage.status),
+        eventCount: stageEvents.length,
+        participantCount: stageParticipants.length,
+        resultEntryCount: stageResults.length
+      };
+    });
+}
+
 function makeEvents(
   competitionId: string,
   events: PortalEventRow[],
@@ -750,7 +805,9 @@ function makeEvents(
         name: event.name,
         slug: event.slug,
         typeLabel: formatLabel(event.type, "Evento"),
-        stageLabel: event.portal_stage_id ? stagesById.get(event.portal_stage_id)?.name ?? "Fase/jornada" : "Sem fase/jornada",
+        stageLabel: event.portal_stage_id
+          ? stagesById.get(event.portal_stage_id)?.name ?? "Estrutura competitiva"
+          : "Sem estrutura competitiva",
         statusLabel: formatLabel(event.status),
         scheduledAt: event.scheduled_at,
         venue: event.venue,
@@ -836,6 +893,7 @@ function makeCompetitionDetails(
       ? modalityCatalogById.get(formalModality.catalog_modality_id) ?? null
       : null;
     const competitionFormats = makeFormats(competition.id, formats, formatCatalogById);
+    const competitionStages = makeStages(competition.id, stages, events, eventParticipants, resultEntries);
     const competitionEvents = makeEvents(competition.id, events, eventParticipants, resultEntries, stagesById, participantsById);
     const competitionRankings = makeRankings(competition.id, rankings, rankingEntries, participantsById);
     const competitionEventParticipants = eventParticipants.filter((participant) => participant.portal_competition_id === competition.id);
@@ -859,10 +917,12 @@ function makeCompetitionDetails(
       modalityCatalogLabel: catalog?.name ?? "Sem catálogo associado",
       modalityCatalogCode: catalog?.code ?? null,
       formats: competitionFormats,
+      stages: competitionStages,
       events: competitionEvents,
       rankings: competitionRankings,
       summary: {
         formatCount: competitionFormats.length,
+        stageCount: competitionStages.length,
         eventCount: competitionEvents.length,
         eventParticipantCount: competitionEventParticipants.length,
         resultEntryCount: competitionResultEntries.length,
@@ -948,13 +1008,12 @@ export async function readPortalCompetitionDetail(
 
   const eventIds = uniqueValues(eventsResult.rows.map((event) => event.id));
   const rankingIds = uniqueValues(rankingsResult.rows.map((ranking) => ranking.id));
-  const stageIds = uniqueValues(eventsResult.rows.map((event) => event.portal_stage_id));
 
   const [eventParticipantsResult, resultEntriesResult, rankingEntriesResult, stagesResult] = await Promise.all([
     readEventParticipants(supabase, eventIds),
     readResultEntries(supabase, eventIds),
     readRankingEntries(supabase, rankingIds),
-    readStagesByIds(supabase, stageIds)
+    readStages(supabase, competitionIds)
   ]);
 
   [eventParticipantsResult, resultEntriesResult, rankingEntriesResult, stagesResult].forEach((result) => {
