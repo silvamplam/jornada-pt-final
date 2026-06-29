@@ -34,6 +34,7 @@ type PortalGameCompetitionRow = RowWithId & {
   portal_entity_id: string;
   portal_context_id: string;
   name: string;
+  slug: string | null;
 };
 
 type PortalGameStageRow = RowWithId & {
@@ -41,18 +42,35 @@ type PortalGameStageRow = RowWithId & {
   portal_context_id: string;
   portal_competition_id: string;
   name: string;
+  type: string | null;
   stage_order: number | null;
 };
 
-type PortalGameRow = RowWithId & {
+type PortalEventRow = RowWithId & {
   portal_entity_id: string;
   portal_context_id: string;
+  portal_modality_id: string | null;
   portal_competition_id: string;
-  portal_stage_id: string;
-  home_participant_id: string | null;
-  away_participant_id: string | null;
+  portal_stage_id: string | null;
+  name: string;
+  slug: string | null;
+  type: string | null;
+  event_order: number | null;
   scheduled_at: string | null;
   venue: string | null;
+  status: string;
+};
+
+type PortalEventParticipantRow = RowWithId & {
+  portal_entity_id: string;
+  portal_context_id: string;
+  portal_modality_id: string | null;
+  portal_competition_id: string;
+  portal_stage_id: string | null;
+  portal_event_id: string;
+  portal_participant_id: string;
+  role: string | null;
+  seed_order: number | null;
   status: string;
 };
 
@@ -61,16 +79,20 @@ type PortalGameParticipantRow = RowWithId & {
   name: string;
 };
 
-type PortalGameResultRow = RowWithId & {
+type PortalResultEntryRow = RowWithId & {
   portal_entity_id: string;
   portal_context_id: string;
+  portal_modality_id: string | null;
   portal_competition_id: string;
-  portal_stage_id: string;
-  portal_game_id: string;
-  home_score: number | null;
-  away_score: number | null;
-  result_status: string;
-  submitted_at: string | null;
+  portal_stage_id: string | null;
+  portal_event_id: string;
+  portal_participant_id: string;
+  score_numeric: number | string | null;
+  score_text: string | null;
+  points: number | string | null;
+  outcome: string | null;
+  is_winner: boolean | null;
+  result_status: string | null;
 };
 
 export type PortalGameScope = {
@@ -83,27 +105,75 @@ export type PortalGameScope = {
 export type PortalGameRecord = {
   key: string;
   competitionLabel: string;
+  competitionHref: string | null;
   contextLabel: string;
   stageLabel: string;
-  gameLabel: string;
-  homeName: string;
-  awayName: string;
+  stageTypeLabel: string;
+  eventLabel: string;
+  eventTypeLabel: string;
+  participantLabels: string[];
+  participantSummaryLabel: string;
   scheduledAt: string | null;
   venue: string | null;
   resultLabel: string;
   resultStatus: string;
-  gameStatus: string;
+  eventStatus: string;
   hasResult: boolean;
+  resultEntryCount: number;
 };
 
 export type PortalGamesData = {
   games: PortalGameRecord[];
   scopes: PortalGameScope[];
   unavailableSections: string[];
+  summary: {
+    eventCount: number;
+    eventParticipantCount: number;
+    resultEntryCount: number;
+    stageCount: number;
+  };
 };
 
 const LIST_LIMIT = 1000;
 const LOOKUP_LIMIT = 1000;
+
+const labelMap: Record<string, string> = {
+  active: "Ativo",
+  inactive: "Inativo",
+  validated: "Validado",
+  pending_validation: "Pendente de validação",
+  draft: "Rascunho",
+  scheduled: "Agendado",
+  under_review: "Em revisão",
+  submitted: "Submetido",
+  approved: "Aprovado",
+  rejected: "Rejeitado",
+  archived: "Arquivado",
+  completed: "Concluído",
+  finished: "Concluído",
+  in_progress: "Em curso",
+  live: "Em curso",
+  no_result: "Sem resultado",
+  unknown: "Não disponível",
+  stage: "Fase/jornada/ronda",
+  group: "Grupo",
+  round: "Ronda",
+  series: "Série",
+  final: "Final",
+  matchday: "Jornada",
+  event: "Evento",
+  match: "Jogo",
+  game: "Jogo",
+  race: "Prova/corrida",
+  heat: "Série",
+  field_event: "Prova técnica",
+  home: "Casa",
+  away: "Fora",
+  winner: "Vencedor",
+  draw: "Empate",
+  loss: "Derrota",
+  win: "Vitória"
+};
 
 function uniqueValues(values: Array<string | null | undefined>) {
   return Array.from(new Set(values.filter((value): value is string => Boolean(value))));
@@ -121,6 +191,47 @@ function mergeRows<T extends RowWithId>(target: Map<string, T>, rows: T[]) {
   rows.forEach((row) => {
     target.set(row.id, row);
   });
+}
+
+function formatLabel(value: string | null | undefined, fallback = "Por definir") {
+  if (!value) {
+    return fallback;
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return fallback;
+  }
+
+  const normalized = trimmed.toLowerCase().replace(/[\s-]+/g, "_");
+  const mappedLabel = labelMap[normalized];
+
+  if (mappedLabel) {
+    return mappedLabel;
+  }
+
+  if (!trimmed.includes("_") && trimmed !== trimmed.toUpperCase()) {
+    return trimmed;
+  }
+
+  return normalized
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatValue(value: number | string | null | undefined, fallback = "—") {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+
+  return String(value);
+}
+
+function slugHref(slug: string | null) {
+  return slug ? `/portal-escolas/competicoes/${slug}` : null;
 }
 
 async function readRows<T extends RowWithId>(
@@ -253,6 +364,51 @@ async function readParticipantsByIds(supabase: SupabaseClient, participantIds: s
   });
 }
 
+
+async function readEventParticipants(supabase: SupabaseClient, eventIds: string[]) {
+  if (eventIds.length === 0) {
+    return {
+      rows: [] as PortalEventParticipantRow[],
+      unavailableSection: null
+    };
+  }
+
+  return readRows<PortalEventParticipantRow>(
+    supabase,
+    "portal_event_participants",
+    "id,portal_entity_id,portal_context_id,portal_modality_id,portal_competition_id,portal_stage_id,portal_event_id,portal_participant_id,role,seed_order,status",
+    {
+      sectionLabel: "participantes de evento",
+      limit: LOOKUP_LIMIT,
+      apply(query) {
+        return query.in("portal_event_id", eventIds).order("seed_order", { ascending: true });
+      }
+    }
+  );
+}
+
+async function readResultEntries(supabase: SupabaseClient, eventIds: string[]) {
+  if (eventIds.length === 0) {
+    return {
+      rows: [] as PortalResultEntryRow[],
+      unavailableSection: null
+    };
+  }
+
+  return readRows<PortalResultEntryRow>(
+    supabase,
+    "portal_result_entries",
+    "id,portal_entity_id,portal_context_id,portal_modality_id,portal_competition_id,portal_stage_id,portal_event_id,portal_participant_id,score_numeric,score_text,points,outcome,is_winner,result_status",
+    {
+      sectionLabel: "resultados por participante",
+      limit: LOOKUP_LIMIT,
+      apply(query) {
+        return query.in("portal_event_id", eventIds).order("portal_participant_id", { ascending: true });
+      }
+    }
+  );
+}
+
 function makeScopes(
   permissions: PortalPermissionRow[],
   entities: PortalGameEntityRow[],
@@ -276,17 +432,56 @@ function makeScopes(
   });
 }
 
-function makeScoreLabel(result: PortalGameResultRow | undefined) {
-  if (!result || result.home_score === null || result.away_score === null) {
+function makeResultLabel(entries: PortalResultEntryRow[]) {
+  if (entries.length === 0) {
     return "Sem resultado";
   }
 
-  return `${result.home_score} - ${result.away_score}`;
+  const scoreParts = entries.map((entry) => formatValue(entry.score_text ?? entry.score_numeric)).filter((value) => value !== "—");
+
+  if (scoreParts.length > 0) {
+    return scoreParts.join(" - ");
+  }
+
+  const pointParts = entries.map((entry) => formatValue(entry.points)).filter((value) => value !== "—");
+
+  if (pointParts.length > 0) {
+    return `${pointParts.join(" - ")} pts`;
+  }
+
+  return `${entries.length} entrada${entries.length === 1 ? "" : "s"} de resultado`;
+}
+
+function makeResultStatus(entries: PortalResultEntryRow[]) {
+  if (entries.length === 0) {
+    return "no_result";
+  }
+
+  const statuses = uniqueValues(entries.map((entry) => entry.result_status));
+
+  if (statuses.length === 1) {
+    return statuses[0];
+  }
+
+  return "mixed";
+}
+
+function makeParticipantSummary(labels: string[]) {
+  if (labels.length === 0) {
+    return "Participantes por definir";
+  }
+
+  if (labels.length <= 3) {
+    return labels.join(" · ");
+  }
+
+  return `${labels.slice(0, 3).join(" · ")} · +${labels.length - 3}`;
 }
 
 function makeGames(
-  games: PortalGameRow[],
-  results: PortalGameResultRow[],
+  events: PortalEventRow[],
+  eventParticipants: PortalEventParticipantRow[],
+  resultEntries: PortalResultEntryRow[],
   stages: PortalGameStageRow[],
   contexts: PortalGameContextRow[],
   competitions: PortalGameCompetitionRow[],
@@ -296,38 +491,40 @@ function makeGames(
   const contextsById = indexById(contexts);
   const competitionsById = indexById(competitions);
   const participantsById = indexById(participants);
-  const resultsByGameId = new Map<string, PortalGameResultRow>();
 
-  results.forEach((result) => {
-    if (!resultsByGameId.has(result.portal_game_id)) {
-      resultsByGameId.set(result.portal_game_id, result);
-    }
-  });
+  return events
+    .map((event) => {
+      const stage = event.portal_stage_id ? stagesById.get(event.portal_stage_id) ?? null : null;
+      const competition = competitionsById.get(event.portal_competition_id) ?? null;
+      const participantsForEvent = eventParticipants
+        .filter((participant) => participant.portal_event_id === event.id)
+        .sort((first, second) => (first.seed_order ?? 999999) - (second.seed_order ?? 999999));
+      const participantLabels = participantsForEvent.map((participant) => {
+        const name = participantsById.get(participant.portal_participant_id)?.name ?? "Participante não disponível";
+        const role = participant.role ? ` (${formatLabel(participant.role).toLowerCase()})` : "";
 
-  return games
-    .map((game) => {
-      const result = resultsByGameId.get(game.id);
-      const homeName = game.home_participant_id
-        ? participantsById.get(game.home_participant_id)?.name ?? "Participante não disponível"
-        : "Participante por definir";
-      const awayName = game.away_participant_id
-        ? participantsById.get(game.away_participant_id)?.name ?? "Participante não disponível"
-        : "Participante por definir";
+        return `${name}${role}`;
+      });
+      const resultsForEvent = resultEntries.filter((entry) => entry.portal_event_id === event.id);
 
       return {
-        key: game.id,
-        competitionLabel: competitionsById.get(game.portal_competition_id)?.name ?? "Competição autorizada",
-        contextLabel: contextsById.get(game.portal_context_id)?.label ?? "Contexto autorizado",
-        stageLabel: stagesById.get(game.portal_stage_id)?.name ?? "Jornada/fase não disponível",
-        gameLabel: `${homeName} vs ${awayName}`,
-        homeName,
-        awayName,
-        scheduledAt: game.scheduled_at,
-        venue: game.venue,
-        resultLabel: makeScoreLabel(result),
-        resultStatus: result?.result_status ?? "no_result",
-        gameStatus: game.status,
-        hasResult: Boolean(result)
+        key: event.id,
+        competitionLabel: competition?.name ?? "Competição autorizada",
+        competitionHref: slugHref(competition?.slug ?? null),
+        contextLabel: contextsById.get(event.portal_context_id)?.label ?? "Contexto autorizado",
+        stageLabel: stage?.name ?? "Sem estrutura competitiva",
+        stageTypeLabel: formatLabel(stage?.type, "Estrutura"),
+        eventLabel: event.name,
+        eventTypeLabel: formatLabel(event.type, "Evento"),
+        participantLabels,
+        participantSummaryLabel: makeParticipantSummary(participantLabels),
+        scheduledAt: event.scheduled_at,
+        venue: event.venue,
+        resultLabel: makeResultLabel(resultsForEvent),
+        resultStatus: makeResultStatus(resultsForEvent),
+        eventStatus: event.status,
+        hasResult: resultsForEvent.length > 0,
+        resultEntryCount: resultsForEvent.length
       };
     })
     .sort(
@@ -335,7 +532,7 @@ function makeGames(
         (first.scheduledAt ?? "9999-12-31").localeCompare(second.scheduledAt ?? "9999-12-31") ||
         first.competitionLabel.localeCompare(second.competitionLabel, "pt") ||
         first.stageLabel.localeCompare(second.stageLabel, "pt") ||
-        first.gameLabel.localeCompare(second.gameLabel, "pt")
+        first.eventLabel.localeCompare(second.eventLabel, "pt")
     );
 }
 
@@ -349,7 +546,7 @@ export async function readPortalGames(supabase: SupabaseClient, authorization: A
     unavailableSections.add(entitiesResult.unavailableSection);
   }
 
-  const [contextsResult, competitionsResult, stagesResult, gamesResult, resultsResult] = await Promise.all([
+  const [contextsResult, competitionsResult, stagesResult, eventsResult] = await Promise.all([
     readScopedRows<PortalGameContextRow>(supabase, "portal_contexts", "id,portal_entity_id,label", permissions, {
       sectionLabel: "contextos",
       orderColumn: "label",
@@ -360,38 +557,47 @@ export async function readPortalGames(supabase: SupabaseClient, authorization: A
     readScopedRows<PortalGameCompetitionRow>(
       supabase,
       "portal_competitions",
-      "id,portal_entity_id,portal_context_id,name",
+      "id,portal_entity_id,portal_context_id,name,slug",
       permissions,
-      { sectionLabel: "competicoes", orderColumn: "name", ascending: true, competitionScopeColumn: "id" }
+      { sectionLabel: "competições", orderColumn: "name", ascending: true, competitionScopeColumn: "id" }
     ),
     readScopedRows<PortalGameStageRow>(
       supabase,
       "portal_stages",
-      "id,portal_entity_id,portal_context_id,portal_competition_id,name,stage_order",
+      "id,portal_entity_id,portal_context_id,portal_competition_id,name,type,stage_order",
       permissions,
-      { sectionLabel: "jornadas/fases", orderColumn: "stage_order", ascending: true }
+      { sectionLabel: "estrutura competitiva", orderColumn: "stage_order", ascending: true }
     ),
-    readScopedRows<PortalGameRow>(
+    readScopedRows<PortalEventRow>(
       supabase,
-      "portal_games",
-      "id,portal_entity_id,portal_context_id,portal_competition_id,portal_stage_id,home_participant_id,away_participant_id,scheduled_at,venue,status",
+      "portal_events",
+      "id,portal_entity_id,portal_context_id,portal_modality_id,portal_competition_id,portal_stage_id,name,slug,type,event_order,scheduled_at,venue,status",
       permissions,
-      { sectionLabel: "jogos", orderColumn: "scheduled_at", ascending: true }
-    ),
-    readScopedRows<PortalGameResultRow>(
-      supabase,
-      "portal_results",
-      "id,portal_entity_id,portal_context_id,portal_competition_id,portal_stage_id,portal_game_id,home_score,away_score,result_status,submitted_at",
-      permissions,
-      { sectionLabel: "resultados", orderColumn: "submitted_at", ascending: false }
+      { sectionLabel: "eventos", orderColumn: "event_order", ascending: true }
     )
   ]);
 
-  [contextsResult, competitionsResult, stagesResult, gamesResult, resultsResult].forEach((result) => {
+  [contextsResult, competitionsResult, stagesResult, eventsResult].forEach((result) => {
     result.unavailableSections.forEach((section) => unavailableSections.add(section));
   });
 
-  const participantIds = uniqueValues(gamesResult.rows.flatMap((game) => [game.home_participant_id, game.away_participant_id]));
+  const eventIds = uniqueValues(eventsResult.rows.map((event) => event.id));
+
+  const [eventParticipantsResult, resultEntriesResult] = await Promise.all([
+    readEventParticipants(supabase, eventIds),
+    readResultEntries(supabase, eventIds)
+  ]);
+
+  [eventParticipantsResult, resultEntriesResult].forEach((result) => {
+    if (result.unavailableSection) {
+      unavailableSections.add(result.unavailableSection);
+    }
+  });
+
+  const participantIds = uniqueValues([
+    ...eventParticipantsResult.rows.map((participant) => participant.portal_participant_id),
+    ...resultEntriesResult.rows.map((entry) => entry.portal_participant_id)
+  ]);
   const participantsResult = await readParticipantsByIds(supabase, participantIds);
 
   if (participantsResult.unavailableSection) {
@@ -406,10 +612,25 @@ export async function readPortalGames(supabase: SupabaseClient, authorization: A
       (first.stage_order ?? Number.MAX_SAFE_INTEGER) - (second.stage_order ?? Number.MAX_SAFE_INTEGER) ||
       first.name.localeCompare(second.name, "pt")
   );
+  const games = makeGames(
+    eventsResult.rows,
+    eventParticipantsResult.rows,
+    resultEntriesResult.rows,
+    stages,
+    contexts,
+    competitions,
+    participantsResult.rows
+  );
 
   return {
-    games: makeGames(gamesResult.rows, resultsResult.rows, stages, contexts, competitions, participantsResult.rows),
+    games,
     scopes: makeScopes(permissions, entities, contexts, competitions),
-    unavailableSections: Array.from(unavailableSections).sort((first, second) => first.localeCompare(second, "pt"))
+    unavailableSections: Array.from(unavailableSections).sort((first, second) => first.localeCompare(second, "pt")),
+    summary: {
+      eventCount: games.length,
+      eventParticipantCount: eventParticipantsResult.rows.length,
+      resultEntryCount: resultEntriesResult.rows.length,
+      stageCount: stages.length
+    }
   };
 }
