@@ -13,8 +13,8 @@ type StagesPageProps = {
 };
 
 export const metadata = {
-  title: "Jornadas/fases | Portal das Escolas | Jornada.pt",
-  description: "Listagem read-only de jornadas e fases autorizadas no Portal das Escolas."
+  title: "Estrutura competitiva | Portal das Escolas | Jornada.pt",
+  description: "Leitura read-only da estrutura competitiva autorizada no Portal das Escolas."
 };
 
 export const dynamic = "force-dynamic";
@@ -195,6 +195,45 @@ const stagesStyles = `
     overflow-wrap: anywhere;
   }
 
+  .portal-stages-concept-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .portal-stages-concept-card {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid #dbe7ef;
+    border-radius: 8px;
+    background: #f8fbfd;
+  }
+
+  .portal-stages-concept-card span {
+    display: block;
+    margin-bottom: 6px;
+    color: #526274;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .portal-stages-concept-card strong {
+    display: block;
+    color: #102033;
+    font-size: 15px;
+    line-height: 1.3;
+  }
+
+  .portal-stages-concept-card p {
+    margin: 8px 0 0;
+    color: #526274;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
   .portal-stages-filters {
     display: grid;
     grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(150px, 1fr)) auto auto;
@@ -304,6 +343,7 @@ const stagesStyles = `
     }
 
     .portal-stages-scope-list,
+    .portal-stages-concept-grid,
     .portal-stages-filters {
       grid-template-columns: 1fr;
     }
@@ -359,7 +399,15 @@ const labelMap: Record<string, string> = {
   quarterfinal: "Quartos de final",
   semifinal: "Meia-final",
   final: "Final",
-  league: "Liga"
+  league: "Liga",
+  series: "Série",
+  serie: "Série",
+  heat: "Série",
+  event: "Prova",
+  race: "Corrida",
+  trial: "Prova",
+  group: "Grupo",
+  stage: "Etapa"
 };
 
 function formatLabel(value: string | null | undefined, fallback = "Por definir") {
@@ -408,7 +456,7 @@ function formatUnavailableSection(section: string) {
     competicoes: "competições",
     contextos: "contextos",
     entidades: "entidades",
-    "jornadas/fases": "jornadas/fases"
+    "jornadas/fases": "estruturas competitivas"
   };
 
   return labels[section] ?? formatLabel(section);
@@ -494,10 +542,13 @@ export default async function PortalEscolasJornadasPage({ searchParams }: Stages
         <section className="portal-stages-hero" aria-labelledby="portal-stages-title">
           <div>
             <p className="portal-stages-eyebrow">Portal das Escolas</p>
-            <h1 id="portal-stages-title">Jornadas/fases</h1>
-            <p className="portal-stages-text">Listagem read-only de jornadas e fases disponíveis para os âmbitos autorizados.</p>
+            <h1 id="portal-stages-title">Estrutura competitiva</h1>
+            <p className="portal-stages-text">
+              Leitura read-only da camada entre competição/formato e evento. Aqui podem existir jornadas, fases,
+              rondas, séries, grupos, provas ou etapas, conforme a modalidade e o formato competitivo.
+            </p>
           </div>
-          <span className="portal-stages-tag">{formatCountLabel(data.stages.length, "jornada/fase", "jornadas/fases")}</span>
+          <span className="portal-stages-tag">{formatCountLabel(data.stages.length, "estrutura", "estruturas")}</span>
         </section>
 
         <PortalEscolasInternalNav current="jornadas" />
@@ -516,6 +567,39 @@ export default async function PortalEscolasJornadasPage({ searchParams }: Stages
             </p>
           </section>
         ) : null}
+
+        <section className="portal-stages-section" aria-labelledby="portal-stages-model-title">
+          <div className="portal-stages-section-header">
+            <div>
+              <p className="portal-stages-eyebrow">Modelo multidesporto</p>
+              <h2 id="portal-stages-model-title">Da competição ao evento</h2>
+            </div>
+            <span className="portal-stages-tag">read-only</span>
+          </div>
+          <p className="portal-stages-text">
+            Esta área mostra a estrutura intermédia que organiza uma competição antes dos eventos concretos.
+            No futebol, esta estrutura pode ser uma jornada; no atletismo, pode ser uma prova, série ou final; no xadrez,
+            pode ser uma ronda. A rota mantém-se em /portal-escolas/jornadas por compatibilidade, mas o conceito passa a
+            ser estrutura competitiva.
+          </p>
+          <div className="portal-stages-concept-grid">
+            <article className="portal-stages-concept-card">
+              <span>Futebol</span>
+              <strong>Jornadas</strong>
+              <p>Campeonato por jornadas → jogos → resultados por golos → classificação por pontos.</p>
+            </article>
+            <article className="portal-stages-concept-card">
+              <span>Atletismo</span>
+              <strong>Provas, séries e finais</strong>
+              <p>Meeting ou prova por marcas → tempos, distâncias ou pontuações → rankings por prova, escalão ou escola.</p>
+            </article>
+            <article className="portal-stages-concept-card">
+              <span>Xadrez</span>
+              <strong>Rondas</strong>
+              <p>Torneio suíço ou eliminatória → partidas → pontos, vitórias e critérios de desempate.</p>
+            </article>
+          </div>
+        </section>
 
         <section className="portal-stages-section" aria-labelledby="portal-stages-scope-title">
           <div className="portal-stages-section-header">
@@ -542,8 +626,8 @@ export default async function PortalEscolasJornadasPage({ searchParams }: Stages
         <section className="portal-stages-section" aria-labelledby="portal-stages-list-title">
           <div className="portal-stages-section-header">
             <div>
-              <p className="portal-stages-eyebrow">Calendário</p>
-              <h2 id="portal-stages-list-title">Jornadas/fases visíveis</h2>
+              <p className="portal-stages-eyebrow">Estrutura competitiva</p>
+              <h2 id="portal-stages-list-title">Estruturas visíveis</h2>
             </div>
             <span className="portal-stages-tag">
               {hasFilters ? `${filteredStages.length} de ${data.stages.length}` : `${data.stages.length} total`}
@@ -552,8 +636,13 @@ export default async function PortalEscolasJornadasPage({ searchParams }: Stages
 
           <form className="portal-stages-filters" method="get">
             <label className="portal-stages-filter">
-              <span>Pesquisar jornada/fase</span>
-              <input name="pesquisa" type="search" defaultValue={filters.search} placeholder="Nome da jornada ou fase" />
+              <span>Pesquisar estrutura</span>
+              <input
+                name="pesquisa"
+                type="search"
+                defaultValue={filters.search}
+                placeholder="Nome da jornada, fase, ronda, série, prova ou etapa"
+              />
             </label>
             <label className="portal-stages-filter">
               <span>Competição</span>
@@ -603,7 +692,7 @@ export default async function PortalEscolasJornadasPage({ searchParams }: Stages
               <table className="portal-stages-table">
                 <thead>
                   <tr>
-                    <th>Jornada/fase</th>
+                    <th>Estrutura</th>
                     <th>Competição</th>
                     <th>Tipo</th>
                     <th>Data prevista</th>
@@ -636,8 +725,8 @@ export default async function PortalEscolasJornadasPage({ searchParams }: Stages
             <EmptyState
               message={
                 data.stages.length > 0
-                  ? "Não há jornadas/fases visíveis com os filtros selecionados."
-                  : "Ainda não há jornadas/fases disponíveis para os âmbitos autorizados."
+                  ? "Não há estruturas visíveis com os filtros selecionados."
+                  : "Ainda não há estruturas competitivas disponíveis para os âmbitos autorizados."
               }
             />
           )}
