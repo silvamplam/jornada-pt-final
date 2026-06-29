@@ -164,6 +164,7 @@ const competitionDetailStyles = `
   .portal-competition-detail-summary-grid,
   .portal-competition-detail-tree,
   .portal-competition-detail-format-list,
+  .portal-competition-detail-stage-list,
   .portal-competition-detail-event-list,
   .portal-competition-detail-ranking-list {
     display: grid;
@@ -178,12 +179,13 @@ const competitionDetailStyles = `
   }
 
   .portal-competition-detail-tree {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
   .portal-competition-detail-summary-card,
   .portal-competition-detail-tree-card,
   .portal-competition-detail-format,
+  .portal-competition-detail-stage,
   .portal-competition-detail-event,
   .portal-competition-detail-ranking {
     min-width: 0;
@@ -196,6 +198,7 @@ const competitionDetailStyles = `
   .portal-competition-detail-summary-card,
   .portal-competition-detail-tree-card,
   .portal-competition-detail-format,
+  .portal-competition-detail-stage,
   .portal-competition-detail-event,
   .portal-competition-detail-ranking {
     display: grid;
@@ -205,6 +208,7 @@ const competitionDetailStyles = `
   .portal-competition-detail-summary-card span,
   .portal-competition-detail-tree-card span,
   .portal-competition-detail-format span,
+  .portal-competition-detail-stage span,
   .portal-competition-detail-event span,
   .portal-competition-detail-ranking span,
   .portal-competition-detail-label,
@@ -219,6 +223,7 @@ const competitionDetailStyles = `
   .portal-competition-detail-summary-card strong,
   .portal-competition-detail-tree-card strong,
   .portal-competition-detail-format strong,
+  .portal-competition-detail-stage strong,
   .portal-competition-detail-event strong,
   .portal-competition-detail-ranking strong {
     color: #102033;
@@ -226,7 +231,8 @@ const competitionDetailStyles = `
   }
 
 
-  .portal-competition-detail-format-list {
+  .portal-competition-detail-format-list,
+  .portal-competition-detail-stage-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -297,7 +303,8 @@ const competitionDetailStyles = `
 
     .portal-competition-detail-summary-grid,
     .portal-competition-detail-tree,
-    .portal-competition-detail-format-list {
+    .portal-competition-detail-format-list,
+    .portal-competition-detail-stage-list {
       grid-template-columns: 1fr;
     }
   }
@@ -339,6 +346,7 @@ function formatUnavailableSection(section: string) {
     "entradas de resultado multidesporto": "Entradas de resultado multidesporto",
     "rankings multidesporto": "Rankings multidesporto",
     "linhas de ranking multidesporto": "Linhas de ranking multidesporto",
+    "estrutura competitiva": "Estrutura competitiva",
     "fases/jornadas": "Fases/jornadas",
     participantes: "Participantes"
   };
@@ -389,6 +397,7 @@ export default async function PortalCompetitionDetailPage({ params }: PageProps)
   const data = await readPortalCompetitionDetail(supabase, authorization, safeSlug);
   const mainCompetition = data.competitions[0] ?? null;
   const formatCount = data.competitions.reduce((total, competition) => total + competition.summary.formatCount, 0);
+  const stageCount = data.competitions.reduce((total, competition) => total + competition.summary.stageCount, 0);
   const eventCount = data.competitions.reduce((total, competition) => total + competition.summary.eventCount, 0);
   const rankingCount = data.competitions.reduce((total, competition) => total + competition.summary.rankingCount, 0);
 
@@ -401,11 +410,11 @@ export default async function PortalCompetitionDetailPage({ params }: PageProps)
             <p className="portal-competition-detail-eyebrow">Portal das Escolas · detalhe da competição</p>
             <h1 id="portal-competition-detail-title">{mainCompetition?.name ?? "Competição não encontrada"}</h1>
             <p className="portal-competition-detail-text">
-              Leitura read-only da competição como ponte entre modalidade, formato, eventos, participantes, resultados e ranking.
+              Leitura read-only da competição como ponte entre modalidade, formato, estrutura competitiva, eventos, participantes, resultados e ranking.
             </p>
           </div>
           <span className="portal-competition-detail-tag">
-            {mainCompetition ? `${formatCount} formatos · ${eventCount} eventos · ${rankingCount} rankings` : "sem dados"}
+            {mainCompetition ? `${formatCount} formatos · ${stageCount} estruturas · ${eventCount} eventos · ${rankingCount} rankings` : "sem dados"}
           </span>
         </section>
 
@@ -414,6 +423,7 @@ export default async function PortalCompetitionDetailPage({ params }: PageProps)
         <nav className="portal-competition-detail-actions" aria-label="Navegação do detalhe da competição">
           <a href="/portal-escolas/competicoes">Voltar a competições</a>
           <a href="/portal-escolas/modalidades">Modalidades</a>
+          <a href="/portal-escolas/jornadas">Estrutura</a>
           <a href="/portal-escolas/multidesporto-demo">Multidesporto demo</a>
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>
         </nav>
@@ -474,6 +484,13 @@ export default async function PortalCompetitionDetailPage({ params }: PageProps)
                   <span>Formato</span>
                   <strong>{competition.formats[0]?.name ?? competition.legacyFormatLabel}</strong>
                 </article>
+                <article className="portal-competition-detail-tree-card">
+                  <span>Estrutura competitiva</span>
+                  <strong>{formatCountLabel(competition.summary.stageCount, "estrutura", "estruturas")}</strong>
+                  <a className="portal-competition-detail-link" href="/portal-escolas/jornadas">
+                    Abrir estrutura
+                  </a>
+                </article>
               </div>
 
               <section className="portal-competition-detail-section" aria-labelledby={`portal-competition-summary-${competition.key}`}>
@@ -511,16 +528,22 @@ export default async function PortalCompetitionDetailPage({ params }: PageProps)
                     <strong>{competition.formalModalityLocalCode ?? "Sem código local"}</strong>
                   </article>
                   <article className="portal-competition-detail-summary-card">
+                    <span>Estrutura competitiva</span>
+                    <strong>{formatCountLabel(competition.summary.stageCount, "estrutura", "estruturas")}</strong>
                     <span>Eventos</span>
                     <strong>{formatCountLabel(competition.summary.eventCount, "evento", "eventos")}</strong>
-                    <span>Participantes em eventos</span>
-                    <strong>{competition.summary.eventParticipantCount}</strong>
                   </article>
                   <article className="portal-competition-detail-summary-card">
-                    <span>Resultados e rankings</span>
-                    <strong>{competition.summary.resultEntryCount} entradas de resultado</strong>
+                    <span>Participantes em eventos</span>
+                    <strong>{competition.summary.eventParticipantCount}</strong>
+                    <span>Resultados em eventos</span>
+                    <strong>{competition.summary.resultEntryCount}</strong>
+                  </article>
+                  <article className="portal-competition-detail-summary-card">
                     <span>Rankings</span>
-                    <strong>{competition.summary.rankingCount} rankings · {competition.summary.rankingEntryCount} linhas</strong>
+                    <strong>{competition.summary.rankingCount} rankings</strong>
+                    <span>Linhas de ranking</span>
+                    <strong>{competition.summary.rankingEntryCount}</strong>
                   </article>
                 </div>
               </section>
@@ -562,13 +585,48 @@ export default async function PortalCompetitionDetailPage({ params }: PageProps)
                 )}
               </section>
 
+              <section className="portal-competition-detail-section" aria-labelledby={`portal-competition-stages-${competition.key}`}>
+                <div className="portal-competition-detail-section-header">
+                  <div>
+                    <p className="portal-competition-detail-eyebrow">Formato → estrutura competitiva</p>
+                    <h3 id={`portal-competition-stages-${competition.key}`}>Estrutura competitiva</h3>
+                    <p className="portal-competition-detail-text">
+                      A estrutura organiza a competição antes dos eventos: jornadas, fases, rondas, séries, grupos, provas ou etapas. A rota /portal-escolas/jornadas mantém o nome por compatibilidade, mas aqui é lida como camada genérica.
+                    </p>
+                  </div>
+                  <span className="portal-competition-detail-tag">{formatCountLabel(competition.summary.stageCount, "estrutura", "estruturas")}</span>
+                </div>
+
+                {competition.stages.length > 0 ? (
+                  <div className="portal-competition-detail-stage-list">
+                    {competition.stages.map((stage) => (
+                      <article className="portal-competition-detail-stage" key={stage.key}>
+                        <span>{stage.typeLabel}</span>
+                        <strong>{stage.name}</strong>
+                        <div className="portal-competition-detail-meta">
+                          <span className="portal-competition-detail-tag">{stage.statusLabel}</span>
+                          <span className="portal-competition-detail-tag">{stage.orderLabel}</span>
+                          <span className="portal-competition-detail-tag">{stage.scheduledDate ?? "Sem data"}</span>
+                        </div>
+                        <span>Eventos nesta estrutura</span>
+                        <strong>{formatCountLabel(stage.eventCount, "evento", "eventos")}</strong>
+                        <span>Participantes · resultados</span>
+                        <strong>{stage.participantCount} participantes · {stage.resultEntryCount} resultados</strong>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="portal-competition-detail-empty">Ainda não existe estrutura competitiva formal disponível para esta competição neste âmbito autorizado.</p>
+                )}
+              </section>
+
               <section className="portal-competition-detail-section" aria-labelledby={`portal-competition-events-${competition.key}`}>
                 <div className="portal-competition-detail-section-header">
                   <div>
-                    <p className="portal-competition-detail-eyebrow">Formato → eventos</p>
+                    <p className="portal-competition-detail-eyebrow">Estrutura competitiva → eventos</p>
                     <h3 id={`portal-competition-events-${competition.key}`}>Eventos, participantes e resultados</h3>
                     <p className="portal-competition-detail-text">
-                      Leitura do modelo novo por competição. Nos campeonatos por jornadas, estes eventos equivalem aos jogos materializados a partir da ponte legacy.
+                      Leitura do modelo novo por competição. Nos campeonatos por jornadas, estes eventos equivalem aos jogos materializados a partir da ponte legacy; noutras modalidades podem ser provas, partidas, séries ou finais.
                     </p>
                   </div>
                   <span className="portal-competition-detail-tag">{formatCountLabel(competition.summary.eventCount, "evento", "eventos")}</span>
