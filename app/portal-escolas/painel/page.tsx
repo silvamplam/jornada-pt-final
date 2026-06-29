@@ -53,25 +53,6 @@ const panelStyles = `
     padding: 28px;
   }
 
-  .portal-panel-nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 14px;
-  }
-
-  .portal-panel-nav a {
-    padding: 8px 10px;
-    border: 1px solid #cbdce7;
-    border-radius: 999px;
-    background: #ffffff;
-    color: #0f6f8d;
-    font-size: 12px;
-    font-weight: 900;
-    text-decoration: none;
-    text-transform: uppercase;
-  }
-
   .portal-panel-eyebrow {
     margin: 0 0 10px;
     color: #0f6f8d;
@@ -512,16 +493,6 @@ export default async function PortalEscolasPainelPage() {
         </section>
 
         <PortalEscolasInternalNav current="painel" />
-
-        <nav className="portal-panel-nav" aria-label="Secções do painel">
-          <a href="#portal-panel-scope">Âmbito</a>
-          <a href="#portal-panel-summary">Resumo</a>
-          <a href="#portal-panel-participants">Participantes</a>
-          <a href="#portal-panel-stages">Estrutura</a>
-          <a href="#portal-panel-games">Eventos</a>
-          <a href="#portal-panel-results">Resultados</a>
-          <a href="#portal-panel-content">Conteúdos</a>
-        </nav>
 
         {dashboard.unavailableSections.length > 0 ? (
           <section className="portal-panel-notice" aria-labelledby="portal-panel-data-notice-title">
