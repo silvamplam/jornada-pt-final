@@ -59,7 +59,7 @@ const portalEscolasNavItems: Array<{ key: PortalEscolasNavKey; label: string; hr
   { key: "competicoes", label: "Competições", href: "/portal-escolas/competicoes" },
   { key: "participantes", label: "Participantes", href: "/portal-escolas/participantes" },
   { key: "jornadas", label: "Estrutura", href: "/portal-escolas/jornadas" },
-  { key: "jogos", label: "Jogos", href: "/portal-escolas/jogos" },
+  { key: "jogos", label: "Eventos", href: "/portal-escolas/jogos" },
   { key: "resultados", label: "Resultados", href: "/portal-escolas/resultados" },
   { key: "conteudos", label: "Conteúdos", href: "/portal-escolas/conteudos" }
 ];

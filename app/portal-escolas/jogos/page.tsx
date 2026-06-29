@@ -13,8 +13,8 @@ type GamesPageProps = {
 };
 
 export const metadata = {
-  title: "Jogos | Portal das Escolas | Jornada.pt",
-  description: "Listagem read-only de jogos autorizados no Portal das Escolas."
+  title: "Eventos | Portal das Escolas | Jornada.pt",
+  description: "Listagem read-only de eventos autorizados no Portal das Escolas, mantendo a rota de jogos por compatibilidade."
 };
 
 export const dynamic = "force-dynamic";
@@ -121,7 +121,8 @@ const gamesStyles = `
     font-size: 22px;
   }
 
-  .portal-games-scope-list {
+  .portal-games-scope-list,
+  .portal-games-model-list {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
@@ -130,7 +131,8 @@ const gamesStyles = `
     list-style: none;
   }
 
-  .portal-games-scope-list li {
+  .portal-games-scope-list li,
+  .portal-games-model-list li {
     min-width: 0;
     padding: 14px;
     border: 1px solid #d7e4ed;
@@ -139,6 +141,7 @@ const gamesStyles = `
   }
 
   .portal-games-scope-list span,
+  .portal-games-model-list span,
   .portal-games-filter span,
   .portal-games-empty {
     display: block;
@@ -148,7 +151,8 @@ const gamesStyles = `
     text-transform: uppercase;
   }
 
-  .portal-games-scope-list strong {
+  .portal-games-scope-list strong,
+  .portal-games-model-list strong {
     display: block;
     margin-top: 7px;
     color: #102033;
@@ -157,9 +161,16 @@ const gamesStyles = `
     overflow-wrap: anywhere;
   }
 
+  .portal-games-model-list p {
+    margin: 8px 0 0;
+    color: #526274;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
   .portal-games-filters {
     display: grid;
-    grid-template-columns: minmax(190px, 1.4fr) repeat(4, minmax(145px, 1fr)) auto auto;
+    grid-template-columns: minmax(190px, 1.4fr) repeat(5, minmax(135px, 1fr)) auto auto;
     gap: 12px;
     align-items: end;
     margin-top: 16px;
@@ -213,7 +224,7 @@ const gamesStyles = `
 
   .portal-games-table {
     width: 100%;
-    min-width: 1320px;
+    min-width: 1420px;
     border-collapse: collapse;
   }
 
@@ -243,8 +254,8 @@ const gamesStyles = `
     white-space: nowrap;
   }
 
-  .portal-games-table td:nth-child(4),
-  .portal-games-table td:nth-child(6) {
+  .portal-games-table td:nth-child(6),
+  .portal-games-table td:nth-child(8) {
     white-space: nowrap;
   }
 
@@ -311,7 +322,8 @@ const gamesStyles = `
 
     .portal-games-hero,
     .portal-games-filters,
-    .portal-games-scope-list {
+    .portal-games-scope-list,
+    .portal-games-model-list {
       grid-template-columns: 1fr;
     }
 
@@ -338,6 +350,7 @@ const labelMap: Record<string, string> = {
   in_progress: "Em curso",
   live: "Em curso",
   no_result: "Sem resultado",
+  mixed: "Misto",
   unknown: "Não disponível"
 };
 
@@ -408,10 +421,11 @@ function formatUnavailableSection(section: string) {
     competicoes: "competições",
     contextos: "contextos",
     entidades: "entidades",
-    jogos: "jogos",
+    eventos: "eventos",
     participantes: "participantes",
-    resultados: "resultados",
-    "jornadas/fases": "jornadas/fases"
+    "participantes de evento": "participantes de evento",
+    "resultados por participante": "resultados por participante",
+    "estrutura competitiva": "estrutura competitiva"
   };
 
   return labels[section] ?? formatLabel(section);
@@ -426,7 +440,8 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
   const filters = {
     search: firstParam(params.pesquisa).trim(),
     competition: firstParam(params.competicao).trim(),
-    stage: firstParam(params.jornada).trim(),
+    structure: firstParam(params.estrutura).trim() || firstParam(params.jornada).trim(),
+    eventType: firstParam(params.tipo).trim(),
     status: firstParam(params.estado).trim(),
     result: firstParam(params.resultado).trim()
   };
@@ -468,31 +483,37 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
   }
 
   const data = await readPortalGames(supabase, authorization);
-  const gameRows = data.games.map((game) => ({
-    ...game,
-    gameStatusLabel: formatLabel(game.gameStatus),
-    resultStatusLabel: formatLabel(game.resultStatus),
-    scheduledAtLabel: formatDateTime(game.scheduledAt),
-    venueLabel: game.venue?.trim() || "Local por definir",
-    resultPresenceLabel: game.hasResult ? "Com resultado" : "Sem resultado"
+  const eventRows = data.games.map((event) => ({
+    ...event,
+    eventStatusLabel: formatLabel(event.eventStatus),
+    resultStatusLabel: formatLabel(event.resultStatus),
+    scheduledAtLabel: formatDateTime(event.scheduledAt),
+    venueLabel: event.venue?.trim() || "Local por definir",
+    resultPresenceLabel: event.hasResult ? "Com resultado" : "Sem resultado"
   }));
-  const filteredGames = gameRows.filter((game) => {
+  const filteredEvents = eventRows.filter((event) => {
     const normalizedSearch = normalizeFilterValue(filters.search);
-    const searchableText = normalizeFilterValue(`${game.gameLabel} ${game.homeName} ${game.awayName}`);
+    const searchableText = normalizeFilterValue(
+      `${event.eventLabel} ${event.participantLabels.join(" ")} ${event.competitionLabel} ${event.stageLabel}`
+    );
 
     return (
       (!normalizedSearch || searchableText.includes(normalizedSearch)) &&
-      (!filters.competition || game.competitionLabel === filters.competition) &&
-      (!filters.stage || game.stageLabel === filters.stage) &&
-      (!filters.status || game.gameStatusLabel === filters.status) &&
-      (!filters.result || game.resultPresenceLabel === filters.result)
+      (!filters.competition || event.competitionLabel === filters.competition) &&
+      (!filters.structure || event.stageLabel === filters.structure) &&
+      (!filters.eventType || event.eventTypeLabel === filters.eventType) &&
+      (!filters.status || event.eventStatusLabel === filters.status) &&
+      (!filters.result || event.resultPresenceLabel === filters.result)
     );
   });
-  const competitionOptions = uniqueLabels(gameRows.map((game) => game.competitionLabel));
-  const stageOptions = uniqueLabels(gameRows.map((game) => game.stageLabel));
-  const statusOptions = uniqueLabels(gameRows.map((game) => game.gameStatusLabel));
-  const resultOptions = uniqueLabels(gameRows.map((game) => game.resultPresenceLabel));
-  const hasFilters = Boolean(filters.search || filters.competition || filters.stage || filters.status || filters.result);
+  const competitionOptions = uniqueLabels(eventRows.map((event) => event.competitionLabel));
+  const structureOptions = uniqueLabels(eventRows.map((event) => event.stageLabel));
+  const eventTypeOptions = uniqueLabels(eventRows.map((event) => event.eventTypeLabel));
+  const statusOptions = uniqueLabels(eventRows.map((event) => event.eventStatusLabel));
+  const resultOptions = uniqueLabels(eventRows.map((event) => event.resultPresenceLabel));
+  const hasFilters = Boolean(
+    filters.search || filters.competition || filters.structure || filters.eventType || filters.status || filters.result
+  );
 
   return (
     <main className="portal-games-shell">
@@ -500,17 +521,22 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
       <div className="portal-games-wrap">
         <section className="portal-games-hero" aria-labelledby="portal-games-title">
           <div>
-            <p className="portal-games-eyebrow">Portal das Escolas</p>
-            <h1 id="portal-games-title">Jogos</h1>
-            <p className="portal-games-text">Listagem read-only de jogos e calendário disponível para os âmbitos autorizados.</p>
+            <p className="portal-games-eyebrow">Portal das Escolas · Eventos</p>
+            <h1 id="portal-games-title">Eventos</h1>
+            <p className="portal-games-text">
+              Leitura read-only dos eventos autorizados. A rota continua a ser /portal-escolas/jogos por compatibilidade,
+              mas a leitura passa a assumir que jogos são apenas um tipo possível de evento.
+            </p>
           </div>
-          <span className="portal-games-tag">{formatCountLabel(data.games.length, "jogo", "jogos")}</span>
+          <span className="portal-games-tag">{formatCountLabel(data.summary.eventCount, "evento", "eventos")}</span>
         </section>
 
         <PortalEscolasInternalNav current="jogos" />
 
         <nav className="portal-games-actions" aria-label="Navegação do Portal das Escolas">
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>
+          <a href="/portal-escolas/competicoes/demo-torneio-interturmas">Detalhe da competição</a>
+          <a href="/portal-escolas/jornadas">Estrutura competitiva</a>
           <a href="/portal-escolas">Voltar ao portal</a>
         </nav>
 
@@ -518,11 +544,44 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
           <section className="portal-games-notice" aria-labelledby="portal-games-notice-title">
             <h2 id="portal-games-notice-title">Dados parcialmente disponíveis</h2>
             <p>
-              Algumas áreas reais ainda não estão disponíveis para leitura nesta base de dados:{" "}
+              Algumas áreas reais ainda não estão disponíveis para leitura nesta base de dados: {" "}
               {data.unavailableSections.map(formatUnavailableSection).join(", ")}.
             </p>
           </section>
         ) : null}
+
+        <section className="portal-games-section" aria-labelledby="portal-games-model-title">
+          <div className="portal-games-section-header">
+            <div>
+              <p className="portal-games-eyebrow">Modelo multidesporto</p>
+              <h2 id="portal-games-model-title">Jogos são eventos</h2>
+            </div>
+            <span className="portal-games-tag">
+              {formatCountLabel(data.summary.stageCount, "estrutura", "estruturas")} · {formatCountLabel(data.summary.resultEntryCount, "resultado", "resultados")}
+            </span>
+          </div>
+          <p className="portal-games-text">
+            A unidade concreta onde se produz um resultado é o evento. No futebol e no voleibol esse evento pode ser um jogo;
+            no xadrez pode ser uma partida; no atletismo ou na natação pode ser uma prova, série ou final.
+          </p>
+          <ul className="portal-games-model-list">
+            <li>
+              <span>Futebol / voleibol</span>
+              <strong>Jogo</strong>
+              <p>Evento com equipas, marcador, pontos e classificação por jornada ou competição.</p>
+            </li>
+            <li>
+              <span>Xadrez</span>
+              <strong>Partida</strong>
+              <p>Evento de ronda, com pontos e critérios de desempate próprios.</p>
+            </li>
+            <li>
+              <span>Atletismo / natação</span>
+              <strong>Prova, série ou final</strong>
+              <p>Evento com participantes, tempos, marcas, distâncias ou pontuação.</p>
+            </li>
+          </ul>
+        </section>
 
         <section className="portal-games-section" aria-labelledby="portal-games-scope-title">
           <div className="portal-games-section-header">
@@ -549,18 +608,18 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
         <section className="portal-games-section" aria-labelledby="portal-games-list-title">
           <div className="portal-games-section-header">
             <div>
-              <p className="portal-games-eyebrow">Jogos / calendário</p>
-              <h2 id="portal-games-list-title">Jogos visíveis</h2>
+              <p className="portal-games-eyebrow">Estrutura competitiva → eventos</p>
+              <h2 id="portal-games-list-title">Eventos visíveis</h2>
             </div>
             <span className="portal-games-tag">
-              {hasFilters ? `${filteredGames.length} de ${data.games.length}` : `${data.games.length} total`}
+              {hasFilters ? `${filteredEvents.length} de ${data.games.length}` : `${data.games.length} total`}
             </span>
           </div>
 
           <form className="portal-games-filters" method="get">
             <label className="portal-games-filter">
-              <span>Pesquisar jogo/participante</span>
-              <input name="pesquisa" type="search" defaultValue={filters.search} placeholder="Equipa, participante ou jogo" />
+              <span>Pesquisar evento/participante</span>
+              <input name="pesquisa" type="search" defaultValue={filters.search} placeholder="Evento, participante ou competição" />
             </label>
             <label className="portal-games-filter">
               <span>Competição</span>
@@ -574,18 +633,29 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
               </select>
             </label>
             <label className="portal-games-filter">
-              <span>Jornada/fase</span>
-              <select name="jornada" defaultValue={filters.stage}>
+              <span>Estrutura</span>
+              <select name="estrutura" defaultValue={filters.structure}>
                 <option value="">Todas</option>
-                {stageOptions.map((stage) => (
-                  <option key={stage} value={stage}>
-                    {stage}
+                {structureOptions.map((structure) => (
+                  <option key={structure} value={structure}>
+                    {structure}
                   </option>
                 ))}
               </select>
             </label>
             <label className="portal-games-filter">
-              <span>Estado do jogo</span>
+              <span>Tipo de evento</span>
+              <select name="tipo" defaultValue={filters.eventType}>
+                <option value="">Todos</option>
+                {eventTypeOptions.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="portal-games-filter">
+              <span>Estado do evento</span>
               <select name="estado" defaultValue={filters.status}>
                 <option value="">Todos</option>
                 {statusOptions.map((status) => (
@@ -616,41 +686,61 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
             ) : null}
           </form>
 
-          {filteredGames.length > 0 ? (
+          {filteredEvents.length > 0 ? (
             <div className="portal-games-table-wrap">
               <table className="portal-games-table">
                 <thead>
                   <tr>
                     <th>Competição</th>
-                    <th>Jornada/fase</th>
-                    <th>Jogo</th>
+                    <th>Estrutura</th>
+                    <th>Evento</th>
+                    <th>Tipo</th>
+                    <th>Participantes</th>
                     <th>Data/hora</th>
                     <th>Local</th>
                     <th>Resultado</th>
-                    <th>Estado do jogo</th>
+                    <th>Estado do evento</th>
                     <th>Estado do resultado</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredGames.map((game) => (
-                    <tr key={game.key}>
-                      <td>{game.competitionLabel}</td>
-                      <td>{game.stageLabel}</td>
+                  {filteredEvents.map((event) => (
+                    <tr key={event.key}>
+                      <td>
+                        {event.competitionHref ? <a href={event.competitionHref}>{event.competitionLabel}</a> : event.competitionLabel}
+                      </td>
                       <td>
                         <div className="portal-games-match">
-                          <strong>{game.gameLabel}</strong>
-                          <span>{game.homeName}</span>
-                          <span>{game.awayName}</span>
+                          <strong>{event.stageLabel}</strong>
+                          <span>{event.stageTypeLabel}</span>
                         </div>
                       </td>
-                      <td className={game.scheduledAt ? undefined : "portal-games-muted"}>{game.scheduledAtLabel}</td>
-                      <td className={game.venue ? undefined : "portal-games-muted"}>{game.venueLabel}</td>
-                      <td className={game.hasResult ? undefined : "portal-games-muted"}>{game.resultLabel}</td>
                       <td>
-                        <span className="portal-games-tag">{game.gameStatusLabel}</span>
+                        <div className="portal-games-match">
+                          <strong>{event.eventLabel}</strong>
+                          <span>{event.contextLabel}</span>
+                        </div>
+                      </td>
+                      <td>{event.eventTypeLabel}</td>
+                      <td>
+                        <div className="portal-games-match">
+                          <strong>{event.participantSummaryLabel}</strong>
+                          <span>{formatCountLabel(event.participantLabels.length, "participante", "participantes")}</span>
+                        </div>
+                      </td>
+                      <td className={event.scheduledAt ? undefined : "portal-games-muted"}>{event.scheduledAtLabel}</td>
+                      <td className={event.venue ? undefined : "portal-games-muted"}>{event.venueLabel}</td>
+                      <td className={event.hasResult ? undefined : "portal-games-muted"}>
+                        <div className="portal-games-match">
+                          <strong>{event.resultLabel}</strong>
+                          <span>{formatCountLabel(event.resultEntryCount, "entrada", "entradas")}</span>
+                        </div>
                       </td>
                       <td>
-                        <span className="portal-games-tag">{game.resultStatusLabel}</span>
+                        <span className="portal-games-tag">{event.eventStatusLabel}</span>
+                      </td>
+                      <td>
+                        <span className="portal-games-tag">{event.resultStatusLabel}</span>
                       </td>
                     </tr>
                   ))}
@@ -661,8 +751,8 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
             <EmptyState
               message={
                 data.games.length > 0
-                  ? "Não há jogos visíveis com os filtros selecionados."
-                  : "Ainda não há jogos disponíveis para os âmbitos autorizados."
+                  ? "Não há eventos visíveis com os filtros selecionados."
+                  : "Ainda não há eventos disponíveis para os âmbitos autorizados."
               }
             />
           )}
