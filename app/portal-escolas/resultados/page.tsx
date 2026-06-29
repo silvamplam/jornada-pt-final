@@ -287,27 +287,31 @@ const resultsStyles = `
 
   .portal-results-edit-list {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 14px;
     margin-top: 16px;
   }
 
   .portal-results-edit-card {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
-    gap: 10px;
-    align-items: end;
-    padding: 14px;
+    gap: 14px;
+    padding: 16px;
     border: 1px solid #d7e4ed;
-    border-radius: 8px;
+    border-radius: 10px;
     background: #f8fbfd;
   }
 
+  .portal-results-edit-card-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
   .portal-results-edit-card-title {
-    grid-column: 1 / -1;
     margin: 0;
     color: #102033;
-    font-size: 14px;
+    font-size: 17px;
     font-weight: 900;
     line-height: 1.35;
   }
@@ -320,6 +324,64 @@ const resultsStyles = `
     font-weight: 700;
   }
 
+  .portal-results-scoreline-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 78px;
+    padding: 8px 10px;
+    border: 1px solid #cbdce7;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #102033;
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .portal-results-score-form {
+    display: grid;
+    gap: 12px;
+  }
+
+  .portal-results-scoreboard {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 12px;
+    align-items: end;
+  }
+
+  .portal-results-score-participant {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 86px;
+    gap: 10px;
+    align-items: end;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #d7e4ed;
+    border-radius: 8px;
+    background: #ffffff;
+  }
+
+  .portal-results-score-participant strong,
+  .portal-results-score-participant span {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+
+  .portal-results-score-participant span {
+    margin-top: 3px;
+    color: #667789;
+    font-size: 12px;
+  }
+
+  .portal-results-score-separator {
+    padding-bottom: 12px;
+    color: #0f6f8d;
+    font-size: 20px;
+    font-weight: 900;
+  }
+
+  .portal-results-score-input span,
   .portal-results-edit-field span {
     display: block;
     color: #667789;
@@ -328,7 +390,7 @@ const resultsStyles = `
     text-transform: uppercase;
   }
 
-  .portal-results-edit-field input,
+  .portal-results-score-input input,
   .portal-results-edit-field select {
     width: 100%;
     box-sizing: border-box;
@@ -339,6 +401,61 @@ const resultsStyles = `
     background: #ffffff;
     color: #102033;
     font: inherit;
+  }
+
+  .portal-results-score-input input {
+    font-size: 18px;
+    font-weight: 900;
+    text-align: center;
+  }
+
+  .portal-results-edit-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: end;
+    justify-content: flex-end;
+  }
+
+  .portal-results-edit-field {
+    min-width: 160px;
+  }
+
+  .portal-results-auto-note {
+    margin: 0;
+    color: #667789;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .portal-results-event-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .portal-results-event-summary li {
+    padding: 10px;
+    border: 1px solid #d7e4ed;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #102033;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .portal-results-event-summary strong,
+  .portal-results-event-summary span {
+    display: block;
+  }
+
+  .portal-results-event-summary span {
+    margin-top: 3px;
+    color: #667789;
+    font-size: 12px;
   }
 
   .portal-results-empty {
@@ -399,12 +516,17 @@ const resultsStyles = `
       padding: 22px;
     }
 
-    .portal-results-edit-list {
+    .portal-results-scoreboard,
+    .portal-results-event-summary {
       grid-template-columns: 1fr;
     }
 
-    .portal-results-edit-card {
-      grid-template-columns: 1fr;
+    .portal-results-score-separator {
+      display: none;
+    }
+
+    .portal-results-score-participant {
+      grid-template-columns: minmax(0, 1fr) 76px;
     }
   }
 `;
@@ -494,16 +616,6 @@ function formatUnavailableSection(section: string) {
   return labels[section] ?? formatLabel(section);
 }
 
-const outcomeOptions = [
-  { value: "", label: "Sem desfecho" },
-  { value: "win", label: "Vitória" },
-  { value: "draw", label: "Empate" },
-  { value: "loss", label: "Derrota" },
-  { value: "dnf", label: "Não terminou" },
-  { value: "dns", label: "Não iniciou" },
-  { value: "dq", label: "Desclassificado" }
-];
-
 function resultStatusOptions(canValidate: boolean) {
   return [
     { value: "draft", label: "Rascunho" },
@@ -530,11 +642,7 @@ function readOptionalDecimal(value: string) {
 }
 
 function isUuid(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
-
-function cleanOutcome(value: string) {
-  return outcomeOptions.some((option) => option.value === value) ? value || null : null;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
 function cleanResultStatus(value: string, canValidate: boolean) {
@@ -545,7 +653,7 @@ function cleanResultStatus(value: string, canValidate: boolean) {
 
 function resultWriteMessage(status: string) {
   if (status === "guardado") {
-    return "Resultado guardado no modelo novo.";
+    return "Resultado do evento guardado no modelo novo.";
   }
 
   if (status === "sem-permissao") {
@@ -553,7 +661,7 @@ function resultWriteMessage(status: string) {
   }
 
   if (status === "dados-invalidos") {
-    return "Não foi possível guardar: confirma o evento, participante e pelo menos um valor de resultado.";
+    return "Não foi possível guardar: confirma o evento e os dois valores do marcador.";
   }
 
   if (status === "erro") {
@@ -563,7 +671,19 @@ function resultWriteMessage(status: string) {
   return null;
 }
 
-async function savePortalResult(formData: FormData) {
+function deriveHeadToHeadResult(score: number, opponentScore: number) {
+  if (score > opponentScore) {
+    return { points: 3, outcome: "win" };
+  }
+
+  if (score < opponentScore) {
+    return { points: 0, outcome: "loss" };
+  }
+
+  return { points: 1, outcome: "draw" };
+}
+
+async function savePortalEventResults(formData: FormData) {
   "use server";
 
   const supabase = await createPortalEscolasServerClient();
@@ -589,34 +709,90 @@ async function savePortalResult(formData: FormData) {
 
   const canValidate = authorization.permissions.some((permission) => permission.can_validate);
   const eventId = readFormText(formData, "event_id");
-  const participantId = readFormText(formData, "participant_id");
-  const scoreText = readFormText(formData, "score_text").slice(0, 80);
-  const pointsText = readFormText(formData, "points");
-  const scoreNumeric = readOptionalDecimal(scoreText);
-  const points = readOptionalDecimal(pointsText);
-  const outcome = cleanOutcome(readFormText(formData, "outcome"));
+  const participantCount = Number(readFormText(formData, "participant_count"));
   const resultStatus = cleanResultStatus(readFormText(formData, "result_status"), canValidate);
 
-  if (!isUuid(eventId) || !isUuid(participantId) || (!scoreText && points === null && !outcome)) {
+  if (!isUuid(eventId) || !Number.isInteger(participantCount) || participantCount <= 0 || participantCount > 16) {
     redirect("/portal-escolas/resultados?resultado=dados-invalidos");
   }
 
-  const { error } = await supabase.rpc("portal_upsert_result_entry", {
-    p_portal_event_id: eventId,
-    p_portal_participant_id: participantId,
-    p_score_text: scoreText || null,
-    p_score_numeric: scoreNumeric,
-    p_points: points,
-    p_outcome: outcome,
-    p_result_status: resultStatus
-  });
+  const entries = Array.from({ length: participantCount }, (_, index) => {
+    const participantId = readFormText(formData, `participant_id_${index}`);
+    const scoreText = readFormText(formData, `score_text_${index}`).slice(0, 80);
+    const scoreNumeric = readOptionalDecimal(scoreText);
 
-  if (error) {
-    redirect("/portal-escolas/resultados?resultado=erro");
+    return {
+      participantId,
+      scoreText,
+      scoreNumeric,
+      points: null as number | null,
+      outcome: null as string | null
+    };
+  }).filter((entry) => isUuid(entry.participantId) && entry.scoreText);
+
+  if (entries.length === 0) {
+    redirect("/portal-escolas/resultados?resultado=dados-invalidos");
+  }
+
+  if (entries.length === 2 && entries.every((entry) => entry.scoreNumeric !== null)) {
+    const firstScore = entries[0].scoreNumeric as number;
+    const secondScore = entries[1].scoreNumeric as number;
+    const firstDerived = deriveHeadToHeadResult(firstScore, secondScore);
+    const secondDerived = deriveHeadToHeadResult(secondScore, firstScore);
+
+    entries[0].points = firstDerived.points;
+    entries[0].outcome = firstDerived.outcome;
+    entries[1].points = secondDerived.points;
+    entries[1].outcome = secondDerived.outcome;
+  }
+
+  for (const entry of entries) {
+    const { error } = await supabase.rpc("portal_upsert_result_entry", {
+      p_portal_event_id: eventId,
+      p_portal_participant_id: entry.participantId,
+      p_score_text: entry.scoreText,
+      p_score_numeric: entry.scoreNumeric,
+      p_points: entry.points,
+      p_outcome: entry.outcome,
+      p_result_status: resultStatus
+    });
+
+    if (error) {
+      redirect("/portal-escolas/resultados?resultado=erro");
+    }
   }
 
   revalidatePath("/portal-escolas/resultados");
   redirect("/portal-escolas/resultados?resultado=guardado");
+}
+function resultRoleOrder(roleLabel: string) {
+  const normalized = normalizeFilterValue(roleLabel);
+
+  if (normalized === "casa") {
+    return 0;
+  }
+
+  if (normalized === "fora") {
+    return 1;
+  }
+
+  return 2;
+}
+
+function sortEventResults<T extends { participantRoleLabel: string; participantLabel: string }>(results: T[]) {
+  return [...results].sort(
+    (first, second) =>
+      resultRoleOrder(first.participantRoleLabel) - resultRoleOrder(second.participantRoleLabel) ||
+      first.participantLabel.localeCompare(second.participantLabel, "pt")
+  );
+}
+
+function makeEventScoreline(results: Array<{ hasResult: boolean; scoreLabel: string }>) {
+  if (results.length < 2 || !results.every((result) => result.hasResult)) {
+    return "Sem resultado";
+  }
+
+  return results.map((result) => result.scoreLabel).join(" - ");
 }
 
 function EmptyState({ message }: { message: string }) {
@@ -678,8 +854,8 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
     resultStatusLabel: formatLabel(result.resultStatus),
     eventStatusLabel: formatLabel(result.eventStatus)
   }));
-  const filteredResults = resultRows.filter((result) => {
-    const normalizedSearch = normalizeFilterValue(filters.search);
+  const normalizedSearch = normalizeFilterValue(filters.search);
+  const matchesFilters = (result: (typeof resultRows)[number]) => {
     const searchableText = normalizeFilterValue(`${result.eventLabel} ${result.participantLabel} ${result.scoreLabel} ${result.outcomeLabel}`);
 
     return (
@@ -689,7 +865,7 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
       (!filters.eventType || result.eventTypeLabel === filters.eventType) &&
       (!filters.status || result.resultStatusLabel === filters.status)
     );
-  });
+  };
   const competitionOptions = uniqueLabels(resultRows.map((result) => result.competitionLabel));
   const structureOptions = uniqueLabels(resultRows.map((result) => result.stageLabel));
   const eventTypeOptions = uniqueLabels(resultRows.map((result) => result.eventTypeLabel));
@@ -697,6 +873,30 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
   const hasFilters = Boolean(filters.search || filters.competition || filters.structure || filters.eventType || filters.status);
   const writeNotice = resultWriteMessage(resultWriteStatus);
   const statusEditOptions = resultStatusOptions(canValidateResults);
+  const allEventGroups = Array.from(
+    resultRows
+      .reduce((groups, result) => {
+        const existingGroup = groups.get(result.eventId);
+
+        if (existingGroup) {
+          existingGroup.results.push(result);
+          return groups;
+        }
+
+        groups.set(result.eventId, {
+          eventId: result.eventId,
+          eventLabel: result.eventLabel,
+          eventTypeLabel: result.eventTypeLabel,
+          stageLabel: result.stageLabel,
+          competitionLabel: result.competitionLabel,
+          results: [result]
+        });
+
+        return groups;
+      }, new Map<string, { eventId: string; eventLabel: string; eventTypeLabel: string; stageLabel: string; competitionLabel: string; results: typeof resultRows }>())
+      .values()
+  ).map((group) => ({ ...group, results: sortEventResults(group.results) }));
+  const eventGroups = allEventGroups.filter((group) => group.results.some(matchesFilters));
 
   return (
     <main className="portal-results-shell">
@@ -795,11 +995,11 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
         <section className="portal-results-section" aria-labelledby="portal-results-list-title">
           <div className="portal-results-section-header">
             <div>
-              <p className="portal-results-eyebrow">Evento → Participante → Resultado</p>
-              <h2 id="portal-results-list-title">Resultados visíveis</h2>
+              <p className="portal-results-eyebrow">Evento → Marcador → Registo técnico</p>
+              <h2 id="portal-results-list-title">Resultados por evento</h2>
             </div>
             <span className="portal-results-tag">
-              {hasFilters ? `${filteredResults.length} de ${data.results.length}` : `${data.results.length} linhas`}
+              {hasFilters ? `${eventGroups.length} de ${allEventGroups.length}` : formatCountLabel(allEventGroups.length, "evento", "eventos")}
             </span>
           </div>
 
@@ -862,116 +1062,113 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
             ) : null}
           </form>
 
-          {canEditResults ? (
-            <div className="portal-results-edit-list" aria-label="Inserção e edição de resultados demo">
-              {filteredResults.map((result) => (
-                <form key={`edit-${result.key}`} className="portal-results-edit-card" action={savePortalResult}>
-                  <input type="hidden" name="event_id" value={result.eventId} />
-                  <input type="hidden" name="participant_id" value={result.participantId} />
-                  <p className="portal-results-edit-card-title">
-                    {result.participantLabel}
-                    <span>{result.eventLabel} · {result.stageLabel}</span>
-                  </p>
-                  <label className="portal-results-edit-field">
-                    <span>Resultado</span>
-                    <input name="score_text" defaultValue={result.scoreTextValue} placeholder="Ex.: 2, 1:03.4, 5.20m" />
-                  </label>
-                  <label className="portal-results-edit-field">
-                    <span>Pontos</span>
-                    <input name="points" inputMode="decimal" defaultValue={result.pointsValue} placeholder="Ex.: 3" />
-                  </label>
-                  <label className="portal-results-edit-field">
-                    <span>Desfecho</span>
-                    <select name="outcome" defaultValue={result.outcomeValue}>
-                      {outcomeOptions.map((option) => (
-                        <option key={option.value || "empty"} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="portal-results-edit-field">
-                    <span>Estado</span>
-                    <select name="result_status" defaultValue={statusEditOptions.some((option) => option.value === result.resultStatus) ? result.resultStatus : "submitted"}>
-                      {statusEditOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button className="portal-results-button" type="submit">
-                    Guardar
-                  </button>
-                </form>
-              ))}
-            </div>
-          ) : (
-            <section className="portal-results-notice" aria-label="Permissão de edição de resultados">
-              <p>Esta sessão tem leitura ativa, mas não tem permissão de edição de resultados.</p>
-            </section>
-          )}
+          {eventGroups.length > 0 ? (
+            <div className="portal-results-edit-list" aria-label="Resultados por evento">
+              {eventGroups.map((group) => {
+                const isEditableEvent = canEditResults && group.results.length === 2;
+                const currentStatus = group.results.find((result) => result.resultStatus !== "no_result")?.resultStatus ?? "submitted";
 
-          {filteredResults.length > 0 ? (
-            <div className="portal-results-table-wrap">
-              <table className="portal-results-table">
-                <thead>
-                  <tr>
-                    <th>Competição</th>
-                    <th>Estrutura</th>
-                    <th>Evento</th>
-                    <th>Participante</th>
-                    <th>Resultado</th>
-                    <th>Pontos</th>
-                    <th>Desfecho</th>
-                    <th>Estado do resultado</th>
-                    <th>Estado do evento</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredResults.map((result) => (
-                    <tr key={result.key}>
-                      <td>
-                        {result.competitionHref ? <a href={result.competitionHref}>{result.competitionLabel}</a> : result.competitionLabel}
-                      </td>
-                      <td>
-                        <div className="portal-results-record">
-                          <strong>{result.stageLabel}</strong>
-                          <span>{result.stageTypeLabel}</span>
+                return (
+                  <article key={`event-result-${group.eventId}`} className="portal-results-edit-card">
+                    <div className="portal-results-edit-card-header">
+                      <p className="portal-results-edit-card-title">
+                        {group.eventLabel}
+                        <span>{group.competitionLabel} · {group.stageLabel} · {group.eventTypeLabel}</span>
+                      </p>
+                      <span className="portal-results-scoreline-tag">{makeEventScoreline(group.results)}</span>
+                    </div>
+
+                    {isEditableEvent ? (
+                      <form className="portal-results-score-form" action={savePortalEventResults}>
+                        <input type="hidden" name="event_id" value={group.eventId} />
+                        <input type="hidden" name="participant_count" value={String(group.results.length)} />
+                        <div className="portal-results-scoreboard">
+                          <div className="portal-results-score-participant">
+                            <input type="hidden" name="participant_id_0" value={group.results[0]?.participantId ?? ""} />
+                            <div>
+                              <strong>{group.results[0]?.participantLabel}</strong>
+                              <span>{group.results[0]?.participantRoleLabel}</span>
+                            </div>
+                            <label className="portal-results-score-input">
+                              <span>Marcador</span>
+                              <input
+                                name="score_text_0"
+                                inputMode="decimal"
+                                defaultValue={group.results[0]?.scoreTextValue ?? ""}
+                                placeholder="0"
+                                aria-label={`Marcador de ${group.results[0]?.participantLabel ?? "participante"}`}
+                              />
+                            </label>
+                          </div>
+                          <span className="portal-results-score-separator">-</span>
+                          <div className="portal-results-score-participant">
+                            <input type="hidden" name="participant_id_1" value={group.results[1]?.participantId ?? ""} />
+                            <div>
+                              <strong>{group.results[1]?.participantLabel}</strong>
+                              <span>{group.results[1]?.participantRoleLabel}</span>
+                            </div>
+                            <label className="portal-results-score-input">
+                              <span>Marcador</span>
+                              <input
+                                name="score_text_1"
+                                inputMode="decimal"
+                                defaultValue={group.results[1]?.scoreTextValue ?? ""}
+                                placeholder="0"
+                                aria-label={`Marcador de ${group.results[1]?.participantLabel ?? "participante"}`}
+                              />
+                            </label>
+                          </div>
                         </div>
-                      </td>
-                      <td>
-                        <div className="portal-results-record">
-                          <strong>{result.eventLabel}</strong>
-                          <span>{result.eventTypeLabel}</span>
+                        <div className="portal-results-edit-form-actions">
+                          <p className="portal-results-auto-note">
+                            Introduz apenas o marcador. Pontos e desfecho do evento são calculados automaticamente nesta gravação.
+                          </p>
+                          <label className="portal-results-edit-field">
+                            <span>Estado</span>
+                            <select
+                              name="result_status"
+                              defaultValue={statusEditOptions.some((option) => option.value === currentStatus) ? currentStatus : "submitted"}
+                            >
+                              {statusEditOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <button className="portal-results-button" type="submit">
+                            Guardar resultado
+                          </button>
                         </div>
-                      </td>
-                      <td>
-                        <div className="portal-results-record">
+                      </form>
+                    ) : canEditResults ? (
+                      <EmptyState message="Este evento não tem exatamente dois participantes. Nesta fase demo, a edição direta está limitada a jogos/eventos com dois participantes." />
+                    ) : (
+                      <section className="portal-results-notice" aria-label="Permissão de edição de resultados">
+                        <p>Esta sessão tem leitura ativa, mas não tem permissão de edição de resultados.</p>
+                      </section>
+                    )}
+
+                    <ul className="portal-results-event-summary" aria-label="Registo técnico do evento">
+                      {group.results.map((result) => (
+                        <li key={`summary-${result.key}`}>
                           <strong>{result.participantLabel}</strong>
-                          <span>{result.participantRoleLabel}</span>
-                        </div>
-                      </td>
-                      <td className={result.hasResult ? undefined : "portal-results-muted"}>{result.scoreLabel}</td>
-                      <td className={result.hasResult ? undefined : "portal-results-muted"}>{result.pointsLabel}</td>
-                      <td className={result.hasResult ? undefined : "portal-results-muted"}>{result.outcomeLabel}</td>
-                      <td>
-                        <span className="portal-results-tag">{result.resultStatusLabel}</span>
-                      </td>
-                      <td>
-                        <span className="portal-results-tag">{result.eventStatusLabel}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          <span>
+                            {result.scoreLabel} · {result.pointsLabel} pontos · {result.outcomeLabel} · {result.resultStatusLabel}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                );
+              })}
             </div>
           ) : (
             <EmptyState
               message={
                 data.results.length > 0
                   ? "Não há resultados visíveis com os filtros selecionados."
-                  : "Ainda não há resultados por evento e participante disponíveis para os âmbitos autorizados."
+                  : "Ainda não há resultados por evento disponíveis para os âmbitos autorizados."
               }
             />
           )}
