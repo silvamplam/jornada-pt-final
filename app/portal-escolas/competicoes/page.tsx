@@ -766,6 +766,11 @@ export default async function PortalEscolasCompeticoesPage({ searchParams }: Com
                         <div className="portal-competitions-title">
                           <strong>{competition.name}</strong>
                           <span>{competition.entityLabel}</span>
+                          {competition.slug ? (
+                            <a className="portal-competitions-modality-link" href={`/portal-escolas/competicoes/${competition.slug}`}>
+                              Abrir detalhe da competição
+                            </a>
+                          ) : null}
                         </div>
                       </td>
                       <td>{competition.contextLabel}</td>
