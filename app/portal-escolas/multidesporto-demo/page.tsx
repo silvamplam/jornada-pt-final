@@ -352,10 +352,10 @@ export default async function PortalEscolasMultisportDemoPage() {
 
         <PortalEscolasInternalNav current="multidesporto" />
 
-        <nav className="portal-multisport-actions" aria-label="Navegação do Portal das Escolas">
+        <nav className="portal-multisport-actions" aria-label="Ações da página técnica multidesporto">
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>
-          <a href="/portal-escolas/jogos">Jogos atuais</a>
-          <a href="/portal-escolas/resultados">Resultados atuais</a>
+          <a href="/portal-escolas/jogos">Eventos</a>
+          <a href="/portal-escolas/resultados">Resultados</a>
         </nav>
 
         {data.unavailableSections.length > 0 ? (

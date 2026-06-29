@@ -533,10 +533,8 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
 
         <PortalEscolasInternalNav current="jogos" />
 
-        <nav className="portal-games-actions" aria-label="Navegação do Portal das Escolas">
+        <nav className="portal-games-actions" aria-label="Ações da página de eventos">
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>
-          <a href="/portal-escolas/competicoes/demo-torneio-interturmas">Detalhe da competição</a>
-          <a href="/portal-escolas/jornadas">Estrutura competitiva</a>
           <a href="/portal-escolas">Voltar ao portal</a>
         </nav>
 

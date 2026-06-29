@@ -364,10 +364,10 @@ function formatUnavailableSection(section: string) {
     contextos: "contextos",
     entidades: "entidades",
     inscricoes: "inscrições",
-    jogos: "jogos",
+    jogos: "eventos",
     participantes: "participantes",
     resultados: "resultados",
-    "jornadas/fases": "jornadas/fases"
+    "jornadas/fases": "estrutura competitiva"
   };
 
   return labels[section] ?? section;
@@ -517,8 +517,8 @@ export default async function PortalEscolasPainelPage() {
           <a href="#portal-panel-scope">Âmbito</a>
           <a href="#portal-panel-summary">Resumo</a>
           <a href="#portal-panel-participants">Participantes</a>
-          <a href="#portal-panel-stages">Jornadas</a>
-          <a href="#portal-panel-games">Jogos</a>
+          <a href="#portal-panel-stages">Estrutura</a>
+          <a href="#portal-panel-games">Eventos</a>
           <a href="#portal-panel-results">Resultados</a>
           <a href="#portal-panel-content">Conteúdos</a>
         </nav>
@@ -631,11 +631,11 @@ export default async function PortalEscolasPainelPage() {
               </div>
               <div className="portal-panel-metric">
                 <strong>{dashboard.counts.stages}</strong>
-                <span>Jornadas/fases</span>
+                <span>Estruturas</span>
               </div>
               <div className="portal-panel-metric">
                 <strong>{dashboard.counts.games}</strong>
-                <span>Jogos</span>
+                <span>Eventos</span>
               </div>
               <div className="portal-panel-metric">
                 <strong>{dashboard.counts.results}</strong>
@@ -681,8 +681,8 @@ export default async function PortalEscolasPainelPage() {
         <section id="portal-panel-stages" className="portal-panel-section" aria-labelledby="portal-panel-stages-title">
           <div className="portal-panel-section-header">
             <div>
-              <p className="portal-panel-eyebrow">Calendário</p>
-              <h2 id="portal-panel-stages-title">Jornadas/fases</h2>
+              <p className="portal-panel-eyebrow">Estrutura competitiva</p>
+              <h2 id="portal-panel-stages-title">Estrutura</h2>
             </div>
             <span className="portal-panel-tag">{dashboard.counts.stages}</span>
           </div>
@@ -700,18 +700,18 @@ export default async function PortalEscolasPainelPage() {
               ))}
             </ul>
           ) : (
-            <EmptyState message="Ainda não há jornadas ou fases disponíveis." />
+            <EmptyState message="Ainda não há estruturas competitivas disponíveis." />
           )}
-          <nav className="portal-panel-actions" aria-label="Navegação de jornadas/fases">
-            <a href="/portal-escolas/jornadas">Ver todas as jornadas/fases</a>
+          <nav className="portal-panel-actions" aria-label="Navegação de estrutura competitiva">
+            <a href="/portal-escolas/jornadas">Ver toda a estrutura</a>
           </nav>
         </section>
 
         <section id="portal-panel-games" className="portal-panel-section" aria-labelledby="portal-panel-games-title">
           <div className="portal-panel-section-header">
             <div>
-              <p className="portal-panel-eyebrow">Calendário</p>
-              <h2 id="portal-panel-games-title">Jogos</h2>
+              <p className="portal-panel-eyebrow">Eventos</p>
+              <h2 id="portal-panel-games-title">Eventos</h2>
             </div>
             <span className="portal-panel-tag">{dashboard.counts.games}</span>
           </div>
@@ -734,10 +734,10 @@ export default async function PortalEscolasPainelPage() {
               ))}
             </ul>
           ) : (
-            <EmptyState message="Ainda não há jogos disponíveis." />
+            <EmptyState message="Ainda não há eventos disponíveis." />
           )}
-          <nav className="portal-panel-actions" aria-label="Navegação de jogos">
-            <a href="/portal-escolas/jogos">Ver todos os jogos</a>
+          <nav className="portal-panel-actions" aria-label="Navegação de eventos">
+            <a href="/portal-escolas/jogos">Ver todos os eventos</a>
           </nav>
         </section>
 
