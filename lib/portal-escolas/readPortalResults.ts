@@ -84,6 +84,7 @@ type PortalResultEntryRow = RowWithId & {
   portal_competition_id: string;
   portal_stage_id: string | null;
   portal_event_id: string;
+  portal_event_participant_id: string | null;
   portal_participant_id: string;
   score_numeric: number | string | null;
   score_text: string | null;
@@ -102,6 +103,10 @@ export type PortalResultScope = {
 
 export type PortalResultRecord = {
   key: string;
+  eventId: string;
+  eventParticipantId: string | null;
+  participantId: string;
+  resultEntryId: string | null;
   competitionLabel: string;
   competitionHref: string | null;
   contextLabel: string;
@@ -112,8 +117,12 @@ export type PortalResultRecord = {
   participantLabel: string;
   participantRoleLabel: string;
   scoreLabel: string;
+  scoreTextValue: string;
+  scoreNumericValue: string;
   pointsLabel: string;
+  pointsValue: string;
   outcomeLabel: string;
+  outcomeValue: string;
   resultStatus: string;
   eventStatus: string;
   scheduledAt: string | null;
@@ -396,7 +405,7 @@ async function readResultEntries(supabase: SupabaseClient, eventIds: string[]) {
   return readRows<PortalResultEntryRow>(
     supabase,
     "portal_result_entries",
-    "id,portal_entity_id,portal_context_id,portal_modality_id,portal_competition_id,portal_stage_id,portal_event_id,portal_participant_id,score_numeric,score_text,points,outcome,is_winner,result_status",
+    "id,portal_entity_id,portal_context_id,portal_modality_id,portal_competition_id,portal_stage_id,portal_event_id,portal_event_participant_id,portal_participant_id,score_numeric,score_text,points,outcome,is_winner,result_status",
     {
       sectionLabel: "resultados por participante",
       limit: LOOKUP_LIMIT,
@@ -462,6 +471,22 @@ function makeOutcomeLabel(entry: PortalResultEntryRow | undefined) {
   return formatLabel(entry.outcome, "—");
 }
 
+function makeScoreTextValue(entry: PortalResultEntryRow | undefined) {
+  return formatValue(entry?.score_text ?? entry?.score_numeric, "");
+}
+
+function makeScoreNumericValue(entry: PortalResultEntryRow | undefined) {
+  return formatValue(entry?.score_numeric, "");
+}
+
+function makePointsValue(entry: PortalResultEntryRow | undefined) {
+  return formatValue(entry?.points, "");
+}
+
+function makeOutcomeValue(entry: PortalResultEntryRow | undefined) {
+  return entry?.outcome ?? "";
+}
+
 function makeResults(
   events: PortalEventRow[],
   eventParticipants: PortalEventParticipantRow[],
@@ -497,6 +522,10 @@ function makeResults(
 
     recordsByKey.set(makeResultKey(eventParticipant.portal_event_id, eventParticipant.portal_participant_id), {
       key: makeResultKey(eventParticipant.portal_event_id, eventParticipant.portal_participant_id),
+      eventId: eventParticipant.portal_event_id,
+      eventParticipantId: eventParticipant.id,
+      participantId: eventParticipant.portal_participant_id,
+      resultEntryId: entry?.id ?? null,
       competitionLabel: competition?.name ?? "Competição autorizada",
       competitionHref: slugHref(competition?.slug ?? null),
       contextLabel: contextsById.get(event.portal_context_id)?.label ?? "Contexto autorizado",
@@ -507,8 +536,12 @@ function makeResults(
       participantLabel,
       participantRoleLabel: formatLabel(eventParticipant.role, "Participante"),
       scoreLabel: makeScoreLabel(entry),
+      scoreTextValue: makeScoreTextValue(entry),
+      scoreNumericValue: makeScoreNumericValue(entry),
       pointsLabel: makePointsLabel(entry),
+      pointsValue: makePointsValue(entry),
       outcomeLabel: makeOutcomeLabel(entry),
+      outcomeValue: makeOutcomeValue(entry),
       resultStatus: entry?.result_status ?? "no_result",
       eventStatus: event.status,
       scheduledAt: event.scheduled_at,
@@ -529,6 +562,10 @@ function makeResults(
 
     recordsByKey.set(key, {
       key,
+      eventId: entry.portal_event_id,
+      eventParticipantId: entry.portal_event_participant_id,
+      participantId: entry.portal_participant_id,
+      resultEntryId: entry.id,
       competitionLabel: competition?.name ?? "Competição autorizada",
       competitionHref: slugHref(competition?.slug ?? null),
       contextLabel: contextsById.get(entry.portal_context_id)?.label ?? "Contexto autorizado",
@@ -539,8 +576,12 @@ function makeResults(
       participantLabel: participantsById.get(entry.portal_participant_id)?.name ?? "Participante não disponível",
       participantRoleLabel: "Participante",
       scoreLabel: makeScoreLabel(entry),
+      scoreTextValue: makeScoreTextValue(entry),
+      scoreNumericValue: makeScoreNumericValue(entry),
       pointsLabel: makePointsLabel(entry),
+      pointsValue: makePointsValue(entry),
       outcomeLabel: makeOutcomeLabel(entry),
+      outcomeValue: makeOutcomeValue(entry),
       resultStatus: entry.result_status ?? "unknown",
       eventStatus: event?.status ?? "unknown",
       scheduledAt: event?.scheduled_at ?? null,

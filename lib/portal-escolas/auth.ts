@@ -38,6 +38,8 @@ export type PortalPermissionRow = {
   portal_context_id: string | null;
   portal_competition_id: string | null;
   can_view: boolean;
+  can_edit: boolean;
+  can_validate: boolean;
   status: string;
 };
 
@@ -245,7 +247,7 @@ export async function readPortalAuthorization(
 
   const { data: permissions, error: permissionsError } = await supabase
     .from("portal_permissions")
-    .select("id,portal_entity_id,portal_context_id,portal_competition_id,can_view,status")
+    .select("id,portal_entity_id,portal_context_id,portal_competition_id,can_view,can_edit,can_validate,status")
     .eq("portal_user_id", portalUser.id)
     .eq("status", "active")
     .eq("can_view", true)
