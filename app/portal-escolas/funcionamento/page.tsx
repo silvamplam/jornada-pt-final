@@ -230,11 +230,14 @@ const funcionamentoStyles = `
 const informationFlow = [
   "Entidade",
   "Contexto",
+  "Modalidade",
   "Competição",
-  "Jornadas/Fases",
+  "Formato",
+  "Estrutura competitiva",
+  "Evento",
   "Participantes",
-  "Jogos",
   "Resultados",
+  "Ranking/Classificação",
   "Conteúdos",
   "Validação",
   "Publicação"
@@ -250,30 +253,42 @@ const structureItems = [
     text: "Ano letivo, projeto, programa, época, torneio ou enquadramento operacional onde a atividade decorre."
   },
   {
+    title: "Modalidade",
+    text: "Define o universo desportivo da atividade: futebol, atletismo, xadrez, natação, voleibol ou outra modalidade."
+  },
+  {
     title: "Competição",
-    text: "Torneio, liga, fase competitiva, encontro ou outra organização desportiva ligada ao contexto autorizado."
+    text: "Organização desportiva ligada ao contexto autorizado e à modalidade escolhida."
+  },
+  {
+    title: "Formato",
+    text: "Define a mecânica competitiva: campeonato por jornadas, taça, torneio suíço, meeting, prova por marcas ou ranking."
   }
 ];
 
 const activityItems = [
   {
-    title: "Participantes e equipas",
-    text: "Representam os grupos, equipas ou inscrições associadas a uma competição e ao respetivo contexto."
+    title: "Estrutura competitiva",
+    text: "Pode ser composta por jornadas, fases, rondas, séries, grupos, provas, etapas ou blocos de calendário."
   },
   {
-    title: "Jornadas e fases",
-    text: "Organizam a atividade em momentos de calendário, etapas competitivas ou blocos de acompanhamento."
+    title: "Eventos",
+    text: "São as unidades concretas onde acontece a competição: jogos, provas, partidas, corridas, exercícios ou encontros."
   },
   {
-    title: "Jogos e resultados",
-    text: "Ligam participantes, calendário e dados estruturados que suportam consulta, classificação e narrativa editorial."
+    title: "Participantes",
+    text: "Podem ser equipas, turmas, atletas, pares, escolas, grupos ou outros inscritos, conforme a modalidade e o formato."
+  },
+  {
+    title: "Resultados e rankings",
+    text: "Podem ser golos, pontos, tempos, marcas, distâncias, sets, desempates, classificações ou rankings por prova/escalão."
   }
 ];
 
 const contentItems = [
   {
     title: "Conteúdos",
-    text: "Podem documentar a atividade com notícias, vídeos, reportagens, notas, resumos ou outros formatos editoriais."
+    text: "Documentam a atividade com notícias, vídeos, reportagens, notas, resumos ou outros formatos editoriais."
   },
   {
     title: "Validação",
@@ -281,7 +296,7 @@ const contentItems = [
   },
   {
     title: "Publicação",
-    text: "Transforma informação interna validada em conteúdo público organizado e contextualizado na Jornada.pt."
+    text: "Transforma informação validada em conteúdo público organizado no contexto certo da Jornada.pt."
   }
 ];
 
@@ -296,7 +311,7 @@ const roleItems = [
   },
   {
     title: "Organizador",
-    text: "Estrutura competições, participantes, jornadas, jogos e resultados."
+    text: "Estrutura modalidades, competições, formatos, participantes, eventos, resultados e rankings."
   },
   {
     title: "Colaborador/editor",
@@ -316,13 +331,44 @@ const availableModules = [
   ["Painel", "Resumo operacional dos dados autorizados."],
   ["Perfil e acesso", "Dados da conta, âmbitos e permissões de leitura."],
   ["Contextos", "Contextos de trabalho associados às permissões existentes."],
-  ["Competições", "Competições autorizadas e respetiva organização."],
-  ["Participantes", "Participantes e equipas visíveis nos âmbitos autorizados."],
-  ["Jornadas/fases", "Etapas, fases e jornadas ligadas à atividade."],
-  ["Jogos", "Calendário e jogos associados às competições."],
-  ["Resultados", "Dados de resultados disponíveis para consulta."],
+  ["Modalidades", "Modalidades formais que definem o universo desportivo das competições."],
+  ["Competições", "Competições autorizadas, ligadas a modalidade e formato competitivo."],
+  ["Participantes", "Equipas, atletas, turmas, escolas ou inscrições visíveis nos âmbitos autorizados."],
+  ["Jornadas/fases", "Estruturas competitivas como jornadas, fases, rondas, séries, grupos, provas ou etapas."],
+  ["Jogos", "Área atual para jogos/eventos associados às competições, mantendo compatibilidade com o modelo existente."],
+  ["Resultados", "Resultados, classificações e rankings disponíveis para consulta."],
   ["Conteúdos", "Submissões e conteúdos disponíveis em modo protegido."]
 ];
+const principleItems = [
+  {
+    title: "Modalidade",
+    text: "Escolhe o universo desportivo: futebol, atletismo, xadrez, natação, voleibol, ginástica ou outra modalidade."
+  },
+  {
+    title: "Formato",
+    text: "Escolhe a mecânica competitiva: jornadas, eliminatórias, grupos, torneio suíço, meeting, prova por marcas ou ranking."
+  },
+  {
+    title: "Evento",
+    text: "É a unidade concreta que gera resultado: jogo, prova, partida, corrida, exercício, série ou encontro."
+  }
+];
+
+const exampleItems = [
+  {
+    title: "Futebol",
+    text: "Campeonato por jornadas → jogos → golos → classificação por pontos."
+  },
+  {
+    title: "Atletismo",
+    text: "Meeting/provas → séries ou finais → tempos, marcas ou distâncias → rankings por prova, escalão ou escola."
+  },
+  {
+    title: "Xadrez",
+    text: "Torneio suíço → rondas → partidas → pontos e critérios de desempate."
+  }
+];
+
 
 function Card({ title, text }: { title: string; text: string }) {
   return (
@@ -380,8 +426,9 @@ export default async function PortalEscolasFuncionamentoPage() {
             <p className="portal-functioning-eyebrow">Portal das Escolas</p>
             <h1 id="portal-functioning-title">Funcionamento do Portal das Escolas</h1>
             <p className="portal-functioning-text">
-              O Portal organiza a atividade desportiva escolar e local por entidades, contextos, competições, jornadas,
-              jogos, resultados e conteúdos, com acesso protegido e validação adequada antes da publicação.
+              O Portal organiza a atividade desportiva escolar e local por entidades, contextos, modalidades, competições,
+              formatos, eventos, participantes, resultados, rankings e conteúdos, com acesso protegido e validação adequada
+              antes da publicação.
             </p>
           </div>
           <span className="portal-functioning-tag">Guia do portal</span>
@@ -404,15 +451,29 @@ export default async function PortalEscolasFuncionamentoPage() {
           </ul>
           <p>
             A informação no Portal das Escolas é organizada por níveis. Cada entidade pode estar associada a um ou mais
-            contextos de trabalho. Dentro desses contextos podem existir competições, fases, jornadas, participantes,
-            jogos, resultados e conteúdos. Esta estrutura permite que a informação seja consultada, preparada, validada e
-            publicada de forma coerente.
+            contextos de trabalho. Dentro desses contextos podem existir modalidades, competições, formatos competitivos,
+            estruturas, eventos, participantes, resultados, rankings e conteúdos. Esta estrutura permite que modalidades
+            diferentes sejam tratadas de forma própria, sem obrigar todas a seguir a lógica do futebol.
           </p>
+        </section>
+
+        <section className="portal-functioning-section" aria-labelledby="portal-functioning-principles-title">
+          <p className="portal-functioning-eyebrow">Princípio multidesporto</p>
+          <h2 id="portal-functioning-principles-title">Modalidade, formato e evento</h2>
+          <p>
+            A modalidade define o universo desportivo. O formato define a mecânica competitiva. O evento é a unidade
+            concreta onde a competição acontece e onde se produz um resultado.
+          </p>
+          <div className="portal-functioning-grid">
+            {principleItems.map((item) => (
+              <Card key={item.title} title={item.title} text={item.text} />
+            ))}
+          </div>
         </section>
 
         <section className="portal-functioning-section" aria-labelledby="portal-functioning-structure-title">
           <p className="portal-functioning-eyebrow">Estrutura</p>
-          <h2 id="portal-functioning-structure-title">Entidades, contextos e competições</h2>
+          <h2 id="portal-functioning-structure-title">Entidades, contextos, modalidades e formatos</h2>
           <div className="portal-functioning-grid">
             {structureItems.map((item) => (
               <Card key={item.title} title={item.title} text={item.text} />
@@ -422,9 +483,23 @@ export default async function PortalEscolasFuncionamentoPage() {
 
         <section className="portal-functioning-section" aria-labelledby="portal-functioning-activity-title">
           <p className="portal-functioning-eyebrow">Atividade</p>
-          <h2 id="portal-functioning-activity-title">Participantes, jornadas, jogos e resultados</h2>
+          <h2 id="portal-functioning-activity-title">Estruturas, eventos, participantes e resultados</h2>
           <div className="portal-functioning-grid">
             {activityItems.map((item) => (
+              <Card key={item.title} title={item.title} text={item.text} />
+            ))}
+          </div>
+        </section>
+
+        <section className="portal-functioning-section" aria-labelledby="portal-functioning-examples-title">
+          <p className="portal-functioning-eyebrow">Exemplos</p>
+          <h2 id="portal-functioning-examples-title">A mesma árvore adapta-se à modalidade</h2>
+          <p>
+            O futebol continua a caber no Portal, mas deixa de ser o modelo-base de todas as modalidades. Cada modalidade
+            usa a estrutura e a linguagem que fazem sentido para o seu formato competitivo.
+          </p>
+          <div className="portal-functioning-grid">
+            {exampleItems.map((item) => (
               <Card key={item.title} title={item.title} text={item.text} />
             ))}
           </div>
@@ -469,7 +544,8 @@ export default async function PortalEscolasFuncionamentoPage() {
           <h2 id="portal-functioning-evolution-title">Evolução operacional</h2>
           <p>
             O mesmo modelo pode evoluir para módulos de gestão, submissão, revisão, validação e publicação, mantendo a
-            separação entre quem organiza, quem contribui, quem valida e o que é publicado.
+            separação entre quem organiza, quem contribui, quem valida e o que é publicado. A evolução operacional deve
+            preservar a lógica multidesporto: a modalidade escolhe o universo e o formato escolhe a mecânica competitiva.
           </p>
         </section>
       </div>
