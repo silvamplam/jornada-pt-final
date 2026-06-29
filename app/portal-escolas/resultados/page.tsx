@@ -14,7 +14,7 @@ type ResultsPageProps = {
 
 export const metadata = {
   title: "Resultados | Portal das Escolas | Jornada.pt",
-  description: "Listagem read-only de resultados autorizados no Portal das Escolas."
+  description: "Listagem read-only de resultados por evento e participante no Portal das Escolas."
 };
 
 export const dynamic = "force-dynamic";
@@ -121,7 +121,8 @@ const resultsStyles = `
     font-size: 22px;
   }
 
-  .portal-results-scope-list {
+  .portal-results-scope-list,
+  .portal-results-model-list {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
@@ -130,7 +131,8 @@ const resultsStyles = `
     list-style: none;
   }
 
-  .portal-results-scope-list li {
+  .portal-results-scope-list li,
+  .portal-results-model-list li {
     min-width: 0;
     padding: 14px;
     border: 1px solid #d7e4ed;
@@ -139,6 +141,7 @@ const resultsStyles = `
   }
 
   .portal-results-scope-list span,
+  .portal-results-model-list span,
   .portal-results-filter span,
   .portal-results-empty {
     display: block;
@@ -148,7 +151,8 @@ const resultsStyles = `
     text-transform: uppercase;
   }
 
-  .portal-results-scope-list strong {
+  .portal-results-scope-list strong,
+  .portal-results-model-list strong {
     display: block;
     margin-top: 7px;
     color: #102033;
@@ -157,9 +161,16 @@ const resultsStyles = `
     overflow-wrap: anywhere;
   }
 
+  .portal-results-model-list p {
+    margin: 8px 0 0;
+    color: #526274;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
   .portal-results-filters {
     display: grid;
-    grid-template-columns: minmax(190px, 1.4fr) repeat(3, minmax(150px, 1fr)) auto auto;
+    grid-template-columns: minmax(190px, 1.4fr) repeat(4, minmax(135px, 1fr)) auto auto;
     gap: 12px;
     align-items: end;
     margin-top: 16px;
@@ -213,7 +224,7 @@ const resultsStyles = `
 
   .portal-results-table {
     width: 100%;
-    min-width: 1280px;
+    min-width: 1380px;
     border-collapse: collapse;
   }
 
@@ -239,23 +250,31 @@ const resultsStyles = `
     line-height: 1.35;
   }
 
+  .portal-results-table a {
+    color: #0f6f8d;
+    font-weight: 900;
+    text-decoration: none;
+  }
+
   .portal-results-table .portal-results-tag {
     white-space: nowrap;
   }
 
-  .portal-results-table td:nth-child(4),
+  .portal-results-table td:nth-child(5),
   .portal-results-table td:nth-child(6),
-  .portal-results-table td:nth-child(7) {
+  .portal-results-table td:nth-child(7),
+  .portal-results-table td:nth-child(8),
+  .portal-results-table td:nth-child(9) {
     white-space: nowrap;
   }
 
-  .portal-results-match strong,
-  .portal-results-match span {
+  .portal-results-record strong,
+  .portal-results-record span {
     display: block;
     overflow-wrap: anywhere;
   }
 
-  .portal-results-match span {
+  .portal-results-record span {
     margin-top: 4px;
     color: #667789;
     font-size: 12px;
@@ -301,7 +320,8 @@ const resultsStyles = `
 
   @media (max-width: 1020px) {
     .portal-results-filters,
-    .portal-results-scope-list {
+    .portal-results-scope-list,
+    .portal-results-model-list {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
@@ -313,7 +333,8 @@ const resultsStyles = `
 
     .portal-results-hero,
     .portal-results-filters,
-    .portal-results-scope-list {
+    .portal-results-scope-list,
+    .portal-results-model-list {
       grid-template-columns: 1fr;
     }
 
@@ -340,7 +361,13 @@ const labelMap: Record<string, string> = {
   in_progress: "Em curso",
   live: "Em curso",
   no_result: "Sem resultado",
-  unknown: "Não disponível"
+  mixed: "Misto",
+  unknown: "Não disponível",
+  match: "Jogo",
+  game: "Jogo",
+  race: "Prova/corrida",
+  heat: "Série",
+  field_event: "Prova técnica"
 };
 
 function firstParam(value: string | string[] | undefined) {
@@ -379,24 +406,6 @@ function formatLabel(value: string | null | undefined) {
     .join(" ");
 }
 
-function formatDateTime(value: string | null, fallback: string) {
-  if (!value) {
-    return fallback;
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return fallback;
-  }
-
-  return new Intl.DateTimeFormat("pt-PT", {
-    dateStyle: "short",
-    timeStyle: "short",
-    timeZone: "Europe/Lisbon"
-  }).format(date);
-}
-
 function uniqueLabels(values: string[]) {
   return Array.from(new Set(values.filter(Boolean))).sort((first, second) => first.localeCompare(second, "pt"));
 }
@@ -407,13 +416,14 @@ function formatCountLabel(count: number, singular: string, plural: string) {
 
 function formatUnavailableSection(section: string) {
   const labels: Record<string, string> = {
-    competicoes: "competições",
+    competições: "competições",
     contextos: "contextos",
     entidades: "entidades",
-    jogos: "jogos",
+    eventos: "eventos",
     participantes: "participantes",
-    resultados: "resultados",
-    "jornadas/fases": "jornadas/fases"
+    "participantes de evento": "participantes de evento",
+    "resultados por participante": "resultados por participante",
+    "estrutura competitiva": "estrutura competitiva"
   };
 
   return labels[section] ?? formatLabel(section);
@@ -428,7 +438,8 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
   const filters = {
     search: firstParam(params.pesquisa).trim(),
     competition: firstParam(params.competicao).trim(),
-    stage: firstParam(params.jornada).trim(),
+    structure: firstParam(params.estrutura).trim(),
+    eventType: firstParam(params.tipo).trim(),
     status: firstParam(params.estado).trim()
   };
   const supabase = await createPortalEscolasServerClient();
@@ -472,25 +483,25 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
   const resultRows = data.results.map((result) => ({
     ...result,
     resultStatusLabel: formatLabel(result.resultStatus),
-    gameStatusLabel: formatLabel(result.gameStatus),
-    submittedAtLabel: formatDateTime(result.submittedAt, "Sem submissão registada"),
-    validatedAtLabel: formatDateTime(result.validatedAt, "Ainda não validado")
+    eventStatusLabel: formatLabel(result.eventStatus)
   }));
   const filteredResults = resultRows.filter((result) => {
     const normalizedSearch = normalizeFilterValue(filters.search);
-    const searchableText = normalizeFilterValue(`${result.gameLabel} ${result.homeName} ${result.awayName}`);
+    const searchableText = normalizeFilterValue(`${result.eventLabel} ${result.participantLabel} ${result.scoreLabel} ${result.outcomeLabel}`);
 
     return (
       (!normalizedSearch || searchableText.includes(normalizedSearch)) &&
       (!filters.competition || result.competitionLabel === filters.competition) &&
-      (!filters.stage || result.stageLabel === filters.stage) &&
+      (!filters.structure || result.stageLabel === filters.structure) &&
+      (!filters.eventType || result.eventTypeLabel === filters.eventType) &&
       (!filters.status || result.resultStatusLabel === filters.status)
     );
   });
   const competitionOptions = uniqueLabels(resultRows.map((result) => result.competitionLabel));
-  const stageOptions = uniqueLabels(resultRows.map((result) => result.stageLabel));
+  const structureOptions = uniqueLabels(resultRows.map((result) => result.stageLabel));
+  const eventTypeOptions = uniqueLabels(resultRows.map((result) => result.eventTypeLabel));
   const statusOptions = uniqueLabels(resultRows.map((result) => result.resultStatusLabel));
-  const hasFilters = Boolean(filters.search || filters.competition || filters.stage || filters.status);
+  const hasFilters = Boolean(filters.search || filters.competition || filters.structure || filters.eventType || filters.status);
 
   return (
     <main className="portal-results-shell">
@@ -498,16 +509,19 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
       <div className="portal-results-wrap">
         <section className="portal-results-hero" aria-labelledby="portal-results-title">
           <div>
-            <p className="portal-results-eyebrow">Portal das Escolas</p>
+            <p className="portal-results-eyebrow">Portal das Escolas · Resultados</p>
             <h1 id="portal-results-title">Resultados</h1>
-            <p className="portal-results-text">Listagem read-only dos jogos e resultados disponíveis para os âmbitos autorizados.</p>
+            <p className="portal-results-text">
+              Leitura read-only dos resultados por evento e participante. A rota mantém-se em /portal-escolas/resultados,
+              mas a leitura passa a seguir o modelo multidesporto.
+            </p>
           </div>
-          <span className="portal-results-tag">{formatCountLabel(data.results.length, "registo", "registos")}</span>
+          <span className="portal-results-tag">{formatCountLabel(data.summary.resultEntryCount, "resultado", "resultados")}</span>
         </section>
 
         <PortalEscolasInternalNav current="resultados" />
 
-        <nav className="portal-results-actions" aria-label="Navegação do Portal das Escolas">
+        <nav className="portal-results-actions" aria-label="Ações contextuais dos resultados">
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>
           <a href="/portal-escolas">Voltar ao portal</a>
         </nav>
@@ -516,11 +530,44 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
           <section className="portal-results-notice" aria-labelledby="portal-results-notice-title">
             <h2 id="portal-results-notice-title">Dados parcialmente disponíveis</h2>
             <p>
-              Algumas áreas reais ainda não estão disponíveis para leitura nesta base de dados:{" "}
+              Algumas áreas reais ainda não estão disponíveis para leitura nesta base de dados: {" "}
               {data.unavailableSections.map(formatUnavailableSection).join(", ")}.
             </p>
           </section>
         ) : null}
+
+        <section className="portal-results-section" aria-labelledby="portal-results-model-title">
+          <div className="portal-results-section-header">
+            <div>
+              <p className="portal-results-eyebrow">Modelo multidesporto</p>
+              <h2 id="portal-results-model-title">Resultado é valor por participante num evento</h2>
+              <p className="portal-results-text">
+                Um resultado não tem de ser apenas marcador de jogo. Pode ser golo, set, ponto, tempo, marca, distância,
+                vitória, empate ou critério específico da modalidade.
+              </p>
+            </div>
+            <span className="portal-results-tag">
+              {formatCountLabel(data.summary.eventCount, "evento", "eventos")} · {formatCountLabel(data.summary.eventParticipantCount, "participante", "participantes")}
+            </span>
+          </div>
+          <ul className="portal-results-model-list">
+            <li>
+              <span>Futebol / Voleibol</span>
+              <strong>Marcador, sets ou pontos</strong>
+              <p>O evento pode ser um jogo e o resultado pode alimentar classificação por pontos, golos ou sets.</p>
+            </li>
+            <li>
+              <span>Xadrez</span>
+              <strong>Pontos e desfecho</strong>
+              <p>A partida pode produzir vitória, empate ou derrota, além de critérios de desempate.</p>
+            </li>
+            <li>
+              <span>Atletismo / Natação</span>
+              <strong>Tempos, marcas ou distâncias</strong>
+              <p>A prova pode gerar resultado individual por participante, série, final, escalão ou escola.</p>
+            </li>
+          </ul>
+        </section>
 
         <section className="portal-results-section" aria-labelledby="portal-results-scope-title">
           <div className="portal-results-section-header">
@@ -547,18 +594,18 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
         <section className="portal-results-section" aria-labelledby="portal-results-list-title">
           <div className="portal-results-section-header">
             <div>
-              <p className="portal-results-eyebrow">Validação</p>
+              <p className="portal-results-eyebrow">Evento → Participante → Resultado</p>
               <h2 id="portal-results-list-title">Resultados visíveis</h2>
             </div>
             <span className="portal-results-tag">
-              {hasFilters ? `${filteredResults.length} de ${data.results.length}` : `${data.results.length} total`}
+              {hasFilters ? `${filteredResults.length} de ${data.results.length}` : `${data.results.length} linhas`}
             </span>
           </div>
 
           <form className="portal-results-filters" method="get">
             <label className="portal-results-filter">
-              <span>Pesquisar jogo/participante</span>
-              <input name="pesquisa" type="search" defaultValue={filters.search} placeholder="Equipa, participante ou jogo" />
+              <span>Pesquisar evento/participante</span>
+              <input name="pesquisa" type="search" defaultValue={filters.search} placeholder="Evento, participante ou resultado" />
             </label>
             <label className="portal-results-filter">
               <span>Competição</span>
@@ -572,12 +619,23 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
               </select>
             </label>
             <label className="portal-results-filter">
-              <span>Jornada/fase</span>
-              <select name="jornada" defaultValue={filters.stage}>
+              <span>Estrutura</span>
+              <select name="estrutura" defaultValue={filters.structure}>
                 <option value="">Todas</option>
-                {stageOptions.map((stage) => (
-                  <option key={stage} value={stage}>
-                    {stage}
+                {structureOptions.map((structure) => (
+                  <option key={structure} value={structure}>
+                    {structure}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="portal-results-filter">
+              <span>Tipo de evento</span>
+              <select name="tipo" defaultValue={filters.eventType}>
+                <option value="">Todos</option>
+                {eventTypeOptions.map((eventType) => (
+                  <option key={eventType} value={eventType}>
+                    {eventType}
                   </option>
                 ))}
               </select>
@@ -609,35 +667,48 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
                 <thead>
                   <tr>
                     <th>Competição</th>
-                    <th>Jornada/fase</th>
-                    <th>Jogo</th>
+                    <th>Estrutura</th>
+                    <th>Evento</th>
+                    <th>Participante</th>
                     <th>Resultado</th>
+                    <th>Pontos</th>
+                    <th>Desfecho</th>
                     <th>Estado do resultado</th>
-                    <th>Submissão</th>
-                    <th>Validação</th>
-                    <th>Estado do jogo</th>
+                    <th>Estado do evento</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredResults.map((result) => (
                     <tr key={result.key}>
-                      <td>{result.competitionLabel}</td>
-                      <td>{result.stageLabel}</td>
                       <td>
-                        <div className="portal-results-match">
-                          <strong>{result.gameLabel}</strong>
-                          <span>{result.homeName}</span>
-                          <span>{result.awayName}</span>
+                        {result.competitionHref ? <a href={result.competitionHref}>{result.competitionLabel}</a> : result.competitionLabel}
+                      </td>
+                      <td>
+                        <div className="portal-results-record">
+                          <strong>{result.stageLabel}</strong>
+                          <span>{result.stageTypeLabel}</span>
                         </div>
                       </td>
-                      <td className={result.hasResult ? undefined : "portal-results-muted"}>{result.resultLabel}</td>
+                      <td>
+                        <div className="portal-results-record">
+                          <strong>{result.eventLabel}</strong>
+                          <span>{result.eventTypeLabel}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="portal-results-record">
+                          <strong>{result.participantLabel}</strong>
+                          <span>{result.participantRoleLabel}</span>
+                        </div>
+                      </td>
+                      <td className={result.hasResult ? undefined : "portal-results-muted"}>{result.scoreLabel}</td>
+                      <td className={result.hasResult ? undefined : "portal-results-muted"}>{result.pointsLabel}</td>
+                      <td className={result.hasResult ? undefined : "portal-results-muted"}>{result.outcomeLabel}</td>
                       <td>
                         <span className="portal-results-tag">{result.resultStatusLabel}</span>
                       </td>
-                      <td className={result.submittedAt ? undefined : "portal-results-muted"}>{result.submittedAtLabel}</td>
-                      <td className={result.validatedAt ? undefined : "portal-results-muted"}>{result.validatedAtLabel}</td>
                       <td>
-                        <span className="portal-results-tag">{result.gameStatusLabel}</span>
+                        <span className="portal-results-tag">{result.eventStatusLabel}</span>
                       </td>
                     </tr>
                   ))}
@@ -649,7 +720,7 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
               message={
                 data.results.length > 0
                   ? "Não há resultados visíveis com os filtros selecionados."
-                  : "Ainda não há jogos ou resultados disponíveis para os âmbitos autorizados."
+                  : "Ainda não há resultados por evento e participante disponíveis para os âmbitos autorizados."
               }
             />
           )}
