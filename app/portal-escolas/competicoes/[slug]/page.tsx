@@ -225,15 +225,6 @@ const competitionDetailStyles = `
     overflow-wrap: anywhere;
   }
 
-  .portal-competition-detail-tree-card::after {
-    content: "↓";
-    color: #0f6f8d;
-    font-weight: 900;
-  }
-
-  .portal-competition-detail-tree-card:last-child::after {
-    content: "";
-  }
 
   .portal-competition-detail-format-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
