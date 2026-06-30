@@ -272,7 +272,7 @@ const competitionsStyles = `
 
   .portal-competitions-table {
     width: 100%;
-    min-width: 980px;
+    min-width: 760px;
     border-collapse: collapse;
     background: #ffffff;
   }
@@ -306,6 +306,11 @@ const competitionsStyles = `
   .portal-competitions-title span,
   .portal-competitions-muted {
     color: #66778a;
+  }
+
+  .portal-competitions-row-action {
+    justify-self: start;
+    margin-top: 8px;
   }
 
   .portal-competitions-empty {
@@ -761,7 +766,6 @@ export default async function PortalEscolasCompeticoesPage({ searchParams }: Com
                     <th>Formato</th>
                     <th>Âmbito</th>
                     <th>Estado</th>
-                    <th>Ação</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -771,6 +775,16 @@ export default async function PortalEscolasCompeticoesPage({ searchParams }: Com
                         <div className="portal-competitions-title">
                           <strong>{competition.name}</strong>
                           <span>{competition.entityLabel}</span>
+                          {competition.slug ? (
+                            <a
+                              className="portal-competitions-primary-link portal-competitions-row-action"
+                              href={`/portal-escolas/competicoes/${competition.slug}`}
+                            >
+                              Abrir competição
+                            </a>
+                          ) : (
+                            <span className="portal-competitions-muted">Sem detalhe</span>
+                          )}
                         </div>
                       </td>
                       <td>{competition.contextLabel}</td>
@@ -787,15 +801,6 @@ export default async function PortalEscolasCompeticoesPage({ searchParams }: Com
                       <td className={competition.scope ? undefined : "portal-competitions-muted"}>{competition.scopeLabel}</td>
                       <td>
                         <span className="portal-competitions-tag">{competition.statusLabel}</span>
-                      </td>
-                      <td>
-                        {competition.slug ? (
-                          <a className="portal-competitions-primary-link" href={`/portal-escolas/competicoes/${competition.slug}`}>
-                            Abrir competição
-                          </a>
-                        ) : (
-                          <span className="portal-competitions-muted">Sem detalhe</span>
-                        )}
                       </td>
                     </tr>
                   ))}
