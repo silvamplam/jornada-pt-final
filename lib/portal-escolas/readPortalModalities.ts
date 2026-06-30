@@ -290,6 +290,43 @@ async function readScopedRows<T extends RowWithId>(
   };
 }
 
+async function readCreationScopeModalities(
+  supabase: SupabaseClient,
+  creationScopes: PortalModalityCreationScope[]
+) {
+  const rowsById = new Map<string, PortalModalityRow>();
+  const unavailableSections = new Set<string>();
+
+  await Promise.all(
+    creationScopes.map(async (scope) => {
+      const result = await readRows<PortalModalityRow>(
+        supabase,
+        "portal_modalities",
+        "id,portal_entity_id,portal_context_id,catalog_modality_id,name,slug,local_code,display_order,status",
+        {
+          sectionLabel: "modalidades formais",
+          apply(query) {
+            return query
+              .eq("portal_entity_id", scope.portalEntityId)
+              .eq("portal_context_id", scope.portalContextId);
+          }
+        }
+      );
+
+      mergeRows(rowsById, result.rows);
+
+      if (result.unavailableSection) {
+        unavailableSections.add(result.unavailableSection);
+      }
+    })
+  );
+
+  return {
+    rows: Array.from(rowsById.values()),
+    unavailableSections
+  };
+}
+
 async function readEntities(supabase: SupabaseClient, permissions: PortalPermissionRow[]) {
   const entityIds = uniqueValues(permissions.map((permission) => permission.portal_entity_id));
 
@@ -641,12 +678,19 @@ export async function readPortalModalities(
   const contexts = sortByLabel(contextsResult.rows, (context) => context.label);
   const competitions = sortByLabel(competitionsResult.rows, (competition) => competition.name);
   const catalog = sortByLabel(catalogResult.rows, (catalogRow) => catalogRow.name);
+  const creationScopes = makeCreationScopes(permissions, entities, contexts);
+  const creationScopeModalitiesResult = await readCreationScopeModalities(supabase, creationScopes);
+  const formalModalitiesById = new Map<string, PortalModalityRow>();
+
+  mergeRows(formalModalitiesById, modalitiesResult.rows);
+  mergeRows(formalModalitiesById, creationScopeModalitiesResult.rows);
+  creationScopeModalitiesResult.unavailableSections.forEach((section) => unavailableSections.add(section));
 
   return {
-    modalities: makeModalities(modalitiesResult.rows, catalog, competitions, formatsResult.rows, entities, contexts),
+    modalities: makeModalities(Array.from(formalModalitiesById.values()), catalog, competitions, formatsResult.rows, entities, contexts),
     catalog: makeCatalog(catalog),
     scopes: makeScopes(permissions, entities, contexts, competitions),
-    creationScopes: makeCreationScopes(permissions, entities, contexts),
+    creationScopes,
     unavailableSections: Array.from(unavailableSections).sort((first, second) => first.localeCompare(second, "pt"))
   };
 }
