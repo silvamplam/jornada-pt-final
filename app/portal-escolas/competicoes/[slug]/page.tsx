@@ -410,7 +410,7 @@ export default async function PortalCompetitionDetailPage({ params }: PageProps)
             <p className="portal-competition-detail-eyebrow">Portal das Escolas · detalhe da competição</p>
             <h1 id="portal-competition-detail-title">{mainCompetition?.name ?? "Competição não encontrada"}</h1>
             <p className="portal-competition-detail-text">
-              Leitura read-only da competição como ponte entre modalidade, formato, estrutura competitiva, eventos, participantes, resultados e ranking.
+              Esta é a página central da competição: confirma o âmbito, consulta eventos e resultados, e acompanha a classificação/ranking recalculada a partir dos resultados.
             </p>
           </div>
           <span className="portal-competition-detail-tag">
@@ -423,6 +423,13 @@ export default async function PortalCompetitionDetailPage({ params }: PageProps)
         <nav className="portal-competition-detail-actions" aria-label="Ações do detalhe da competição">
           <a href="/portal-escolas/competicoes">Voltar a competições</a>
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>
+          {mainCompetition ? (
+            <>
+              <a href={`#portal-competition-events-${mainCompetition.key}`}>Ver eventos e resultados</a>
+              <a href={`#portal-competition-rankings-${mainCompetition.key}`}>Ver classificação</a>
+              <a href="/portal-escolas/resultados">Inserir/editar resultados</a>
+            </>
+          ) : null}
         </nav>
 
         {data.unavailableSections.length > 0 ? (
@@ -623,7 +630,7 @@ export default async function PortalCompetitionDetailPage({ params }: PageProps)
                     <p className="portal-competition-detail-eyebrow">Estrutura competitiva → eventos</p>
                     <h3 id={`portal-competition-events-${competition.key}`}>Eventos, participantes e resultados</h3>
                     <p className="portal-competition-detail-text">
-                      Leitura do modelo novo por competição. Nos campeonatos por jornadas, estes eventos equivalem aos jogos materializados a partir da ponte legacy; noutras modalidades podem ser provas, partidas, séries ou finais.
+                      Cada evento mostra os participantes e os resultados já guardados. Nos campeonatos por jornadas são jogos; noutras modalidades podem ser provas, partidas, séries ou finais.
                     </p>
                   </div>
                   <span className="portal-competition-detail-tag">{formatCountLabel(competition.summary.eventCount, "evento", "eventos")}</span>
@@ -687,7 +694,7 @@ export default async function PortalCompetitionDetailPage({ params }: PageProps)
                     <p className="portal-competition-detail-eyebrow">Resultados → ranking</p>
                     <h3 id={`portal-competition-rankings-${competition.key}`}>Classificação / ranking</h3>
                     <p className="portal-competition-detail-text">
-                      O ranking continua read-only e não substitui as páginas atuais de resultados ou classificações.
+                      A classificação é recalculada a partir dos resultados guardados para os eventos desta competição.
                     </p>
                   </div>
                   <span className="portal-competition-detail-tag">{formatCountLabel(competition.summary.rankingCount, "ranking", "rankings")}</span>
