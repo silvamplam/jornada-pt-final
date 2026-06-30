@@ -175,6 +175,20 @@ function formatStatus(value: string | null | undefined, fallback = "Por definir"
     return fallback;
   }
 
+  const normalizedValue = value.trim().toLowerCase();
+  const labels: Record<string, string> = {
+    draft: "Rascunho",
+    active: "Publicado",
+    archived: "Arquivado",
+    submitted: "Submetido",
+    pending: "Pendente",
+    validated: "Validado"
+  };
+
+  if (labels[normalizedValue]) {
+    return labels[normalizedValue];
+  }
+
   return value
     .replace(/_/g, " ")
     .replace(/\s+/g, " ")
