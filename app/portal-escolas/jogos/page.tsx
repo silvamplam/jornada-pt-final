@@ -224,7 +224,7 @@ const gamesStyles = `
 
   .portal-games-table {
     width: 100%;
-    min-width: 1420px;
+    min-width: 980px;
     border-collapse: collapse;
   }
 
@@ -284,19 +284,75 @@ const gamesStyles = `
     line-height: 1.35;
   }
 
-  .portal-games-actions {
+  .portal-games-actions,
+  .portal-games-inline-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
     margin-top: 18px;
   }
 
-  .portal-games-actions a {
+  .portal-games-actions a,
+  .portal-games-mini-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 7px 10px;
+    border: 1px solid #cbdce7;
+    border-radius: 8px;
+    background: #ffffff;
     color: #0f6f8d;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 900;
+    line-height: 1.2;
     text-decoration: none;
     text-transform: uppercase;
+  }
+
+  .portal-games-mini-link {
+    width: fit-content;
+    margin-top: 8px;
+  }
+
+  .portal-games-flow-list {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin: 16px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .portal-games-flow-list li {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid #d7e4ed;
+    border-radius: 8px;
+    background: #f8fbfd;
+  }
+
+  .portal-games-flow-list span {
+    display: block;
+    color: #667789;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .portal-games-flow-list strong {
+    display: block;
+    margin-top: 7px;
+    color: #102033;
+    font-size: 14px;
+    line-height: 1.25;
+  }
+
+  .portal-games-flow-list p {
+    margin: 8px 0 0;
+    color: #526274;
+    font-size: 13px;
+    line-height: 1.45;
   }
 
   .portal-games-warning {
@@ -323,7 +379,8 @@ const gamesStyles = `
     .portal-games-hero,
     .portal-games-filters,
     .portal-games-scope-list,
-    .portal-games-model-list {
+    .portal-games-model-list,
+    .portal-games-flow-list {
       grid-template-columns: 1fr;
     }
 
@@ -514,6 +571,7 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
   const hasFilters = Boolean(
     filters.search || filters.competition || filters.structure || filters.eventType || filters.status || filters.result
   );
+  const firstCompetitionHref = eventRows.find((event) => event.competitionHref)?.competitionHref ?? null;
 
   return (
     <main className="portal-games-shell">
@@ -524,8 +582,9 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
             <p className="portal-games-eyebrow">Portal das Escolas · Eventos</p>
             <h1 id="portal-games-title">Eventos</h1>
             <p className="portal-games-text">
-              Leitura read-only dos eventos autorizados. A rota continua a ser /portal-escolas/jogos por compatibilidade,
-              mas a leitura passa a assumir que jogos são apenas um tipo possível de evento.
+              Consulta os eventos da competição associada ao teu âmbito ativo. A rota continua a ser /portal-escolas/jogos
+              por compatibilidade, mas a leitura correta é multidesporto: jogos, partidas, provas, séries ou finais são
+              eventos onde participam equipas, turmas ou atletas e onde se produz um resultado.
             </p>
           </div>
           <span className="portal-games-tag">{formatCountLabel(data.summary.eventCount, "evento", "eventos")}</span>
@@ -535,7 +594,9 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
 
         <nav className="portal-games-actions" aria-label="Ações da página de eventos">
           <a href={PORTAL_ESCOLAS_PANEL_PATH}>Voltar ao painel</a>
-          <a href="/portal-escolas">Voltar ao portal</a>
+          <a href="/portal-escolas/competicoes">Ver competições</a>
+          {firstCompetitionHref ? <a href={firstCompetitionHref}>Abrir competição ativa</a> : null}
+          <a href="/portal-escolas/resultados">Inserir/editar resultados</a>
         </nav>
 
         {data.unavailableSections.length > 0 ? (
@@ -581,6 +642,42 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
           </ul>
         </section>
 
+        <section className="portal-games-section" aria-labelledby="portal-games-flow-title">
+          <div className="portal-games-section-header">
+            <div>
+              <p className="portal-games-eyebrow">Percurso de utilização</p>
+              <h2 id="portal-games-flow-title">Da competição ao resultado</h2>
+            </div>
+            <span className="portal-games-tag">Evento → resultado → ranking</span>
+          </div>
+          <p className="portal-games-text">
+            Usa esta página para perceber que eventos existem e em que estrutura competitiva se inserem. Para alterar
+            marcadores ou valores, usa Resultados; para ver a leitura completa da competição, abre o detalhe da competição.
+          </p>
+          <ul className="portal-games-flow-list">
+            <li>
+              <span>1. Competição</span>
+              <strong>O enquadramento</strong>
+              <p>Mostra a modalidade, formato, estrutura, eventos, resultados e ranking no mesmo detalhe.</p>
+            </li>
+            <li>
+              <span>2. Estrutura</span>
+              <strong>Onde o evento vive</strong>
+              <p>Pode ser jornada, ronda, série, final, prova ou outra camada competitiva.</p>
+            </li>
+            <li>
+              <span>3. Evento</span>
+              <strong>A unidade concreta</strong>
+              <p>Reúne participantes e é o local onde se produz o resultado.</p>
+            </li>
+            <li>
+              <span>4. Resultado</span>
+              <strong>Alimenta o ranking</strong>
+              <p>O marcador/valor guardado gera pontos, desfecho e classificação quando aplicável.</p>
+            </li>
+          </ul>
+        </section>
+
         <section className="portal-games-section" aria-labelledby="portal-games-scope-title">
           <div className="portal-games-section-header">
             <div>
@@ -613,6 +710,10 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
               {hasFilters ? `${filteredEvents.length} de ${data.games.length}` : `${data.games.length} total`}
             </span>
           </div>
+          <p className="portal-games-text">
+            Cada linha identifica a competição, a estrutura competitiva, o evento, os participantes e o estado do resultado.
+            A ação principal fica junto à competição para não depender do scroll horizontal.
+          </p>
 
           <form className="portal-games-filters" method="get">
             <label className="portal-games-filter">
@@ -705,7 +806,17 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
                   {filteredEvents.map((event) => (
                     <tr key={event.key}>
                       <td>
-                        {event.competitionHref ? <a href={event.competitionHref}>{event.competitionLabel}</a> : event.competitionLabel}
+                        <div className="portal-games-match">
+                          <strong>
+                            {event.competitionHref ? <a href={event.competitionHref}>{event.competitionLabel}</a> : event.competitionLabel}
+                          </strong>
+                          <span>Competição associada</span>
+                          {event.competitionHref ? (
+                            <a className="portal-games-mini-link" href={event.competitionHref}>
+                              Abrir competição
+                            </a>
+                          ) : null}
+                        </div>
                       </td>
                       <td>
                         <div className="portal-games-match">
@@ -732,6 +843,9 @@ export default async function PortalEscolasJogosPage({ searchParams }: GamesPage
                         <div className="portal-games-match">
                           <strong>{event.resultLabel}</strong>
                           <span>{formatCountLabel(event.resultEntryCount, "entrada", "entradas")}</span>
+                          <a className="portal-games-mini-link" href="/portal-escolas/resultados">
+                            Ver resultados
+                          </a>
                         </div>
                       </td>
                       <td>
