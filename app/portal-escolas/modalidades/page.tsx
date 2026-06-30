@@ -8,6 +8,7 @@ import {
 } from "@/lib/portal-escolas/auth";
 import { readPortalModalities } from "@/lib/portal-escolas/readPortalModalities";
 import { PortalEscolasInternalNav } from "../_components/PortalEscolasInternalNav";
+import { PortalModalityCreateForm } from "./PortalModalityCreateForm";
 
 export const metadata = {
   title: "Modalidades | Portal das Escolas | Jornada.pt",
@@ -309,6 +310,12 @@ const modalitiesStyles = `
     line-height: 1.45;
   }
 
+  .portal-modalities-form-state {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
   .portal-modalities-form button {
     justify-self: start;
     min-height: 40px;
@@ -494,9 +501,10 @@ async function createPortalModality(formData: FormData) {
   const portalContextId = readFormText(formData, "portal_context_id");
   const catalogCode = readOptionalText(formData, "catalog_code", 80);
   const name = readOptionalText(formData, "name", 120);
-  const localCode = normalizeSlug(readFormText(formData, "local_code")).slice(0, 80) || null;
+  const requestedSlug = readOptionalText(formData, "slug", 120);
   const notes = readOptionalText(formData, "notes", 400);
-  const slug = normalizeSlug(catalogCode ?? name ?? "");
+  const slug = normalizeSlug(requestedSlug ?? catalogCode ?? name ?? "");
+  const localCode = slug.slice(0, 80) || null;
 
   if (!isUuid(portalContextId) || (!catalogCode && !name) || !slug) {
     redirect("/portal-escolas/modalidades?modalidade=dados-invalidos");
@@ -643,67 +651,11 @@ export default async function PortalModalitiesPage({ searchParams }: ModalitiesP
               </div>
             ) : null}
 
-            <form action={createPortalModality} className="portal-modalities-form">
-              <div className="portal-modalities-form-grid">
-                <div className="portal-modalities-form-field">
-                  <label htmlFor="portal-modality-context">Contexto</label>
-                  <select id="portal-modality-context" name="portal_context_id" required>
-                    {data.creationScopes.map((scope) => (
-                      <option key={scope.key} value={scope.portalContextId}>
-                        {scope.entityLabel} · {scope.contextLabel}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="portal-modalities-form-field">
-                  <label htmlFor="portal-modality-catalog">Modalidade de catálogo</label>
-                  <select id="portal-modality-catalog" name="catalog_code">
-                    <option value="">Modalidade local/custom</option>
-                    {data.catalog.map((catalog) => (
-                      <option key={catalog.key} value={catalog.code}>
-                        {catalog.name} · {catalog.code}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="portal-modalities-form-help">Seleciona uma modalidade do catálogo ou deixa vazio para criar uma modalidade local.</span>
-                </div>
-
-                <div className="portal-modalities-form-field">
-                  <label htmlFor="portal-modality-name">Nome local</label>
-                  <input
-                    id="portal-modality-name"
-                    name="name"
-                    maxLength={120}
-                    placeholder="Ex.: Natação Adaptada"
-                  />
-                  <span className="portal-modalities-form-help">Obrigatório se não escolheres catálogo; opcional para adaptar o nome de uma modalidade do catálogo.</span>
-                </div>
-
-                <div className="portal-modalities-form-field">
-                  <label htmlFor="portal-modality-local-code">Código local</label>
-                  <input
-                    id="portal-modality-local-code"
-                    name="local_code"
-                    maxLength={80}
-                    placeholder="Ex.: natacao-adaptada"
-                  />
-                  <span className="portal-modalities-form-help">Opcional. Usado apenas como referência técnica local.</span>
-                </div>
-
-                <div className="portal-modalities-form-field portal-modalities-form-field-full">
-                  <label htmlFor="portal-modality-notes">Notas</label>
-                  <textarea
-                    id="portal-modality-notes"
-                    name="notes"
-                    maxLength={400}
-                    placeholder="Notas internas opcionais sobre esta modalidade."
-                  />
-                </div>
-              </div>
-
-              <button type="submit">Criar modalidade em rascunho</button>
-            </form>
+            <PortalModalityCreateForm
+              action={createPortalModality}
+              creationScopes={data.creationScopes}
+              catalog={data.catalog}
+            />
           </section>
         ) : null}
 
