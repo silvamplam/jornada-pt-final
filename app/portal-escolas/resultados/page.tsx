@@ -169,6 +169,56 @@ const resultsStyles = `
     line-height: 1.45;
   }
 
+  .portal-results-flow-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 16px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .portal-results-flow-list li {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid #d7e4ed;
+    border-radius: 8px;
+    background: #f8fbfd;
+  }
+
+  .portal-results-flow-list span {
+    display: block;
+    color: #0f6f8d;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .portal-results-flow-list strong {
+    display: block;
+    margin-top: 7px;
+    color: #102033;
+    font-size: 15px;
+    line-height: 1.25;
+  }
+
+  .portal-results-flow-list p {
+    margin: 8px 0 0;
+    color: #526274;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .portal-results-flow-link {
+    display: inline-flex;
+    margin-top: 10px;
+    color: #0f6f8d;
+    font-size: 12px;
+    font-weight: 900;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
   .portal-results-filters {
     display: grid;
     grid-template-columns: minmax(190px, 1.4fr) repeat(4, minmax(135px, 1fr)) auto auto;
@@ -322,6 +372,13 @@ const resultsStyles = `
     color: #667789;
     font-size: 12px;
     font-weight: 700;
+  }
+
+  .portal-results-card-guide {
+    margin: -4px 0 0;
+    color: #526274;
+    font-size: 13px;
+    line-height: 1.45;
   }
 
   .portal-results-scoreline-tag {
@@ -495,7 +552,8 @@ const resultsStyles = `
   @media (max-width: 1020px) {
     .portal-results-filters,
     .portal-results-scope-list,
-    .portal-results-model-list {
+    .portal-results-model-list,
+    .portal-results-flow-list {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
@@ -508,7 +566,8 @@ const resultsStyles = `
     .portal-results-hero,
     .portal-results-filters,
     .portal-results-scope-list,
-    .portal-results-model-list {
+    .portal-results-model-list,
+    .portal-results-flow-list {
       grid-template-columns: 1fr;
     }
 
@@ -907,8 +966,8 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
             <p className="portal-results-eyebrow">Portal das Escolas · Resultados</p>
             <h1 id="portal-results-title">Resultados</h1>
             <p className="portal-results-text">
-              Leitura e inserção controlada de resultados por evento e participante. A rota mantém-se em /portal-escolas/resultados
-              e a escrita fica limitada ao modelo novo do Portal.
+              Aqui consultas e guardas resultados por evento. Ao guardar um marcador, o Portal atualiza o resultado técnico,
+              calcula pontos/desfecho e alimenta automaticamente a classificação da competição.
             </p>
           </div>
           <span className="portal-results-tag">{formatCountLabel(data.summary.resultEntryCount, "resultado", "resultados")}</span>
@@ -941,31 +1000,32 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
           <div className="portal-results-section-header">
             <div>
               <p className="portal-results-eyebrow">Modelo multidesporto</p>
-              <h2 id="portal-results-model-title">Resultado é valor por participante num evento</h2>
+              <h2 id="portal-results-model-title">Do evento à classificação</h2>
               <p className="portal-results-text">
-                Um resultado não tem de ser apenas marcador de jogo. Pode ser golo, set, ponto, tempo, marca, distância,
-                vitória, empate ou critério específico da modalidade.
+                O utilizador trabalha sobre eventos concretos. Em cada evento, cada participante tem um resultado; esse resultado
+                gera pontos/desfecho e a classificação/ranking da competição é recalculada a partir desses dados guardados.
               </p>
             </div>
             <span className="portal-results-tag">
               {formatCountLabel(data.summary.eventCount, "evento", "eventos")} · {formatCountLabel(data.summary.eventParticipantCount, "participante", "participantes")}
             </span>
           </div>
-          <ul className="portal-results-model-list">
+          <ul className="portal-results-flow-list" aria-label="Percurso lógico dos resultados">
             <li>
-              <span>Futebol / Voleibol</span>
-              <strong>Marcador, sets ou pontos</strong>
-              <p>O evento pode ser um jogo e o resultado pode alimentar classificação por pontos, golos ou sets.</p>
+              <span>1 · Evento</span>
+              <strong>Jogo, prova, partida, série ou final</strong>
+              <p>Escolhe o evento da competição associado ao teu âmbito ativo.</p>
             </li>
             <li>
-              <span>Xadrez</span>
-              <strong>Pontos e desfecho</strong>
-              <p>A partida pode produzir vitória, empate ou derrota, além de critérios de desempate.</p>
+              <span>2 · Resultado</span>
+              <strong>Marcador ou valor por participante</strong>
+              <p>Na fase demo de dois participantes, basta introduzir o marcador do evento.</p>
             </li>
             <li>
-              <span>Atletismo / Natação</span>
-              <strong>Tempos, marcas ou distâncias</strong>
-              <p>A prova pode gerar resultado individual por participante, série, final, escalão ou escola.</p>
+              <span>3 · Ranking</span>
+              <strong>Classificação recalculada</strong>
+              <p>Depois de guardar, pontos, desfecho e classificação ficam alinhados com os resultados.</p>
+              <a className="portal-results-flow-link" href="/portal-escolas/competicoes">Ver competições</a>
             </li>
           </ul>
         </section>
@@ -995,8 +1055,8 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
         <section className="portal-results-section" aria-labelledby="portal-results-list-title">
           <div className="portal-results-section-header">
             <div>
-              <p className="portal-results-eyebrow">Evento → Marcador → Registo técnico</p>
-              <h2 id="portal-results-list-title">Resultados por evento</h2>
+              <p className="portal-results-eyebrow">Evento → Resultado → Pontos/desfecho → Ranking</p>
+              <h2 id="portal-results-list-title">Inserir/editar resultados por evento</h2>
             </div>
             <span className="portal-results-tag">
               {hasFilters ? `${eventGroups.length} de ${allEventGroups.length}` : formatCountLabel(allEventGroups.length, "evento", "eventos")}
@@ -1077,6 +1137,9 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
                       </p>
                       <span className="portal-results-scoreline-tag">{makeEventScoreline(group.results)}</span>
                     </div>
+                    <p className="portal-results-card-guide">
+                      Este cartão representa um evento da competição. Guarda o marcador aqui; o registo técnico e a classificação associada são atualizados a partir do resultado.
+                    </p>
 
                     {isEditableEvent ? (
                       <form className="portal-results-score-form" action={savePortalEventResults}>
@@ -1121,7 +1184,7 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
                         </div>
                         <div className="portal-results-edit-form-actions">
                           <p className="portal-results-auto-note">
-                            Introduz apenas o marcador. Pontos e desfecho do evento são calculados automaticamente nesta gravação.
+                            Introduz apenas o marcador. Pontos, desfecho e classificação/ranking são atualizados automaticamente depois de guardar.
                           </p>
                           <label className="portal-results-edit-field">
                             <span>Estado</span>
@@ -1149,7 +1212,7 @@ export default async function PortalEscolasResultadosPage({ searchParams }: Resu
                       </section>
                     )}
 
-                    <ul className="portal-results-event-summary" aria-label="Registo técnico do evento">
+                    <ul className="portal-results-event-summary" aria-label="Registo técnico do evento depois da gravação">
                       {group.results.map((result) => (
                         <li key={`summary-${result.key}`}>
                           <strong>{result.participantLabel}</strong>

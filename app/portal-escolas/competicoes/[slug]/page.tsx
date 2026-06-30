@@ -253,7 +253,7 @@ const competitionDetailStyles = `
 
   .portal-competition-detail-table {
     width: 100%;
-    min-width: 720px;
+    min-width: 640px;
     border-collapse: collapse;
   }
 
@@ -272,6 +272,43 @@ const competitionDetailStyles = `
   .portal-competition-detail-table td {
     color: #1b2c3d;
     font-size: 14px;
+  }
+
+  .portal-competition-detail-ranking-guide,
+  .portal-competition-detail-result-guide {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0 0 14px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .portal-competition-detail-ranking-guide li,
+  .portal-competition-detail-result-guide li {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #dbe7ef;
+    border-radius: 8px;
+    background: #ffffff;
+  }
+
+  .portal-competition-detail-ranking-guide span,
+  .portal-competition-detail-result-guide span {
+    display: block;
+    color: #0f6f8d;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .portal-competition-detail-ranking-guide strong,
+  .portal-competition-detail-result-guide strong {
+    display: block;
+    margin-top: 6px;
+    color: #102033;
+    font-size: 13px;
+    line-height: 1.3;
   }
 
   .portal-competition-detail-empty {
@@ -304,7 +341,9 @@ const competitionDetailStyles = `
     .portal-competition-detail-summary-grid,
     .portal-competition-detail-tree,
     .portal-competition-detail-format-list,
-    .portal-competition-detail-stage-list {
+    .portal-competition-detail-stage-list,
+    .portal-competition-detail-ranking-guide,
+    .portal-competition-detail-result-guide {
       grid-template-columns: 1fr;
     }
   }
@@ -632,6 +671,20 @@ export default async function PortalCompetitionDetailPage({ params }: PageProps)
                     <p className="portal-competition-detail-text">
                       Cada evento mostra os participantes e os resultados já guardados. Nos campeonatos por jornadas são jogos; noutras modalidades podem ser provas, partidas, séries ou finais.
                     </p>
+                    <ul className="portal-competition-detail-result-guide" aria-label="Como ler resultados nesta competição">
+                      <li>
+                        <span>Evento</span>
+                        <strong>A unidade concreta onde se produz o resultado.</strong>
+                      </li>
+                      <li>
+                        <span>Resultado</span>
+                        <strong>Valor por participante: marcador, tempo, marca, pontos ou sets.</strong>
+                      </li>
+                      <li>
+                        <span>Pontos/desfecho</span>
+                        <strong>O registo técnico usado para alimentar a classificação.</strong>
+                      </li>
+                    </ul>
                   </div>
                   <span className="portal-competition-detail-tag">{formatCountLabel(competition.summary.eventCount, "evento", "eventos")}</span>
                 </div>
@@ -694,8 +747,22 @@ export default async function PortalCompetitionDetailPage({ params }: PageProps)
                     <p className="portal-competition-detail-eyebrow">Resultados → ranking</p>
                     <h3 id={`portal-competition-rankings-${competition.key}`}>Classificação / ranking</h3>
                     <p className="portal-competition-detail-text">
-                      A classificação é recalculada a partir dos resultados guardados para os eventos desta competição.
+                      A classificação é recalculada a partir dos resultados guardados para os eventos desta competição. Depois de guardar um resultado, esta tabela reflete automaticamente pontos, jogos/provas, registo e marcador acumulado.
                     </p>
+                    <ul className="portal-competition-detail-ranking-guide" aria-label="Como interpretar a classificação">
+                      <li>
+                        <span>Pontos</span>
+                        <strong>Total competitivo calculado pelos resultados dos eventos.</strong>
+                      </li>
+                      <li>
+                        <span>Registo</span>
+                        <strong>Vitórias-empates-derrotas quando o formato usa classificação tipo campeonato.</strong>
+                      </li>
+                      <li>
+                        <span>Marcador</span>
+                        <strong>Resultado acumulado e diferença usada como critério de ordenação.</strong>
+                      </li>
+                    </ul>
                   </div>
                   <span className="portal-competition-detail-tag">{formatCountLabel(competition.summary.rankingCount, "ranking", "rankings")}</span>
                 </div>
