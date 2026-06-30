@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   PORTAL_ESCOLAS_LOGIN_PATH,
@@ -252,6 +253,95 @@ const modalitiesStyles = `
     background: #ffffff;
   }
 
+  .portal-modalities-form {
+    display: grid;
+    gap: 14px;
+    margin-top: 16px;
+  }
+
+  .portal-modalities-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .portal-modalities-form-field {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .portal-modalities-form-field-full {
+    grid-column: 1 / -1;
+  }
+
+  .portal-modalities-form-field label {
+    color: #526274;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .portal-modalities-form-field input,
+  .portal-modalities-form-field select,
+  .portal-modalities-form-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #cbdce7;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #102033;
+    font: inherit;
+    font-size: 14px;
+    line-height: 1.35;
+    padding: 10px 11px;
+  }
+
+  .portal-modalities-form-field textarea {
+    min-height: 92px;
+    resize: vertical;
+  }
+
+  .portal-modalities-form-help {
+    color: #667789;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .portal-modalities-form button {
+    justify-self: start;
+    min-height: 40px;
+    padding: 10px 14px;
+    border: 1px solid #0f6f8d;
+    border-radius: 8px;
+    background: #0f6f8d;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .portal-modalities-feedback {
+    margin-top: 14px;
+    padding: 12px;
+    border: 1px solid #bcd7df;
+    border-radius: 8px;
+    background: #e7f4f8;
+    color: #0f6478;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+
+  .portal-modalities-feedback-error {
+    border-color: #e6c7c7;
+    background: #fff5f5;
+    color: #8a2d2d;
+  }
+
   .portal-modalities-empty {
     margin: 0;
     padding: 14px;
@@ -272,7 +362,8 @@ const modalitiesStyles = `
 
     .portal-modalities-scope-list,
     .portal-modalities-grid,
-    .portal-modalities-catalog-grid {
+    .portal-modalities-catalog-grid,
+    .portal-modalities-form-grid {
       grid-template-columns: 1fr;
     }
   }
@@ -295,7 +386,166 @@ function formatUnavailableSection(section: string) {
   return labels[section] ?? section;
 }
 
-export default async function PortalModalitiesPage() {
+type ModalitiesPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+type CreateStatusMessage = {
+  kind: "success" | "error";
+  text: string;
+};
+
+function readSearchParam(searchParams: Record<string, string | string[] | undefined> | undefined, key: string) {
+  const value = searchParams?.[key];
+
+  return Array.isArray(value) ? value[0] ?? null : value ?? null;
+}
+
+function getCreateStatusMessage(status: string | null): CreateStatusMessage | null {
+  if (status === "criada") {
+    return {
+      kind: "success",
+      text: "Modalidade criada como rascunho. A lista foi atualizada e a auditoria ficou registada no Portal."
+    };
+  }
+
+  if (status === "sem-permissao") {
+    return {
+      kind: "error",
+      text: "Não foi possível criar a modalidade: a sessão não tem permissão estrutural ativa para criar modalidades neste contexto."
+    };
+  }
+
+  if (status === "duplicada") {
+    return {
+      kind: "error",
+      text: "Não foi possível criar a modalidade: já existe uma modalidade com esse catálogo ou identificador neste contexto."
+    };
+  }
+
+  if (status === "dados-invalidos") {
+    return {
+      kind: "error",
+      text: "Não foi possível criar a modalidade: confirma o contexto e indica uma modalidade do catálogo ou um nome local."
+    };
+  }
+
+  if (status === "erro") {
+    return {
+      kind: "error",
+      text: "Não foi possível criar a modalidade. Confirma se a função SQL da fase está aplicada e se a permissão estrutural está ativa."
+    };
+  }
+
+  return null;
+}
+
+function readFormText(formData: FormData, key: string) {
+  const value = formData.get(key);
+
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function normalizeSlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120);
+}
+
+function readOptionalText(formData: FormData, key: string, maxLength: number) {
+  const value = readFormText(formData, key).slice(0, maxLength);
+
+  return value || null;
+}
+
+async function createPortalModality(formData: FormData) {
+  "use server";
+
+  const supabase = await createPortalEscolasServerClient();
+
+  if (!supabase) {
+    redirect(`${PORTAL_ESCOLAS_LOGIN_PATH}?status=not-configured`);
+  }
+
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    redirect(PORTAL_ESCOLAS_LOGIN_PATH);
+  }
+
+  const authorization = await readPortalAuthorization(supabase, user.id);
+
+  if (!authorization.allowed) {
+    redirect("/portal-escolas/modalidades?modalidade=sem-permissao");
+  }
+
+  const portalContextId = readFormText(formData, "portal_context_id");
+  const catalogCode = readOptionalText(formData, "catalog_code", 80);
+  const name = readOptionalText(formData, "name", 120);
+  const localCode = normalizeSlug(readFormText(formData, "local_code")).slice(0, 80) || null;
+  const notes = readOptionalText(formData, "notes", 400);
+  const slug = normalizeSlug(catalogCode ?? name ?? "");
+
+  if (!isUuid(portalContextId) || (!catalogCode && !name) || !slug) {
+    redirect("/portal-escolas/modalidades?modalidade=dados-invalidos");
+  }
+
+  const hasStructuralPermission = authorization.permissions.some(
+    (permission) =>
+      permission.status === "active" &&
+      permission.can_view &&
+      permission.can_create &&
+      permission.can_edit &&
+      !permission.portal_competition_id &&
+      (!permission.portal_context_id || permission.portal_context_id === portalContextId)
+  );
+
+  if (!hasStructuralPermission) {
+    redirect("/portal-escolas/modalidades?modalidade=sem-permissao");
+  }
+
+  const { error } = await supabase.rpc("portal_create_modality", {
+    p_portal_context_id: portalContextId,
+    p_catalog_code: catalogCode,
+    p_name: name,
+    p_slug: slug,
+    p_local_code: localCode,
+    p_status: "draft",
+    p_notes: notes
+  });
+
+  if (error) {
+    const errorCode = typeof error.code === "string" ? error.code : "";
+    const errorMessage = typeof error.message === "string" ? error.message.toLowerCase() : "";
+
+    if (errorCode === "23505" || errorMessage.includes("already")) {
+      redirect("/portal-escolas/modalidades?modalidade=duplicada");
+    }
+
+    if (errorCode === "42501") {
+      redirect("/portal-escolas/modalidades?modalidade=sem-permissao");
+    }
+
+    redirect("/portal-escolas/modalidades?modalidade=erro");
+  }
+
+  revalidatePath("/portal-escolas/modalidades");
+  redirect("/portal-escolas/modalidades?modalidade=criada");
+}
+
+export default async function PortalModalitiesPage({ searchParams }: ModalitiesPageProps) {
   const supabase = await createPortalEscolasServerClient();
 
   if (!supabase) {
@@ -333,7 +583,10 @@ export default async function PortalModalitiesPage() {
     );
   }
 
+  const resolvedSearchParams = await searchParams;
+  const createStatusMessage = getCreateStatusMessage(readSearchParam(resolvedSearchParams, "modalidade"));
   const data = await readPortalModalities(supabase, authorization);
+  const canCreateModalities = data.creationScopes.length > 0;
   const formalCount = data.modalities.filter((modality) => modality.source === "formal").length;
   const legacyCount = data.modalities.filter((modality) => modality.source === "legacy").length;
   const competitionCount = data.modalities.reduce((total, modality) => total + modality.competitionCount, 0);
@@ -365,6 +618,92 @@ export default async function PortalModalitiesPage() {
             <p>
               Algumas áreas de modalidades ainda não estão disponíveis para leitura nesta base de dados: {data.unavailableSections.map(formatUnavailableSection).join(", ")}.
             </p>
+          </section>
+        ) : null}
+
+        {canCreateModalities ? (
+          <section className="portal-modalities-section" aria-labelledby="portal-modalities-create-title">
+            <div className="portal-modalities-section-header">
+              <div>
+                <p className="portal-modalities-eyebrow">Criação auditada</p>
+                <h2 id="portal-modalities-create-title">Criar modalidade</h2>
+                <p className="portal-modalities-text">
+                  Cria uma modalidade formal no contexto autorizado. A modalidade fica em rascunho e a auditoria é registada automaticamente pela função SQL validada.
+                </p>
+              </div>
+              <span className="portal-modalities-tag">{formatCountLabel(data.creationScopes.length, "contexto disponível", "contextos disponíveis")}</span>
+            </div>
+
+            {createStatusMessage ? (
+              <div
+                className={`portal-modalities-feedback${createStatusMessage.kind === "error" ? " portal-modalities-feedback-error" : ""}`}
+                role="status"
+              >
+                {createStatusMessage.text}
+              </div>
+            ) : null}
+
+            <form action={createPortalModality} className="portal-modalities-form">
+              <div className="portal-modalities-form-grid">
+                <div className="portal-modalities-form-field">
+                  <label htmlFor="portal-modality-context">Contexto</label>
+                  <select id="portal-modality-context" name="portal_context_id" required>
+                    {data.creationScopes.map((scope) => (
+                      <option key={scope.key} value={scope.portalContextId}>
+                        {scope.entityLabel} · {scope.contextLabel}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="portal-modalities-form-field">
+                  <label htmlFor="portal-modality-catalog">Modalidade de catálogo</label>
+                  <select id="portal-modality-catalog" name="catalog_code">
+                    <option value="">Modalidade local/custom</option>
+                    {data.catalog.map((catalog) => (
+                      <option key={catalog.key} value={catalog.code}>
+                        {catalog.name} · {catalog.code}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="portal-modalities-form-help">Seleciona uma modalidade do catálogo ou deixa vazio para criar uma modalidade local.</span>
+                </div>
+
+                <div className="portal-modalities-form-field">
+                  <label htmlFor="portal-modality-name">Nome local</label>
+                  <input
+                    id="portal-modality-name"
+                    name="name"
+                    maxLength={120}
+                    placeholder="Ex.: Natação Adaptada"
+                  />
+                  <span className="portal-modalities-form-help">Obrigatório se não escolheres catálogo; opcional para adaptar o nome de uma modalidade do catálogo.</span>
+                </div>
+
+                <div className="portal-modalities-form-field">
+                  <label htmlFor="portal-modality-local-code">Código local</label>
+                  <input
+                    id="portal-modality-local-code"
+                    name="local_code"
+                    maxLength={80}
+                    placeholder="Ex.: natacao-adaptada"
+                  />
+                  <span className="portal-modalities-form-help">Opcional. Usado apenas como referência técnica local.</span>
+                </div>
+
+                <div className="portal-modalities-form-field portal-modalities-form-field-full">
+                  <label htmlFor="portal-modality-notes">Notas</label>
+                  <textarea
+                    id="portal-modality-notes"
+                    name="notes"
+                    maxLength={400}
+                    placeholder="Notas internas opcionais sobre esta modalidade."
+                  />
+                </div>
+              </div>
+
+              <button type="submit">Criar modalidade em rascunho</button>
+            </form>
           </section>
         ) : null}
 
