@@ -138,6 +138,7 @@ begin
       and p.can_create = true
       and p.can_edit = true
       and p.portal_entity_id = v_context.portal_entity_id
+      and p.portal_competition_id is null
       and (p.portal_context_id is null or p.portal_context_id = v_context.id)
   ) into v_has_permission;
 

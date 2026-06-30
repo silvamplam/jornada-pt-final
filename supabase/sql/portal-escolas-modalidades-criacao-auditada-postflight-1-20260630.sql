@@ -104,6 +104,22 @@ checks as (
   union all
 
   select
+    '03_function_body',
+    'contains_no_competition_scope_permission_guard',
+    'function_body',
+    case
+      when exists (
+        select 1
+        from function_defs
+        where function_definition ilike '%portal_competition_id is null%'
+      ) then 'ok'
+      else 'missing'
+    end,
+    'A criação de modalidade exige permissão estrutural ao nível entidade/contexto, sem escopo de competição.'::text
+
+  union all
+
+  select
     '04_grants',
     'portal_create_modality_authenticated_execute',
     'grant',
@@ -151,6 +167,11 @@ checks as (
         from function_defs
         where function_definition ilike '%can_create%'
           and function_definition ilike '%can_edit%'
+      ) then 'not_ok'
+      when not exists (
+        select 1
+        from function_defs
+        where function_definition ilike '%portal_competition_id is null%'
       ) then 'not_ok'
       else 'ok'
     end,
