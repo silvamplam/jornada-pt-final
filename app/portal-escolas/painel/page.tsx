@@ -277,6 +277,31 @@ const panelStyles = `
     text-transform: uppercase;
   }
 
+  .portal-panel-list-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  .portal-panel-action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 7px 10px;
+    border: 1px solid #0f6f8d;
+    border-radius: 8px;
+    background: #0f6f8d;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1.2;
+    text-decoration: none;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
   @media (max-width: 900px) {
     .portal-panel-grid,
     .portal-panel-scope-grid,
@@ -302,6 +327,10 @@ const panelStyles = `
 
     .portal-panel-hero {
       padding: 22px;
+    }
+
+    .portal-panel-list-actions {
+      align-items: flex-start;
     }
   }
 `;
@@ -534,7 +563,18 @@ export default async function PortalEscolasPainelPage() {
                     <strong>Leitura autorizada</strong>
                   </div>
                 </div>
-                <span className="portal-panel-tag">Leitura</span>
+                <div className="portal-panel-list-actions">
+                  <span className="portal-panel-tag">Leitura</span>
+                  {scope.competitionSlug ? (
+                    <a className="portal-panel-action-button" href={`/portal-escolas/competicoes/${scope.competitionSlug}`}>
+                      Abrir competição
+                    </a>
+                  ) : (
+                    <a className="portal-panel-action-button" href="/portal-escolas/competicoes">
+                      Ver competições
+                    </a>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
@@ -618,6 +658,45 @@ export default async function PortalEscolasPainelPage() {
               </div>
             </div>
           </div>
+        </section>
+
+        <section id="portal-panel-competitions" className="portal-panel-section" aria-labelledby="portal-panel-competitions-title">
+          <div className="portal-panel-section-header">
+            <div>
+              <p className="portal-panel-eyebrow">Percurso rápido</p>
+              <h2 id="portal-panel-competitions-title">As tuas competições</h2>
+              <p className="portal-panel-text">
+                Começa aqui para chegar aos eventos, resultados e classificação de cada competição associada ao teu âmbito ativo.
+              </p>
+            </div>
+            <span className="portal-panel-tag">{formatCountLabel(dashboard.counts.competitions, "competição", "competições")}</span>
+          </div>
+          {dashboard.competitions.length > 0 ? (
+            <ul className="portal-panel-list">
+              {dashboard.competitions.slice(0, 6).map((competition) => (
+                <li key={competition.id}>
+                  <div>
+                    <strong>{competition.name}</strong>
+                    <span>{competition.modality ? formatPanelLabel(competition.modality) : "Modalidade por definir"}</span>
+                    <span>Formato: {competition.format ? formatPanelLabel(competition.format) : "Formato por definir"}</span>
+                  </div>
+                  <div className="portal-panel-list-actions">
+                    <span className="portal-panel-tag">{formatPanelLabel(competition.status)}</span>
+                    {competition.slug ? (
+                      <a className="portal-panel-action-button" href={`/portal-escolas/competicoes/${competition.slug}`}>
+                        Abrir competição
+                      </a>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState message="Ainda não há competições disponíveis para os âmbitos autorizados." />
+          )}
+          <nav className="portal-panel-actions" aria-label="Navegação de competições">
+            <a href="/portal-escolas/competicoes">Ver todas as competições</a>
+          </nav>
         </section>
 
         <section id="portal-panel-participants" className="portal-panel-section" aria-labelledby="portal-panel-participants-title">

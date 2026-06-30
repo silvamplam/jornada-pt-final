@@ -111,7 +111,8 @@ const competitionsStyles = `
 
   .portal-competitions-actions a,
   .portal-competitions-button,
-  .portal-competitions-link-button {
+  .portal-competitions-link-button,
+  .portal-competitions-primary-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -128,7 +129,8 @@ const competitionsStyles = `
     cursor: pointer;
   }
 
-  .portal-competitions-button {
+  .portal-competitions-button,
+  .portal-competitions-primary-link {
     border-color: #0f6f8d;
     background: #0f6f8d;
     color: #ffffff;
@@ -270,7 +272,7 @@ const competitionsStyles = `
 
   .portal-competitions-table {
     width: 100%;
-    min-width: 860px;
+    min-width: 980px;
     border-collapse: collapse;
     background: #ffffff;
   }
@@ -586,7 +588,9 @@ export default async function PortalEscolasCompeticoesPage({ searchParams }: Com
           <div>
             <p className="portal-competitions-eyebrow">Portal das Escolas</p>
             <h1 id="portal-competitions-title">Competições</h1>
-            <p className="portal-competitions-text">Listagem read-only de competições disponíveis para os âmbitos autorizados.</p>
+            <p className="portal-competitions-text">
+              Escolhe a competição associada à tua entidade e contexto para abrir eventos, resultados e classificação/ranking num só detalhe.
+            </p>
           </div>
           <span className="portal-competitions-tag">{formatCountLabel(data.competitions.length, "competição", "competições")}</span>
         </section>
@@ -757,6 +761,7 @@ export default async function PortalEscolasCompeticoesPage({ searchParams }: Com
                     <th>Formato</th>
                     <th>Âmbito</th>
                     <th>Estado</th>
+                    <th>Ação</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -766,11 +771,6 @@ export default async function PortalEscolasCompeticoesPage({ searchParams }: Com
                         <div className="portal-competitions-title">
                           <strong>{competition.name}</strong>
                           <span>{competition.entityLabel}</span>
-                          {competition.slug ? (
-                            <a className="portal-competitions-modality-link" href={`/portal-escolas/competicoes/${competition.slug}`}>
-                              Abrir detalhe da competição
-                            </a>
-                          ) : null}
                         </div>
                       </td>
                       <td>{competition.contextLabel}</td>
@@ -787,6 +787,15 @@ export default async function PortalEscolasCompeticoesPage({ searchParams }: Com
                       <td className={competition.scope ? undefined : "portal-competitions-muted"}>{competition.scopeLabel}</td>
                       <td>
                         <span className="portal-competitions-tag">{competition.statusLabel}</span>
+                      </td>
+                      <td>
+                        {competition.slug ? (
+                          <a className="portal-competitions-primary-link" href={`/portal-escolas/competicoes/${competition.slug}`}>
+                            Abrir competição
+                          </a>
+                        ) : (
+                          <span className="portal-competitions-muted">Sem detalhe</span>
+                        )}
                       </td>
                     </tr>
                   ))}

@@ -119,6 +119,7 @@ export type PortalDashboardScope = {
   contextLabel: string;
   competitionId: string | null;
   competitionLabel: string;
+  competitionSlug: string | null;
 };
 
 export type PortalDashboardParticipant = {
@@ -354,7 +355,8 @@ function makeScopes(
       competitionId: permission.portal_competition_id,
       competitionLabel: permission.portal_competition_id
         ? competition?.name ?? permission.portal_competition_id
-        : "Todas as competicoes"
+        : "Todas as competições",
+      competitionSlug: competition?.slug ?? null
     };
   });
 }
