@@ -884,18 +884,12 @@ export default async function PortalCompetitionDetailPage({ params, searchParams
                   <div className="portal-competition-detail-format-list">
                     {competition.formats.map((format) => (
                       <article className="portal-competition-detail-format" key={format.key}>
-                        <span>{format.formatScopeLabel}</span>
+                        <span>Formato escolhido</span>
                         <strong>{format.name}</strong>
                         <div className="portal-competition-detail-meta">
                           <span className="portal-competition-detail-tag">{format.statusLabel}</span>
-                          {format.catalogCode ? <span className="portal-competition-detail-tag">catálogo: {format.catalogCode}</span> : null}
-                          <span className="portal-competition-detail-tag">código: {format.codeLabel}</span>
                         </div>
-                        <span>Catálogo</span>
-                        <strong>{format.catalogLabel}</strong>
-                        <span>Família</span>
-                        <strong>{format.formatFamilyLabel}</strong>
-                        <span>Evento · resultado · ranking</span>
+                        <span>Como será organizada</span>
                         <strong>{format.eventModelLabel} · {format.resultModelLabel} · {format.rankingModelLabel}</strong>
                       </article>
                     ))}
