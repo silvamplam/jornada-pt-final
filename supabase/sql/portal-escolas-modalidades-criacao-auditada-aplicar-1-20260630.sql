@@ -1,11 +1,17 @@
 -- PORTAL-ESCOLAS-MODALIDADES-CRIACAO-AUDITADA-1
--- Aplicar: cria função controlada para criação auditada de modalidades formais.
+-- Aplicar: cria/atualiza função controlada para criação auditada de modalidades formais.
+--
+-- Hotfix:
+-- - remove acesso a campos de record não atribuído quando p_catalog_code é null;
+-- - usa variáveis escalares de catálogo para suportar modalidades locais/custom;
+-- - preserva assinatura, retorno, autorização estrutural e auditoria.
 --
 -- Escopo:
--- - função nova public.portal_create_modality(...);
+-- - função public.portal_create_modality(...);
 -- - escrita em public.portal_modalities;
 -- - auditoria em public.portal_audit_events;
 -- - autorização por portal_user ativo + permissão ativa com can_view/can_create/can_edit;
+-- - permissão estrutural sem escopo de competição;
 -- - sem React;
 -- - sem /admin;
 -- - sem backoffice;
@@ -39,7 +45,9 @@ declare
   v_auth_user_id uuid := auth.uid();
   v_actor_portal_user_id uuid;
   v_context record;
-  v_catalog record;
+  v_catalog_id uuid := null;
+  v_catalog_code text := null;
+  v_catalog_name text := null;
   v_name text;
   v_slug text;
   v_local_code text := nullif(btrim(coalesce(p_local_code, '')), '');
@@ -92,20 +100,22 @@ begin
     select
       mc.id,
       mc.code,
-      mc.name,
-      mc.status
-    into v_catalog
+      mc.name
+    into
+      v_catalog_id,
+      v_catalog_code,
+      v_catalog_name
     from public.portal_modality_catalog mc
     where lower(mc.code) = lower(btrim(p_catalog_code))
       and mc.status = 'active'
     limit 1;
 
-    if not found then
+    if v_catalog_id is null then
       raise exception 'portal_catalog_modality_not_found_or_inactive' using errcode = 'P0002';
     end if;
   end if;
 
-  v_name := nullif(btrim(coalesce(p_name, v_catalog.name, '')), '');
+  v_name := nullif(btrim(coalesce(p_name, v_catalog_name, '')), '');
 
   if v_name is null then
     raise exception 'portal_modality_name_required' using errcode = '22023';
@@ -115,7 +125,7 @@ begin
     regexp_replace(
       coalesce(
         nullif(btrim(p_slug), ''),
-        nullif(btrim(v_catalog.code), ''),
+        nullif(btrim(v_catalog_code), ''),
         v_name
       ),
       '[^a-zA-Z0-9]+',
@@ -156,12 +166,12 @@ begin
     raise exception 'portal_modality_slug_already_exists' using errcode = '23505';
   end if;
 
-  if v_catalog.id is not null and exists (
+  if v_catalog_id is not null and exists (
     select 1
     from public.portal_modalities pm
     where pm.portal_entity_id = v_context.portal_entity_id
       and pm.portal_context_id = v_context.id
-      and pm.catalog_modality_id = v_catalog.id
+      and pm.catalog_modality_id = v_catalog_id
   ) then
     raise exception 'portal_catalog_modality_already_active_in_context' using errcode = '23505';
   end if;
@@ -179,7 +189,7 @@ begin
   ) values (
     v_context.portal_entity_id,
     v_context.id,
-    v_catalog.id,
+    v_catalog_id,
     v_name,
     v_slug,
     v_local_code,
@@ -190,7 +200,7 @@ begin
       'source', 'portal_create_modality',
       'created_by_auth_user_id', v_auth_user_id,
       'created_by_portal_user_id', v_actor_portal_user_id,
-      'catalog_code', v_catalog.code,
+      'catalog_code', v_catalog_code,
       'created_at', now()
     )
   )
@@ -223,8 +233,8 @@ begin
       'phase', 'PORTAL-ESCOLAS-MODALIDADES-CRIACAO-AUDITADA-1',
       'source_function', 'portal_create_modality',
       'portal_context_id', v_context.id,
-      'catalog_modality_id', v_catalog.id,
-      'catalog_code', v_catalog.code,
+      'catalog_modality_id', v_catalog_id,
+      'catalog_code', v_catalog_code,
       'new', jsonb_build_object(
         'name', v_name,
         'slug', v_slug,
@@ -253,6 +263,6 @@ revoke all on function public.portal_create_modality(uuid, text, text, text, tex
 grant execute on function public.portal_create_modality(uuid, text, text, text, text, text, text) to authenticated;
 
 comment on function public.portal_create_modality(uuid, text, text, text, text, text, text)
-is 'Controlled Portal das Escolas function to create a formal modality in an authorized entity/context scope. Requires active portal_user and active can_view/can_create/can_edit permission. Each creation is audited in portal_audit_events.';
+is 'Controlled Portal das Escolas function to create a formal modality in an authorized entity/context scope. Requires active portal_user and active can_view/can_create/can_edit structural permission. Each creation is audited in portal_audit_events.';
 
 commit;

@@ -1,7 +1,7 @@
 -- PORTAL-ESCOLAS-MODALIDADES-CRIACAO-AUDITADA-1
 -- Postflight read-only.
 -- Confirma que a função de criação auditada de modalidades foi criada
--- com assinatura, grant e auditoria esperados.
+-- com assinatura, grant, auditoria, permissão estrutural e suporte a modalidade local/custom.
 
 with function_defs as (
   select
@@ -120,6 +120,25 @@ checks as (
   union all
 
   select
+    '03_function_body',
+    'supports_local_modality_without_catalog_record',
+    'function_body',
+    case
+      when exists (
+        select 1
+        from function_defs
+        where function_definition ilike '%v_catalog_id uuid := null%'
+          and function_definition ilike '%v_catalog_code text := null%'
+          and function_definition ilike '%v_catalog_name text := null%'
+          and function_definition not ilike '%v_catalog.%'
+      ) then 'ok'
+      else 'not_ok'
+    end,
+    'Evita acesso a fields de record não atribuído quando p_catalog_code é null.'::text
+
+  union all
+
+  select
     '04_grants',
     'portal_create_modality_authenticated_execute',
     'grant',
@@ -173,12 +192,21 @@ checks as (
         from function_defs
         where function_definition ilike '%portal_competition_id is null%'
       ) then 'not_ok'
+      when not exists (
+        select 1
+        from function_defs
+        where function_definition ilike '%v_catalog_id uuid := null%'
+          and function_definition ilike '%v_catalog_code text := null%'
+          and function_definition ilike '%v_catalog_name text := null%'
+          and function_definition not ilike '%v_catalog.%'
+      ) then 'not_ok'
       else 'ok'
     end,
     jsonb_build_object(
       'strategy', 'authenticated_rpc_for_modalities',
       'react_changes_needed_now', false,
       'audit_enabled', true,
+      'local_custom_modality_supported', true,
       'next_ui_phase_can_call_function', true
     )::text
 )
