@@ -82,6 +82,11 @@ type PortalCompetitionFormatCatalogRow = RowWithId & {
   status: string;
 };
 
+export type PortalCompetitionFormatCatalogOption = {
+  id: string;
+  name: string;
+};
+
 type PortalStageRow = RowWithId & {
   portal_entity_id: string;
   portal_context_id: string;
@@ -249,8 +254,13 @@ export type PortalCompetitionDetailRanking = {
 
 export type PortalCompetitionDetailRecord = {
   key: string;
+  id: string;
+  portalEntityId: string;
+  portalContextId: string;
+  portalModalityId: string | null;
   name: string;
   slug: string | null;
+  status: string;
   entityLabel: string;
   contextLabel: string;
   statusLabel: string;
@@ -281,6 +291,7 @@ export type PortalCompetitionDetailRecord = {
 export type PortalCompetitionDetailData = {
   competitions: PortalCompetitionDetailRecord[];
   scopes: PortalCompetitionDetailScope[];
+  formatCatalogOptions: PortalCompetitionFormatCatalogOption[];
   unavailableSections: string[];
 };
 
@@ -556,6 +567,31 @@ async function readFormatCatalog(supabase: SupabaseClient, formats: PortalCompet
       }
     }
   );
+}
+
+async function readActiveFormatCatalog(supabase: SupabaseClient) {
+  return readRows<PortalCompetitionFormatCatalogRow>(
+    supabase,
+    "portal_competition_format_catalog",
+    "id,code,name,format_family,default_event_model,default_result_model,default_ranking_model,status",
+    {
+      sectionLabel: "catálogo de formatos",
+      limit: LOOKUP_LIMIT,
+      apply(query) {
+        return query.eq("status", "active").order("name", { ascending: true });
+      }
+    }
+  );
+}
+
+function makeFormatCatalogOptions(catalogRows: PortalCompetitionFormatCatalogRow[]): PortalCompetitionFormatCatalogOption[] {
+  return sortByLabel(
+    catalogRows.filter((row) => row.status === "active"),
+    (row) => row.name
+  ).map((row) => ({
+    id: row.id,
+    name: row.name
+  }));
 }
 
 async function readEvents(supabase: SupabaseClient, competitionIds: string[]) {
@@ -902,8 +938,13 @@ function makeCompetitionDetails(
 
     return {
       key: competition.id,
+      id: competition.id,
+      portalEntityId: competition.portal_entity_id,
+      portalContextId: competition.portal_context_id,
+      portalModalityId: competition.portal_modality_id,
       name: competition.name,
       slug: competition.slug,
+      status: competition.status,
       entityLabel: entitiesById.get(competition.portal_entity_id)?.name ?? "Entidade autorizada",
       contextLabel: contextsById.get(competition.portal_context_id)?.label ?? "Contexto autorizado",
       statusLabel: formatLabel(competition.status),
@@ -978,6 +1019,7 @@ export async function readPortalCompetitionDetail(
     return {
       competitions: [],
       scopes: makeScopes(permissions, entitiesResult.rows, contextsResult.rows, visibleCompetitions),
+      formatCatalogOptions: [],
       unavailableSections: Array.from(unavailableSections).sort((first, second) => first.localeCompare(second, "pt"))
     };
   }
@@ -995,12 +1037,13 @@ export async function readPortalCompetitionDetail(
     }
   });
 
-  const [modalityCatalogResult, formatCatalogResult] = await Promise.all([
+  const [modalityCatalogResult, formatCatalogResult, activeFormatCatalogResult] = await Promise.all([
     readModalityCatalog(supabase, formalModalitiesResult.rows),
-    readFormatCatalog(supabase, formatsResult.rows)
+    readFormatCatalog(supabase, formatsResult.rows),
+    readActiveFormatCatalog(supabase)
   ]);
 
-  [modalityCatalogResult, formatCatalogResult].forEach((result) => {
+  [modalityCatalogResult, formatCatalogResult, activeFormatCatalogResult].forEach((result) => {
     if (result.unavailableSection) {
       unavailableSections.add(result.unavailableSection);
     }
@@ -1051,6 +1094,7 @@ export async function readPortalCompetitionDetail(
       participantsResult.rows
     ),
     scopes: makeScopes(permissions, entitiesResult.rows, contextsResult.rows, visibleCompetitions),
+    formatCatalogOptions: makeFormatCatalogOptions(activeFormatCatalogResult.rows),
     unavailableSections: Array.from(unavailableSections).sort((first, second) => first.localeCompare(second, "pt"))
   };
 }

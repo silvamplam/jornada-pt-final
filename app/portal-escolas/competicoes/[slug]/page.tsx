@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   PORTAL_ESCOLAS_LOGIN_PATH,
@@ -6,11 +7,15 @@ import {
   readPortalAuthorization
 } from "@/lib/portal-escolas/auth";
 import { readPortalCompetitionDetail } from "@/lib/portal-escolas/readPortalCompetitionDetail";
+import { PortalCompetitionFormatCreateForm } from "./PortalCompetitionFormatCreateForm";
 import { PortalEscolasInternalNav } from "../../_components/PortalEscolasInternalNav";
 
 type PageProps = {
   params: Promise<{
     slug: string;
+  }>;
+  searchParams?: Promise<{
+    formato?: string | string[];
   }>;
 };
 
@@ -322,6 +327,95 @@ const competitionDetailStyles = `
     line-height: 1.5;
   }
 
+
+  .portal-competition-format-create-form {
+    display: grid;
+    gap: 14px;
+    margin-top: 14px;
+    padding: 16px;
+    border: 1px solid #dbe7ef;
+    border-radius: 8px;
+    background: #f8fbfd;
+  }
+
+  .portal-competition-format-create-state {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .portal-competition-format-create-field {
+    display: grid;
+    gap: 6px;
+  }
+
+  .portal-competition-format-create-field label {
+    color: #526274;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .portal-competition-format-create-field input,
+  .portal-competition-format-create-field select {
+    min-height: 42px;
+    border: 1px solid #cbdce7;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #102033;
+    font: inherit;
+    padding: 10px 12px;
+  }
+
+  .portal-competition-format-create-field input[readonly] {
+    background: #eef3f8;
+    color: #526274;
+  }
+
+  .portal-competition-format-create-field span {
+    color: #526274;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .portal-competition-format-create-form button {
+    justify-self: start;
+    min-height: 40px;
+    border: 0;
+    border-radius: 8px;
+    background: #0f6f8d;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 900;
+    padding: 10px 16px;
+    text-transform: uppercase;
+  }
+
+  .portal-competition-format-create-form button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .portal-competition-detail-feedback {
+    margin: 0 0 14px;
+    padding: 12px;
+    border: 1px solid #bcd7df;
+    border-radius: 8px;
+    background: #e7f4f8;
+    color: #0f6478;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+
+  .portal-competition-detail-feedback-error {
+    border-color: #efb7b7;
+    background: #fff1f1;
+    color: #9b1c1c;
+  }
+
   @media (max-width: 980px) {
     .portal-competition-detail-shell {
       padding: 18px;
@@ -393,8 +487,149 @@ function formatUnavailableSection(section: string) {
   return labels[section] ?? section;
 }
 
-export default async function PortalCompetitionDetailPage({ params }: PageProps) {
+function readFormText(formData: FormData, key: string) {
+  const value = formData.get(key);
+
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function readSearchParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+
+  return value ?? null;
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+function getCreateFormatStatusMessage(status: string | null) {
+  const messages: Record<string, { kind: "success" | "error"; text: string }> = {
+    criado: { kind: "success", text: "Formato competitivo definido em rascunho para esta competição." },
+    duplicado: { kind: "error", text: "Esta competição já tem um formato competitivo definido neste âmbito." },
+    "dados-invalidos": { kind: "error", text: "Não foi possível definir o formato: confirma a opção escolhida." },
+    "sem-permissao": { kind: "error", text: "Não tens permissão ativa para definir o formato desta competição." },
+    erro: { kind: "error", text: "Não foi possível definir o formato. Tenta novamente ou valida a configuração da fase SQL." }
+  };
+
+  return status ? messages[status] ?? null : null;
+}
+
+function canCreateFormatForCompetition(
+  permissions: {
+    portal_entity_id: string;
+    portal_context_id: string | null;
+    portal_competition_id: string | null;
+    can_view: boolean;
+    can_create: boolean;
+    can_edit: boolean;
+    status: string;
+  }[],
+  portalEntityId: string,
+  portalContextId: string,
+  portalCompetitionId: string
+) {
+  return permissions.some(
+    (permission) =>
+      permission.status === "active" &&
+      permission.can_view &&
+      permission.can_create &&
+      permission.can_edit &&
+      permission.portal_entity_id === portalEntityId &&
+      (!permission.portal_context_id || permission.portal_context_id === portalContextId) &&
+      (!permission.portal_competition_id || permission.portal_competition_id === portalCompetitionId)
+  );
+}
+
+async function createPortalCompetitionFormat(formData: FormData) {
+  "use server";
+
+  const supabase = await createPortalEscolasServerClient();
+
+  if (!supabase) {
+    redirect(`${PORTAL_ESCOLAS_LOGIN_PATH}?status=not-configured`);
+  }
+
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    redirect(PORTAL_ESCOLAS_LOGIN_PATH);
+  }
+
+  const authorization = await readPortalAuthorization(supabase, user.id);
+
+  if (!authorization.allowed) {
+    redirect("/portal-escolas/competicoes?formato=sem-permissao");
+  }
+
+  const portalCompetitionId = readFormText(formData, "portal_competition_id");
+  const competitionSlug = readFormText(formData, "competition_slug");
+  const catalogFormatId = readFormText(formData, "catalog_format_id");
+
+  if (!isUuid(portalCompetitionId) || !isUuid(catalogFormatId) || !competitionSlug) {
+    redirect(`/portal-escolas/competicoes/${competitionSlug || "competicao-teste-ui"}?formato=dados-invalidos`);
+  }
+
+  const data = await readPortalCompetitionDetail(supabase, authorization, competitionSlug);
+  const competition = data.competitions.find((item) => item.id === portalCompetitionId && item.slug === competitionSlug);
+
+  if (!competition || competition.formats.length > 0) {
+    redirect(`/portal-escolas/competicoes/${competitionSlug}?formato=duplicado`);
+  }
+
+  if (
+    !canCreateFormatForCompetition(
+      authorization.permissions,
+      competition.portalEntityId,
+      competition.portalContextId,
+      competition.id
+    )
+  ) {
+    redirect(`/portal-escolas/competicoes/${competitionSlug}?formato=sem-permissao`);
+  }
+
+  const { error } = await supabase.rpc("portal_create_competition_format", {
+    p_portal_competition_id: portalCompetitionId,
+    p_catalog_format_id: catalogFormatId,
+    p_name: null,
+    p_code: null,
+    p_format_scope: "competition",
+    p_format_family: null,
+    p_event_model: null,
+    p_result_model: null,
+    p_ranking_model: null,
+    p_notes: null,
+    p_status: "draft"
+  });
+
+  if (error) {
+    const errorCode = typeof error.code === "string" ? error.code : "";
+    const errorMessage = typeof error.message === "string" ? error.message.toLowerCase() : "";
+
+    if (errorCode === "23505" || errorMessage.includes("already")) {
+      redirect(`/portal-escolas/competicoes/${competitionSlug}?formato=duplicado`);
+    }
+
+    if (errorCode === "42501") {
+      redirect(`/portal-escolas/competicoes/${competitionSlug}?formato=sem-permissao`);
+    }
+
+    redirect(`/portal-escolas/competicoes/${competitionSlug}?formato=erro`);
+  }
+
+  revalidatePath(`/portal-escolas/competicoes/${competitionSlug}`);
+  revalidatePath("/portal-escolas/competicoes");
+  redirect(`/portal-escolas/competicoes/${competitionSlug}?formato=criado`);
+}
+
+export default async function PortalCompetitionDetailPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
   const safeSlug = decodeURIComponent(slug ?? "").trim();
   const supabase = await createPortalEscolasServerClient();
 
@@ -439,6 +674,7 @@ export default async function PortalCompetitionDetailPage({ params }: PageProps)
   const stageCount = data.competitions.reduce((total, competition) => total + competition.summary.stageCount, 0);
   const eventCount = data.competitions.reduce((total, competition) => total + competition.summary.eventCount, 0);
   const rankingCount = data.competitions.reduce((total, competition) => total + competition.summary.rankingCount, 0);
+  const createFormatStatusMessage = getCreateFormatStatusMessage(readSearchParam(resolvedSearchParams?.formato));
 
   return (
     <main className="portal-competition-detail-shell">
@@ -590,6 +826,47 @@ export default async function PortalCompetitionDetailPage({ params }: PageProps)
                   </article>
                 </div>
               </section>
+
+              {createFormatStatusMessage ? (
+                <p
+                  className={`portal-competition-detail-feedback${
+                    createFormatStatusMessage.kind === "error" ? " portal-competition-detail-feedback-error" : ""
+                  }`}
+                >
+                  {createFormatStatusMessage.text}
+                </p>
+              ) : null}
+
+              {competition.formats.length === 0 &&
+              competition.status === "draft" &&
+              competition.slug &&
+              canCreateFormatForCompetition(
+                authorization.permissions,
+                competition.portalEntityId,
+                competition.portalContextId,
+                competition.id
+              ) ? (
+                <section className="portal-competition-detail-section" aria-labelledby={`portal-competition-create-format-${competition.key}`}>
+                  <div className="portal-competition-detail-section-header">
+                    <div>
+                      <p className="portal-competition-detail-eyebrow">Próximo passo</p>
+                      <h3 id={`portal-competition-create-format-${competition.key}`}>Definir formato competitivo</h3>
+                      <p className="portal-competition-detail-text">
+                        Escolhe a mecânica da competição. O Portal preenche os campos técnicos por baixo e mantém tudo em rascunho até validação futura de gatekeeper.
+                      </p>
+                    </div>
+                    <span className="portal-competition-detail-tag">Competição → formato</span>
+                  </div>
+
+                  <PortalCompetitionFormatCreateForm
+                    action={createPortalCompetitionFormat}
+                    portalCompetitionId={competition.id}
+                    competitionSlug={competition.slug}
+                    competitionName={competition.name}
+                    formatOptions={data.formatCatalogOptions}
+                  />
+                </section>
+              ) : null}
 
               <section className="portal-competition-detail-section" aria-labelledby={`portal-competition-formats-${competition.key}`}>
                 <div className="portal-competition-detail-section-header">
