@@ -82,6 +82,14 @@ export type PortalModalityScope = {
   competitionLabel: string;
 };
 
+export type PortalModalityCreationScope = {
+  key: string;
+  portalEntityId: string;
+  portalContextId: string;
+  entityLabel: string;
+  contextLabel: string;
+};
+
 export type PortalModalityCompetitionRecord = {
   key: string;
   name: string;
@@ -126,6 +134,7 @@ export type PortalModalitiesData = {
   modalities: PortalModalityRecord[];
   catalog: PortalModalityCatalogRecord[];
   scopes: PortalModalityScope[];
+  creationScopes: PortalModalityCreationScope[];
   unavailableSections: string[];
 };
 
@@ -335,6 +344,47 @@ function makeScopes(
       competitionLabel: permission.portal_competition_id ? competition?.name ?? "Competição autorizada" : "Todas as competições"
     };
   });
+}
+
+function makeCreationScopes(
+  permissions: PortalPermissionRow[],
+  entities: PortalModalityEntityRow[],
+  contexts: PortalModalityContextRow[]
+): PortalModalityCreationScope[] {
+  const entitiesById = indexById(entities);
+  const contextsById = indexById(contexts);
+  const scopesByContextId = new Map<string, PortalModalityCreationScope>();
+
+  permissions.forEach((permission) => {
+    if (
+      !permission.can_view ||
+      !permission.can_create ||
+      !permission.can_edit ||
+      permission.status !== "active" ||
+      permission.portal_competition_id ||
+      !permission.portal_context_id
+    ) {
+      return;
+    }
+
+    if (scopesByContextId.has(permission.portal_context_id)) {
+      return;
+    }
+
+    scopesByContextId.set(permission.portal_context_id, {
+      key: permission.id,
+      portalEntityId: permission.portal_entity_id,
+      portalContextId: permission.portal_context_id,
+      entityLabel: entitiesById.get(permission.portal_entity_id)?.name ?? "Entidade autorizada",
+      contextLabel: contextsById.get(permission.portal_context_id)?.label ?? "Contexto autorizado"
+    });
+  });
+
+  return Array.from(scopesByContextId.values()).sort(
+    (first, second) =>
+      first.entityLabel.localeCompare(second.entityLabel, "pt") ||
+      first.contextLabel.localeCompare(second.contextLabel, "pt")
+  );
 }
 
 function makeCompetitionRecord(competition: PortalCompetitionRow, formatsByCompetitionId: Map<string, PortalCompetitionFormatRow[]>) {
@@ -596,6 +646,7 @@ export async function readPortalModalities(
     modalities: makeModalities(modalitiesResult.rows, catalog, competitions, formatsResult.rows, entities, contexts),
     catalog: makeCatalog(catalog),
     scopes: makeScopes(permissions, entities, contexts, competitions),
+    creationScopes: makeCreationScopes(permissions, entities, contexts),
     unavailableSections: Array.from(unavailableSections).sort((first, second) => first.localeCompare(second, "pt"))
   };
 }
