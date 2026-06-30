@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   PORTAL_ESCOLAS_LOGIN_PATH,
@@ -6,11 +7,15 @@ import {
   readPortalAuthorization
 } from "@/lib/portal-escolas/auth";
 import { readPortalModalities } from "@/lib/portal-escolas/readPortalModalities";
+import { PortalCompetitionCreateForm } from "./PortalCompetitionCreateForm";
 import { PortalEscolasInternalNav } from "../../_components/PortalEscolasInternalNav";
 
 type PageProps = {
   params: Promise<{
     slug: string;
+  }>;
+  searchParams?: Promise<{
+    competicao?: string | string[];
   }>;
 };
 
@@ -156,7 +161,8 @@ const modalityDetailStyles = `
 
   .portal-modality-detail-summary-grid,
   .portal-modality-detail-competition-list,
-  .portal-modality-detail-component-list {
+  .portal-modality-detail-component-list,
+  .portal-competition-create-grid {
     display: grid;
     gap: 12px;
     margin: 0;
@@ -170,7 +176,8 @@ const modalityDetailStyles = `
 
   .portal-modality-detail-summary-card,
   .portal-modality-detail-competition,
-  .portal-modality-detail-component {
+  .portal-modality-detail-component,
+  .portal-competition-create-form {
     min-width: 0;
     border: 1px solid #dbe7ef;
     border-radius: 8px;
@@ -207,6 +214,95 @@ const modalityDetailStyles = `
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .portal-competition-create-form {
+    display: grid;
+    gap: 14px;
+  }
+
+  .portal-competition-create-state {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .portal-competition-create-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .portal-competition-create-field {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .portal-competition-create-field-full {
+    grid-column: 1 / -1;
+  }
+
+  .portal-competition-create-field label {
+    color: #526274;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .portal-competition-create-field input {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 40px;
+    border: 1px solid #cbdce7;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #102033;
+    font: inherit;
+    padding: 9px 10px;
+  }
+
+  .portal-competition-create-field input[readonly] {
+    background: #edf4f8;
+    color: #526274;
+  }
+
+  .portal-competition-create-field span {
+    color: #526274;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .portal-competition-create-form button {
+    justify-self: start;
+    min-height: 40px;
+    border: 0;
+    border-radius: 8px;
+    background: #0f6f8d;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    padding: 10px 14px;
+    text-transform: uppercase;
+  }
+
+  .portal-modality-detail-feedback {
+    margin: 0 0 14px;
+    border: 1px solid #bcd7df;
+    border-radius: 8px;
+    background: #e7f4f8;
+    color: #0f6478;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.4;
+    padding: 12px 14px;
+  }
+
+  .portal-modality-detail-feedback-error {
+    border-color: #f1c2c2;
+    background: #fff1f1;
+    color: #9a3412;
+  }
+
   .portal-modality-detail-empty {
     margin: 0;
     padding: 14px;
@@ -225,8 +321,13 @@ const modalityDetailStyles = `
     }
 
     .portal-modality-detail-summary-grid,
-    .portal-modality-detail-component-list {
+    .portal-modality-detail-component-list,
+    .portal-competition-create-grid {
       grid-template-columns: 1fr;
+    }
+
+    .portal-competition-create-field-full {
+      grid-column: auto;
     }
   }
 `;
@@ -248,8 +349,158 @@ function formatUnavailableSection(section: string) {
   return labels[section] ?? section;
 }
 
-export default async function PortalModalityDetailPage({ params }: PageProps) {
+function readFormText(formData: FormData, key: string) {
+  const value = formData.get(key);
+
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function readSearchParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+
+  return value ?? null;
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+function normalizeSlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120);
+}
+
+function readOptionalText(formData: FormData, key: string, maxLength: number) {
+  const value = readFormText(formData, key).slice(0, maxLength);
+
+  return value || null;
+}
+
+function getCreateCompetitionStatusMessage(status: string | null) {
+  const messages: Record<string, { kind: "success" | "error"; text: string }> = {
+    criada: { kind: "success", text: "Competição criada em rascunho e associada a esta modalidade." },
+    duplicada: { kind: "error", text: "Já existe uma competição com esse identificador neste contexto." },
+    "dados-invalidos": { kind: "error", text: "Não foi possível criar a competição: confirma nome e identificador." },
+    "sem-permissao": { kind: "error", text: "Não tens permissão estrutural ativa para criar competições neste contexto." },
+    erro: { kind: "error", text: "Não foi possível criar a competição. Tenta novamente ou valida a configuração da fase SQL." }
+  };
+
+  return status ? messages[status] ?? null : null;
+}
+
+function canCreateCompetitionForModality(
+  permissions: {
+    portal_entity_id: string;
+    portal_context_id: string | null;
+    portal_competition_id: string | null;
+    can_view: boolean;
+    can_create: boolean;
+    can_edit: boolean;
+    status: string;
+  }[],
+  portalEntityId: string,
+  portalContextId: string
+) {
+  return permissions.some(
+    (permission) =>
+      permission.status === "active" &&
+      permission.can_view &&
+      permission.can_create &&
+      permission.can_edit &&
+      !permission.portal_competition_id &&
+      permission.portal_entity_id === portalEntityId &&
+      (!permission.portal_context_id || permission.portal_context_id === portalContextId)
+  );
+}
+
+async function createPortalCompetition(formData: FormData) {
+  "use server";
+
+  const supabase = await createPortalEscolasServerClient();
+
+  if (!supabase) {
+    redirect(`${PORTAL_ESCOLAS_LOGIN_PATH}?status=not-configured`);
+  }
+
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    redirect(PORTAL_ESCOLAS_LOGIN_PATH);
+  }
+
+  const authorization = await readPortalAuthorization(supabase, user.id);
+
+  if (!authorization.allowed) {
+    redirect("/portal-escolas/modalidades?modalidade=sem-permissao");
+  }
+
+  const portalModalityId = readFormText(formData, "portal_modality_id");
+  const modalitySlug = normalizeSlug(readFormText(formData, "modality_slug"));
+  const name = readOptionalText(formData, "name", 120);
+  const slug = normalizeSlug(readFormText(formData, "slug"));
+  const scope = readOptionalText(formData, "scope", 80);
+  const format = readOptionalText(formData, "format", 120);
+
+  if (!isUuid(portalModalityId) || !name || !slug || !modalitySlug) {
+    redirect(`/portal-escolas/modalidades/${modalitySlug || "multidesporto"}?competicao=dados-invalidos`);
+  }
+
+  const data = await readPortalModalities(supabase, authorization);
+  const modality = data.modalities.find(
+    (item) => item.source === "formal" && item.portalModalityId === portalModalityId && item.slug === modalitySlug
+  );
+
+  if (!modality) {
+    redirect(`/portal-escolas/modalidades/${modalitySlug}?competicao=sem-permissao`);
+  }
+
+  if (!canCreateCompetitionForModality(authorization.permissions, modality.portalEntityId, modality.portalContextId)) {
+    redirect(`/portal-escolas/modalidades/${modalitySlug}?competicao=sem-permissao`);
+  }
+
+  const { error } = await supabase.rpc("portal_create_competition", {
+    p_portal_modality_id: portalModalityId,
+    p_name: name,
+    p_slug: slug,
+    p_scope: scope,
+    p_format: format,
+    p_status: "draft"
+  });
+
+  if (error) {
+    const errorCode = typeof error.code === "string" ? error.code : "";
+    const errorMessage = typeof error.message === "string" ? error.message.toLowerCase() : "";
+
+    if (errorCode === "23505" || errorMessage.includes("already")) {
+      redirect(`/portal-escolas/modalidades/${modalitySlug}?competicao=duplicada`);
+    }
+
+    if (errorCode === "42501") {
+      redirect(`/portal-escolas/modalidades/${modalitySlug}?competicao=sem-permissao`);
+    }
+
+    redirect(`/portal-escolas/modalidades/${modalitySlug}?competicao=erro`);
+  }
+
+  revalidatePath(`/portal-escolas/modalidades/${modalitySlug}`);
+  revalidatePath("/portal-escolas/modalidades");
+  redirect(`/portal-escolas/modalidades/${modalitySlug}?competicao=criada`);
+}
+
+export default async function PortalModalityDetailPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
   const safeSlug = decodeURIComponent(slug ?? "").trim();
   const supabase = await createPortalEscolasServerClient();
 
@@ -293,6 +544,13 @@ export default async function PortalModalityDetailPage({ params }: PageProps) {
   const mainModality = matchingModalities[0] ?? null;
   const competitionCount = matchingModalities.reduce((total, modality) => total + modality.competitionCount, 0);
   const componentLabels = Array.from(new Set(matchingModalities.flatMap((modality) => modality.componentLabels)));
+  const createCompetitionStatusMessage = getCreateCompetitionStatusMessage(readSearchParam(resolvedSearchParams?.competicao));
+  const canCreateCompetition = Boolean(
+    mainModality?.source === "formal" &&
+      mainModality.portalModalityId &&
+      mainModality.slug &&
+      canCreateCompetitionForModality(authorization.permissions, mainModality.portalEntityId, mainModality.portalContextId)
+  );
 
   return (
     <main className="portal-modality-detail-shell">
@@ -404,6 +662,43 @@ export default async function PortalModalityDetailPage({ params }: PageProps) {
                 </div>
               ) : (
                 <p className="portal-modality-detail-empty">Ainda não existem componentes competitivos formais disponíveis para esta modalidade.</p>
+              )}
+            </section>
+
+            <section className="portal-modality-detail-section" aria-labelledby="portal-modality-detail-next-step-title">
+              <div className="portal-modality-detail-section-header">
+                <div>
+                  <p className="portal-modality-detail-eyebrow">Próximo passo</p>
+                  <h2 id="portal-modality-detail-next-step-title">Criar competição nesta modalidade</h2>
+                  <p className="portal-modality-detail-text">
+                    A competição nasce em rascunho, fica ligada a esta modalidade e só poderá ser publicada numa fase futura de gatekeeper.
+                  </p>
+                </div>
+                <span className="portal-modality-detail-tag">Modalidade → competição</span>
+              </div>
+
+              {createCompetitionStatusMessage ? (
+                <div
+                  className={`portal-modality-detail-feedback${
+                    createCompetitionStatusMessage.kind === "error" ? " portal-modality-detail-feedback-error" : ""
+                  }`}
+                  role="status"
+                >
+                  {createCompetitionStatusMessage.text}
+                </div>
+              ) : null}
+
+              {canCreateCompetition && mainModality.portalModalityId && mainModality.slug ? (
+                <PortalCompetitionCreateForm
+                  action={createPortalCompetition}
+                  portalModalityId={mainModality.portalModalityId}
+                  modalitySlug={mainModality.slug}
+                  modalityName={mainModality.name}
+                />
+              ) : (
+                <p className="portal-modality-detail-empty">
+                  A criação de competição só fica disponível em modalidades formais com permissão estrutural ativa de criação/edição no contexto.
+                </p>
               )}
             </section>
 

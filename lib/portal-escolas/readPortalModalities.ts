@@ -102,6 +102,9 @@ export type PortalModalityCompetitionRecord = {
 
 export type PortalModalityRecord = {
   key: string;
+  portalModalityId: string | null;
+  portalEntityId: string;
+  portalContextId: string;
   name: string;
   slug: string | null;
   localCode: string | null;
@@ -537,6 +540,9 @@ function makeModalities(
 
     return {
       key: modality.id,
+      portalModalityId: modality.id,
+      portalEntityId: modality.portal_entity_id,
+      portalContextId: modality.portal_context_id,
       name: modality.name,
       slug: modality.slug,
       localCode: modality.local_code,
@@ -577,6 +583,9 @@ function makeModalities(
 
     return {
       key: `legacy-${groupKey}`,
+      portalModalityId: null,
+      portalEntityId: firstCompetition?.portal_entity_id ?? "",
+      portalContextId: firstCompetition?.portal_context_id ?? "",
       name: modalityLabel,
       slug: normalizeKey(modalityLabel) || null,
       localCode: null,
